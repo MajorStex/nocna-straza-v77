@@ -258,8 +258,9 @@ function renderLang(){lang=language();for(const node of document.querySelectorAl
  const a=el('ns82-action');if(a)a.textContent=el('ns82-confirm-wrap').hidden?tr('SIGN IN','PRIJAVI SE'):tr('CREATE ACCOUNT','NAPRAVI NALOG');
  const pass=el('ns82-password');if(pass)pass.placeholder=tr('Password (8+ characters)','Lozinka (8+ karaktera)');
 }
-function openAccount(){setVisible(true);el('ns82-login-form').hidden=!!currentUser;el('ns82-account').hidden=!currentUser;
+function openAccount(){setVisible(true);el('ns82-login-form').hidden=!configured||!!currentUser;el('ns82-account').hidden=!currentUser;
  el('ns82-guest').hidden=!!currentUser;el('ns82-guest-export').hidden=!!currentUser;
+ if(el('ns83-backup-details'))el('ns83-backup-details').hidden=!!currentUser;
  if(currentUser)el('ns82-who').textContent=currentUser.email||tr('Google account','Google nalog');
  renderLang();}
 function attach(){
@@ -287,8 +288,21 @@ function attach(){
 }
 async function begin(){
  attach();
- if(!configured){status(tr('Cloud login requires setup','Cloud prijava zahteva podešavanje'),'error');setMessage(tr('Owner setup needed: Firebase config + Auth providers + Firestore rules. Until then only local play is available.','Potrebno podešavanje vlasnika: Firebase konfiguracija, prijava i Firestore pravila. Do tada radi samo lokalno igranje.'),'error');
-  el('ns82-login-form').hidden=true;el('ns82-config').hidden=false;setVisible(true);return}
+ if(!configured){
+  // Never show non-functional sign-in fields before the owner connects Firebase.
+  el('ns82-login-form').hidden=true;
+  el('ns82-login-form').style.setProperty('display','none','important');
+  el('ns82-account').hidden=true;
+  el('ns82-config').hidden=false;
+  el('ns83-owner-setup').hidden=false;
+  el('ns82-guest-export').hidden=false;
+  el('ns83-backup-details').hidden=false;
+  el('ns82-close').hidden=true;
+  document.body.classList.add('ns83-config-minimal');
+  const heading=el('ns83-account-heading'),desc=el('ns83-account-subheading');
+  if(heading){heading.setAttribute('data-ns82-en','PLAY NOW • ONLINE ACCOUNTS SOON');heading.setAttribute('data-ns82-sr','IGRAJ SADA • ONLINE NALOZI USKORO');}
+  if(desc){desc.setAttribute('data-ns82-en','Your save stays on this phone until online accounts are enabled.');desc.setAttribute('data-ns82-sr','Tvoj napredak ostaje na ovom telefonu dok se online nalozi ne aktiviraju.');}
+  setMessage('');status(tr('Guest • local save only','Gost • samo lokalno čuvanje'),'pending');renderLang();setVisible(true);return}
  try{
   const version='13.2.0';
   const [appModule,authModule,firestoreModule]=await Promise.all([
