@@ -1,9 +1,9 @@
-# Noćna Straža v77
+# Noćna Straža v79
 
-Mobilna HTML multiplayer igra, spremna za Cloudflare Workers (Static Assets).
+Mobilna HTML multiplayer igra sa optimizovanom sinhronizacijom gostiju i chatom u čekaonici. Spremna je za Cloudflare Workers (Static Assets).
 
-[**Deploy to Cloudflare**](https://deploy.workers.cloudflare.com/?url=https://github.com/MajorStex/MajorStex.github.io/tree/main/nocna-straza-v77)
+[**🚀 Deploy v79 to Cloudflare**](https://deploy.workers.cloudflare.com/?url=https://github.com/MajorStex/nocna-straza-v77)
 
-Kada se prikaže Cloudflare čarobnjak, prijavi se u Cloudflare i GitHub (ako se zatraži), proveri da je izabran `nocna-straza-v77` i potvrdi Deploy. Posle uspešnog objavljivanja otvori dodeljenu `*.workers.dev` adresu.
+Klikni na link, prijavi se na Cloudflare i GitHub ako traži, potvrdi ime projekta i klikni **Deploy**. Cloudflare će objaviti `public/index.html` (sada v79) i dodeliti `*.workers.dev` adresu. Ako već imaš Worker povezan sa ovim GitHub repozitorijumom, push na `main` pokreće automatski deploy na taj Worker kada je Git integracija aktivna.
 
-Ovo pravi novi Workers projekat i ne zamenjuje prethodni Cloudflare Pages projekat. Multiplayer koristi postojeću peer/relay mrežnu logiku unutar igre; objavljivanje HTML-a ne postavlja zaseban relay servis.
+Napomena: Cloudflare Deploy dugme može napraviti **novi** Workers projekat, ne mora da zameni postojeći Pages ili Workers projekat. Multiplayer koristi postojeću peer/relay logiku unutar igre; HTML deploy ne postavlja poseban relay servis.
