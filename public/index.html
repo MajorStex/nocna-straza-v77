@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><title>Night Watch v80 — Multiplayer</title><style>
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><title>Night Watch v81 — Multiplayer</title><style>
 :root{--bg:#0e171d;--surface:#17232a;--card:#1d2c33;--line:#52605888;--sage:#a7d3ae;--gold:#e9c17d;--ink:#f1eddf;--muted:#aab7b8;--red:#bf5550}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;touch-action:none}button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--ink);background:#26363c;border:1px solid #60706d71;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:800;letter-spacing:.035em}button:active{transform:scale(.98)}button:hover{border-color:#c1c9a0}button.primary{background:linear-gradient(135deg,#d2a665,#f0cf91);color:#202c29;border:0;box-shadow:0 5px 24px #0006}button:disabled{opacity:.5}input,select,textarea{color:#eee9df;background:#101b22;border:1px solid #536660;border-radius:9px;padding:9px;min-width:0}input[type=color]{height:38px;padding:3px;width:58px}input[type=range]{padding:0;accent-color:var(--gold);flex:1}input[type=checkbox]{accent-color:var(--gold);width:19px;height:19px}#app,#gameCanvas{width:100%;height:100%;position:absolute;inset:0}#gameCanvas{display:block;touch-action:none;background:#28332f}.veil{pointer-events:none;position:absolute;inset:0;background:linear-gradient(90deg,#0a1014a8,transparent 75%);opacity:.45}.hidden{display:none!important}.kicker{color:var(--gold);font-size:10px;font-weight:900;letter-spacing:.18em}.panel{position:absolute;z-index:5}.home{top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 34px));background:linear-gradient(160deg,#18272bed,#0d161ce9);border:1px solid #80918c59;border-radius:23px;padding:27px 29px 22px;text-align:center;box-shadow:0 30px 100px #000a;backdrop-filter:blur(12px)}.logoGlyph{font-size:39px;color:var(--gold);margin:10px 0 0}.home h1{font-family:Georgia,'Times New Roman',serif;line-height:.9;letter-spacing:.07em;font-size:clamp(42px,9vw,63px);margin:8px auto 16px;text-shadow:0 5px 20px #0009}.home h1 em{font-style:normal;color:var(--gold)}.tagline{color:#bac5be;font-size:14px;line-height:1.55;max-width:320px;margin:0 auto 19px}.homeButtons{display:grid;gap:9px}.homeButtons button{min-height:47px}.smallMuted{color:#8ba09b;font-size:11px;margin:17px auto 0}.hud{position:absolute;z-index:3;top:0;left:0;right:0;padding:max(12px,env(safe-area-inset-top)) 14px 8px;pointer-events:none;background:linear-gradient(#0b1118d6,#0b111800)}.hudTop{display:flex;align-items:start;gap:10px}.stats{width:54%;max-width:300px;display:grid;gap:6px}.bar{position:relative;overflow:hidden;background:#142024c9;border:2px solid #8c958259;border-radius:5px;height:21px;box-shadow:0 2px 10px #0005}.bar>div{position:absolute;inset:0 auto 0 0;width:100%;transition:width .16s linear}.bar span{position:absolute;inset:0;display:grid;place-items:center;font-size:10px;font-weight:900;text-shadow:1px 1px 2px #000}.hpbar>div{background:linear-gradient(90deg,#922e35,#d06b59)}.xpbar>div{background:linear-gradient(90deg,#378ba0,#9bd5cd)}.miniStats{margin:auto;display:grid;gap:3px;text-align:right;font-size:12px;color:#e5d2a8;font-weight:900}.iconBtn{pointer-events:auto;padding:8px 12px;font-size:19px;background:#202c34df}.bossHud{margin:15px auto 0;width:min(480px,92%)}.bossHead{display:flex;justify-content:space-between;font-family:Georgia,serif;font-size:12px;color:#f0b6a4;font-weight:bold;text-shadow:0 2px 3px #000}.bossbar{height:15px;margin-top:4px;border-color:#853f40}.bossbar>div{background:linear-gradient(90deg,#8a1e39,#f07564)}.notice{text-align:center;font-family:Georgia,serif;letter-spacing:.1em;color:var(--gold);font-weight:bold;margin-top:12px;text-shadow:1px 2px 3px #000}.controls{position:absolute;bottom:max(19px,env(safe-area-inset-bottom));left:0;right:0;height:130px;z-index:3;pointer-events:none}.joyBase{position:absolute;bottom:0;left:24px;width:120px;height:120px;border-radius:50%;border:2px solid #b2b4a64d;background:#13232c65;pointer-events:auto;touch-action:none;box-shadow:inset 0 0 26px #0006}.joyBase:before{content:'✣';position:absolute;inset:0;display:grid;place-items:center;font-size:44px;color:#9fc7b340}.joyKnob{position:absolute;width:56px;height:56px;left:30px;top:30px;border-radius:50%;background:radial-gradient(circle at 32% 25%,#829d93,#46645f);border:2px solid #a0bbb1a3;box-shadow:0 4px 14px #000a;transform:translate(0,0)}.actionArea{position:absolute;bottom:0;right:23px;display:flex;align-items:end;gap:12px;pointer-events:auto}.attackBtn,.dashBtn{display:grid;place-items:center;align-content:center;gap:1px;touch-action:none;border-radius:50%;box-shadow:0 3px 18px #0009}.attackBtn{width:91px;height:91px;background:radial-gradient(circle at 35% 25%,#e3b478,#975b44);border:2px solid #e7d2a3;color:#141b20;font-size:31px}.dashBtn{height:64px;width:64px;background:#283f46c9;border-color:#8baeb1;font-size:26px}.actionArea small{font-size:8px;letter-spacing:.06em}.modal{position:absolute;inset:0;z-index:10;background:#061117cb;display:grid;place-items:center;padding:14px;backdrop-filter:blur(7px)}.modalBox{width:min(420px,100%);max-height:calc(100vh - 30px);overflow-y:auto;background:linear-gradient(145deg,#1a2b31,#101d25);border:1px solid #7b8a825c;border-radius:19px;padding:24px;box-shadow:0 20px 80px #000c;text-align:center;display:grid;gap:12px}.modalBox h2{font-family:Georgia,serif;font-size:29px;margin:0}.modalBox p{font-size:14px;line-height:1.45;color:#b6c6c1;margin:0}.settingRow{display:flex;align-items:center;justify-content:space-between;text-align:left;font-size:13px;gap:10px}.upgradeCards{display:grid;gap:8px}.upgradeCards button{display:grid;gap:5px;text-align:left}.upgradeCards button span{font-weight:400;font-size:11px;color:#a9b7b4}.roomCode{padding:14px;border:1px dashed var(--gold);font-size:30px;font-weight:900;letter-spacing:.23em;color:var(--gold);user-select:all}.separator{color:#8ba09b;text-transform:uppercase;font-size:12px}.joinRow{display:flex;gap:6px}.joinRow input{width:100%;text-transform:uppercase;letter-spacing:.12em}.netStatus{font-size:12px;color:#a9c2b9;line-height:1.45;text-align:left;background:#122028;padding:10px;border-radius:8px}.toast{pointer-events:none;position:absolute;z-index:30;left:50%;bottom:145px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 30px);padding:11px 17px;border-radius:12px;border:1px solid #a0b19b5e;background:#15272cef;font-weight:700;font-size:12px;box-shadow:0 10px 30px #0009}.editor{position:absolute;z-index:7;right:0;top:0;bottom:0;width:min(375px,100%);display:flex;flex-direction:column;background:#111e25f5;border-left:1px solid #7c8b7e66;box-shadow:-14px 0 44px #0008}.editorHeader{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 15px 12px}.editorHeader strong{font-family:Georgia,serif;font-size:20px}.subtleBtn{padding:8px 10px;font-size:11px}.tabs{display:flex;gap:4px;padding:0 13px 12px;border-bottom:1px solid #82948730}.tabs button{flex:1;padding:10px 4px;font-size:11px;background:transparent}.tabs button.active,.toolGrid button.active{color:var(--gold);border-color:var(--gold);background:#3b3d2f9c}.editBody{padding:14px;overflow:auto;flex:1}.editHelp{margin:0 0 13px;line-height:1.5;color:#b4c5bf;font-size:12px}.toolGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.toolActions{display:flex;gap:7px;margin-top:10px}.toolActions button{flex:1;font-size:10px;padding:11px 7px}.editTab label{margin:10px 0;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:12px;color:#cad4c8}.editTab label input[type=number],.editTab label select{width:46%}.previewLine{font-size:11px;color:#bbd0bc;line-height:1.7;border-top:1px solid #4e645360;padding-top:12px;margin-top:13px}.editTab textarea{width:100%;line-height:1.5;resize:vertical;touch-action:auto}.editTab .primary{width:100%;margin-top:8px}.cmdResult{font-size:12px;border:1px solid #4e6f5f;background:#1b3330;padding:11px;border-radius:8px;line-height:1.5;margin-top:11px}.examples{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}.examples div{width:100%;font-size:11px;color:#a2b5ae}.examples button{font-size:10px;padding:7px 9px}.editFooter{padding:12px;border-top:1px solid #82948733;display:grid;gap:7px}.editFooter .toolActions{margin:0}.editFooter>.primary{padding:13px}.editFooter>button:last-child{background:#4b2933;border-color:#86525b}.editor:not(.hidden)~.controls{display:none}.editor .editFooter button{font-size:12px}
 @media (max-width:760px){.editor{top:auto;bottom:0;left:0;right:0;width:100%;height:min(58vh,510px);border-left:0;border-top:1px solid #7c8b7e66;border-radius:18px 18px 0 0}.editorHeader{padding-top:12px}.home{padding:20px 23px}.home h1{font-size:48px}.homeButtons button{min-height:44px}.hud{padding-top:max(12px,env(safe-area-inset-top))}.joyBase{left:19px;bottom:8px;width:104px;height:104px}.joyKnob{left:23px;top:23px}.actionArea{right:17px;bottom:6px}.controls{height:117px}.editor .editBody{padding-top:10px}}
 @media (max-height:680px){.home{padding:12px 20px}.home h1{font-size:38px;margin:0 0 8px}.home .logoGlyph{display:none}.home .tagline{font-size:12px;margin-bottom:10px}.homeButtons button{min-height:38px;padding:8px}.smallMuted{display:none}.controls{transform:scale(.83);transform-origin:bottom center}}
@@ -3003,14 +3003,46 @@ function drawDistantShadows(left,top){
  ctx.globalAlpha=.14;ctx.fillRect(sx-26,sy-f.h*.42,52,f.h*.42);ctx.fillRect(sx+42,sy-f.h*.22,28,f.h*.22);
  }ctx.restore()
 }
+// v81 cosmetic pebble clusters. Cached sprites, screen-tile culling, no gameplay or network state.
+let NS81_PEBBLE_SPRITES=null;
+function ns81PebbleSprites(){
+ if(NS81_PEBBLE_SPRITES)return NS81_PEBBLE_SPRITES;
+ const sprites=[];
+ for(let v=0;v<5;v++){
+  const sprite=document.createElement('canvas');sprite.width=56;sprite.height=34;
+  const g=sprite.getContext('2d');if(!g)continue;
+  for(let j=0;j<2+v%3;j++){
+   const x=9+j*11+(v*5+j*2)%8,y=17+(j*7+v*3)%8;
+   const rx=3+(v+j)%4,ry=2+(v+j*2)%2;
+   g.fillStyle='#101a1b55';g.beginPath();g.ellipse(x+1,y+ry+1,rx+2,ry+1,0,0,Math.PI*2);g.fill();
+   g.fillStyle=['#59625f','#69746e','#727c74','#626c69','#858b80'][(v+j)%5];
+   g.beginPath();g.moveTo(x-rx,y);g.lineTo(x-rx*.5,y-ry);g.lineTo(x+rx*.25,y-ry-1);g.lineTo(x+rx,y-ry*.3);g.lineTo(x+rx*.9,y+ry);g.lineTo(x-rx*.8,y+ry);g.closePath();g.fill();
+   g.strokeStyle='#9ea59a66';g.lineWidth=.7;g.beginPath();g.moveTo(x-rx*.45,y-ry*.5);g.lineTo(x+rx*.18,y-ry*.75);g.stroke();
+  }
+  sprites.push(sprite);
+ }
+ NS81_PEBBLE_SPRITES=sprites;
+ return sprites;
+}
+
 function drawGround(){
  const {w:vw,h:vh}=viewSize(),cam=G.mode==='editor'?G.pan:G.camera;
- if(NSX.applyCaveVisuals()){ctx.fillStyle='#161719';ctx.fillRect(0,0,vw,vh);}else{ctx.fillStyle='#292e2a';ctx.fillRect(0,0,vw,vh);}
+ const ns81Cave=NSX.applyCaveVisuals();
+ if(ns81Cave){ctx.fillStyle='#161719';ctx.fillRect(0,0,vw,vh);}else{ctx.fillStyle='#292e2a';ctx.fillRect(0,0,vw,vh);}
  const left=cam.x-vw/2,top=cam.y-vh/2,tile=80;
  let x0=Math.floor(left/tile)-1,y0=Math.floor(top/tile)-1;
  for(let ix=x0;ix<Math.ceil((left+vw)/tile)+1;ix++)for(let iy=y0;iy<Math.ceil((top+vh)/tile)+1;iy++){
   const x=ix*tile-left,y=iy*tile-top,n=hash(ix,iy);
-  if(NSX.applyCaveVisuals()){ctx.fillStyle=n>.65?'#212224':n>.3?'#191a1c':'#1d1f22';}else{ctx.fillStyle=n>.65?'#30352f':n>.3?'#292e2b':'#2c312b';}ctx.fillRect(x,y,tile+1,tile+1);
+  if(ns81Cave){ctx.fillStyle=n>.65?'#212224':n>.3?'#191a1c':'#1d1f22';}else{ctx.fillStyle=n>.65?'#30352f':n>.3?'#292e2b':'#2c312b';}ctx.fillRect(x,y,tile+1,tile+1);
+  // Sparse deterministic pebble clusters; guest and host see the same stones.
+  // Draw on the ground only: no props, collision, pathfinding or multiplayer packets.
+  if(!ns81Cave&&hash(ix+1701,iy-911)>.83){
+   const sprites=ns81PebbleSprites();
+   if(sprites.length){
+    const variant=Math.min(sprites.length-1,Math.floor(hash(ix-59,iy+92)*sprites.length));
+    ctx.drawImage(sprites[variant],x+6+hash(ix+441,iy+31)*22,y+9+hash(ix-8,iy+377)*30);
+   }
+  }
   if(NET.role==='guest')continue;
   if(n>.72){ctx.fillStyle='#32413655';ctx.beginPath();ctx.arc(x+tile*.38,y+tile*.35,10+hash(ix+77,iy)*18,0,TAU);ctx.fill()}
   if(n<.21){ctx.fillStyle='#3a332944';ctx.fillRect(x+tile*.15,y+tile*.24,14+hash(ix+3,iy+8)*12,6+hash(ix+4,iy+7)*4)}
@@ -3908,7 +3940,7 @@ function retryInitialGuestConnection(reason=''){
 function setupConnection(c){
  let assigned=null,rejectReason='',syncTimer=null,worldSend=null,worldReceive=null,welcomeAcknowledged=false;
  const safeSend=data=>{if(!c.open)return false;try{c.send(data);return true}catch(err){return false}};
- const sendWelcome=()=>{if(assigned&&NET.role==='host'&&NET.phase==='lobby')safeSend({t:'welcome',id:assigned,code:NET.code,v:80,rejoinToken:NETLAB.tokens.get(assigned)?.token})};
+ const sendWelcome=()=>{if(assigned&&NET.role==='host'&&NET.phase==='lobby')safeSend({t:'welcome',id:assigned,code:NET.code,v:81,rejoinToken:NETLAB.tokens.get(assigned)?.token})};
  // WebRTC channels can open before both sides have attached data handlers. Explicit
  // request/ack retries prevent a lost initial host packet from trapping a guest.
  const sendWorldPart=()=>{
@@ -3930,7 +3962,7 @@ function setupConnection(c){
  };
  const guestHello=()=>{
   if(NET.role!=='guest'||!c.open)return;
-  if(NET.phase==='playing'&&NET.rejoinToken)safeSend({t:'resumeHello',token:NET.rejoinToken,round:NET.round,code:NET.code});else if(NET.phase==='connecting')safeSend({t:'hello',v:80});
+  if(NET.phase==='playing'&&NET.rejoinToken)safeSend({t:'resumeHello',token:NET.rejoinToken,round:NET.round,code:NET.code});else if(NET.phase==='connecting')safeSend({t:'hello',v:81});
   else if(NET.phase==='lobby'&&!NET.worldReady)safeSend({t:'welcomeAck',id:NET.localId});
  };
  if(NET.role==='guest'){NET.conn=c;clearTimeout(NET.joinRetryTimer)}
@@ -3968,7 +4000,7 @@ function setupConnection(c){
   if(data.t==='nsV63Cue'&&NET.role==='guest'&&NET.phase==='playing'&&CV63_KINDS.has(data.kind)){voiceLine(data.kind,true);return;}
   if(NET.role==='host'){
    if(assigned&&NET.phase==='lobby'){
-    if(data.t==='hello'){if(data.v!==80){safeSend({t:'versionMismatch',required:80});return;}sendWelcome();return}
+    if(data.t==='hello'){if(data.v!==81){safeSend({t:'versionMismatch',required:81});return;}sendWelcome();return}
     if(data.t==='welcomeAck'&&data.id===assigned){welcomeAcknowledged=true;beginWorldTransfer();return}
     if(data.t==='worldAck'&&worldSend&&Number.isInteger(data.index)){
      if(data.index===worldSend.index){worldSend.index++;if(worldSend.index<worldSend.parts.length)sendWorldPart()}
@@ -4013,7 +4045,7 @@ function setupConnection(c){
   }else if(NET.role==='guest'){
    if(data.t==='migrationBackup'){NETMIG.receiveBackup(data,c);return}if(data.t==='migrationBackupZip'){void NETMIG.receiveCompressedBackup(data,c);return}if(data.t==='resumeAccepted'){NETLAB.reconnectAccepted(c,data);netStatus('Ponovo povezan!');return}if(data.t==='resumeRejected'){netStatus('Povratak odbijen: token je istekao ili je runda završena.');NET.rejoinToken='';return}if(data.t==='mpReward'){awardMP(data);return;}if(data.t==='ns75FieldKit'){toast(lang(`Field kit: +${Math.round(data.heal)||0} HP · +8% attack speed for 8s`,`Zavoj: +${Math.round(data.heal)||0} HP · 8% brži napadi na 8 s`));return;}
    if(data.t==='reviveInterrupted'&&NET.phase==='playing'){setReviveHeld(false);toast('Oživljavanje prekinuto · pogođen si');return;}
-   if(data.t==='versionMismatch'){NET.joinRetryCount=4;netStatus('Različite verzije igre. Oba igrača moraju da otvore novu v80 HTML verziju.');$('retryJoinBtn').classList.remove('hidden');return;}
+   if(data.t==='versionMismatch'){NET.joinRetryCount=4;netStatus('Različite verzije igre. Oba igrača moraju da otvore novu v81 HTML verziju.');$('retryJoinBtn').classList.remove('hidden');return;}
    if(data.t==='full'){rejectReason='Soba je puna · najviše 6 igrača.';netStatus(rejectReason);toast('Soba je puna');return}
    if(data.t==='in_progress'){rejectReason='Partija je već počela. Napravi novu sobu.';netStatus(rejectReason);return}
    if(data.t==='roundOver'&&NET.phase==='playing'&&Number(data.round)>=NET.round){
@@ -4023,7 +4055,7 @@ function setupConnection(c){
     NET.round=Number(data.round)||NET.round;resetToLobbyAfterRound(data.result||'Partija je završena.');
    }
    if(data.t==='welcome'){
-    if(data.v!==80){NET.joinRetryCount=4;netStatus('RAZLIČITE VERZIJE: oba telefona moraju koristiti kompletnu HTML v80 igru.');$('retryJoinBtn').classList.remove('hidden');return;}
+    if(data.v!==81){NET.joinRetryCount=4;netStatus('RAZLIČITE VERZIJE: oba telefona moraju koristiti kompletnu HTML v81 igru.');$('retryJoinBtn').classList.remove('hidden');return;}
     if((NET.phase!=='connecting'&&NET.phase!=='lobby')||!/^p[2-6]$/.test(data.id))return;
     if(NET.phase==='connecting'){
      NET.localId=data.id;NET.rejoinToken=typeof data.rejoinToken==='string'?data.rejoinToken:'';NET.code=data.code||NET.code;NET.phase='lobby';NET.localReady=false;NET.worldReady=false;
@@ -4238,7 +4270,7 @@ $('lobbyStartBtn').onclick=startLobbyMatch;
 $('ns62ShareRoomCode').onclick=async()=>{
  const code=String(NET.code||$('roomCode').textContent||'').trim().toUpperCase();
  if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('Prvo napravi sobu.');return;}
- const message='Noćna Straža v80 🎮\nKod sobe: '+code+'\nOtvori v79 HTML igru → Multiplayer → unesi kod → PRIDRUŽI SE. Server se povezuje automatski.';
+ const message='Noćna Straža v81 🎮\nKod sobe: '+code+'\nOtvori v81 HTML igru → Multiplayer → unesi kod → PRIDRUŽI SE. Server se povezuje automatski.';
  try{if(navigator.share){await navigator.share({title:'Noćna Straža — poziv',text:message});return;}}catch(err){if(err?.name==='AbortError')return}
  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(message);toast('Poziv je kopiran. Pošalji ga drugaru.');return;}}catch{}
  window.prompt('Kopiraj kod sobe i pošalji drugaru:',code);
@@ -4274,7 +4306,7 @@ $('ns70RelayProbe').onclick=()=>{
   ws.onclose=()=>{if(!finished)finish('TEST: Relay je prekinuo WebSocket vezu pre potvrde.');};
  }catch(e){finish('TEST: '+(e?.message||'Nije moguće otvoriti WebSocket.'));}
 };
-$('retrySyncBtn').onclick=()=>{if(NET.role==='guest'&&NET.conn?.open){NET.conn.send({t:'hello',v:80});netStatus('Ponovo zahtevam ulaz u čekaonicu...')}};$('retryJoinBtn').onclick=()=>{if(NET.role==='guest'&&NET.phase==='connecting'){NET.joinRetryCount=0;retryInitialGuestConnection('ručni pokušaj')}else if(NET.role==='')$('joinBtn').click()};$('turnApply').onclick=()=>{const urls=$('turnUrl').value.trim(),username=$('turnUser').value.trim(),credential=$('turnPassword').value;if(!/^turns?:[^\s]+/i.test(urls)||!username||!credential){netStatus('Za TURN su potrebni validna adresa, korisničko ime i šifra.');return}window.NS_TURN_SESSION={urls,username,credential};netStatus('TURN je podešen za NOVE veze. Pokreni ponovno povezivanje; nijedna lozinka nije sačuvana.')};
+$('retrySyncBtn').onclick=()=>{if(NET.role==='guest'&&NET.conn?.open){NET.conn.send({t:'hello',v:81});netStatus('Ponovo zahtevam ulaz u čekaonicu...')}};$('retryJoinBtn').onclick=()=>{if(NET.role==='guest'&&NET.phase==='connecting'){NET.joinRetryCount=0;retryInitialGuestConnection('ručni pokušaj')}else if(NET.role==='')$('joinBtn').click()};$('turnApply').onclick=()=>{const urls=$('turnUrl').value.trim(),username=$('turnUser').value.trim(),credential=$('turnPassword').value;if(!/^turns?:[^\s]+/i.test(urls)||!username||!credential){netStatus('Za TURN su potrebni validna adresa, korisničko ime i šifra.');return}window.NS_TURN_SESSION={urls,username,credential};netStatus('TURN je podešen za NOVE veze. Pokreni ponovno povezivanje; nijedna lozinka nije sačuvana.')};
 $('hostBtn').onclick=async()=>{
  unlockSound();commitMPName($('mpNameInput').value);netStatus('Učitavam besplatni servis...');$('hostBtn').disabled=true;
  try{
@@ -5194,7 +5226,7 @@ function visit(node){if(!node)return;if(node.nodeType===3){localizeText(node);re
 let enabled=true;
 const ob=new MutationObserver(records=>{if(!enabled)return;const visited=new Set();for(const record of records){if(record.type==='characterData'){const n=record.target;if(!visited.has(n)){visited.add(n);localizeText(n);}}else if(record.type==='attributes'){localizeAttrs(record.target);}else{for(const child of record.addedNodes){if(!visited.has(child)){visited.add(child);visit(child);}}}}});
 ob.observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});
-function syncSelectors(){document.querySelectorAll('[data-game-language]').forEach(select=>{if(select.value!==current)select.value=current;});document.documentElement.lang=current==='sr'?'sr':'en';document.title=current==='sr'?'Noćna Straža v80':'Night Watch v79';}
+function syncSelectors(){document.querySelectorAll('[data-game-language]').forEach(select=>{if(select.value!==current)select.value=current;});document.documentElement.lang=current==='sr'?'sr':'en';document.title=current==='sr'?'Noćna Straža v81':'Night Watch v81';}
 function setLanguage(lang){current=lang==='sr'?'sr':'en';try{localStorage.setItem('ns_game_language_v1',current);}catch(_){};syncSelectors();visit(document.body);}
 document.querySelectorAll('[data-game-language]').forEach(select=>{select.value=current;select.addEventListener('change',()=>{setLanguage(select.value);setTimeout(()=>window.__nightWatch?.NSX?.updateHud?.(),0);});});
 syncSelectors();visit(document.body);
