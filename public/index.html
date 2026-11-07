@@ -2417,14 +2417,14 @@ const NS92_CHALLENGES=(()=>{
   if(isDay)records.dayWins=(records.dayWins||0)+1;
   else records.weekWins=(records.weekWins||0)+1;
   save();
-  toast(isDay?lang('☀ Daily complete: +1 key and small heal','☀ Dnevni izazov: +1 ključ i malo lečenja'):
+  if(isDay){meta.points=(meta.points||0)+1;meta.totalEarned=(meta.totalEarned||0)+1;persistMeta();}
+  toast(isDay?lang('☀ Daily complete: +1 Honor Point','☀ Dnevni izazov: +1 poen časti'):
        lang('🏆 Weekly complete: Common item in Armory','🏆 Nedeljni izazov: običan predmet u Oružarnici'));
   return true;
  }
  function awardHost(flag){
   if(NET.role==='guest')return;
-  if(flag===1){for(const p of G.players)if(!p.dead){p.keys=(p.keys||0)+1;p.hp=Math.min(p.maxHp,p.hp+10);}}
-  // Guests receive only completion flags. All HP/key changes come from host snapshots.
+  // Rewards are account-bound and only granted on the first completed day/week.
   bits|=flag;claim(flag===1?'day':'week');
  }
  function evaluate(){
@@ -2452,7 +2452,7 @@ const NS92_CHALLENGES=(()=>{
  }
  function list(){
   period();return [
-   {id:'daily',...daily[dailyIndex],progress:Math.min(daily[dailyIndex].goal,score(daily[dailyIndex].kind)),owned:(records.days||[]).includes(today),ends:today,reward:lang('+1 key, +10 HP','+1 ključ, +10 HP')},
+   {id:'daily',...daily[dailyIndex],progress:Math.min(daily[dailyIndex].goal,score(daily[dailyIndex].kind)),owned:(records.days||[]).includes(today),ends:today,reward:lang('+1 Honor Point','+1 poen časti')},
    {id:'weekly',...weekly[weeklyIndex],progress:Math.min(weekly[weeklyIndex].goal,score(weekly[weeklyIndex].kind)),owned:(records.weeks||[]).includes(week),ends:week,reward:lang('Common Armory item','Običan predmet u Oružarnici')}
   ];
  }
@@ -5139,6 +5139,18 @@ function equipItem(uid){const it=itemByUid(uid);if(!it)return false;armory.equip
 function unequipAll(){armory.equipped={weapon:null,armor:null,relic:null};saveArmory();renderArmoryPanel();}
 function salvageDuplicates(){const seen=new Set(),keep=[];let gained=0;for(const it of armory.inventory){const key=[it.template,it.rarity].join('|');const protectedItem=it.rarity==='legendary'||Object.values(armory.equipped).includes(it.uid);if(protectedItem||!seen.has(key)){seen.add(key);keep.push(it);}else gained+=1;}armory.inventory=keep;armory.salvage=(armory.salvage||0)+gained;saveArmory();renderArmoryPanel();toast(lang(`Salvaged ${gained} duplicates. Legendary and equipped gear are protected.`,`Rastavljeno: ${gained}. Legendarna i opremljena oprema je zaštićena.`));}
 // One-time reward, deterministic item identity and same per-account armory as all gear.
+// One COMMON-rarity reward per week per account, safely idempotent in existing Armory.
+function grantWeeklyCommonGear(weekKey,templateId){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(weekKey||'')))return false;
+ const template=itemTemplates.find(x=>x.id===templateId);if(!template)return false;
+ const uid='ns92_week_'+String(getActiveAccount()?.id||'default').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,45)+'_'+weekKey;
+ const found=armory.inventory.find(x=>x.uid===uid);
+ if(found)return found;
+ const item=makeArmoryItem(template,'common');
+ item.uid=uid;item.source='weekly_challenge';
+ armory.inventory.push(item);saveArmory();
+ return item;
+}
 function grantAchievementGear(achievementId,templateId){
  const def=NS91_ACHIEVEMENTS.find(x=>x.id===achievementId&&x.item===templateId);
  if(!def)return false;
@@ -5759,7 +5771,7 @@ function applyCaveVisuals(){return !!(progress.cave?.active||G.caveMode);}
   $x('nsOpenShop').addEventListener('click',openShop);$x('nsShopClose').addEventListener('click',()=>closeModal('nsShopPanel'));$x('ns64PaypalPreviewClose').addEventListener('click',()=>{$x('ns64PaypalPreview').classList.add('hidden')});
   syncDifficultyUI();updateResumeButton();
  }
- return {opt,progress,permanent,shopItems,paidCatalog,achievementList,onCaveSpecialKill,applyLegendaryHit,caveDripTick,caveSpiderTick,drawCaveAmbient,drawCaveMarkers,legendaryWeapon,spawnCaveSpecials,receiveCaveBonusClaims,openArmory,renderArmoryPanel,renderArmorySummary,reloadArmory,grantAchievementGear,salvageDuplicates,unequipAll,equipmentBonuses,equippedWeapon,applyProfileEquipment,applyArmoryToPlayer,collectGearDrop,tryDamageDestructibles,damageDestructible,enterCaveEvent,exitCave,caveTick,caveStatePack,generateCaveProps,saveOverworldState,restoreOverworldState,drawCaveExit,applyCaveVisuals,receiveCaveLootClaim,get armory(){return armory},get rarityDefs(){return rarityDefs},get setDefs(){return setDefs},get world(){return WORLD},questTypes,questSpecs,exploreKinds,exploreDefs,rareRelics,reputation,repRank,adjustReputation,updateRepSummary,bountyTick,openRareChoice,chooseRare,completeRareBattle,closeRareChoice,spawnExploreEvent,spawnExploreGuards,explorationTick,grantExploreReward,exploreBossDefeated,drawExploreEvent,updateExploreBeacon,startNextSideQuest,completeSideQuest,sideQuestTick,drawQuestObjects,start,onKill,onCrystal,onDamage,onEnd,onMenu,tick,updateHud,reportFPS,effectsCap,pixelRatio,setDifficulty,setRole,setQuality,applyDifficulty,applyRole,snapshot,onGuestSnapshot,extract,completeMission,triggerEvent,buyWithHonor,renderShop,openShop,autoSave,clearSave,getSave,resume,updateResumeButton,showList,tutorialSteps,finishTutorial,bind};
+ return {opt,progress,permanent,shopItems,paidCatalog,achievementList,onCaveSpecialKill,applyLegendaryHit,caveDripTick,caveSpiderTick,drawCaveAmbient,drawCaveMarkers,legendaryWeapon,spawnCaveSpecials,receiveCaveBonusClaims,openArmory,renderArmoryPanel,renderArmorySummary,reloadArmory,grantAchievementGear,grantWeeklyCommonGear,salvageDuplicates,unequipAll,equipmentBonuses,equippedWeapon,applyProfileEquipment,applyArmoryToPlayer,collectGearDrop,tryDamageDestructibles,damageDestructible,enterCaveEvent,exitCave,caveTick,caveStatePack,generateCaveProps,saveOverworldState,restoreOverworldState,drawCaveExit,applyCaveVisuals,receiveCaveLootClaim,get armory(){return armory},get rarityDefs(){return rarityDefs},get setDefs(){return setDefs},get world(){return WORLD},questTypes,questSpecs,exploreKinds,exploreDefs,rareRelics,reputation,repRank,adjustReputation,updateRepSummary,bountyTick,openRareChoice,chooseRare,completeRareBattle,closeRareChoice,spawnExploreEvent,spawnExploreGuards,explorationTick,grantExploreReward,exploreBossDefeated,drawExploreEvent,updateExploreBeacon,startNextSideQuest,completeSideQuest,sideQuestTick,drawQuestObjects,start,onKill,onCrystal,onDamage,onEnd,onMenu,tick,updateHud,reportFPS,effectsCap,pixelRatio,setDifficulty,setRole,setQuality,applyDifficulty,applyRole,snapshot,onGuestSnapshot,extract,completeMission,triggerEvent,buyWithHonor,renderShop,openShop,autoSave,clearSave,getSave,resume,updateResumeButton,showList,tutorialSteps,finishTutorial,bind};
 })();
 const progress=NSX.progress;const lang=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
 NSX.bind();NETLAB.bind();
