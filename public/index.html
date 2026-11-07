@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><title>Night Watch v98 — Cave Reconnect & In-Game Mana (Night Watch v95 compatible)</title><style>
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><title>Night Watch v99 — Coop Pause Voting & 3s Level Picks (Night Watch v95 compatible)</title><style>
 :root{--bg:#0e171d;--surface:#17232a;--card:#1d2c33;--line:#52605888;--sage:#a7d3ae;--gold:#e9c17d;--ink:#f1eddf;--muted:#aab7b8;--red:#bf5550}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;touch-action:none}button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--ink);background:#26363c;border:1px solid #60706d71;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:800;letter-spacing:.035em}button:active{transform:scale(.98)}button:hover{border-color:#c1c9a0}button.primary{background:linear-gradient(135deg,#d2a665,#f0cf91);color:#202c29;border:0;box-shadow:0 5px 24px #0006}button:disabled{opacity:.5}input,select,textarea{color:#eee9df;background:#101b22;border:1px solid #536660;border-radius:9px;padding:9px;min-width:0}input[type=color]{height:38px;padding:3px;width:58px}input[type=range]{padding:0;accent-color:var(--gold);flex:1}input[type=checkbox]{accent-color:var(--gold);width:19px;height:19px}#app,#gameCanvas{width:100%;height:100%;position:absolute;inset:0}#gameCanvas{display:block;touch-action:none;background:#28332f}.veil{pointer-events:none;position:absolute;inset:0;background:linear-gradient(90deg,#0a1014a8,transparent 75%);opacity:.45}.hidden{display:none!important}.kicker{color:var(--gold);font-size:10px;font-weight:900;letter-spacing:.18em}.panel{position:absolute;z-index:5}.home{top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 34px));background:linear-gradient(160deg,#18272bed,#0d161ce9);border:1px solid #80918c59;border-radius:23px;padding:27px 29px 22px;text-align:center;box-shadow:0 30px 100px #000a;backdrop-filter:blur(12px)}.logoGlyph{font-size:39px;color:var(--gold);margin:10px 0 0}.home h1{font-family:Georgia,'Times New Roman',serif;line-height:.9;letter-spacing:.07em;font-size:clamp(42px,9vw,63px);margin:8px auto 16px;text-shadow:0 5px 20px #0009}.home h1 em{font-style:normal;color:var(--gold)}.tagline{color:#bac5be;font-size:14px;line-height:1.55;max-width:320px;margin:0 auto 19px}.homeButtons{display:grid;gap:9px}.homeButtons button{min-height:47px}.smallMuted{color:#8ba09b;font-size:11px;margin:17px auto 0}.hud{position:absolute;z-index:3;top:0;left:0;right:0;padding:max(12px,env(safe-area-inset-top)) 14px 8px;pointer-events:none;background:linear-gradient(#0b1118d6,#0b111800)}.hudTop{display:flex;align-items:start;gap:10px}.stats{width:54%;max-width:300px;display:grid;gap:6px}.bar{position:relative;overflow:hidden;background:#142024c9;border:2px solid #8c958259;border-radius:5px;height:21px;box-shadow:0 2px 10px #0005}.bar>div{position:absolute;inset:0 auto 0 0;width:100%;transition:width .16s linear}.bar span{position:absolute;inset:0;display:grid;place-items:center;font-size:10px;font-weight:900;text-shadow:1px 1px 2px #000}.hpbar>div{background:linear-gradient(90deg,#922e35,#d06b59)}.xpbar>div{background:linear-gradient(90deg,#378ba0,#9bd5cd)}.miniStats{margin:auto;display:grid;gap:3px;text-align:right;font-size:12px;color:#e5d2a8;font-weight:900}.iconBtn{pointer-events:auto;padding:8px 12px;font-size:19px;background:#202c34df}.bossHud{margin:15px auto 0;width:min(480px,92%)}.bossHead{display:flex;justify-content:space-between;font-family:Georgia,serif;font-size:12px;color:#f0b6a4;font-weight:bold;text-shadow:0 2px 3px #000}.bossbar{height:15px;margin-top:4px;border-color:#853f40}.bossbar>div{background:linear-gradient(90deg,#8a1e39,#f07564)}.notice{text-align:center;font-family:Georgia,serif;letter-spacing:.1em;color:var(--gold);font-weight:bold;margin-top:12px;text-shadow:1px 2px 3px #000}.controls{position:absolute;bottom:max(19px,env(safe-area-inset-bottom));left:0;right:0;height:130px;z-index:3;pointer-events:none}.joyBase{position:absolute;bottom:0;left:24px;width:120px;height:120px;border-radius:50%;border:2px solid #b2b4a64d;background:#13232c65;pointer-events:auto;touch-action:none;box-shadow:inset 0 0 26px #0006}.joyBase:before{content:'✣';position:absolute;inset:0;display:grid;place-items:center;font-size:44px;color:#9fc7b340}.joyKnob{position:absolute;width:56px;height:56px;left:30px;top:30px;border-radius:50%;background:radial-gradient(circle at 32% 25%,#829d93,#46645f);border:2px solid #a0bbb1a3;box-shadow:0 4px 14px #000a;transform:translate(0,0)}.actionArea{position:absolute;bottom:0;right:23px;display:flex;align-items:end;gap:12px;pointer-events:auto}.attackBtn,.dashBtn{display:grid;place-items:center;align-content:center;gap:1px;touch-action:none;border-radius:50%;box-shadow:0 3px 18px #0009}.attackBtn{width:91px;height:91px;background:radial-gradient(circle at 35% 25%,#e3b478,#975b44);border:2px solid #e7d2a3;color:#141b20;font-size:31px}.dashBtn{height:64px;width:64px;background:#283f46c9;border-color:#8baeb1;font-size:26px}.actionArea small{font-size:8px;letter-spacing:.06em}.modal{position:absolute;inset:0;z-index:10;background:#061117cb;display:grid;place-items:center;padding:14px;backdrop-filter:blur(7px)}.modalBox{width:min(420px,100%);max-height:calc(100vh - 30px);overflow-y:auto;background:linear-gradient(145deg,#1a2b31,#101d25);border:1px solid #7b8a825c;border-radius:19px;padding:24px;box-shadow:0 20px 80px #000c;text-align:center;display:grid;gap:12px}.modalBox h2{font-family:Georgia,serif;font-size:29px;margin:0}.modalBox p{font-size:14px;line-height:1.45;color:#b6c6c1;margin:0}.settingRow{display:flex;align-items:center;justify-content:space-between;text-align:left;font-size:13px;gap:10px}.upgradeCards{display:grid;gap:8px}.upgradeCards button{display:grid;gap:5px;text-align:left}.upgradeCards button span{font-weight:400;font-size:11px;color:#a9b7b4}.roomCode{padding:14px;border:1px dashed var(--gold);font-size:30px;font-weight:900;letter-spacing:.23em;color:var(--gold);user-select:all}.separator{color:#8ba09b;text-transform:uppercase;font-size:12px}.joinRow{display:flex;gap:6px}.joinRow input{width:100%;text-transform:uppercase;letter-spacing:.12em}.netStatus{font-size:12px;color:#a9c2b9;line-height:1.45;text-align:left;background:#122028;padding:10px;border-radius:8px}.toast{pointer-events:none;position:absolute;z-index:30;left:50%;bottom:145px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 30px);padding:11px 17px;border-radius:12px;border:1px solid #a0b19b5e;background:#15272cef;font-weight:700;font-size:12px;box-shadow:0 10px 30px #0009}.editor{position:absolute;z-index:7;right:0;top:0;bottom:0;width:min(375px,100%);display:flex;flex-direction:column;background:#111e25f5;border-left:1px solid #7c8b7e66;box-shadow:-14px 0 44px #0008}.editorHeader{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 15px 12px}.editorHeader strong{font-family:Georgia,serif;font-size:20px}.subtleBtn{padding:8px 10px;font-size:11px}.tabs{display:flex;gap:4px;padding:0 13px 12px;border-bottom:1px solid #82948730}.tabs button{flex:1;padding:10px 4px;font-size:11px;background:transparent}.tabs button.active,.toolGrid button.active{color:var(--gold);border-color:var(--gold);background:#3b3d2f9c}.editBody{padding:14px;overflow:auto;flex:1}.editHelp{margin:0 0 13px;line-height:1.5;color:#b4c5bf;font-size:12px}.toolGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.toolActions{display:flex;gap:7px;margin-top:10px}.toolActions button{flex:1;font-size:10px;padding:11px 7px}.editTab label{margin:10px 0;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:12px;color:#cad4c8}.editTab label input[type=number],.editTab label select{width:46%}.previewLine{font-size:11px;color:#bbd0bc;line-height:1.7;border-top:1px solid #4e645360;padding-top:12px;margin-top:13px}.editTab textarea{width:100%;line-height:1.5;resize:vertical;touch-action:auto}.editTab .primary{width:100%;margin-top:8px}.cmdResult{font-size:12px;border:1px solid #4e6f5f;background:#1b3330;padding:11px;border-radius:8px;line-height:1.5;margin-top:11px}.examples{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}.examples div{width:100%;font-size:11px;color:#a2b5ae}.examples button{font-size:10px;padding:7px 9px}.editFooter{padding:12px;border-top:1px solid #82948733;display:grid;gap:7px}.editFooter .toolActions{margin:0}.editFooter>.primary{padding:13px}.editFooter>button:last-child{background:#4b2933;border-color:#86525b}.editor:not(.hidden)~.controls{display:none}.editor .editFooter button{font-size:12px}
 @media (max-width:760px){.editor{top:auto;bottom:0;left:0;right:0;width:100%;height:min(58vh,510px);border-left:0;border-top:1px solid #7c8b7e66;border-radius:18px 18px 0 0}.editorHeader{padding-top:12px}.home{padding:20px 23px}.home h1{font-size:48px}.homeButtons button{min-height:44px}.hud{padding-top:max(12px,env(safe-area-inset-top))}.joyBase{left:19px;bottom:8px;width:104px;height:104px}.joyKnob{left:23px;top:23px}.actionArea{right:17px;bottom:6px}.controls{height:117px}.editor .editBody{padding-top:10px}}
 @media (max-height:680px){.home{padding:12px 20px}.home h1{font-size:38px;margin:0 0 8px}.home .logoGlyph{display:none}.home .tagline{font-size:12px;margin-bottom:10px}.homeButtons button{min-height:38px;padding:8px}.smallMuted{display:none}.controls{transform:scale(.83);transform-origin:bottom center}}
@@ -600,6 +600,18 @@
 .ns97VoteActions button.selected{outline:2px solid #d9c896;outline-offset:1px}
 #ns97VoteHint{display:block;margin-top:9px;font-size:11px;color:#a9c7b8;line-height:1.4}
 @media(max-width:390px){.ns97Results{padding:9px 8px}.ns97TeamTotals span{font-size:11px}.ns97Scoreboard{max-height:30vh}}
+
+/* v99: no per-frame DOM work for pause voting; lightweight team overlay */
+.ns99PauseOpen{position:fixed;top:calc(12px + env(safe-area-inset-top));right:75px;z-index:29;padding:7px 9px;min-height:38px;font-size:11px;background:#14383de9;border:1px solid #8eb4a3}
+.ns99PauseBanner{position:fixed;z-index:35;top:calc(60px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);max-width:90vw;min-width:210px;text-align:center;padding:9px 12px;border-radius:11px;border:1px solid #a9b9a2;background:#132e30f2;font-size:12px;font-weight:800;pointer-events:none}
+.ns99PausePanel{position:fixed;z-index:78;top:calc(105px + env(safe-area-inset-top));right:12px;width:min(335px,calc(100vw - 24px));max-height:60vh;overflow-y:auto;padding:11px;border:1px solid #aab997;background:#14292df7;box-shadow:0 9px 35px #000b;border-radius:13px}
+.ns99PausePanel header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ns99PausePanel header button{padding:6px 10px}
+.ns99PausePanel p{font-size:12px;line-height:1.45;color:#c4d7d2}
+.ns99PauseOptions{display:flex;gap:7px}.ns99PauseOptions button{flex:1;font-size:12px;padding:10px 8px;min-height:43px}
+.ns99PauseTally{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.ns99PauseTally span{padding:5px 7px;border-radius:6px;background:#1b3c3b;font-size:11px}
+.ns99PauseTally span.yes{color:#99e4b2}.ns99PauseTally span.no{color:#efa993}
 </style></head>
 .netExplain{font-size:11px;line-height:1.5;color:#adcbc1;margin:9px 0}.netTurn{margin-top:7px;border:1px solid #688a8177;border-radius:11px;padding:10px;background:#15292c}.netTurn summary{font-size:12px;color:#f0cb8c;font-weight:700}.netTurn input{width:100%;margin-top:7px}.netTurn button{margin-top:8px;width:100%}
 #retryJoinBtn{width:100%;margin-top:8px;background:#36504b;color:#f4dcb0}
@@ -688,8 +700,20 @@
  </div>
 </section>
 <div id="reviveDock" class="reviveDock hidden"><button id="reviveBtn" class="reviveBtn" type="button" aria-label="Hold to revive teammate">✚ <span>DRŽI ZA OŽIVLJAVANJE</span></button><small id="reviveTarget" class="reviveTarget"></small></div>
-<div aria-live="polite" class="spectatorPanel hidden" id="spectatorPanel"><div class="spectatorTitle">☠ POGINUO SI · GLEDAŠ EKIPU</div><div class="spectatorLine"><button aria-label="Prethodni živi igrač" id="spectatorPrev">◀</button><strong id="spectatorLabel">IGRAČ 2</strong><button aria-label="Sledeći živi igrač" id="spectatorNext">▶</button></div><small id="spectatorCount">1 PREŽIVEO</small><button type="button" id="sosBtn" class="sosAction hidden" aria-label="Send one SOS signal">⚑ SEND SOS</button><small id="sosStatus" class="sosStatus hidden" aria-live="polite"></small></div><div class="controls hidden" id="controls"><div aria-hidden="true" class="joyBase hidden" id="joyBase"><div class="joyKnob" id="joyKnob"></div></div><div class="actionArea"><button aria-label="Izbegavanje, cooldown 2.8 sekunde" class="dashBtn" id="dashBtn">↝<small>IZBEGNI</small><span class="dashCooldown" id="dashCooldown"></span></button></div></div><div id="ns93SpellDock" class="hidden" aria-label="Spellcasting"><div class="ns93Mana"><span id="ns93ManaValue">64 / 64 MP</span><div class="ns93ManaTrack"><div id="ns93ManaFill"></div></div></div><div id="ns93SpellList"></div><button type="button" id="ns95SpellSwap" title="Change selected spell" aria-label="Choose equipped spell">⇄</button><div id="ns95SpellPicker" class="hidden"></div></div><div id="ns93Target" aria-hidden="true"></div><button aria-label="Pauza i meni" class="cornerPause hidden" id="pauseBtn" title="Otvori pauzu / meni">☰<small>MENI</small></button>
-<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL • v98</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
+<div aria-live="polite" class="spectatorPanel hidden" id="spectatorPanel"><div class="spectatorTitle">☠ POGINUO SI · GLEDAŠ EKIPU</div><div class="spectatorLine"><button aria-label="Prethodni živi igrač" id="spectatorPrev">◀</button><strong id="spectatorLabel">IGRAČ 2</strong><button aria-label="Sledeći živi igrač" id="spectatorNext">▶</button></div><small id="spectatorCount">1 PREŽIVEO</small><button type="button" id="sosBtn" class="sosAction hidden" aria-label="Send one SOS signal">⚑ SEND SOS</button><small id="sosStatus" class="sosStatus hidden" aria-live="polite"></small></div><div class="controls hidden" id="controls"><div aria-hidden="true" class="joyBase hidden" id="joyBase"><div class="joyKnob" id="joyKnob"></div></div><div class="actionArea"><button aria-label="Izbegavanje, cooldown 2.8 sekunde" class="dashBtn" id="dashBtn">↝<small>IZBEGNI</small><span class="dashCooldown" id="dashCooldown"></span></button></div></div><div id="ns93SpellDock" class="hidden" aria-label="Spellcasting"><div class="ns93Mana"><span id="ns93ManaValue">64 / 64 MP</span><div class="ns93ManaTrack"><div id="ns93ManaFill"></div></div></div><div id="ns93SpellList"></div><button type="button" id="ns95SpellSwap" title="Change selected spell" aria-label="Choose equipped spell">⇄</button><div id="ns95SpellPicker" class="hidden"></div></div><div id="ns93Target" aria-hidden="true"></div><button type="button" id="ns99PauseOpen" class="ns99PauseOpen hidden" aria-label="Request shared pause or resume">⏸ VOTE</button>
+<div id="ns99PauseBanner" class="ns99PauseBanner hidden" aria-live="polite"></div>
+<section id="ns99PausePanel" class="ns99PausePanel hidden" aria-label="Team pause vote">
+ <header><strong id="ns99PauseTitle">TEAM PAUSE</strong><button type="button" id="ns99PauseClose" aria-label="Close pause voting">✕</button></header>
+ <p id="ns99PauseText">All connected players vote.</p>
+ <div id="ns99PauseTally" class="ns99PauseTally"></div>
+ <div id="ns99PauseOptions" class="ns99PauseOptions">
+  <button type="button" id="ns99PauseStart" class="primary">⏸ REQUEST PAUSE</button>
+  <button type="button" id="ns99PauseYes" class="primary hidden">✓ YES</button>
+  <button type="button" id="ns99PauseNo" class="hidden">✕ NO</button>
+ </div>
+</section>
+<button aria-label="Pauza i meni" class="cornerPause hidden" id="pauseBtn" title="Otvori pauzu / meni">☰<small>MENI</small></button>
+<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL • v99</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
  <div class="ns50MenuGroups" id="ns50MenuGroups">
   <details class="ns50MenuGroup" id="ns50MenuPlay" open><summary><span class="ns50GroupIcon">▶</span><span class="ns50GroupWords"><strong data-ns50-en="PLAY" data-ns50-sr="IGRAJ">PLAY</strong><small data-ns50-en="Solo, campaign, co-op" data-ns50-sr="Solo, kampanja, co-op">Solo, campaign, co-op</small></span><span class="ns50Chevron">⌄</span></summary><div class="ns50GroupBody">
    <button class="primary ns50MainPlay" id="startBtn">⚔ ZAPOČNI IGRU</button>
@@ -1469,7 +1493,7 @@ function addSceneryObjects(target,houseCount=6,chestCount=5){
   }
   return target;
 }
-function addMarketObjects(target,count=6){
+function addMarketObjects(target,count=2){
   let created=0;
   for(let tries=0;created<count&&tries<count*160;tries++){
     let x=220+rnd()*(WORLD.w-440),y=220+rnd()*(WORLD.h-440);
@@ -1583,12 +1607,27 @@ function useFieldKit(p,d){
 }
 function ensureMapLife(existing){
  if(!existing.some(o=>o.type==='bush'))addLifeObjects(existing,68,25,9,11,16);
- if(!existing.some(o=>o.type==='market'))addMarketObjects(existing,8);
+ if(!existing.some(o=>o.type==='market'))addMarketObjects(existing,2);
  if(!existing.some(o=>o.type==='tractor'))addDetails(existing);
  addGuildBuilding(existing);
  ensureOverworldBarrels(existing);
  return existing;
 } 
+// v99: keep preexisting saved worlds playable, but thin out duplicate bars on a
+// *run copy* only, never deleting objects from the user's map editor or persistent save.
+function ns99ThinMarkets(target){
+ if(!Array.isArray(target))return target;
+ const markets=target.filter(p=>p.type==='market');if(markets.length<=2)return target;
+ const chosen=[];
+ for(const m of markets){
+  if(chosen.length>=2)break;
+  if(!chosen.some(c=>Math.hypot(c.x-m.x,c.y-m.y)<900))chosen.push(m);
+ }
+ for(const m of markets)if(chosen.length<2&&!chosen.includes(m))chosen.push(m);
+ const keep=new Set(chosen);
+ for(let i=target.length-1;i>=0;i--)if(target[i].type==='market'&&!keep.has(target[i]))target.splice(i,1);
+ return target;
+}
 function relocateOneChestNearStart(objects){
   let chest=objects.find(o=>o.type==='chest');if(!chest)return;
   for(let i=0;i<180;i++){
@@ -1646,7 +1685,7 @@ function generateMap(){
   for(let i=0;i<32;i++){
     let x=90+rnd()*(WORLD.w-180),y=90+rnd()*(WORLD.h-180);if(Math.hypot(x-START.x,y-START.y)>210)props.push(makeProp('crystal',x,y,1))
   }
-  addSceneryObjects(props,9,9);addLifeObjects(props,68,25,9,11,16);addMarketObjects(props,8);addDetails(props);addGuildBuilding(props);ensureOverworldBarrels(props);persist()
+  addSceneryObjects(props,9,9);addLifeObjects(props,68,25,9,11,16);addMarketObjects(props,2);addDetails(props);addGuildBuilding(props);ensureOverworldBarrels(props);persist()
 }
 if(!props.length)generateMap();
 const cloneProps=a=>a.map(p=>({...p}));
@@ -2873,7 +2912,7 @@ function drawAmbientCrystals(){const vw=viewSize().w,vh=viewSize().h;for(const c
  ctx.fillStyle='#60d3ff';ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(11,-2);ctx.lineTo(0,13);ctx.lineTo(-11,-2);ctx.closePath();ctx.fill();
  ctx.fillStyle='#d5f6ff';ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(0,8);ctx.lineTo(-9,-2);ctx.closePath();ctx.fill();ctx.restore();
 }}
-function startGame(opts={}){NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ensureMapLife(cloneProps(NET.hostProps)));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
+function startGame(opts={}){NS99_TEAM.reset();NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(cloneProps(NET.hostProps))));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap)))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
 mapReset();NSX.start(opts);NS95_CAGE.reset();$('pauseBtn').classList.remove('hidden');$('home').classList.add('hidden');$('editorPanel').classList.add('hidden');$('pausePanel').classList.add('hidden');$('gameOver').classList.add('hidden');$('coopPanel').classList.add('hidden');$('settingsPanel').classList.add('hidden');$('hud').classList.remove('hidden');$('controls').classList.remove('hidden');$('veil').classList.add('hidden');$('spectatorPanel').classList.add('hidden');resetFloatingJoystick();updateHUD();updateNightHUD();announce(opts.bossTest?'BOSS TEST · NIVO 10':G.runType==='campaign'?`KAMPANJA · ${findLevel(G.stageId).name}`:'TALAS 1 · PREŽIVI',2);sfx('wave');voiceLine('preview',true)}
 function addRemotePlayer(id){
  if(G.players.some(p=>p.id===id))return;
@@ -4049,16 +4088,212 @@ function applyQuickPower(p,id){if(!p||!QUICK_POWERS.some(o=>o.id===id))return fa
  return true;
 }
 function showChoiceTimer(panelId,seconds){const node=$(panelId);if(!node)return;const label=node.querySelector('.coopCountdown');if(!label)return;label.classList.toggle('hidden',!NET.role);if(!NET.role)return;const token=String(Math.random());label.dataset.token=token;for(let elapsed=0;elapsed<=seconds;elapsed++){setTimeout(()=>{if(label.dataset.token===token&&!node.classList.contains('hidden'))label.textContent='⏱ JOŠ '+(seconds-elapsed)+' SEKUNDI'},elapsed*1000)}}
-function closeQuickChoice(){const el=$('quickChoicePanel');if(el)el.classList.add('hidden');G.quickChoice=null;$('controls').classList.remove('hidden')}
-function showQuickChoice(p,remote=false){G.quickChoice={id:p.id,remote,round:NET.round};const panel=$('quickChoicePanel');if(!panel)return;
- panel.classList.remove('hidden');$('quickChoiceTitle').textContent='NIVO '+p.level+' · IZABERI MOĆ';let root=$('quickChoiceItems');root.textContent='';
- const choose=id=>{if(!G.quickChoice)return;if(remote)NET.conn?.send({t:'powerChoice',id});else{applyQuickPower(p,id);p.offerUntil=0}closeQuickChoice()};
- for(const u of QUICK_POWERS.filter(o=>o.id!=='mana'||(p.ns95RunManaRanks||0)<4)){let b=document.createElement('button');b.className='guildItem';b.innerHTML='<strong>'+u.name+'</strong><small>'+u.desc+'</small>';b.onclick=()=>choose(u.id);root.append(b)}
- $('quickChoiceClock').textContent='7';let seq=G.quickChoice;
- for(let k=6;k>=0;k--)setTimeout(()=>{if(G.quickChoice!==seq)return;$('quickChoiceClock').textContent=String(k);if(k===0)choose(QUICK_POWERS[0].id)},(7-k)*1000);
+
+/* v99 host-authoritative short team freezes, unanimous pause/resume and sleep recovery.
+   No room process is kept alive if Android freezes its JS; reconnect remains the fallback. */
+const NS99_TEAM=(()=>{
+ let manual=false,hostSleeping=false,level=null,queue=[],ballot=null,seq=0;
+ let seenSeq=-1,guestState=null,lastPublish=0,panelOpen=false,lastNotice='',lastVoteRequests=new Map();
+ const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
+ const multiplayer=()=>!!NET.role&&NET.phase==='playing';
+ const activeIds=()=>[NET.localId,...[...NET.clients].filter(([id,c])=>c?.open&&/^p[2-6]$/.test(id)).map(([id])=>id)];
+ const frozen=()=>multiplayer()&&(NET.role==='host'?manual||hostSleeping||!!level:!!guestState?.m||!!guestState?.h||!!guestState?.l);
+ const state=()=>({v:1,seq,m:manual?1:0,h:hostSleeping?1:0,
+   l:level?{id:level.id,at:level.deadline,lv:level.lv}:null,
+   b:ballot?{kind:ballot.kind,until:ballot.until,votes:{...ballot.votes}}:null});
+ function publish(){
+  if(NET.role!=='host'||NET.phase!=='playing')return;
+  seq++;const packet={t:'ns99State',round:NET.round,state:state()};
+  for(const c of NET.clients.values())if(c?.open&&Number(c.bufferSize||0)<12000)try{c.send(packet)}catch{}
+  render();
+ }
+ function reset(){
+  manual=false;hostSleeping=false;level=null;queue=[];ballot=null;seq=0;seenSeq=-1;guestState=null;lastPublish=0;panelOpen=false;lastNotice='';lastVoteRequests.clear();
+  $('ns99PauseBanner')?.classList.add('hidden');$('ns99PausePanel')?.classList.add('hidden');$('ns99PauseOpen')?.classList.add('hidden');render();
+ }
+ function receive(raw){
+  if(NET.role!=='guest'||NET.phase!=='playing'||!raw||raw.v!==1||!Number.isSafeInteger(raw.seq)||raw.seq<0)return false;
+  if(raw.seq<seenSeq)return false;
+  seenSeq=raw.seq;
+  const old=guestState?.l?.id;
+  guestState={m:!!raw.m,h:!!raw.h,l:(raw.l&&/^p[1-6]$/.test(raw.l.id))?{id:raw.l.id,lv:Number(raw.l.lv)||1,at:Number(raw.l.at)||0}:null,
+   b:raw.b&&['pause','resume'].includes(raw.b.kind)?{kind:raw.b.kind,until:Number(raw.b.until)||0,votes:raw.b.votes&&typeof raw.b.votes==='object'?raw.b.votes:{}}:null};
+  if(old===NET.localId&&guestState.l?.id!==NET.localId&&G.quickChoice?.remote)closeQuickChoice();
+  render();return true;
+ }
+ function nextLevel(){
+  if(level||NET.role!=='host'||NET.phase!=='playing')return;
+  const next=queue.shift();if(!next){publish();return}
+  const p=G.players.find(x=>x.id===next.id);
+  if(!p||p.dead){nextLevel();return}
+  level={id:p.id,lv:p.level,deadline:Date.now()+3000};
+  if(p.id===NET.localId){showQuickChoice(p,false);}
+  else{
+   const conn=NET.clients.get(p.id);
+   if(conn?.open)try{conn.send({t:'powerOffer',level:p.level,round:NET.round,ms:3000})}catch{}
+  }
+  publish();
+ }
+ function offer(p){
+  if(NET.role!=='host'||NET.phase!=='playing'||!p||p.dead)return false;
+  if(!queue.some(x=>x.id===p.id)&&level?.id!==p.id)queue.push({id:p.id,at:Date.now()});
+  nextLevel();return true;
+ }
+ function select(id,power){
+  if(NET.role!=='host'||!level||level.id!==id||Date.now()>level.deadline+250)return false;
+  const p=G.players.find(x=>x.id===id);
+  if(!p)return false;
+  const allowed=QUICK_POWERS.some(q=>q.id===power)&&!(power==='mana'&&(p.ns95RunManaRanks||0)>=4);
+  applyQuickPower(p,allowed?power:'damage');p.offerUntil=0;
+  if(G.quickChoice?.id===id)closeQuickChoice();
+  level=null;
+  if(queue.length)nextLevel();else publish();
+  return true;
+ }
+ function castVote(kind,id,choice,round=NET.round){
+  if(NET.role!=='host'||NET.phase!=='playing'||round!==NET.round||!activeIds().includes(id))return false;
+  if(!ballot||ballot.kind!==kind||!['yes','no'].includes(choice))return false;
+  ballot.votes[id]=choice;
+  checkVotes();publish();return true;
+ }
+ function checkVotes(){
+  if(!ballot)return;
+  const ids=activeIds(),votes=ballot.votes;
+  if(ids.some(id=>votes[id]==='no')||Date.now()>=ballot.until){ballot=null;return}
+  if(ids.every(id=>votes[id]==='yes')){
+   manual=ballot.kind==='pause';
+   ballot=null;
+   lastNotice=manual?tr('TEAM PAUSED','TIMSKA PAUZA'):tr('TEAM RESUMED','TIM NASTAVLJA');
+   resetFloatingJoystick();
+  }
+ }
+ function request(kind,id=NET.localId){
+  if(!multiplayer()||!['pause','resume'].includes(kind))return false;
+  if(NET.role==='guest'){
+   if(!NET.conn?.open)return false;
+   try{NET.conn.send({t:'ns99VoteRequest',kind,round:NET.round});return true}catch{return false}
+  }
+  if(NET.role!=='host'||!activeIds().includes(id)||!!level||hostSleeping||ballot)return false;
+  if(kind!==(manual?'resume':'pause'))return false;
+  const now=Date.now();
+  if(now-(lastVoteRequests.get(id)||0)<15000&&activeIds().length>1)return false;
+  lastVoteRequests.set(id,now);
+  ballot={kind,until:now+12000,votes:{[id]:'yes'}};panelOpen=true;checkVotes();publish();return true;
+ }
+ function guestVote(choice){
+  if(!multiplayer()||!['yes','no'].includes(choice))return false;
+  if(NET.role==='host'&&ballot)return castVote(ballot.kind,NET.localId,choice);
+  if(NET.role==='guest'&&guestState?.b&&NET.conn?.open){
+   try{NET.conn.send({t:'ns99Vote',kind:guestState.b.kind,choice,round:NET.round});guestState.b.votes[NET.localId]=choice;render();return true}catch{}
+  }
+  return false;
+ }
+ function peerLeft(id){
+  if(NET.role!=='host'||NET.phase!=='playing')return;
+  if(level?.id===id)select(id,'damage');
+  queue=queue.filter(x=>x.id!==id);
+  if(ballot){delete ballot.votes[id];checkVotes()}
+  publish();
+ }
+ function render(){
+  const btn=$('ns99PauseOpen'),box=$('ns99PausePanel'),banner=$('ns99PauseBanner');
+  if(!btn||!box||!banner)return;
+  const active=multiplayer()&&G.mode==='play',s=NET.role==='host'?{m:manual,h:hostSleeping,l:level,b:ballot}:guestState;
+  btn.classList.toggle('hidden',!active);
+  if(!active){box.classList.add('hidden');banner.classList.add('hidden');return}
+  const status=s?.h?tr('HOST PHONE LOCKED · WAITING','HOST JE ZAKLJUČAO TELEFON · ČEKANJE'):
+   s?.l?tr('LEVEL UP · ','NOVI NIVO · ')+multiplayerDisplayName(s.l.id)+' · '+Math.max(0,Math.ceil(((s.l.at||s.l.deadline)-Date.now())/1000))+'s':
+   s?.m?tr('TEAM PAUSED · VOTE TO RESUME','TIMSKA PAUZA · GLASAJ ZA NASTAVAK'):
+   s?.b?tr('VOTE · ','GLASANJE · ')+(s.b.kind==='pause'?tr('PAUSE','PAUZA'):tr('RESUME','NASTAVAK')):'';
+  banner.textContent=status;banner.classList.toggle('hidden',!status);
+  const showing=panelOpen||!!s?.b||!!s?.m;
+  box.classList.toggle('hidden',!showing);
+  if(!showing)return;
+  $('ns99PauseTitle').textContent=tr('TEAM PAUSE','TIMSKA PAUZA');
+  const b=s?.b;
+  $('ns99PauseText').textContent=b?tr('Everyone connected must vote. ','Svi povezani glasaju. ')+Math.max(0,Math.ceil((b.until-Date.now())/1000))+'s':
+     s?.m?tr('Game is paused. Request a vote to continue.','Igra je pauzirana. Zatraži glasanje za nastavak.'):
+     tr('Only a unanimous vote can pause the whole team.','Samo jednoglasna odluka pauzira sve igrače.');
+  const tall=$('ns99PauseTally');tall.replaceChildren();
+  if(b){
+   const ids=NET.role==='host'?activeIds():[...new Set([NET.localId,...(NET.roster||[]).map(x=>x.id)])].slice(0,6);
+   for(const id of ids){const v=b.votes[id];const label=document.createElement('span');label.className=v||'waiting';label.textContent=(v==='yes'?'✓ ':v==='no'?'✕ ':'○ ')+multiplayerDisplayName(id);tall.append(label)}
+  }
+  $('ns99PauseStart').classList.toggle('hidden',!!b||!!s?.l);
+  $('ns99PauseStart').textContent=s?.m?tr('▶ REQUEST RESUME','▶ GLASAJ ZA NASTAVAK'):tr('⏸ REQUEST PAUSE','⏸ GLASAJ ZA PAUZU');
+  $('ns99PauseYes').classList.toggle('hidden',!b);$('ns99PauseNo').classList.toggle('hidden',!b);
+  const mine=b?.votes[NET.localId];
+  $('ns99PauseYes').disabled=mine==='yes';$('ns99PauseNo').disabled=mine==='no';
+  $('ns99PauseYes').textContent=tr('✓ YES','✓ ZA');$('ns99PauseNo').textContent=tr('✕ NO','✕ PROTIV');
+ }
+ function tick(){
+  if(!multiplayer())return;
+  if(NET.role==='host'){
+   if(level&&Date.now()>=level.deadline)select(level.id,'damage');
+   if(ballot&&Date.now()>=ballot.until){ballot=null;publish()}
+   if(frozen()&&Date.now()-lastPublish>1400)publish();
+   if(frozen())render();
+  }else if(frozen()||guestState?.b)render();
+ }
+ function visibility(hidden){
+  if(!multiplayer())return;
+  if(hidden){resetFloatingJoystick();input.keys.clear();input.attack=false;input.dash=false;}
+  if(NET.role==='host'){
+   if(hostSleeping!==hidden){hostSleeping=hidden;publish()}
+  }else if(NET.role==='guest'){
+   if(NET.conn?.open){
+    try{NET.conn.send({t:'ns99Away',away:hidden,round:NET.round})}catch{}
+    if(!hidden)try{NET.conn.send({t:'stateRequest',round:NET.round})}catch{}
+   }else if(!hidden&&NET.rejoinToken){NETLAB.scheduleReconnect();NETLAB.manualReconnect();}
+  }
+  if(!hidden){lastTs=performance.now();render()}
+ }
+ $('ns99PauseOpen').onclick=()=>{panelOpen=!panelOpen;render()};
+ $('ns99PauseClose').onclick=()=>{panelOpen=false;render()};
+ $('ns99PauseStart').onclick=()=>request((NET.role==='host'?manual:guestState?.m)?'resume':'pause');
+ $('ns99PauseYes').onclick=()=>guestVote('yes');
+ $('ns99PauseNo').onclick=()=>guestVote('no');
+ document.addEventListener('visibilitychange',()=>visibility(document.hidden));
+ document.addEventListener('freeze',()=>visibility(true));
+ document.addEventListener('resume',()=>visibility(false));
+ window.addEventListener('pageshow',()=>{if(!document.hidden)visibility(false)});
+ setInterval(tick,350);
+ return {reset,offer,select,request,castVote,guestVote,peerLeft,receive,render,tick,frozen,state,visibility,get currentLevel(){return level},get manualPaused(){return manual},get ballot(){return ballot}};
+})();
+window.__NS99_TEAM=NS99_TEAM;
+function closeQuickChoice(){const el=$('quickChoicePanel');if(el)el.classList.add('hidden');G.quickChoice=null;if(!NS99_TEAM.frozen())$('controls').classList.remove('hidden')}
+function showQuickChoice(p,remote=false){
+ const isTeam=!!NET.role&&NET.phase==='playing',seconds=isTeam?3:7;
+ G.quickChoice={id:p.id,remote,round:NET.round};
+ const panel=$('quickChoicePanel');if(!panel)return;
+ panel.classList.remove('hidden');
+ const info=panel.querySelector('p');if(info)info.firstChild.textContent=isTeam?'Cela ekipa čeka dok izabereš moć za ':'Izaberi svoju moć za ';
+ $('quickChoiceTitle').textContent='NIVO '+p.level+' · IZABERI MOĆ';
+ const root=$('quickChoiceItems');root.textContent='';
+ const token=G.quickChoice;
+ const choose=id=>{
+  if(G.quickChoice!==token)return;
+  if(remote){if(NET.conn?.open)NET.conn.send({t:'powerChoice',id,round:NET.round});}
+  else if(isTeam&&NET.role==='host')NS99_TEAM.select(p.id,id);
+  else{applyQuickPower(p,id);p.offerUntil=0}
+  if(G.quickChoice===token)closeQuickChoice();
+ };
+ for(const u of QUICK_POWERS.filter(o=>o.id!=='mana'||(p.ns95RunManaRanks||0)<4)){
+  const b=document.createElement('button');b.className='guildItem';
+  const title=document.createElement('strong');title.textContent=u.name;
+  const desc=document.createElement('small');desc.textContent=u.desc;
+  b.append(title,desc);b.onclick=()=>choose(u.id);root.append(b);
+ }
+ $('quickChoiceClock').textContent=String(seconds);
+ for(let elapsed=1;elapsed<=seconds;elapsed++)setTimeout(()=>{
+  if(G.quickChoice!==token)return;
+  $('quickChoiceClock').textContent=String(seconds-elapsed);
+  if(elapsed===seconds)choose('damage');
+ },elapsed*1000);
 }
 function coopLevelUp(p){if(!p||p.dead||p.offerUntil>G.time)return;
- p.level++;checkWeaponEvolution(p);if(p.level%10===0&&!G.mpBossTiers.has(p.level)){G.mpBossTiers.add(p.level);spawnBoss(p.level)}p.xpNeed=xpRequirement(p.level);p.hp=Math.min(p.maxHp,p.hp+8);p.offerUntil=G.time+7;
+ p.level++;checkWeaponEvolution(p);if(p.level%10===0&&!G.mpBossTiers.has(p.level)){G.mpBossTiers.add(p.level);spawnBoss(p.level)}p.xpNeed=xpRequirement(p.level);p.hp=Math.min(p.maxHp,p.hp+8);p.offerUntil=G.time+3;
+ if(NET.role==='host'&&NET.phase==='playing'){NS99_TEAM.offer(p);return}
  if(p.id===(NET.role==='host'?NET.localId:'p1'))showQuickChoice(p,false);
  else {const c=NET.clients.get(p.id);if(c?.open){NET.pendingOffers.set(p.id,{type:'power',deadline:G.time+7,items:QUICK_POWERS});c.send({t:'powerOffer',level:p.level})}else{applyQuickPower(p,'damage');p.offerUntil=0}}
 }
@@ -4066,7 +4301,7 @@ function coopXP(p,amount){p.xp=Math.max(0,(p.xp||0)+amount);if(p.xp>=p.xpNeed&&p
 
 function upgradeLevel(){G.level++;for(const hero of G.players)checkWeaponEvolution(hero);sfx('level');voiceLine('level');G.xpNeed=Math.ceil(xpRequirement(G.level)*(G.relicXpTax||1));for(const p of G.players){p.hp=Math.min(p.maxHp,p.hp+12)}if(G.level%10===0)spawnBoss(G.level);if(NET.role==='host')for(const c of NET.clients.values())if(c.open)c.send({t:'level',n:G.level});G.paused=true;$('controls').classList.add('hidden');$('upgradePanel').classList.remove('hidden');$('levelHeading').textContent=`NIVO ${G.level}`;
 const opts=[{name:'KOVANI MAČ',desc:'+23% štete',fn:()=>G.players.forEach(p=>p.damage=Math.round(p.damage*1.23))},{name:'SRCE STRAŽARA',desc:'+30 HP i odmah izlečenje',fn:()=>G.players.forEach(p=>{p.maxHp+=30;p.hp=Math.min(p.maxHp,p.hp+46)})},{name:'BRZI KORACI',desc:'+10% kretanja i udaraca',fn:()=>G.players.forEach(p=>{p.speed*=1.10;p.attackRate=Math.max(.26,p.attackRate*.91)})}];if((G.players[0]?.ns95RunManaRanks||0)<4)opts.push({name:'BISTRINA UMA',desc:'+8 MP i +0.12 MP/s do kraja partije',fn:()=>G.players.forEach(p=>NS95_PROGRESS.boost(p))});$('upgradeCards').innerHTML='';for(let up of opts){let btn=document.createElement('button');let top=document.createElement('b');top.textContent=up.name;let low=document.createElement('span');low.textContent=up.desc;btn.append(top,low);btn.onclick=()=>{up.fn();G.paused=false;$('upgradePanel').classList.add('hidden');$('controls').classList.remove('hidden');announce('NIVO '+G.level+' · NADOGRADNJA',2)};$('upgradeCards').append(btn)}}
-function update(dt){if((G.mode!=='play'||G.paused)&&floatingStick.pointerId!==null)resetFloatingJoystick();if(G.mode==='menu'){if($('nightHud'))$('nightHud').classList.add('hidden');G.players[0].frame+=dt*2;G.camera.x=START.x+Math.sin(performance.now()/15000)*120;G.camera.y=START.y+Math.cos(performance.now()/11000)*80;return}if(G.mode==='editor'){G.players[0].frame+=dt*3;return}if(G.mode!=='play'||G.paused)return;G.time+=dt;if(!G.ns95TestOnly)NSX.tick(dt);NS93_MAGIC.tick(dt);NS95_CAGE.tick(dt);if(!G.caveMode)G.waveClock+=dt;G.waveNoticeT=Math.max(0,G.waveNoticeT-dt);
+function update(dt){if((G.mode!=='play'||G.paused)&&floatingStick.pointerId!==null)resetFloatingJoystick();if(G.mode==='menu'){if($('nightHud'))$('nightHud').classList.add('hidden');G.players[0].frame+=dt*2;G.camera.x=START.x+Math.sin(performance.now()/15000)*120;G.camera.y=START.y+Math.cos(performance.now()/11000)*80;return}if(G.mode==='editor'){G.players[0].frame+=dt*3;return}if(G.mode!=='play'||G.paused||NS99_TEAM.frozen())return;G.time+=dt;if(!G.ns95TestOnly)NSX.tick(dt);NS93_MAGIC.tick(dt);NS95_CAGE.tick(dt);if(!G.caveMode)G.waveClock+=dt;G.waveNoticeT=Math.max(0,G.waveNoticeT-dt);
 if(NET.role==='guest'){
  const mine=G.players.find(p=>p.id===NET.localId),inp=mine&&!mine.dead&&!G.quickChoice&&!G.guildPending&&!G.lootPending&&!G.marketPending?getLocalInput():{x:0,y:0,dash:false};
  // Optimistic local movement removes the 130-ms stop/start of the remote hero.
@@ -4851,7 +5086,7 @@ canvas.addEventListener('pointermove',e=>{if(e.pointerId===floatingStick.pointer
 for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,e=>{if(e.pointerId===floatingStick.pointerId)resetFloatingJoystick()});
 for(const [id,key] of [['dashBtn','dash']]){const b=$(id);if(!b)continue;b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch{};input[key]=true});/* Dash is latched until next game tick so quick taps are not missed. */}
 window.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(k==='escape'||k==='browserback'){e.preventDefault();if(k==='escape'&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))document.activeElement.blur();NS84_NAV.navigateBack(false);return}if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();input.keys.add(k)});window.addEventListener('keyup',e=>input.keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{input.keys.clear();input.attack=false;input.dash=false;setJoy(0,0)});
-function togglePause(){if(G.mode!=='play')return;resetFloatingJoystick();G.paused=!G.paused;$('pausePanel').classList.toggle('hidden',!G.paused);$('controls').classList.toggle('hidden',G.paused);$('pauseBtn').classList.toggle('hidden',G.paused)}
+function togglePause(){if(G.mode!=='play')return;if(NET.role&&NET.phase==='playing'){$('ns99PauseOpen')?.click();return}resetFloatingJoystick();G.paused=!G.paused;$('pausePanel').classList.toggle('hidden',!G.paused);$('controls').classList.toggle('hidden',G.paused);$('pauseBtn').classList.toggle('hidden',G.paused)}
 function editOpen(){$('pauseBtn').classList.add('hidden');resetFloatingJoystick();G.editFrom=G.mode;G.mode='editor';G.paused=true;G.pan={...G.camera};if(G.editFrom==='menu')G.pan={x:START.x,y:START.y};activePlayMap=props;props=cloneProps(editorDraft);syncLevelControls();invalidateNavigation();if(!G.players.length)G.players=[player('p1',START.x,START.y)];$('editorPanel').classList.remove('hidden');$('home').classList.add('hidden');$('pausePanel').classList.add('hidden');$('hud').classList.add('hidden');$('controls').classList.add('hidden');$('veil').classList.add('hidden');selectModel();setEditTab('map')}
 function editClose(){saveCurrentLevel();props=activePlayMap;invalidateNavigation();persist();$('editorPanel').classList.add('hidden');if(G.editFrom==='play'){G.mode='play';G.paused=false;$('pauseBtn').classList.remove('hidden');$('hud').classList.remove('hidden');$('controls').classList.remove('hidden')}else{showMenu()}}
 function setEditTab(tab){G.tab=tab;for(const b of document.querySelectorAll('[data-tab]'))b.classList.toggle('active',b.dataset.tab===tab);for(const t of ['map','models','commands'])$(t+'Tab').classList.toggle('hidden',tab!==t)}
@@ -5228,7 +5463,7 @@ function resetLobbyUI(){
  $('hostBtn').disabled=false;$('joinBtn').disabled=false;$('retrySyncBtn').classList.add('hidden');
 }
 function closeNet(){
- if(NET.role==='host')NS92_DIR.publish(false,true);NS92_DIR.stop();NS76CHAT.reset();coopVoiceReset();NETMIG.reset();NETLAB.clear();NET.sessionToken=null;NET.lastEarned=null;clearTimeout(NET.joinRetryTimer);NET.joinRetryTimer=null;NET.joinRetryCount=0;NET.lastConnectError='';const clients=[...NET.clients.values()],connection=NET.conn,peer=NET.peer;
+ NS99_TEAM.reset();if(NET.role==='host')NS92_DIR.publish(false,true);NS92_DIR.stop();NS76CHAT.reset();coopVoiceReset();NETMIG.reset();NETLAB.clear();NET.sessionToken=null;NET.lastEarned=null;clearTimeout(NET.joinRetryTimer);NET.joinRetryTimer=null;NET.joinRetryCount=0;NET.lastConnectError='';const clients=[...NET.clients.values()],connection=NET.conn,peer=NET.peer;
  // Reset role BEFORE disconnect events fire to avoid a recursive menu change.
  NET.role='';NET.phase='idle';NET.hostId='p1';NET.migrationTarget=null;NET.migrationEpoch=0;NET.round=0;NET.lastRoundText='';NS97_POST.clear();NET.peer=null;NET.conn=null;NET.localId='p1';
  NET.clients.clear();NET.remoteInputs.clear();NET.pendingOffers.clear();NET.profiles.clear();NET.heroLooks.clear();
@@ -5302,7 +5537,7 @@ function setMyReady(){
  if(NET.role==='host'){NET.readyPlayers.set(NET.localId,NET.localReady);broadcastLobby()}
  else if(NET.role==='guest'){if(NET.conn?.open)NET.conn.send({t:'ready',ready:NET.localReady});renderLobby()}
 }
-function resetToLobbyAfterRound(result=''){coopVoiceReset();$('ns93SpellDock')?.classList.add('hidden');$('ns95SpellPicker')?.classList.add('hidden');sendSocialStatus();
+function resetToLobbyAfterRound(result=''){NS99_TEAM.reset();coopVoiceReset();$('ns93SpellDock')?.classList.add('hidden');$('ns95SpellPicker')?.classList.add('hidden');sendSocialStatus();
  if(!NET.role)return;
  NET.phase='lobby';NETMIG.reset();NET.localReady=false;NS92_DIR.publish(true);NET.viewTarget=null;queueMicrotask(deliverQueuedJoinRequests);G.lootPending=null;G.marketPending=null;G.guildPending=null;
  G.mode='menu';G.paused=false;G.quickChoice=null;G.reviveHeld=false;G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();$('sosCompass').classList.add('hidden');$('sosBtn').classList.add('hidden');$('reviveDock').classList.add('hidden');stopMusic();resetFloatingJoystick();
@@ -5345,7 +5580,7 @@ function startLobbyMatch(){
  if(NS97_POST.active&&!NET.ns97Results.startAt)return false;
  const roster=currentLobbyRoster();
  if(roster.length<2||(!NET.forceRequest&&!roster.every(p=>p.ready))||roster.slice(1).some(p=>!NET.worldReadyPlayers.get(p.id))){NET.forceRequest=false;netStatus('Nisu svi spremni. Čekamo najmanje 2 igrača.');renderLobby();return false}
- NET.forceRequest=false;NET.lastEarned=null;NS97_POST.clear();NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
+ NET.forceRequest=false;NET.lastEarned=null;NS97_POST.clear();NS99_TEAM.reset();NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
  // Host is authoritative: start the battle only here, never when a room is created.
  startGame({specialMode:selectedMode,difficulty:NSX.opt.difficulty});
  markMultiplayerNames();
@@ -5445,6 +5680,11 @@ function setupConnection(c){
  c.on('data',data=>{
   if(!data||typeof data!=='object')return;
   if(NETLAB.handle(data,c,NET.role==='host'?(assigned||'pending'):'host'))return;
+  if(NET.role==='host'&&assigned&&NET.phase==='playing'){
+   if(data.t==='ns99VoteRequest'){NS99_TEAM.request(data.kind,assigned);return}
+   if(data.t==='ns99Vote'){NS99_TEAM.castVote(data.kind,assigned,data.choice,data.round);return}
+   if(data.t==='ns99Away'){NET.remoteInputs.set(assigned,{x:0,y:0,attack:false,dash:false});return}
+  }
   if(data.t==='ns97Vote'&&NET.role==='host'&&assigned&&NET.phase==='lobby'){NS97_POST.receiveVote(assigned,data);return;}
   if(data.t==='ns76ChatSend'){if(NET.role==='host'&&assigned&&NET.phase==='lobby')NS76CHAT.acceptFromGuest(data,assigned);return;}
   if(data.t==='ns76ChatMsg'){if(NET.role==='guest'&&NET.phase==='lobby')NS76CHAT.receive(data);return;}
@@ -5471,7 +5711,7 @@ function setupConnection(c){
     const id=data.code===NET.code?NETLAB.findResume(data.token,data.round):null;
     if(!id){safeSend({t:'resumeRejected'});setTimeout(()=>c.close(),300);return}
     assigned=id;NET.clients.set(id,c);NET.remoteInputs.set(id,{x:0,y:0,attack:false,dash:false});NET.startAcks.set(id,true);
-    const newToken=NETLAB.reserve(id);safeSend({t:'resumeAccepted',id,round:NET.round,rejoinToken:newToken});sendSnapshot();netStatus(`Igrač ${id.slice(1)} se vratio u partiju.`);return;
+    const newToken=NETLAB.reserve(id);safeSend({t:'resumeAccepted',id,round:NET.round,rejoinToken:newToken});sendSnapshot();try{c.send({t:'ns99State',round:NET.round,state:NS99_TEAM.state()})}catch{}netStatus(`Igrač ${id.slice(1)} se vratio u partiju.`);return;
    }
    if(NET.phase!=='playing')return;
    if(assigned&&data.t==='started'){NET.startAcks.set(assigned,true);return}
@@ -5486,6 +5726,7 @@ function setupConnection(c){
    if(assigned&&data.t==='sosRequest'){const p=G.players.find(x=>x.id===assigned);if(p)sosRegister(p);return;}
    if(assigned&&data.t==='reviveHold'){if(!data.held){delete G.reviveIntent[assigned];delete G.reviveActive[assigned];G.reviveSuppressed?.delete(assigned)}else if(!G.reviveSuppressed?.has(assigned))G.reviveIntent[assigned]={held:true,at:G.time};return;}
    if(assigned&&data.t==='spectate'){const watch=G.players.find(p=>p.id===data.id&&!p.dead);if(watch)NET.spectateTargets.set(assigned,watch.id);return}
+   if(assigned&&data.t==='powerChoice'&&NS99_TEAM.currentLevel?.id===assigned){NS99_TEAM.select(assigned,data.id);return}
    if(assigned&&data.t==='powerChoice'){const o=NET.pendingOffers.get(assigned),p=G.players.find(q=>q.id===assigned);if(o?.type==='power'&&p&&G.time<=o.deadline+1){applyQuickPower(p,data.id);p.offerUntil=0;NET.pendingOffers.delete(assigned)}return;}
    if(assigned&&data.t==='input'&&data.v){let v=data.v;NET.remoteInputs.set(assigned,NET.pendingOffers.has(assigned)?{x:0,y:0,attack:false,dash:false}:{x:clamp(Number(v.x)||0,-1,1),y:clamp(Number(v.y)||0,-1,1),attack:!!v.attack,dash:!!v.dash})}
    else if(assigned&&data.t==='chestChoice'){
@@ -5500,7 +5741,8 @@ function setupConnection(c){
     }else safeSend({t:'marketResult',ok:false});
    }
   }else if(NET.role==='guest'){
-   if(data.t==='ns93CastAck'){NS93_MAGIC.ack(data);return;}if(data.t==='migrationBackup'){NETMIG.receiveBackup(data,c);return}if(data.t==='migrationBackupZip'){void NETMIG.receiveCompressedBackup(data,c);return}if(data.t==='resumeAccepted'){NETLAB.reconnectAccepted(c,data);netStatus('Ponovo povezan!');return}if(data.t==='resumeRejected'){netStatus('Povratak odbijen: token je istekao ili je runda završena.');NET.rejoinToken='';return}if(data.t==='mpReward'){awardMP(data);return;}if(data.t==='ns75FieldKit'){toast(lang(`Field kit: +${Math.round(data.heal)||0} HP · +8% attack speed for 8s`,`Zavoj: +${Math.round(data.heal)||0} HP · 8% brži napadi na 8 s`));return;}
+   if(data.t==='ns99State'){if(data.round===NET.round)NS99_TEAM.receive(data.state);return}
+   if(data.t==='ns93CastAck'){NS93_MAGIC.ack(data);return;}if(data.t==='migrationBackup'){NETMIG.receiveBackup(data,c);return}if(data.t==='migrationBackupZip'){void NETMIG.receiveCompressedBackup(data,c);return}if(data.t==='resumeAccepted'){NETLAB.reconnectAccepted(c,data);NS99_TEAM.render();netStatus('Ponovo povezan!');return}if(data.t==='resumeRejected'){netStatus('Povratak odbijen: token je istekao ili je runda završena.');NET.rejoinToken='';return}if(data.t==='mpReward'){awardMP(data);return;}if(data.t==='ns75FieldKit'){toast(lang(`Field kit: +${Math.round(data.heal)||0} HP · +8% attack speed for 8s`,`Zavoj: +${Math.round(data.heal)||0} HP · 8% brži napadi na 8 s`));return;}
    if(data.t==='ns89WeaponResult'&&NET.phase==='playing'){if(!data.ok)toast('Oružje nije dostupno ili si predaleko.');return;}
    if(data.t==='reviveInterrupted'&&NET.phase==='playing'){setReviveHeld(false);toast('Oživljavanje prekinuto · pogođen si');return;}
    if(data.t==='versionMismatch'){NET.joinRetryCount=4;netStatus('Različite verzije igre. Oba igrača moraju da otvore novu v95 HTML verziju.');$('retryJoinBtn').classList.remove('hidden');return;}
@@ -5562,7 +5804,7 @@ function setupConnection(c){
  c.on('close',()=>{
   if(syncTimer)clearInterval(syncTimer);if(c._nsIntentionalRetry)return;
   if(NET.role==='host'){
-   if(assigned&&NET.clients.get(assigned)===c){NET.clients.delete(assigned);NET.readyPlayers.delete(assigned);NET.worldReadyPlayers.delete(assigned);NET.startAcks.delete(assigned);NET.remoteInputs.delete(assigned);NET.pendingOffers.delete(assigned);
+   if(assigned&&NET.clients.get(assigned)===c){NET.clients.delete(assigned);NS99_TEAM.peerLeft(assigned);NET.readyPlayers.delete(assigned);NET.worldReadyPlayers.delete(assigned);NET.startAcks.delete(assigned);NET.remoteInputs.delete(assigned);NET.pendingOffers.delete(assigned);
     if(NET.phase==='playing'){NETLAB.markDisconnect(assigned)}else{NETLAB.tokens.delete(assigned);G.players=G.players.filter(p=>p.id!==assigned)};
     if(NET.phase==='lobby'){broadcastLobby();netStatus(`Igrač ${assigned.slice(1)} je napustio čekaonicu.`)}
     else netStatus(`Soba ${NET.code} · ${NET.clients.size+1}/6 igrača`);
@@ -5608,7 +5850,7 @@ function sendSnapshot(){
  if(!ready.length)return;
  const migrationMeta=NETMIG.hostRoster();NETMIG.sendBackup(migrationMeta);
  // Static and team-wide state costs the same for every recipient.
- const shared={mig:migrationMeta,a91:NS91.getMask(),c92:NS92_CHALLENGES.snapshot(),c95:NS95_CAGE.snapshot(),
+ const shared={ns99:NS99_TEAM.state(),mig:migrationMeta,a91:NS91.getMask(),c92:NS92_CHALLENGES.snapshot(),c95:NS95_CAGE.snapshot(),
    nx:(G.caveMode||ready.some(({id})=>((NET.ns80PeerSeq.get(id)||0)+1)%3===1))?NSX.snapshot():undefined,
    specialMode:G.specialMode,
    towers:props.filter(o=>o.type==='nightTower').map(o=>[o.seed,Math.round(o.hp),o.destroyed?1:0]),
@@ -5685,7 +5927,7 @@ function receiveSnapshot(d){
  if(NET.role!=='guest'||NET.phase!=='playing'||!NET.localId||!Array.isArray(d.p))return;
  if(Number.isInteger(d.round)&&d.round!==NET.round)return;
  if(Number.isInteger(d.seq)&&d.seq<=NET.lastSnapSeq)return;
- if(Number.isInteger(d.seq)){if(NET.lastSnapSeq>0&&d.seq>NET.lastSnapSeq+1)NS79STATS.dropped+=d.seq-NET.lastSnapSeq-1;NET.lastSnapSeq=d.seq;}const snapshotNow=performance.now(),snapshotInterval=(snapshotNow-(NET.lastReceiveAt||snapshotNow-150))/1000;NET.lastReceiveAt=snapshotNow;const hostStep=Number.isFinite(d.time)&&Number.isFinite(NET.ns80LastHostTime)?d.time-NET.ns80LastHostTime:snapshotInterval;NET.ns80LastHostTime=Number(d.time)||null;NS79STATS.receive(d.seq,snapshotNow,snapshotInterval);NETLAB.snapshotReceived();NETMIG.observe(d.mig);
+ if(Number.isInteger(d.seq)){if(NET.lastSnapSeq>0&&d.seq>NET.lastSnapSeq+1)NS79STATS.dropped+=d.seq-NET.lastSnapSeq-1;NET.lastSnapSeq=d.seq;}const snapshotNow=performance.now(),snapshotInterval=(snapshotNow-(NET.lastReceiveAt||snapshotNow-150))/1000;NET.lastReceiveAt=snapshotNow;const hostStep=Number.isFinite(d.time)&&Number.isFinite(NET.ns80LastHostTime)?d.time-NET.ns80LastHostTime:snapshotInterval;NET.ns80LastHostTime=Number(d.time)||null;NS79STATS.receive(d.seq,snapshotNow,snapshotInterval);NETLAB.snapshotReceived();NETMIG.observe(d.mig);if(d.ns99)NS99_TEAM.receive(d.ns99);
  if(d.nx)NSX.onGuestSnapshot(d.nx);NS91.receiveMask(d.a91);NS92_CHALLENGES.receive(d.c92);NS95_CAGE.receive(d.c95);G.wave=d.w;if(d.specialMode)G.specialMode=d.specialMode;G.time=Math.max(G.time,d.time||0);if(Array.isArray(d.towers))for(const st of d.towers){const tower=props.find(o=>o.type==='nightTower'&&o.seed===st[0]);if(tower){tower.hp=st[1];tower.destroyed=!!st[2]}}G.nightTowersDestroyed=props.filter(o=>o.type==='nightTower'&&o.destroyed).length;G.level=d.l;G.xp=d.xp;G.xpNeed=d.xpn;G.kills=d.k;G.bossId=d.b;
  // Do not overwrite the render position: blend it toward the authoritative state.
  G.players=reconcilePositions(G.players,d.p.map(p=>Array.isArray(p)?{id:p[0],x:p[1],y:p[2],r:p[3],hp:p[4],maxHp:p[5],speed:p[6],weapon:p[7],damage:p[8],range:p[9],attackRate:p[10],attackT:p[11],attackCD:p[12],dashCD:p[13],frame:p[14],walking:!!p[15],visualSide:p[16],facing:p[17],headFacing:p[18],bodyFacing:p[19],flash:p[20],dead:!!p[21],deathT:p[22],shieldUntil:p[23],freezeUntil:p[24],crystals:p[25],keys:p[26],perks:p[27],perkTimers:p[28],visualScale:p[29],xp:p[30],level:p[31],xpNeed:p[32],reviveCount:p[33]||0,sosUsed:!!p[34],sosAt:Number(p[35])||0,evolutions:p[36]||{},evolutionCooldown:p[37]||{},nsRole:p[38]||'guardian',nsLegendaryWeapon:p[39]||null,secondaryWeapon:MEDIEVAL_WEAPONS[p[40]]?p[40]:null,nsCombatClass:['warrior','ranger','mage','support'].includes(p[41])?p[41]:'warrior',mpName:safePlayerName(p[42]||multiplayerDisplayName(p[0])),ns93Mana:Number(p[43])||0,ns93MaxMana:Number(p[44])||64,ns93ManaRegen:Number(p[45])||2.5,ns93Cooldown:p[46]||{},look:NET.heroLooks.get(p[0])||networkHeroStyle(FACTORY_HERO)}:p),hostStep);G.mobs=reconcilePositions(G.mobs,(d.m||[]).map(m=>Array.isArray(m)?{id:m[0],type:m[1],x:m[2],y:m[3],r:m[4],hp:m[5],maxHp:m[6],angle:m[7],frame:m[8],flash:m[9],attackT:m[10],deathT:m[11],dead:!!m[12],spitWindup:m[13],bossPhase:m[14]||1,bossCast:m[15]||null,nsExploreBoss:!!m[16],nsExploreTag:m[17]||0,nsCaveSpider:!!m[18],nsCaveThief:!!m[19],nsThiefUntil:m[20]||0,ns95Guard:!!m[21]}:m),hostStep);
@@ -6889,7 +7131,7 @@ function visit(node){if(!node)return;if(node.nodeType===3){localizeText(node);re
 let enabled=true;
 const ob=new MutationObserver(records=>{if(!enabled)return;const visited=new Set();for(const record of records){if(record.type==='characterData'){const n=record.target;if(!visited.has(n)){visited.add(n);localizeText(n);}}else if(record.type==='attributes'){localizeAttrs(record.target);}else{for(const child of record.addedNodes){if(!visited.has(child)){visited.add(child);visit(child);}}}}});
 ob.observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});
-function syncSelectors(){document.querySelectorAll('[data-game-language]').forEach(select=>{if(select.value!==current)select.value=current;});document.documentElement.lang=current==='sr'?'sr':'en';document.title=current==='sr'?'Noćna Straža v98':'Night Watch v98';}
+function syncSelectors(){document.querySelectorAll('[data-game-language]').forEach(select=>{if(select.value!==current)select.value=current;});document.documentElement.lang=current==='sr'?'sr':'en';document.title=current==='sr'?'Noćna Straža v99':'Night Watch v99';}
 function setLanguage(lang){current=lang==='sr'?'sr':'en';try{localStorage.setItem('ns_game_language_v1',current);}catch(_){};syncSelectors();visit(document.body);}
 document.querySelectorAll('[data-game-language]').forEach(select=>{select.value=current;select.addEventListener('change',()=>{setLanguage(select.value);setTimeout(()=>window.__nightWatch?.NSX?.updateHud?.(),0);});});
 syncSelectors();visit(document.body);
