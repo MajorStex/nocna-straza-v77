@@ -101,6 +101,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
       spellVisible:!!spell,dockBottom:full.bottom,controlsTop:control.top,
       picker:!!document.getElementById('ns95SpellPicker'),selectedMana:g.G.players[0].ns93MaxMana};
    });
+   console.log('CAGE_UI_GEOMETRY='+JSON.stringify(cageTest));
    assert.equal(cageTest.mode,'play','cage link immediately enters dedicated playable scene');
    assert.equal(cageTest.test,true,'test isolates only cage enemies');
    assert.equal(cageTest.debug,true,'cage test does not farm permanent honors');
