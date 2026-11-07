@@ -1,0 +1,23 @@
+name: Live Noćna Straža v95 Co-op, Guards and Rescue
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tests/v95-live-coop.test.cjs"
+      - ".github/workflows/v95-live-coop.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-coop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Chromium mobile browser driver
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: 'Two live browser peers via Cloudflare: mana, cage, rescue, ally, rewards'
+        run: node tests/v95-live-coop.test.cjs
