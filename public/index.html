@@ -4246,9 +4246,16 @@ const NS99_TEAM=(()=>{
    if(NET.conn?.open){
     try{NET.conn.send({t:'ns99Away',away:hidden,round:NET.round})}catch{}
     if(!hidden)try{NET.conn.send({t:'stateRequest',round:NET.round})}catch{}
-   }else if(!hidden&&NET.rejoinToken){NETLAB.scheduleReconnect();NETLAB.manualReconnect();}
+   }else if(!hidden&&NET.rejoinToken){
+    NETLAB.scheduleReconnect();
+    if(NET.peer&&!NET.peer._connected&&typeof NET.peer.reconnect==='function')NET.peer.reconnect();
+    else NETLAB.manualReconnect();
+   }
   }
-  if(!hidden){lastTs=performance.now();render()}
+  if(!hidden){
+   if(NET.role==='host'&&NET.peer&&!NET.peer._connected&&typeof NET.peer.reconnect==='function')NET.peer.reconnect();
+   lastTs=performance.now();render()
+  }
  }
  $('ns99PauseOpen').onclick=()=>{panelOpen=!panelOpen;render()};
  $('ns99PauseClose').onclick=()=>{panelOpen=false;render()};
