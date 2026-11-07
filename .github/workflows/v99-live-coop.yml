@@ -20,4 +20,4 @@ jobs:
       - name: Install mobile browser driver
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
       - name: Two Android-size Chromium peers over real Cloudflare relay
-        run: node tests/v99-live-coop.test.cjs
+        run: NS99_USE_LOCAL=1 node tests/v99-live-coop.test.cjs
