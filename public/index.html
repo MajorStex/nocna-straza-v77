@@ -1986,6 +1986,80 @@ function spawnWorldWeapon(x,y,forced=null){
  const id=forced&&MEDIEVAL_WEAPONS[forced]?forced:WORLD_WEAPON_POOL[Math.floor(rnd()*WORLD_WEAPON_POOL.length)];
  G.drops.push({id:'weapon-'+(G.nextId++),x,y,r:13,amount:1,phase:rnd()*TAU,type:'weapon',weapon:id});return true;
 }
+
+/* v89: local compare dialog + host-authoritative pickup. No auto pickup. */
+const NS89_PICK=(()=>{
+ const ignored=new Set();let active=null,lastKey='',ui=null;
+ const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
+ const elem=id=>document.getElementById(id);
+ function boot(){if(ui)return;
+  const style=document.createElement('style');style.textContent=
+ '.ns89-pick{position:fixed;left:50%;bottom:calc(94px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(94vw,385px);z-index:7000;background:#18292cf5;border:1px solid #bfa374;border-radius:13px;padding:12px;color:#edf4e8;box-shadow:0 7px 24px #0009;font:12px system-ui,sans-serif;pointer-events:auto}.ns89-pick[hidden]{display:none!important}.ns89-pick b{color:#f4d698}.ns89-pick p{font-size:10px;margin:4px 0 8px;color:#b8d0c2}.ns89-cols,.ns89-row{display:grid;grid-template-columns:37% 31% 32%;gap:0}.ns89-cols span{font-weight:750;text-align:center;overflow-wrap:anywhere}.ns89-row{padding:4px 0;border-top:1px solid #aaa3;font-size:11px}.ns89-row span:not(:first-child){text-align:center;font-variant-numeric:tabular-nums}.ns89-up{color:#95efa7;font-weight:800}.ns89-down{color:#ffb0a8;font-weight:800}.ns89-actions{display:flex;gap:7px;margin-top:9px}.ns89-actions button{flex:1;font:750 11px system-ui,sans-serif;min-width:0;padding:10px 4px;border-radius:8px}.ns89-yes{background:#acd3a6;color:#15241b}.ns89-no{background:#293a39;color:#faf1df}';
+  document.head.append(style);
+  ui=document.createElement('section');ui.id='ns89PickPanel';ui.className='ns89-pick';ui.hidden=true;
+  ui.innerHTML='<b id="ns89PickTitle"></b><p id="ns89PickHint"></p><div class="ns89-cols"><span></span><span id="ns89Old"></span><span id="ns89New"></span></div><div id="ns89Stats"></div><div class="ns89-actions"><button class="ns89-yes" id="ns89Yes"></button><button class="ns89-no" id="ns89No"></button></div>';
+  document.body.append(ui);
+  elem('ns89Yes').addEventListener('click',()=>choose(true));
+  elem('ns89No').addEventListener('click',()=>choose(false));
+ }
+ function reset(){ignored.clear();active=null;lastKey='';if(ui)ui.hidden=true;}
+ function hide(){active=null;lastKey='';if(ui)ui.hidden=true;}
+ function stats(p,id){
+  const w=MEDIEVAL_WEAPONS[id]||MEDIEVAL_WEAPONS.sword;
+  const dmg=(Number(p.damage)||27)*w.damage,interval=Math.max(.15,(Number(p.attackRate)||.78)*(w.speed||1));
+  return {dmg,aps:1/interval,dps:dmg/interval,range:(Number(p.range)||100)+w.range,arc:w.arc*180/Math.PI};
+ }
+ function accept(playerId,id){
+  if(NET.role==='guest'||G.mode!=='play'||typeof id!=='string'||id.length>80)return false;
+  const player=G.players.find(p=>p.id===playerId&&!p.dead);
+  const drop=G.drops.find(d=>d.id===id&&d.type==='weapon'&&d.amount>0&&MEDIEVAL_WEAPONS[d.weapon]);
+  if(!player||!drop||player.weapon===drop.weapon||Math.hypot(player.x-drop.x,player.y-drop.y)>135)return false;
+  drop.amount=0;const previous=player.weapon;player.weapon=drop.weapon;player.secondaryWeapon=previous;
+  player.foundWeapons=player.foundWeapons||[];
+  if(!player.foundWeapons.includes(drop.weapon))player.foundWeapons.push(drop.weapon);
+  G.abilityDirty=true;effect('loot',drop.x,drop.y);sfx('loot');
+  if(playerId===(NET.role?NET.localId:'p1'))announceSmallLoot(tr('Equipped: ','Uzeto: ')+weaponName(drop.weapon));
+  return true;
+ }
+ function choose(yes){
+  if(!active)return;const id=active;
+  if(yes){
+   if(NET.role==='guest'){
+    if(!NET.conn?.open){announceSmallLoot(tr('No host connection','Veza sa domaćinom nije dostupna'));return;}
+    try{NET.conn.send({t:'ns89TakeWeapon',id,round:NET.round})}catch{announceSmallLoot(tr('Try again','Pokušaj ponovo'));return;}
+   }else if(!accept(NET.role==='host'?NET.localId:'p1',id))announceSmallLoot(tr('Move closer','Približi se oružju'));
+  }
+  ignored.add(id);hide();
+ }
+ function tick(){
+  if(G.mode!=='play'||G.paused){hide();return;}boot();
+  const p=G.players.find(p=>p.id===(NET.role?NET.localId:'p1'));
+  if(!p||p.dead||G.lootPending||G.marketPending||G.guildPending){hide();return;}
+  let item=null,best=94;
+  for(const d of G.drops){if(d.type!=='weapon'||d.amount<=0||ignored.has(d.id)||!MEDIEVAL_WEAPONS[d.weapon]||d.weapon===p.weapon)continue;
+   const dist=Math.hypot(p.x-d.x,p.y-d.y);if(dist<best){best=dist;item=d;}
+  }
+  if(!item){hide();return;}
+  const key=item.id+':'+p.weapon+':'+p.damage+':'+p.range+':'+p.attackRate;
+  if(key===lastKey)return;active=item.id;lastKey=key;
+  elem('ns89PickTitle').textContent=tr('FOUND WEAPON · CHOOSE','PRONAĐENO ORUŽJE · IZABERI');
+  elem('ns89PickHint').textContent=tr('Game continues during selection. Green means higher.','Igra traje dok biraš. Zeleno znači veću vrednost.');
+  elem('ns89Old').textContent=weaponName(p.weapon);elem('ns89New').textContent=weaponName(item.weapon);
+  const a=stats(p,p.weapon),b=stats(p,item.weapon),holder=elem('ns89Stats');holder.replaceChildren();
+  const values=[['dmg',tr('Damage / hit','Šteta / udarac')],['aps',tr('Hits / sec','Udaraca / sek')],['dps','DPS'],['range',tr('Reach','Domet')],['arc',tr('Swing °','Zamah °')]];
+  for(const [k,label] of values){const row=document.createElement('div');row.className='ns89-row';
+   const title=document.createElement('span'),old=document.createElement('span'),next=document.createElement('span');
+   title.textContent=label;old.textContent=a[k].toFixed(1);next.textContent=b[k].toFixed(1);
+   next.className=b[k]>a[k]+.025?'ns89-up':b[k]<a[k]-.025?'ns89-down':'';
+   row.append(title,old,next);holder.append(row);}
+  elem('ns89Yes').textContent=tr('EQUIP · SAVE OLD','UZMI · SAČUVAJ STARO');
+  elem('ns89No').textContent=tr('LEAVE','OSTAVI');
+  ui.hidden=false;
+ }
+ return {tick,reset,accept,stats};
+})();
+window.__NS89_PICK=NS89_PICK;
+
 function claimWorldWeapon(p,d){
  if(!p||p.dead||!d||d.type!=='weapon'||d.amount<=0||!MEDIEVAL_WEAPONS[d.weapon]||NET.role==='guest')return false;
  d.amount=0;equipFoundWeapon(p,d.weapon);
@@ -2025,7 +2099,7 @@ function drawAmbientCrystals(){const vw=viewSize().w,vh=viewSize().h;for(const c
  ctx.fillStyle='#60d3ff';ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(11,-2);ctx.lineTo(0,13);ctx.lineTo(-11,-2);ctx.closePath();ctx.fill();
  ctx.fillStyle='#d5f6ff';ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(0,8);ctx.lineTo(-9,-2);ctx.closePath();ctx.fill();ctx.restore();
 }}
-function startGame(opts={}){WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ensureMapLife(cloneProps(NET.hostProps)));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';G.paused=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
+function startGame(opts={}){NS89_PICK.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ensureMapLife(cloneProps(NET.hostProps)));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';G.paused=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
 mapReset();NSX.start(opts);$('pauseBtn').classList.remove('hidden');$('home').classList.add('hidden');$('editorPanel').classList.add('hidden');$('pausePanel').classList.add('hidden');$('gameOver').classList.add('hidden');$('coopPanel').classList.add('hidden');$('settingsPanel').classList.add('hidden');$('hud').classList.remove('hidden');$('controls').classList.remove('hidden');$('veil').classList.add('hidden');$('spectatorPanel').classList.add('hidden');resetFloatingJoystick();updateHUD();updateNightHUD();announce(opts.bossTest?'BOSS TEST · NIVO 10':G.runType==='campaign'?`KAMPANJA · ${findLevel(G.stageId).name}`:'TALAS 1 · PREŽIVI',2);sfx('wave');voiceLine('preview',true)}
 function addRemotePlayer(id){
  if(G.players.some(p=>p.id===id))return;
@@ -3029,7 +3103,7 @@ if(NET.role==='guest'){
 for(const [id,offer] of NET.pendingOffers){if(G.time<offer.deadline)continue;const p=G.players.find(q=>q.id===id);if(p){if(offer.type==='chest'&&offer.items?.length){grantTreasure(p,offer.items[0].id);maybeGrantRopeKey({seed:offer.chestSeed||1});}if(offer.type==='power'){applyQuickPower(p,'damage');p.offerUntil=0}}NET.pendingOffers.delete(id)}
 const inp=(G.quickChoice||G.lootPending||G.marketPending||G.guildPending||G.relicPending)?{x:0,y:0,dash:false}:getLocalInput();updatePlayer(G.players.find(p=>p.id===(NET.role==='host'?NET.localId:'p1'))||G.players[0],inp,dt);input.dash=false;if(NET.role==='host')for(const [id,v] of NET.remoteInputs){const remote=G.players.find(p=>p.id===id);if(remote)updatePlayer(remote,v,dt);v.dash=false;}updateMobs(dt);updateBossPhases();updateRevives(dt);if(G.nightVictory&&completeNightRun())return;updateProjectiles(dt);updateAbilities(dt);collectBlueCrystals(dt);tryLootChests();tryMarkets();tryGuildShop();tryRelicShrine();
 for(const e of G.effects)e.t+=dt;G.effects=G.effects.filter(e=>e.t<e.life);
-for(const d of G.drops){d.phase+=dt*4;for(const p of G.players){if(p.dead)continue;let dx=p.x-d.x,dy=p.y-d.y,dist=Math.hypot(dx,dy);if(d.type!=='weapon'&&dist<120+(p.perks.magnet?60:0)){let speed=200+(120-dist)*2.2;d.x+=dx/Math.max(1,dist)*speed*dt;d.y+=dy/Math.max(1,dist)*speed*dt}if(dist<p.r+d.r+5){if(d.type==='key'){p.keys=(p.keys||0)+1;sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='shard'){p.runShards=(p.runShards||0)+1;sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='gear'&&d.item){NSX.collectGearDrop(d.item);sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='weapon'){claimWorldWeapon(p,d)}else if(d.type==='fieldKit'){useFieldKit(p,d)}else{if(NET.role==='host')coopXP(p,d.amount);else G.xp+=d.amount;sfx('xp')}d.amount=0;break}}}G.drops=G.drops.filter(d=>d.amount>0);if(NET.role!=='host'&&G.xp>=G.xpNeed){G.xp-=G.xpNeed;upgradeLevel()}
+for(const d of G.drops){d.phase+=dt*4;if(d.type==='weapon')continue;for(const p of G.players){if(p.dead)continue;let dx=p.x-d.x,dy=p.y-d.y,dist=Math.hypot(dx,dy);if(d.type!=='weapon'&&dist<120+(p.perks.magnet?60:0)){let speed=200+(120-dist)*2.2;d.x+=dx/Math.max(1,dist)*speed*dt;d.y+=dy/Math.max(1,dist)*speed*dt}if(dist<p.r+d.r+5){if(d.type==='key'){p.keys=(p.keys||0)+1;sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='shard'){p.runShards=(p.runShards||0)+1;sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='gear'&&d.item){NSX.collectGearDrop(d.item);sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='weapon'){claimWorldWeapon(p,d)}else if(d.type==='fieldKit'){useFieldKit(p,d)}else{if(NET.role==='host')coopXP(p,d.amount);else G.xp+=d.amount;sfx('xp')}d.amount=0;break}}}G.drops=G.drops.filter(d=>d.amount>0);if(NET.role!=='host'&&G.xp>=G.xpNeed){G.xp-=G.xpNeed;upgradeLevel()}
 if(!G.caveMode){G.spawnClock+=dt;}const spawnInterval=Math.max(.64,4.12-Math.max(0,G.time-30)*.022-Math.max(0,G.wave-1)*.16);if(!G.caveMode&&G.spawnClock>=spawnInterval*(G.specialMode==='rush'?.72:1)){G.spawnClock-=spawnInterval;const cap=Math.min(82,12+Math.floor(Math.max(0,G.time-30)*.47)+G.wave*3);if(G.mobs.filter(m=>!m.dead).length<cap){const batch=G.time<48?1:G.wave<4?2:Math.min(3,2+Math.floor(G.wave/6));for(let i=0;i<batch;i++)spawnEnemy()}}if(!G.caveMode&&G.waveClock>=cfgSettings.waveDuration){G.wave++;
  if(G.wave===10&&spawnEnemy('troll'))announce('⚠ TROL GOBLIN · TEŠKA BATINA · TALAS 10',3.6);
  G.ns75KitsThisWave=0;G.waveClock=0;if(G.wave>=3&&G.wave%5===3&&G.mobs.filter(m=>m.type==='rotfiend'&&!m.dead).length<2){spawnRotfiend()}if(G.runType==='campaign'){G.stageWaveIndex++;const stage=findLevel(G.stageId);if(stage&&G.stageWaveIndex>=stage.waves){advanceStage()}else{announce(`KAMPANJA ${G.stageId} · TALAS ${G.stageWaveIndex+1}`,2);sfx('wave');voiceLine('wave');coopVoiceRequestOneGuest('wave')}}else{announce('TALAS '+G.wave+' · INTENZITET RASTE',2);sfx('wave');voiceLine('wave');coopVoiceRequestOneGuest('wave')}if(!G.campaignDone)for(let i=0;i<Math.min(11,2+Math.ceil(G.wave*1.1));i++)spawnEnemy()}
@@ -3733,7 +3807,7 @@ function mapTick(ts){if(G.mode!=='play'){if(!$('mapDock').classList.contains('hi
 $('mapToggle').addEventListener('click',mapOpen);$('mapClose').addEventListener('click',mapClose);
 $('mapOverlay').addEventListener('click',e=>{if(e.target===$('mapOverlay'))mapClose()});
 
-function loop(ts){NSX.reportFPS(ts);let dt=clamp((ts-lastTs)/1000,.001,.035);lastTs=ts;update(dt);NS77PERF.tick();const ns76DrawStart=performance.now();draw();NS77PERF.sample(performance.now()-ns76DrawStart);mapTick(ts);NETLAB.tick(ts);NETMIG.tick();requestAnimationFrame(loop)}
+function loop(ts){NSX.reportFPS(ts);let dt=clamp((ts-lastTs)/1000,.001,.035);lastTs=ts;update(dt);NS89_PICK.tick();NS77PERF.tick();const ns76DrawStart=performance.now();draw();NS77PERF.sample(performance.now()-ns76DrawStart);mapTick(ts);NETLAB.tick(ts);NETMIG.tick();requestAnimationFrame(loop)}
 // Free-position analog joystick. It appears exactly where the player touches
 // the gameplay canvas; the attack/dash buttons have their own pointer targets.
 const floatingStick={pointerId:null,startX:0,startY:0,radius:47,deadZone:7};
@@ -4178,6 +4252,10 @@ function setupConnection(c){
    if(assigned&&data.t==='started'){NET.startAcks.set(assigned,true);return}
    if(assigned&&data.t==='stateRequest'&&data.round===NET.round){sendSnapshot();return}
    if(assigned&&data.t==='guildBuy'){const offer=NET.pendingOffers.get(assigned),p=G.players.find(q=>q.id===assigned),item=GUILD_ITEMS.find(q=>q.id===data.id);if(offer?.type==='guild'&&G.time<=offer.deadline+1&&p&&item){const bought=p.guildPurchases||(p.guildPurchases={});if(!bought[item.id]&&p.xp>=item.cost&&(item.id!=='ropeKey'||(!progress.hasRope&&!progress.ropeKeyCount))){p.xp-=item.cost;bought[item.id]=true;item.apply(p)}NET.pendingOffers.delete(assigned)}return;}
+   if(assigned&&data.t==='ns89TakeWeapon'&&data.round===NET.round){
+    const ok=NS89_PICK.accept(assigned,data.id);
+    safeSend({t:'ns89WeaponResult',id:data.id,ok});return;
+   }
    if(assigned&&data.t==='swapWeapon'){const p=G.players.find(x=>x.id===assigned);if(p)swapPlayerWeapon(p);return;}
    if(assigned&&data.t==='sosRequest'){const p=G.players.find(x=>x.id===assigned);if(p)sosRegister(p);return;}
    if(assigned&&data.t==='reviveHold'){if(!data.held){delete G.reviveIntent[assigned];delete G.reviveActive[assigned];G.reviveSuppressed?.delete(assigned)}else if(!G.reviveSuppressed?.has(assigned))G.reviveIntent[assigned]={held:true,at:G.time};return;}
@@ -4197,6 +4275,7 @@ function setupConnection(c){
    }
   }else if(NET.role==='guest'){
    if(data.t==='migrationBackup'){NETMIG.receiveBackup(data,c);return}if(data.t==='migrationBackupZip'){void NETMIG.receiveCompressedBackup(data,c);return}if(data.t==='resumeAccepted'){NETLAB.reconnectAccepted(c,data);netStatus('Ponovo povezan!');return}if(data.t==='resumeRejected'){netStatus('Povratak odbijen: token je istekao ili je runda završena.');NET.rejoinToken='';return}if(data.t==='mpReward'){awardMP(data);return;}if(data.t==='ns75FieldKit'){toast(lang(`Field kit: +${Math.round(data.heal)||0} HP · +8% attack speed for 8s`,`Zavoj: +${Math.round(data.heal)||0} HP · 8% brži napadi na 8 s`));return;}
+   if(data.t==='ns89WeaponResult'&&NET.phase==='playing'){if(!data.ok)toast('Oružje nije dostupno ili si predaleko.');return;}
    if(data.t==='reviveInterrupted'&&NET.phase==='playing'){setReviveHeld(false);toast('Oživljavanje prekinuto · pogođen si');return;}
    if(data.t==='versionMismatch'){NET.joinRetryCount=4;netStatus('Različite verzije igre. Oba igrača moraju da otvore novu v81 HTML verziju.');$('retryJoinBtn').classList.remove('hidden');return;}
    if(data.t==='full'){rejectReason='Soba je puna · najviše 6 igrača.';netStatus(rejectReason);toast('Soba je puna');return}
