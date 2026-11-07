@@ -56,6 +56,17 @@ jobs:
           assert.notEqual(ctx.spawnEnemy('troll').type,'troll','max two trolls at wave 10');
           ctx.G.wave=20;ctx.G.mobs=ctx.G.mobs.filter(m=>m.type==='troll');
           assert.equal(ctx.spawnEnemy('troll').type,'troll','third troll allowed from wave 20');
+          const aimStart=html.indexOf('function ns90TrollCanHit(m,victim){');
+          const aimEnd=html.indexOf('function updateMobs(dt){',aimStart);
+          assert.ok(aimStart>0&&aimEnd>aimStart,'troll hit direction helper');
+          const aim={obstacleInPath:()=>false,Math};
+          vm.runInNewContext(html.slice(aimStart,aimEnd)+'\nthis.hit=ns90TrollCanHit;',aim);
+          const mob={x:0,y:0,r:21,angle:0};
+          assert.equal(aim.hit(mob,{x:60,y:0,r:16,dead:false}),true,'troll strikes forward');
+          assert.equal(aim.hit(mob,{x:-45,y:0,r:16,dead:false}),false,'dodging behind avoids damage');
+          assert.equal(aim.hit(mob,{x:180,y:0,r:16,dead:false}),false,'far targets are safe');
+          aim.obstacleInPath=()=>true;
+          assert.equal(aim.hit(mob,{x:60,y:0,r:16,dead:false}),false,'obstacle shields from strike');
           const hpStart=html.indexOf('let NS90_BRUTE_BARS=0;');
           const hpEnd=html.indexOf('function draw(){',hpStart);
           assert.ok(hpStart>0&&hpEnd>hpStart,'health bar module present');
