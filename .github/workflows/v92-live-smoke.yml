@@ -1,0 +1,32 @@
+name: Public v92 game and relay smoke probe
+on:
+  push:
+    paths:
+      - '.github/workflows/v92-live-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check playable GitHub Pages and Cloudflare API without credentials
+        shell: bash
+        run: |
+          set -u
+          GAME='https://majorstex.github.io/nocna-straza-v92/'
+          RELAY='https://nocna-straza-relay.stefanstevic1996.workers.dev'
+          CODE=$(curl --location --silent --show-error --max-time 25 --output /tmp/game.html --write-out '%{http_code}' "$GAME" || true)
+          echo "GAME_HTTP=$CODE"
+          if [ "$CODE" = '200' ] && grep -q 'Night Watch v92' /tmp/game.html; then
+            echo 'GAME_V92_LIVE=yes'
+          else
+            echo 'GAME_V92_LIVE=no'
+          fi
+          CODE=$(curl --location --silent --show-error --max-time 25 --output /tmp/health.json --write-out '%{http_code}' "$RELAY/health" || true)
+          echo "RELAY_HEALTH_HTTP=$CODE"
+          if [ -f /tmp/health.json ]; then head -c 320 /tmp/health.json; echo; fi
+          CODE=$(curl --location --silent --show-error --max-time 25 --output /tmp/directory.json --write-out '%{http_code}' "$RELAY/api/lobbies" || true)
+          echo "LOBBY_DIRECTORY_HTTP=$CODE"
+          if [ -f /tmp/directory.json ]; then head -c 400 /tmp/directory.json; echo; fi
+          echo 'This smoke test is informational and does not deploy the Cloudflare worker.'
