@@ -98,7 +98,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
     return {mode:g.G.mode,test:g.G.ns95TestOnly,debug:g.G.debugRun,guards:g.G.mobs.filter(m=>m.ns95Guard&&!m.dead).length,
       ally:c?.ally||null,playerDistance:Math.hypot(g.G.players[0].x-c.x,g.G.players[0].y-c.y),
       spellCount:document.querySelectorAll('#ns93SpellList .ns93Spell').length,
-      spellVisible:!!spell,dockBottom:full.bottom,controlsTop:control.top,
+      spellVisible:!!spell,dockBottom:full.bottom,controlsTop:control.top,controlsClass:document.getElementById('controls').className,controlDisplay:getComputedStyle(document.getElementById('controls')).display,gamePaused:g.G.paused,quickChoice:!!g.G.quickChoice,lootPending:!!g.G.lootPending,
       picker:!!document.getElementById('ns95SpellPicker'),selectedMana:g.G.players[0].ns93MaxMana};
    });
    console.log('CAGE_UI_GEOMETRY='+JSON.stringify(cageTest));
