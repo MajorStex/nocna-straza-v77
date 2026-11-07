@@ -1,4 +1,4 @@
-name: Verify Noćna Straža v95 – Cage, Mana & Coop
+name: Verify Noćna Straža v97 – Match Stats, Rematch & Coop
 on:
   push:
     branches: [main]
@@ -40,3 +40,5 @@ jobs:
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
       - name: Mobile 360/412 screen gameplay, spell HUD and six-player packet test
         run: node tests/v95-browser.test.cjs
+      - name: V97 mobile post-match scoreboard, real usernames, rematch votes and replay
+        run: node tests/v97-postmatch.test.cjs
