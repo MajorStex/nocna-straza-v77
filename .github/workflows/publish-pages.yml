@@ -33,6 +33,8 @@ jobs:
           console.log('v88 smoke check passed; '+scripts.length+' inline scripts parsed.');
           NODE
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
