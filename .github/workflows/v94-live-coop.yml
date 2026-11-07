@@ -1,0 +1,23 @@
+name: Live two-client co-op v94 economy and magic verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tests/v94-live-coop.test.cjs"
+      - ".github/workflows/v94-live-coop.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-coop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install browser test driver
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Real Cloudflare multiplayer relay: two browser peers, 94 handshake, mana and magic
+        run: node tests/v94-live-coop.test.cjs
