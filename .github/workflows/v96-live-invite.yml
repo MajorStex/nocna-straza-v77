@@ -1,0 +1,23 @@
+name: Live v96 friend invites via Cloudflare relay
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tests/v96-live-invite.test.cjs"
+      - ".github/workflows/v96-live-invite.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  invite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install mobile Chromium driver
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Live two-mobile-browser friend invitation test
+        run: node tests/v96-live-invite.test.cjs
