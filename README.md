@@ -1,3 +1,15 @@
+# Noćna Straža v88 — mobilne optimizacije (7.11.2026)
+
+v88 čuva sve postojeće naloge, sinhronizaciju, multiplayer protokol, karaktere i napredak. Ubrzano je crtanje rekvizita preko jednog izračunavanja vidljivog polja, keširan je prikaz veličine ekrana i vinjeta; uklonjena je nepotrebna linijska provera prepreka van dometa napada, usporavanje neprijatelja računa se samo jednom po kadru, a grafički efekti koji nisu vidljivi ne crtaju se.
+
+- **Izvor:** `public/index.html`, verzija 88.
+- **Verzionisana putanja:** `public/v88/index.html`, koja ostaje na istom domenu i preusmerava na ažurnu igru.
+- **GitHub Pages:** dodat je `.github/workflows/publish-pages.yml` za automatski deploy na push.
+- **Važno:** pri kreiranju v88 potvrđeno je da GitHub Pages nije prethodno aktiviran; podrazumevani GitHub Actions token nema pravo da ga prvi put uključi (Resource not accessible by integration). Posle jednokratnog uključivanja Pages -> Source: GitHub Actions, naredni push bi trebalo samostalno da objavljuje. Cloudflare Workers nije potvrđen kao automatski povezan.
+- **Provera:** sva 4 interna JavaScript bloka parsiraju se bez sintaksnih grešaka; automatizovani check je prošao. Stvarni FPS i latency na 6 fizičkih telefona nisu mereni.
+
+---
+
 # Noćna Straža v87 — Cloud profil + Google prijava
 
 Mobilna HTML igra (do 6 igrača u multiplayeru), sa dekorativnim kamenčićima iz v81, lobby chatom i optimizacijama iz v80.
