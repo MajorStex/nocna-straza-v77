@@ -633,7 +633,7 @@
 </section>
 <div id="reviveDock" class="reviveDock hidden"><button id="reviveBtn" class="reviveBtn" type="button" aria-label="Hold to revive teammate">✚ <span>DRŽI ZA OŽIVLJAVANJE</span></button><small id="reviveTarget" class="reviveTarget"></small></div>
 <div aria-live="polite" class="spectatorPanel hidden" id="spectatorPanel"><div class="spectatorTitle">☠ POGINUO SI · GLEDAŠ EKIPU</div><div class="spectatorLine"><button aria-label="Prethodni živi igrač" id="spectatorPrev">◀</button><strong id="spectatorLabel">IGRAČ 2</strong><button aria-label="Sledeći živi igrač" id="spectatorNext">▶</button></div><small id="spectatorCount">1 PREŽIVEO</small><button type="button" id="sosBtn" class="sosAction hidden" aria-label="Send one SOS signal">⚑ SEND SOS</button><small id="sosStatus" class="sosStatus hidden" aria-live="polite"></small></div><div class="controls hidden" id="controls"><div aria-hidden="true" class="joyBase hidden" id="joyBase"><div class="joyKnob" id="joyKnob"></div></div><div class="actionArea"><button aria-label="Izbegavanje, cooldown 2.8 sekunde" class="dashBtn" id="dashBtn">↝<small>IZBEGNI</small><span class="dashCooldown" id="dashCooldown"></span></button></div></div><div id="ns93SpellDock" class="hidden" aria-label="Spellcasting"><div class="ns93Mana"><span id="ns93ManaValue">64 / 64 MP</span><div class="ns93ManaTrack"><div id="ns93ManaFill"></div></div></div><div id="ns93SpellList"></div></div><div id="ns93Target" aria-hidden="true"></div><button aria-label="Pauza i meni" class="cornerPause hidden" id="pauseBtn" title="Otvori pauzu / meni">☰<small>MENI</small></button>
-<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL • v85</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
+<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL • v93</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
  <div class="ns50MenuGroups" id="ns50MenuGroups">
   <details class="ns50MenuGroup" id="ns50MenuPlay" open><summary><span class="ns50GroupIcon">▶</span><span class="ns50GroupWords"><strong data-ns50-en="PLAY" data-ns50-sr="IGRAJ">PLAY</strong><small data-ns50-en="Solo, campaign, co-op" data-ns50-sr="Solo, kampanja, co-op">Solo, campaign, co-op</small></span><span class="ns50Chevron">⌄</span></summary><div class="ns50GroupBody">
    <button class="primary ns50MainPlay" id="startBtn">⚔ ZAPOČNI IGRU</button>
@@ -4715,7 +4715,7 @@ function setupConnection(c){
  };
  const guestHello=()=>{
   if(NET.role!=='guest'||!c.open)return;
-  if(NET.phase==='playing'&&NET.rejoinToken)safeSend({t:'resumeHello',token:NET.rejoinToken,round:NET.round,code:NET.code});else if(NET.phase==='connecting')safeSend({t:'hello',v:92});
+  if(NET.phase==='playing'&&NET.rejoinToken)safeSend({t:'resumeHello',token:NET.rejoinToken,round:NET.round,code:NET.code});else if(NET.phase==='connecting')safeSend({t:'hello',v:93});
   else if(NET.phase==='lobby'&&!NET.worldReady)safeSend({t:'welcomeAck',id:NET.localId});
  };
  if(NET.role==='guest'){NET.conn=c;clearTimeout(NET.joinRetryTimer)}
@@ -4753,7 +4753,7 @@ function setupConnection(c){
   if(data.t==='nsV63Cue'&&NET.role==='guest'&&NET.phase==='playing'&&CV63_KINDS.has(data.kind)){voiceLine(data.kind,true);return;}
   if(NET.role==='host'){
    if(assigned&&NET.phase==='lobby'){
-    if(data.t==='hello'){if(data.v!==93){safeSend({t:'versionMismatch',required:92});return;}sendWelcome();return}
+    if(data.t==='hello'){if(data.v!==93){safeSend({t:'versionMismatch',required:93});return;}sendWelcome();return}
     if(data.t==='welcomeAck'&&data.id===assigned){welcomeAcknowledged=true;beginWorldTransfer();return}
     if(data.t==='worldAck'&&worldSend&&Number.isInteger(data.index)){
      if(data.index===worldSend.index){worldSend.index++;if(worldSend.index<worldSend.parts.length)sendWorldPart()}
@@ -4804,7 +4804,7 @@ function setupConnection(c){
    if(data.t==='ns93CastAck'){NS93_MAGIC.ack(data);return;}if(data.t==='migrationBackup'){NETMIG.receiveBackup(data,c);return}if(data.t==='migrationBackupZip'){void NETMIG.receiveCompressedBackup(data,c);return}if(data.t==='resumeAccepted'){NETLAB.reconnectAccepted(c,data);netStatus('Ponovo povezan!');return}if(data.t==='resumeRejected'){netStatus('Povratak odbijen: token je istekao ili je runda završena.');NET.rejoinToken='';return}if(data.t==='mpReward'){awardMP(data);return;}if(data.t==='ns75FieldKit'){toast(lang(`Field kit: +${Math.round(data.heal)||0} HP · +8% attack speed for 8s`,`Zavoj: +${Math.round(data.heal)||0} HP · 8% brži napadi na 8 s`));return;}
    if(data.t==='ns89WeaponResult'&&NET.phase==='playing'){if(!data.ok)toast('Oružje nije dostupno ili si predaleko.');return;}
    if(data.t==='reviveInterrupted'&&NET.phase==='playing'){setReviveHeld(false);toast('Oživljavanje prekinuto · pogođen si');return;}
-   if(data.t==='versionMismatch'){NET.joinRetryCount=4;netStatus('Različite verzije igre. Oba igrača moraju da otvore novu v92 HTML verziju.');$('retryJoinBtn').classList.remove('hidden');return;}
+   if(data.t==='versionMismatch'){NET.joinRetryCount=4;netStatus('Različite verzije igre. Oba igrača moraju da otvore novu v93 HTML verziju.');$('retryJoinBtn').classList.remove('hidden');return;}
    if(data.t==='full'){rejectReason='Soba je puna · najviše 6 igrača.';netStatus(rejectReason);toast('Soba je puna');return}
    if(data.t==='in_progress'){rejectReason='Partija je već počela. Napravi novu sobu.';netStatus(rejectReason);return}
    if(data.t==='roundOver'&&NET.phase==='playing'&&Number(data.round)>=NET.round){
@@ -4814,7 +4814,7 @@ function setupConnection(c){
     NET.round=Number(data.round)||NET.round;resetToLobbyAfterRound(data.result||'Partija je završena.');
    }
    if(data.t==='welcome'){
-    if(data.v!==93){NET.joinRetryCount=4;netStatus('RAZLIČITE VERZIJE: oba telefona moraju koristiti kompletnu HTML v92 igru.');$('retryJoinBtn').classList.remove('hidden');return;}
+    if(data.v!==93){NET.joinRetryCount=4;netStatus('RAZLIČITE VERZIJE: oba telefona moraju koristiti kompletnu HTML v93 igru.');$('retryJoinBtn').classList.remove('hidden');return;}
     if((NET.phase!=='connecting'&&NET.phase!=='lobby')||!/^p[2-6]$/.test(data.id))return;
     if(NET.phase==='connecting'){
      NET.localId=data.id;NET.rejoinToken=typeof data.rejoinToken==='string'?data.rejoinToken:'';NET.code=data.code||NET.code;NET.phase='lobby';NET.localReady=false;NET.worldReady=false;
@@ -5030,7 +5030,7 @@ $('lobbyStartBtn').onclick=startLobbyMatch;
 $('ns62ShareRoomCode').onclick=async()=>{
  const code=String(NET.code||$('roomCode').textContent||'').trim().toUpperCase();
  if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('Prvo napravi sobu.');return;}
- const message='Noćna Straža v92 🎮\nKod sobe: '+code+'\nOtvori igru → Multiplayer → unesi kod → PRIDRUŽI SE. Server se povezuje automatski.';
+ const message='Noćna Straža v93 🎮\nKod sobe: '+code+'\nOtvori igru → Multiplayer → unesi kod → PRIDRUŽI SE. Server se povezuje automatski.';
  try{if(navigator.share){await navigator.share({title:'Noćna Straža — poziv',text:message});return;}}catch(err){if(err?.name==='AbortError')return}
  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(message);toast('Poziv je kopiran. Pošalji ga drugaru.');return;}}catch{}
  window.prompt('Kopiraj kod sobe i pošalji drugaru:',code);
@@ -5066,7 +5066,7 @@ $('ns70RelayProbe').onclick=()=>{
   ws.onclose=()=>{if(!finished)finish('TEST: Relay je prekinuo WebSocket vezu pre potvrde.');};
  }catch(e){finish('TEST: '+(e?.message||'Nije moguće otvoriti WebSocket.'));}
 };
-$('retrySyncBtn').onclick=()=>{if(NET.role==='guest'&&NET.conn?.open){NET.conn.send({t:'hello',v:92});netStatus('Ponovo zahtevam ulaz u čekaonicu...')}};$('retryJoinBtn').onclick=()=>{if(NET.role==='guest'&&NET.phase==='connecting'){NET.joinRetryCount=0;retryInitialGuestConnection('ručni pokušaj')}else if(NET.role==='')$('joinBtn').click()};$('turnApply').onclick=()=>{const urls=$('turnUrl').value.trim(),username=$('turnUser').value.trim(),credential=$('turnPassword').value;if(!/^turns?:[^\s]+/i.test(urls)||!username||!credential){netStatus('Za TURN su potrebni validna adresa, korisničko ime i šifra.');return}window.NS_TURN_SESSION={urls,username,credential};netStatus('TURN je podešen za NOVE veze. Pokreni ponovno povezivanje; nijedna lozinka nije sačuvana.')};
+$('retrySyncBtn').onclick=()=>{if(NET.role==='guest'&&NET.conn?.open){NET.conn.send({t:'hello',v:93});netStatus('Ponovo zahtevam ulaz u čekaonicu...')}};$('retryJoinBtn').onclick=()=>{if(NET.role==='guest'&&NET.phase==='connecting'){NET.joinRetryCount=0;retryInitialGuestConnection('ručni pokušaj')}else if(NET.role==='')$('joinBtn').click()};$('turnApply').onclick=()=>{const urls=$('turnUrl').value.trim(),username=$('turnUser').value.trim(),credential=$('turnPassword').value;if(!/^turns?:[^\s]+/i.test(urls)||!username||!credential){netStatus('Za TURN su potrebni validna adresa, korisničko ime i šifra.');return}window.NS_TURN_SESSION={urls,username,credential};netStatus('TURN je podešen za NOVE veze. Pokreni ponovno povezivanje; nijedna lozinka nije sačuvana.')};
 // v92 small, opt-in room browser. Old 6-character code flow always remains available.
 const NS92_DIR=(()=>{
  const root='https://nocna-straza-relay.stefanstevic1996.workers.dev';
@@ -6190,7 +6190,7 @@ function visit(node){if(!node)return;if(node.nodeType===3){localizeText(node);re
 let enabled=true;
 const ob=new MutationObserver(records=>{if(!enabled)return;const visited=new Set();for(const record of records){if(record.type==='characterData'){const n=record.target;if(!visited.has(n)){visited.add(n);localizeText(n);}}else if(record.type==='attributes'){localizeAttrs(record.target);}else{for(const child of record.addedNodes){if(!visited.has(child)){visited.add(child);visit(child);}}}}});
 ob.observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});
-function syncSelectors(){document.querySelectorAll('[data-game-language]').forEach(select=>{if(select.value!==current)select.value=current;});document.documentElement.lang=current==='sr'?'sr':'en';document.title=current==='sr'?'Noćna Straža v92':'Night Watch v92';}
+function syncSelectors(){document.querySelectorAll('[data-game-language]').forEach(select=>{if(select.value!==current)select.value=current;});document.documentElement.lang=current==='sr'?'sr':'en';document.title=current==='sr'?'Noćna Straža v93':'Night Watch v93';}
 function setLanguage(lang){current=lang==='sr'?'sr':'en';try{localStorage.setItem('ns_game_language_v1',current);}catch(_){};syncSelectors();visit(document.body);}
 document.querySelectorAll('[data-game-language]').forEach(select=>{select.value=current;select.addEventListener('change',()=>{setLanguage(select.value);setTimeout(()=>window.__nightWatch?.NSX?.updateHud?.(),0);});});
 syncSelectors();visit(document.body);
@@ -6359,7 +6359,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div class="ns82-auth" id="ns82-auth" role="dialog" aria-modal="true" aria-label="Night Watch account" hidden>
  <section class="ns82-card">
   <button id="ns84AuthBack" class="ns84-auth-back" type="button" aria-label="Back / Nazad">← BACK / NAZAD</button>
-  <div class="ns82-logo">✦ NIGHT WATCH / NOĆNA STRAŽA · v92</div>
+  <div class="ns82-logo">✦ NIGHT WATCH / NOĆNA STRAŽA · v93</div>
   <h2 id="ns83-account-heading" data-ns82-en="YOUR GAME ACCOUNT" data-ns82-sr="TVOJ NALOG ZA IGRU">YOUR GAME ACCOUNT</h2>
   <p id="ns83-account-subheading" data-ns82-en="Save your level, inventory, characters and progress online. Sign in from another phone to continue." data-ns82-sr="Sačuvaj nivo, inventar, likove i napredak na mreži. Prijavi se na drugom telefonu da nastaviš.">Save your level, inventory, characters and progress online. Sign in from another phone to continue.</p>
   <div id="ns82-config" class="ns82-alert" hidden data-ns82-en="Online accounts are not yet enabled. You can still play safely on this phone and export your progress." data-ns82-sr="Online nalozi još nisu aktivirani. Možeš da igraš na ovom telefonu i izvezeš svoj napredak."></div>
