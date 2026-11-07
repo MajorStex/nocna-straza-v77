@@ -100,6 +100,22 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
     team.visibility(false);return{h,awake:team.frozen(),stillPlaying:g.NET.phase==='playing'};
    });
    assert.equal(sleep.h,true);assert.equal(sleep.awake,false);assert.equal(sleep.stillPlaying,true);
+   const sleeping=await page.evaluate(()=>{
+    const g=window.__nightWatch,n=g.NET,t=window.__NS99_TEAM;
+    n.clients.set('p2',{open:true,bufferSize:0,send(){}});
+    const before=g.availableTargets().length;
+    t.setAway('p2',true);
+    const during=g.availableTargets().length,ignored=t.isAway('p2');
+    t.setAway('p2',false);
+    const after=g.availableTargets().length;
+    g.NETLAB.reserve('p2');g.NETLAB.markDisconnect('p2');
+    const remaining=g.NETLAB.tokens.get('p2').until-performance.now();
+    return {before,during,ignored,after,remaining};
+   });
+   assert.equal(sleeping.ignored,true);
+   assert.equal(sleeping.before,2);assert.equal(sleeping.during,1);
+   assert.equal(sleeping.after,2);
+   assert.ok(sleeping.remaining>=85000&&sleeping.remaining<=91000,'90s reconnect grace');
    assert.deepEqual(errs.filter(e=>/TypeError|ReferenceError|SyntaxError/i.test(e)),[],errs.join(' | '));
    console.log('PASS v99 '+width+'px: 3s host power, timeout, all-player freeze, unanimous pause/resume, veto, disconnect vote, background recovery.');
    await context.close();
