@@ -41,6 +41,7 @@ const {chromium}=require('playwright-core');
    if(!game.startLobbyMatch())throw Error('Host refused to start with guest');
   });
   await guest.waitForFunction(()=>window.__nightWatch.NET.phase==='playing'&&window.__nightWatch.G.mode==='play',{timeout:22000});
+  await guest.waitForFunction(()=>{const g=window.__nightWatch;return g.G.players.some(p=>p.id===g.NET.localId&&p.ns93MaxMana>=64)},{timeout:12000});
   await host.waitForFunction(()=>window.__nightWatch.G.players.length===2,{timeout:12000});
   const initial=await guest.evaluate(()=>{
    const game=window.__nightWatch,p=game.G.players.find(p=>p.id===game.NET.localId);
