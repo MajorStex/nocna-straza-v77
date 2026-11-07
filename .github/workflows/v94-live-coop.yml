@@ -19,5 +19,5 @@ jobs:
           node-version: '24'
       - name: Install browser test driver
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
-      - name: Real Cloudflare multiplayer relay: two browser peers, 94 handshake, mana and magic
+      - name: 'Real Cloudflare multiplayer relay: two browser peers, v94 handshake, mana and magic'
         run: node tests/v94-live-coop.test.cjs
