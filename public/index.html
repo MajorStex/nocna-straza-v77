@@ -4115,7 +4115,7 @@ function resetLobbyUI(){
  $('hostBtn').disabled=false;$('joinBtn').disabled=false;$('retrySyncBtn').classList.add('hidden');
 }
 function closeNet(){
- NS76CHAT.reset();coopVoiceReset();NETMIG.reset();NETLAB.clear();NET.sessionToken=null;NET.lastEarned=null;clearTimeout(NET.joinRetryTimer);NET.joinRetryTimer=null;NET.joinRetryCount=0;NET.lastConnectError='';const clients=[...NET.clients.values()],connection=NET.conn,peer=NET.peer;
+ if(NET.role==='host')NS92_DIR.publish(false,true);NS92_DIR.stop();NS76CHAT.reset();coopVoiceReset();NETMIG.reset();NETLAB.clear();NET.sessionToken=null;NET.lastEarned=null;clearTimeout(NET.joinRetryTimer);NET.joinRetryTimer=null;NET.joinRetryCount=0;NET.lastConnectError='';const clients=[...NET.clients.values()],connection=NET.conn,peer=NET.peer;
  // Reset role BEFORE disconnect events fire to avoid a recursive menu change.
  NET.role='';NET.phase='idle';NET.hostId='p1';NET.migrationTarget=null;NET.migrationEpoch=0;NET.round=0;NET.lastRoundText='';NET.peer=null;NET.conn=null;NET.localId='p1';
  NET.clients.clear();NET.remoteInputs.clear();NET.pendingOffers.clear();NET.profiles.clear();NET.heroLooks.clear();
@@ -4177,6 +4177,7 @@ function renderLobby(){NSX&&NSX.opt&&document.getElementById('nsLobbyRole')&&(do
 }
 function broadcastLobby(){
  if(NET.role!=='host'||NET.phase!=='lobby')return;
+ NS92_DIR.publish();
  const roster=currentLobbyRoster(),packet={t:'lobby',code:NET.code,hostId:NET.localId,round:NET.round,specialMode:selectedMode,difficulty:NSX.opt.difficulty,result:NET.lastRoundText,players:roster,chat:NS76CHAT.items()};
  for(const c of NET.clients.values())if(c.open)try{c.send(packet)}catch{}
  renderLobby();
@@ -4189,7 +4190,7 @@ function setMyReady(){
 }
 function resetToLobbyAfterRound(result=''){coopVoiceReset();sendSocialStatus();
  if(!NET.role)return;
- NET.phase='lobby';NETMIG.reset();NET.localReady=false;NET.viewTarget=null;queueMicrotask(deliverQueuedJoinRequests);G.lootPending=null;G.marketPending=null;G.guildPending=null;
+ NET.phase='lobby';NETMIG.reset();NET.localReady=false;NS92_DIR.publish(true);NET.viewTarget=null;queueMicrotask(deliverQueuedJoinRequests);G.lootPending=null;G.marketPending=null;G.guildPending=null;
  G.mode='menu';G.paused=false;G.quickChoice=null;G.reviveHeld=false;G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();$('sosCompass').classList.add('hidden');$('sosBtn').classList.add('hidden');$('reviveDock').classList.add('hidden');stopMusic();resetFloatingJoystick();
  $('spectatorPanel').classList.add('hidden');
  for(const id of ['quickChoicePanel','pausePanel','gameOver','upgradePanel','chestPanel','marketPanel','guildPanel','relicPanel','campaignWin'])$(id)?.classList.add('hidden');
@@ -4228,7 +4229,7 @@ function startLobbyMatch(){
  if(NET.role!=='host'||NET.phase!=='lobby')return false;
  const roster=currentLobbyRoster();
  if(roster.length<2||(!NET.forceRequest&&!roster.every(p=>p.ready))||roster.slice(1).some(p=>!NET.worldReadyPlayers.get(p.id))){NET.forceRequest=false;netStatus('Nisu svi spremni. Čekamo najmanje 2 igrača.');renderLobby();return false}
- NET.forceRequest=false;NET.lastEarned=null;NET.phase='playing';NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
+ NET.forceRequest=false;NET.lastEarned=null;NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
  // Host is authoritative: start the battle only here, never when a room is created.
  startGame({specialMode:selectedMode,difficulty:NSX.opt.difficulty});
  markMultiplayerNames();
@@ -4242,10 +4243,10 @@ const NS61_RELAY_KEY='ns61_relay_url';
 const NS62_PUBLIC_RELAY_URL='wss://nocna-straza-relay.stefanstevic1996.workers.dev';
 function relayUrl(){return NS62_PUBLIC_RELAY_URL}
 function relayActive(){return !!relayUrl()}
-function newGamePeer(id,code){
+function newGamePeer(id,code,joinPassword=''){
  if(relayActive()){
   if(!window.NSRelayPeer)throw Error('Relay adapter nije učitan');
-  return new window.NSRelayPeer(id,{relayUrl:relayUrl(),roomCode:code});
+  return new window.NSRelayPeer(id,{relayUrl:relayUrl(),roomCode:code,joinPassword});
  }
  return new Peer(id,{debug:0});
 }
@@ -4303,7 +4304,7 @@ function setupConnection(c){
  c.on('open',()=>{
   if(NET.role==='host'){
    if(NET.phase!=='lobby'){if(NET.phase==='playing'){netStatus('Povratak igrača · proveravam token...');}else{safeSend({t:'in_progress'});setTimeout(()=>c.close(),500)}return}
-   for(let n=2;n<=6;n++)if(!NET.clients.has('p'+n)&&!NETLAB.tokens.has('p'+n)){assigned='p'+n;break}
+   for(let n=2;n<=NS92_DIR.maxPlayers();n++)if(!NET.clients.has('p'+n)&&!NETLAB.tokens.has('p'+n)){assigned='p'+n;break}
    if(!assigned){safeSend({t:'full'});setTimeout(()=>c.close(),500);return}
    NET.clients.set(assigned,c);NETLAB.reserve(assigned);NET.remoteInputs.set(assigned,{x:0,y:0,attack:false,dash:false});
    NET.readyPlayers.set(assigned,false);NET.worldReadyPlayers.set(assigned,false);
@@ -4656,9 +4657,10 @@ $('hostBtn').onclick=async()=>{
   NET.peer=newGamePeer('ns30-'+code.toLowerCase(),code);
   NET.peer.on('open',()=>{
    if(NET.role!=='host')return;
+   NS92_DIR.publish(true);
    if(NET.phase==='playing'){netStatus('Relay ponovo povezan. Igrači mogu ponovo da se pridruže.');return;}
    if(NET.phase==='lobby'){netStatus('Relay ponovo povezan. Soba '+NET.code+' je dostupna.');broadcastLobby();return;}
-   NET.phase='lobby';NET.localReady=true;NET.readyPlayers.set(NET.localId,true);
+   NET.phase='lobby';NET.localReady=true;NET.readyPlayers.set(NET.localId,true);NS92_DIR.publish(true);
    showLobbyUI();broadcastLobby();sendSocialStatus();if(SOCIAL.pendingInvite){const target=SOCIAL.pendingInvite;SOCIAL.pendingInvite=null;sendFriendInvite(target)}
    netStatus('SOBA SPREMNA ✓ Kod: '+NET.code+' · sada drugi igrači mogu da kliknu JOIN.');
   });
@@ -4673,7 +4675,7 @@ $('joinBtn').onclick=async()=>{
  netStatus('Povezujem na sobu '+code+'...');$('joinBtn').disabled=true;
  try{
   await loadPeer();closeNet();NET.role='guest';NET.phase='connecting';NET.code=code;NET.worldReady=false;
-  NET.peer=newGamePeer(undefined,code);
+  NET.peer=newGamePeer(undefined,code,NS92_DIR.joinPassword);
   NET.peer.on('connection',c=>{if(NET.role==='host'&&NET.phase==='playing')setupConnection(c);else try{c.close()}catch{}});
   NET.peer.on('open',()=>{if(NET.role!=='guest')return;NET.joinRetryCount=0;if(NET.phase==='playing'){NETLAB.scheduleReconnect();NETLAB.reconnectNow();return;}if(NET.phase==='connecting')retryInitialGuestConnection('relay ponovo povezan');});
   NET.peer.on('error',e=>{NET.lastConnectError=(e.message||e.type||'nepoznato');netStatus('Signalni servis ili tražena soba: '+NET.lastConnectError+'. Proveri kod sobe, ili probaj drugi internet.');$('retryJoinBtn').classList.remove('hidden')});
