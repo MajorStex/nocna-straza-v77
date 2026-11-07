@@ -72,3 +72,15 @@ jobs:
           done
           echo "V89 public release not available after attempted checks" >&2
           exit 1
+      - name: Check immediate troll practice link
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://majorstex.github.io/nocna-straza-v89-trol-test/"
+          for attempt in $(seq 1 14); do
+            if curl --location --fail --silent --show-error --max-time 20 "$url" -o /tmp/troll.html && grep -q 'Night Watch v89 · TROLL TEST' /tmp/troll.html && grep -q 'NS89_TROLL_TEST=true' /tmp/troll.html && curl --location --fail --silent --show-error --max-time 20 "${url}auth-v82.js?v=89" -o /tmp/troll-auth.js && curl --location --fail --silent --show-error --max-time 20 "${url}firebase-config.js?v=89" -o /tmp/troll-config.js; then
+              echo "PASS: troll preview opens with cloud assets at $url"; exit 0
+            fi
+            sleep 3
+          done
+          exit 1
