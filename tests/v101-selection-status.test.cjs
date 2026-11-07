@@ -15,7 +15,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
    const game=window.__nightWatch,net=game.NET,team=window.__NS99_TEAM,packets=[];
    net.role='host';net.phase='playing';net.localId='p1';net.round=101;
    net.clients.set('p2',{open:true,bufferSize:0,send:p=>packets.push(p)});
-   net.profiles.set('p2',{name:'Milan',heroName:'Lovkinja'});
+   net.profiles.set('p2',{spec:{...game.FACTORY_HERO},ranks:{},heroBranches:{},spells:{},equipment:{},name:'Milan',heroName:'Lovkinja'});
    game.startGame({specialMode:'normal'});
    const me=game.G.players.find(p=>p.id==='p1'),other=game.G.players.find(p=>p.id==='p2');
    game.coopXP(me,me.xpNeed+1);
