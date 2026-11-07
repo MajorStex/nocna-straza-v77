@@ -5,7 +5,7 @@ let n=0;const yes=(a,m)=>{assert.ok(a,m);n++};const eq=(a,b,m)=>{assert.equal(a,
 const scriptTags=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(m=>!m[1].includes('src='));
 eq(scriptTags.length,4,'four original inline scripts');
 for(const part of scriptTags){new vm.Script(part[2]);n++}
-yes(html.includes("\x3ctitle>Night Watch v99 — Coop Pause Voting & 3s Level Picks (Night Watch v95 compatible)</title>"),'v94 title');
+yes(html.includes("\x3ctitle>Night Watch v100 — Rotfiend Waves 20 and 30 (Night Watch v99 gameplay)</title>"),'v94 title');
 yes(html.includes("if(assigned&&data.t==='ns93Cast')"),'host receives validated spells');
 yes(html.includes("if(data.t==='ns93CastAck')"),'guest gets authoritative ack');
 yes(html.includes("NS93_MAGIC.soundAt(e.value?.id,e.x,e.y)"),'guest audio from synchronized FX');
@@ -13,7 +13,7 @@ yes(html.includes("p.ns93ManaRegen||2.5,p.ns93Cooldown||{}"),'host sends mana st
 yes(html.includes("NS93_MAGIC.tick(dt)"),'mana host regen');
 yes(html.includes("const life=type==='ns93Magic'?.78"),'bounded FX lifetime');
 yes(html.includes("ns93Mana:Number(p[43])||0"),'guest reconstructs mana');
-yes(html.includes("data.v!==99"),'protocol version');
+yes(html.includes("data.v!==100"),'protocol version');
 yes(html.includes("NS93_MAGIC.initPlayer(p,p.ns93Spells||mpProgress.spells)"),'all classes gain mana');
 const begin=html.indexOf('const NS93_MAGIC=(()=>{'),end=html.indexOf('window.__NS93_MAGIC=NS93_MAGIC;',begin);
 yes(begin>0&&end>begin,'magic module embedded in game scope');
