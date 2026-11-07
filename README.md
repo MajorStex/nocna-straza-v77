@@ -1,3 +1,28 @@
+# Noćna Straža v92 — Public Lobby Browser + dnevni/nedeljni izazovi
+
+## Dnevni i nedeljni ciljevi
+- Dnevni izazov: jedan od četiri mala cilja (40 ubistava, šesti talas, 5 crva ili 2 sanduka). Posle završetka **1 poen časti**, najviše jednom u kalendarskom danu po profilu.
+- Nedeljni izazov: jedan od četiri teža cilja (220 ubistava, 16. talas, 2 trola ili 6 sanduka). Posle završetka **jedan običan (Common) predmet u postojećoj Oružarnici**, najviše jednom za kalendarsku nedelju po profilu.
+- Osvežavanje ciljeva po kalendaru Europe/Belgrade (dnevni od 00:00; nedeljni ponedeljkom). Koji izazov se bira odlučuje se deterministički iz datuma.
+- Solo i co-op: host autoritativno potvrđuje ostvarenje, gost vidi rezultat u sinhronizovanom snapshot-u. Nema dodatnih poruka na svakom ubistvu i nema retkih predmeta.
+- Profil i ostvarene nagrade čuvaju se pod odvojenim ključevima, uključujući automatsku postojeću Firebase sinhronizaciju. Idempotentna dodela; nema dupliranja posle reconnect-a, resume-a ili promene domaćina.
+
+## Lista javnih soba / Create Game / Join Game
+- Nova mobilna lista prikazuje ime sobe, kod, broj igrača 1–6, status, težinu, režim i katanac.
+- **Podrazumevano javno, bez šifre.** Host bira naziv, 2–6 maksimalno, javna/privatna i opciono šifru od 4 do 32 karaktera. Šifra se proverava samo server-side, TLS WebSocket, čuva se kao salted SHA-256.
+- Stari kod od 6 karaktera i dalje radi; isti server može da se pronađe iz liste ili preko koda; kada je zaključan, u oba slučaja je potrebna šifra.
+- Lista se traži samo dok je ekran otvoren i vidljiv; automatsko osvežavanje najviše jednom na 60 s; ručno osvežavanje najmanje 12 s razmaka. Nema novih per-frame ili per-hit mrežnih poziva.
+- Cloudflare Durable Object čuva samo metapodatke, maksimalno 50 prikazanih soba, 85 s TTL, ograničenje broja konekcija, per-IP limiter i zaštitu od pogrešnih šifara. Stara relay mreža i FRNDSS prijatelji nisu menjani po protokolu.
+- **Ograničenje trenutne objave:** frontend sa browserom može biti objavljen na GitHub Pages, ali trenutni Cloudflare relay još uvek nema v92 Directory nadogradnju. GitHub repozitorijum relaya ima kod i integracione testove; automatski Cloudflare deploy je preskočen jer `CLOUDFLARE_API_TOKEN` nije konfigurisan u GitHub Actions. Dok se server ne objavi, lista jasno pokazuje da nije dostupna, zaključavanje soba se ne dozvoljava, a ulazak preko koda ostaje ispravan. Ne objavljivati backend bez odgovarajućih credentials i smoke testova.
+
+## Testovi
+- GitHub Actions: lokalni Worker testovi (WebSocket, 8 prijatelja, šifre, punoća, čuvanje privatnosti, 429 limits), solo/MP simulacije 6 igrača, achievementi.
+- Nije potvrđen višetelefonski test sa šest realnih uređaja niti stvarni FPS u produkciji.
+- Igra: https://majorstex.github.io/nocna-straza-v92/
+- Worker source: privatni repo MajorStex/nocna-straza-relay.
+
+---
+
 # Noćna Straža v91 — dostignuća i obični predmeti (7. novembar 2026.)
 
 ## Novi achievement sistem
