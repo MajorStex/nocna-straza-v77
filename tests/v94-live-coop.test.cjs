@@ -75,8 +75,27 @@ const {chromium}=require('playwright-core');
   assert.equal(hostCast,true,'Host casts spell');
   await guest.waitForFunction(()=>window.__nightWatch.G.effects.some(e=>e.type==='ns93Magic'),{timeout:5000});
   console.log('LIVE_MP_HOST_FX_VISIBLE_TO_GUEST=yes');
+  const beforeRewards=await guest.evaluate(()=>window.__nightWatch.mpProgress.coins);
+  await host.evaluate(()=>{
+    const g=window.__nightWatch;
+    g.G.time=88;g.G.wave=5;
+    for(const p of g.G.players){p.runKills=24;p.runShards=1;}
+    if(!g.finishNetworkRound(false))throw Error('Host could not finish multiplayer round');
+  });
+  await guest.waitForFunction(()=>window.__nightWatch.mpProgress.runs>0,{timeout:12000});
+  const reward=await guest.evaluate(()=>{
+    const g=window.__nightWatch;
+    const packet={session:g.NET.sessionToken,round:g.NET.round,kills:24,seconds:88,wave:5,shards:1};
+    const balance=g.mpProgress.coins,awarded=g.awardMP(packet);
+    return {balance,awarded,after:g.mpProgress.coins,shards:g.mpProgress.shards,phase:g.NET.phase};
+  });
+  assert.ok(reward.balance>beforeRewards,'real host gave validated, earned guest reward');
+  assert.equal(reward.awarded,false,'same room and round cannot pay guest twice');
+  assert.equal(reward.after,reward.balance,'replay attempt did not change balance');
+  assert.equal(reward.shards,1,'once-only shard reward received');
+  console.log('LIVE_MP_ECONOMY_REWARD_ONCE=yes');
   assert.deepEqual(errors.filter(x=>/ReferenceError|TypeError|SyntaxError/.test(x)),[],'no mobile runtime crashes');
-  console.log('PASS live v93 2-phone Chrome multiplayer: create/join, host-verified guest casting, synced mana, visible host FX.');
+  console.log('PASS live v94 2-phone Chrome multiplayer: create/join, host-verified guest casting, synced mana, visible host FX.');
  } finally {
   for(const c of contexts)await c.close().catch(()=>{});
   await browser.close();
