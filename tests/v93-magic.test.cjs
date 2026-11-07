@@ -65,6 +65,7 @@ yes(G.mobs[1].hp<G.mobs[1].maxHp,'boss damaged');
 yes(G.mobs[1].hp>G.mobs[0].hp,'boss resists magic');
 let before=p.ns93Mana;
 G.time+=8;
+p.ns93Mana=25;
 const denied=api.cast(p,'comet',2120,2100);yes(!denied.ok,'insufficient mana blocks expensive comet');
 eq(p.ns93Mana,before,'no mana spent on rejected comet');
 api.tick(3);yes(p.ns93Mana>before,'mana regenerates when host advances');
