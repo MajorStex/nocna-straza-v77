@@ -35,7 +35,7 @@ jobs:
           test -s public/index.html
           test -s public/firebase-config.js
           test -s public/auth-v82.js
-          grep -q 'Night Watch v95' public/index.html
+          grep -q '<title>Night Watch v97' public/index.html
       - name: Install mobile Chromium test driver
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
       - name: Mobile 360/412 screen gameplay, spell HUD and six-player packet test
