@@ -1,4 +1,4 @@
-name: Verify Noćna Straža v97 – Match Stats, Rematch & Coop
+name: Verify Noćna Straža v98 – Cave Coop & Mana HUD
 on:
   push:
     branches: [main]
@@ -42,3 +42,5 @@ jobs:
         run: node tests/v95-browser.test.cjs
       - name: V97 mobile post-match scoreboard, real usernames, rematch votes and replay
         run: node tests/v97-postmatch.test.cjs
+      - name: V98 cave reconnect and gameplay-only mana HUD mobile regressions
+        run: node tests/v98-cave-mana.test.cjs
