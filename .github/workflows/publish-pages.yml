@@ -58,3 +58,17 @@ jobs:
           assert.equal(ctx.spawnEnemy('troll').type,'troll','third troll allowed from wave 20');
           console.log('PASS: 4 scripts parsed; wave 9/10/20, mob cap, telegraph, difficulty hook, weapon balance, multiplayer pickup and cloud assets.');
           NODE
+      - name: Confirm v89 public URL and Firebase assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://majorstex.github.io/nocna-straza-v89/"
+          for attempt in $(seq 1 24); do
+            if curl --fail --location --silent --show-error --max-time 20 "$url" -o /tmp/night-watch-v89.html && grep -q 'Night Watch v89' /tmp/night-watch-v89.html && curl --fail --location --silent --show-error --max-time 20 "${url}firebase-config.js?v=89" -o /tmp/ns89-firebase.js && curl --fail --location --silent --show-error --max-time 20 "${url}auth-v82.js?v=89" -o /tmp/ns89-auth.js; then
+              echo "PUBLIC V89 PASS: $url"; exit 0
+            fi
+            echo "Waiting for GitHub Pages release ($attempt/24)"
+            sleep 5
+          done
+          echo "V89 public release not available after attempted checks" >&2
+          exit 1
