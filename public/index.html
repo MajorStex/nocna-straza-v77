@@ -4699,7 +4699,7 @@ function receiveSnapshot(d){
  G.mode='play';G.paused=!!(G.lootPending||G.marketPending);
  sosObserveSnapshot();syncSpectator();
 }
-$('coopBtn').onclick=()=>{resetLobbyUI();NS92_DIR.open();refreshProfileLabels();$('coopPanel').classList.remove('hidden');netStatus('Do 6 igrača sa istim kodom. Čekaonica prvo, igra posle READY potvrda.')};
+$('coopBtn').onclick=()=>{resetLobbyUI();refreshProfileLabels();$('coopPanel').classList.remove('hidden');NS92_DIR.open();netStatus('Do 6 igrača sa istim kodom. Čekaonica prvo, igra posle READY potvrda.')};
 $('closeCoop').onclick=()=>{if(NET.role||NET.phase!=='idle')leaveLobby();else $('coopPanel').classList.add('hidden')};
 $('lobbyExitBtn').onclick=leaveLobby;
 $('lobbyHeroSelect').onchange=e=>{if(!applyHeroProfile(e.target.value))return;loadHeroTracks();if(NET.role==='guest'&&NET.conn?.open)NET.conn.send({t:'profile',...localMPProfile()});if(NET.role==='host')broadcastLobby();renderLobby()};
@@ -4775,6 +4775,7 @@ const NS92_DIR=(()=>{
  function readJoin(){joinPassword=String($id('ns92JoinPass')?.value||'');return true}
  function publish(force=false,remove=false){
   if(NET.role!=='host'||!NET.code||!NET.peer?._connected)return false;
+  if(!heartbeat&&!remove)startHeartbeat();
   if(!force&&Date.now()-advertiseAt<2500)return false;
   const data={t:'ROOM_STATUS',name:opts.name,maxPlayers:opts.maxPlayers,public:!remove&&opts.public,
    password:opts.password,mode:selectedMode,difficulty:NSX.opt.difficulty,
@@ -5748,7 +5749,8 @@ function applyCaveVisuals(){return !!(progress.cave?.active||G.caveMode);}
    const text=lang(a.enDesc,a.srDesc);
    return {title:lang(a.en,a.sr),desc:text+' · '+(a.owned?'✓':current+'/'+a.goal)+' · '+lang('COMMON','OBIČAN')+': '+name,locked:!a.owned};
   });
-  const entries=which==='bestiary'?Object.entries(categories).map(([id,name])=>({title:name,desc:permanent.bestiary[id]?.kills?`${permanent.bestiary[id].kills} ${lang('defeated','poraženo')}`:lang('Not discovered','Nije otkriveno'),locked:!permanent.bestiary[id]})):[...legacy,...fresh];
+  const timed=NS92_CHALLENGES.list().map(a=>({title:(a.id==='daily'?'☀ ':'☾ ')+lang(a.en,a.sr),desc:lang(a.enDesc,a.srDesc)+' · '+(a.owned?'✓':a.progress+'/'+a.goal)+' · '+a.reward+' · '+a.ends,locked:!a.owned}));
+  const entries=which==='bestiary'?Object.entries(categories).map(([id,name])=>({title:name,desc:permanent.bestiary[id]?.kills?`${permanent.bestiary[id].kills} ${lang('defeated','poraženo')}`:lang('Not discovered','Nije otkriveno'),locked:!permanent.bestiary[id]})):[...timed,...legacy,...fresh];
   for(const item of entries){const row=document.createElement('div');row.className='nsListRow';row.textContent=`${item.locked?'◇':'✦'} ${item.title} · ${item.desc}`;list.append(row)}
   root.classList.remove('hidden');$('home').classList.add('hidden');}
  const paidCatalog=[{sku:'cosmetic_shadow_skin',en:'Shadow Guardian skin',sr:'Senovita koža Stražara',price:'2.99'},{sku:'cosmetic_winter_blade',en:'Winter blade appearance',sr:'Zimski izgled mača',price:'3.99'},{sku:'cosmetic_blue_flame',en:'Blue flame effects',sr:'Plavi vatreni efekti',price:'4.99'}];
