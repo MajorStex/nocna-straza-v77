@@ -30,3 +30,5 @@ jobs:
           echo "LOBBY_DIRECTORY_HTTP=$CODE"
           if [ -f /tmp/directory.json ]; then head -c 400 /tmp/directory.json; echo; fi
           echo 'This smoke test is informational and does not deploy the Cloudflare worker.'
+      - name: Exercise a real temporary password-protected two-player v92 room
+        run: node tests/v92-live-relay-smoke.mjs
