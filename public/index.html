@@ -4107,7 +4107,7 @@ const NS76CHAT=(()=>{
 NS76CHAT.wire();
 
 function resetLobbyUI(){
- $('coopSetup').classList.remove('hidden');$('lobbyArea').classList.add('hidden');
+ NS92_DIR.stop();$('coopSetup').classList.remove('hidden');$('lobbyArea').classList.add('hidden');
  $('coopTitle').textContent='IGRAJTE ZAJEDNO';$('coopForge').classList.add('hidden');$('closeCoop').classList.remove('hidden');
  $('roomCode').textContent='';$('lobbyRoster').textContent='';
  $('lobbyReadyBtn').disabled=false;$('lobbyStartBtn').disabled=true;
@@ -4131,7 +4131,7 @@ function leaveLobby(){
  $('controls').classList.add('hidden');$('pauseBtn').classList.add('hidden');
  netStatus('Napustio si sobu.');
 }
-function showLobbyUI(){$('reviveDock').classList.add('hidden');mapHide();
+function showLobbyUI(){NS92_DIR.stop();$('reviveDock').classList.add('hidden');mapHide();
  $('coopPanel').classList.remove('hidden');$('home').classList.add('hidden');
  $('hud').classList.add('hidden');$('controls').classList.add('hidden');
  $('pauseBtn').classList.add('hidden');$('pausePanel').classList.add('hidden');
@@ -4600,7 +4600,7 @@ function receiveSnapshot(d){
  G.mode='play';G.paused=!!(G.lootPending||G.marketPending);
  sosObserveSnapshot();syncSpectator();
 }
-$('coopBtn').onclick=()=>{resetLobbyUI();refreshProfileLabels();$('coopPanel').classList.remove('hidden');netStatus('Do 6 igrača sa istim kodom. Čekaonica prvo, igra posle READY potvrda.')};
+$('coopBtn').onclick=()=>{resetLobbyUI();NS92_DIR.open();refreshProfileLabels();$('coopPanel').classList.remove('hidden');netStatus('Do 6 igrača sa istim kodom. Čekaonica prvo, igra posle READY potvrda.')};
 $('closeCoop').onclick=()=>{if(NET.role||NET.phase!=='idle')leaveLobby();else $('coopPanel').classList.add('hidden')};
 $('lobbyExitBtn').onclick=leaveLobby;
 $('lobbyHeroSelect').onchange=e=>{if(!applyHeroProfile(e.target.value))return;loadHeroTracks();if(NET.role==='guest'&&NET.conn?.open)NET.conn.send({t:'profile',...localMPProfile()});if(NET.role==='host')broadcastLobby();renderLobby()};
@@ -4647,6 +4647,117 @@ $('ns70RelayProbe').onclick=()=>{
  }catch(e){finish('TEST: '+(e?.message||'Nije moguće otvoriti WebSocket.'));}
 };
 $('retrySyncBtn').onclick=()=>{if(NET.role==='guest'&&NET.conn?.open){NET.conn.send({t:'hello',v:91});netStatus('Ponovo zahtevam ulaz u čekaonicu...')}};$('retryJoinBtn').onclick=()=>{if(NET.role==='guest'&&NET.phase==='connecting'){NET.joinRetryCount=0;retryInitialGuestConnection('ručni pokušaj')}else if(NET.role==='')$('joinBtn').click()};$('turnApply').onclick=()=>{const urls=$('turnUrl').value.trim(),username=$('turnUser').value.trim(),credential=$('turnPassword').value;if(!/^turns?:[^\s]+/i.test(urls)||!username||!credential){netStatus('Za TURN su potrebni validna adresa, korisničko ime i šifra.');return}window.NS_TURN_SESSION={urls,username,credential};netStatus('TURN je podešen za NOVE veze. Pokreni ponovno povezivanje; nijedna lozinka nije sačuvana.')};
+// v92 small, opt-in room browser. Old 6-character code flow always remains available.
+const NS92_DIR=(()=>{
+ const root='https://nocna-straza-relay.stefanstevic1996.workers.dev';
+ const $id=id=>document.getElementById(id);
+ const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
+ let opts={name:'Night Watch',public:true,maxPlayers:6,password:''};
+ let joinPassword='',rooms=[],lastFetch=0,nextFetch=0,activeFetch=false,capable=false,cycle=null,advertiseAt=0,heartbeat=null,backoffUntil=0;
+ function visible(){return !document.hidden&&!$id('coopPanel')?.classList.contains('hidden')&&!$id('coopSetup')?.classList.contains('hidden')}
+ function status(en,sr){const n=$id('ns92Status');if(n)n.textContent=tr(en,sr)}
+ function labels(){
+  document.querySelectorAll('[data-ns92-en]').forEach(el=>{el.textContent=tr(el.getAttribute('data-ns92-en'),el.getAttribute('data-ns92-sr'))});
+  if($id('ns92Refresh'))$id('ns92Refresh').textContent=tr('↻ REFRESH','↻ OSVEŽI');
+ }
+ function maxPlayers(){return Number(opts.maxPlayers)||6}
+ function lockUI(){$id('ns92CreatePassRow')?.classList.toggle('hidden',!$id('ns92Locked')?.checked)}
+ function checkHost(){
+  const name=String($id('ns92Name')?.value||'Night Watch').replace(/[<>\x00-\x1f]/g,'').trim().slice(0,28);
+  const max=Math.max(2,Math.min(6,Number($id('ns92Max')?.value)||6));
+  const locked=!!$id('ns92Locked')?.checked,password=String($id('ns92CreatePass')?.value||'');
+  if(locked&&(!capable||password.length<4||password.length>32)){
+   status('Password protection needs the updated relay and 4–32 characters. You can still create a code-only room.','Za šifru je potreban ažurirani relay i 4–32 znaka. Soba preko koda i dalje radi.');
+   $id('ns92CreatePass')?.focus();return false;
+  }
+  opts={name:name||'Night Watch',public:!!$id('ns92Public')?.checked,maxPlayers:max,password:locked?password:''};
+  joinPassword='';return true;
+ }
+ function readJoin(){joinPassword=String($id('ns92JoinPass')?.value||'');return true}
+ function publish(force=false,remove=false){
+  if(NET.role!=='host'||!NET.code||!NET.peer?._connected)return false;
+  if(!force&&Date.now()-advertiseAt<2500)return false;
+  const data={t:'ROOM_STATUS',name:opts.name,maxPlayers:opts.maxPlayers,public:!remove&&opts.public,
+   password:opts.password,mode:selectedMode,difficulty:NSX.opt.difficulty,
+   status:NET.phase==='playing'?'playing':'waiting'};
+  try{const ok=NET.peer._send(data);if(ok)advertiseAt=Date.now();return ok}catch{return false}
+ }
+ function startHeartbeat(){
+  if(heartbeat)return;
+  heartbeat=setInterval(()=>{if(NET.role==='host'&&NET.peer?._connected)publish(true)},28000);
+ }
+ function stop(){
+  if(cycle){clearTimeout(cycle);cycle=null}
+  if(heartbeat){clearInterval(heartbeat);heartbeat=null}
+  activeFetch=false;
+ }
+ function render(){
+  labels();
+  const box=$id('ns92Rooms');if(!box)return;
+  box.replaceChildren();
+  const filtered=rooms.filter(r=>!$id('ns92HideFull')?.checked||(r.players<r.maxPlayers&&r.status==='waiting'));
+  if(!filtered.length){
+   const text=document.createElement('small');
+   text.textContent=tr('No available public games. Create one or join using a code.','Nema dostupnih javnih soba. Napravi sobu ili uđi preko koda.');
+   box.append(text);return;
+  }
+  for(const room of filtered.slice(0,50)){
+   const row=document.createElement('div');row.className='ns92Room';
+   const details=document.createElement('div'),title=document.createElement('b'),info=document.createElement('small');
+   title.textContent=(room.locked?'🔒 ':'🟢 ')+room.name;
+   info.textContent=room.code+' · '+room.players+'/'+room.maxPlayers+' · '+room.difficulty+' · '+room.mode+(room.status==='playing'?' · '+tr('Playing','U igri'):'');
+   const button=document.createElement('button');button.type='button';
+   button.textContent=tr('JOIN','ULAZ');button.disabled=room.players>=room.maxPlayers||room.status!=='waiting';
+   button.addEventListener('click',()=>{
+    if(NET.role){status('Leave your current room first.','Prvo napusti postojeću sobu.');return;}
+    $id('joinCode').value=room.code;
+    if(room.locked&&String($id('ns92JoinPass')?.value||'').length<4){
+      status('This game is locked. Enter the password in the field above, then press JOIN.','Ova soba je zaključana. Upiši šifru iznad i klikni PRIDRUŽI SE.');
+      $id('ns92JoinPass').focus();return;
+    }
+    $id('joinBtn').click();
+   });
+   details.append(title,info);row.append(details,button);box.append(row);
+  }
+ }
+ function schedule(){
+  if(cycle)clearTimeout(cycle);
+  if(visible())cycle=setTimeout(()=>{refresh(false)},45000);
+ }
+ async function refresh(force=false){
+  if(!visible()||activeFetch)return false;
+  const now=Date.now();
+  if(now<backoffUntil)return false;
+  if(force&&now-lastFetch<12000){status('Refresh is limited to once every 12 seconds.','Osvežavanje je ograničeno na 12 sekundi.');return false;}
+  if(!force&&now-lastFetch<40000){schedule();return false;}
+  lastFetch=now;activeFetch=true;
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7500);
+  try{
+   const response=await fetch(root+'/api/lobbies',{method:'GET',cache:'no-store',signal:ctrl.signal,credentials:'omit'});
+   if(response.status===429){backoffUntil=Date.now()+Math.max(15000,Number(response.headers.get('Retry-After')||8)*1000);throw Error('rate_limited')}
+   if(!response.ok)throw Error('server_not_ready');
+   const data=await response.json();
+   if(data?.version!==2||!Array.isArray(data.rooms))throw Error('unsupported_directory');
+   capable=true;rooms=data.rooms.filter(v=>/^[A-HJ-NP-Z2-9]{6}$/.test(v.code)&&Number.isInteger(v.players)&&v.players>=1&&v.players<=6).slice(0,50);
+   render();status(tr('Updated · ','Osveženo · ')+rooms.length+' '+tr('public rooms','javnih soba'),tr('Updated · ','Osveženo · ')+rooms.length+' '+tr('public rooms','javnih soba'));
+  }catch{
+   capable=false;rooms=[];render();
+   status('Public lobby list is not available yet. Joining by a six-character code still works.','Lista javnih soba trenutno nije dostupna. Ulazak preko šestoznakovnog koda i dalje radi.');
+  }finally{clearTimeout(timer);activeFetch=false;schedule();}
+  return true;
+ }
+ function open(){labels();if(visible()){refresh(true);schedule();}}
+ $id('ns92Locked')?.addEventListener('change',lockUI);
+ $id('ns92HideFull')?.addEventListener('change',render);
+ $id('ns92Refresh')?.addEventListener('click',()=>refresh(true));
+ $id('hostBtn')?.addEventListener('click',e=>{if(!checkHost()){e.preventDefault();e.stopImmediatePropagation();return;}startHeartbeat()},true);
+ $id('joinBtn')?.addEventListener('click',readJoin,true);
+ document.addEventListener('visibilitychange',()=>{if(visible())open();else if(cycle){clearTimeout(cycle);cycle=null}});
+ labels();
+ return {open,refresh,publish,stop,maxPlayers,render,labels,get joinPassword(){return joinPassword},get capable(){return capable},get options(){return {...opts,password:opts.password?'[redacted]':''}}};
+})();
+window.__NS92_DIR=NS92_DIR;
+
 $('hostBtn').onclick=async()=>{
  unlockSound();commitMPName($('mpNameInput').value);netStatus('Učitavam besplatni servis...');$('hostBtn').disabled=true;
  try{
