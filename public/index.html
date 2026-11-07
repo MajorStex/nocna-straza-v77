@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><title>Night Watch v96 — Invite Friends (Night Watch v95 compatible)</title><style>
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><title>Night Watch v97 — Match Stats & Vote (Night Watch v95 compatible)</title><style>
 :root{--bg:#0e171d;--surface:#17232a;--card:#1d2c33;--line:#52605888;--sage:#a7d3ae;--gold:#e9c17d;--ink:#f1eddf;--muted:#aab7b8;--red:#bf5550}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;touch-action:none}button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--ink);background:#26363c;border:1px solid #60706d71;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:800;letter-spacing:.035em}button:active{transform:scale(.98)}button:hover{border-color:#c1c9a0}button.primary{background:linear-gradient(135deg,#d2a665,#f0cf91);color:#202c29;border:0;box-shadow:0 5px 24px #0006}button:disabled{opacity:.5}input,select,textarea{color:#eee9df;background:#101b22;border:1px solid #536660;border-radius:9px;padding:9px;min-width:0}input[type=color]{height:38px;padding:3px;width:58px}input[type=range]{padding:0;accent-color:var(--gold);flex:1}input[type=checkbox]{accent-color:var(--gold);width:19px;height:19px}#app,#gameCanvas{width:100%;height:100%;position:absolute;inset:0}#gameCanvas{display:block;touch-action:none;background:#28332f}.veil{pointer-events:none;position:absolute;inset:0;background:linear-gradient(90deg,#0a1014a8,transparent 75%);opacity:.45}.hidden{display:none!important}.kicker{color:var(--gold);font-size:10px;font-weight:900;letter-spacing:.18em}.panel{position:absolute;z-index:5}.home{top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 34px));background:linear-gradient(160deg,#18272bed,#0d161ce9);border:1px solid #80918c59;border-radius:23px;padding:27px 29px 22px;text-align:center;box-shadow:0 30px 100px #000a;backdrop-filter:blur(12px)}.logoGlyph{font-size:39px;color:var(--gold);margin:10px 0 0}.home h1{font-family:Georgia,'Times New Roman',serif;line-height:.9;letter-spacing:.07em;font-size:clamp(42px,9vw,63px);margin:8px auto 16px;text-shadow:0 5px 20px #0009}.home h1 em{font-style:normal;color:var(--gold)}.tagline{color:#bac5be;font-size:14px;line-height:1.55;max-width:320px;margin:0 auto 19px}.homeButtons{display:grid;gap:9px}.homeButtons button{min-height:47px}.smallMuted{color:#8ba09b;font-size:11px;margin:17px auto 0}.hud{position:absolute;z-index:3;top:0;left:0;right:0;padding:max(12px,env(safe-area-inset-top)) 14px 8px;pointer-events:none;background:linear-gradient(#0b1118d6,#0b111800)}.hudTop{display:flex;align-items:start;gap:10px}.stats{width:54%;max-width:300px;display:grid;gap:6px}.bar{position:relative;overflow:hidden;background:#142024c9;border:2px solid #8c958259;border-radius:5px;height:21px;box-shadow:0 2px 10px #0005}.bar>div{position:absolute;inset:0 auto 0 0;width:100%;transition:width .16s linear}.bar span{position:absolute;inset:0;display:grid;place-items:center;font-size:10px;font-weight:900;text-shadow:1px 1px 2px #000}.hpbar>div{background:linear-gradient(90deg,#922e35,#d06b59)}.xpbar>div{background:linear-gradient(90deg,#378ba0,#9bd5cd)}.miniStats{margin:auto;display:grid;gap:3px;text-align:right;font-size:12px;color:#e5d2a8;font-weight:900}.iconBtn{pointer-events:auto;padding:8px 12px;font-size:19px;background:#202c34df}.bossHud{margin:15px auto 0;width:min(480px,92%)}.bossHead{display:flex;justify-content:space-between;font-family:Georgia,serif;font-size:12px;color:#f0b6a4;font-weight:bold;text-shadow:0 2px 3px #000}.bossbar{height:15px;margin-top:4px;border-color:#853f40}.bossbar>div{background:linear-gradient(90deg,#8a1e39,#f07564)}.notice{text-align:center;font-family:Georgia,serif;letter-spacing:.1em;color:var(--gold);font-weight:bold;margin-top:12px;text-shadow:1px 2px 3px #000}.controls{position:absolute;bottom:max(19px,env(safe-area-inset-bottom));left:0;right:0;height:130px;z-index:3;pointer-events:none}.joyBase{position:absolute;bottom:0;left:24px;width:120px;height:120px;border-radius:50%;border:2px solid #b2b4a64d;background:#13232c65;pointer-events:auto;touch-action:none;box-shadow:inset 0 0 26px #0006}.joyBase:before{content:'✣';position:absolute;inset:0;display:grid;place-items:center;font-size:44px;color:#9fc7b340}.joyKnob{position:absolute;width:56px;height:56px;left:30px;top:30px;border-radius:50%;background:radial-gradient(circle at 32% 25%,#829d93,#46645f);border:2px solid #a0bbb1a3;box-shadow:0 4px 14px #000a;transform:translate(0,0)}.actionArea{position:absolute;bottom:0;right:23px;display:flex;align-items:end;gap:12px;pointer-events:auto}.attackBtn,.dashBtn{display:grid;place-items:center;align-content:center;gap:1px;touch-action:none;border-radius:50%;box-shadow:0 3px 18px #0009}.attackBtn{width:91px;height:91px;background:radial-gradient(circle at 35% 25%,#e3b478,#975b44);border:2px solid #e7d2a3;color:#141b20;font-size:31px}.dashBtn{height:64px;width:64px;background:#283f46c9;border-color:#8baeb1;font-size:26px}.actionArea small{font-size:8px;letter-spacing:.06em}.modal{position:absolute;inset:0;z-index:10;background:#061117cb;display:grid;place-items:center;padding:14px;backdrop-filter:blur(7px)}.modalBox{width:min(420px,100%);max-height:calc(100vh - 30px);overflow-y:auto;background:linear-gradient(145deg,#1a2b31,#101d25);border:1px solid #7b8a825c;border-radius:19px;padding:24px;box-shadow:0 20px 80px #000c;text-align:center;display:grid;gap:12px}.modalBox h2{font-family:Georgia,serif;font-size:29px;margin:0}.modalBox p{font-size:14px;line-height:1.45;color:#b6c6c1;margin:0}.settingRow{display:flex;align-items:center;justify-content:space-between;text-align:left;font-size:13px;gap:10px}.upgradeCards{display:grid;gap:8px}.upgradeCards button{display:grid;gap:5px;text-align:left}.upgradeCards button span{font-weight:400;font-size:11px;color:#a9b7b4}.roomCode{padding:14px;border:1px dashed var(--gold);font-size:30px;font-weight:900;letter-spacing:.23em;color:var(--gold);user-select:all}.separator{color:#8ba09b;text-transform:uppercase;font-size:12px}.joinRow{display:flex;gap:6px}.joinRow input{width:100%;text-transform:uppercase;letter-spacing:.12em}.netStatus{font-size:12px;color:#a9c2b9;line-height:1.45;text-align:left;background:#122028;padding:10px;border-radius:8px}.toast{pointer-events:none;position:absolute;z-index:30;left:50%;bottom:145px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 30px);padding:11px 17px;border-radius:12px;border:1px solid #a0b19b5e;background:#15272cef;font-weight:700;font-size:12px;box-shadow:0 10px 30px #0009}.editor{position:absolute;z-index:7;right:0;top:0;bottom:0;width:min(375px,100%);display:flex;flex-direction:column;background:#111e25f5;border-left:1px solid #7c8b7e66;box-shadow:-14px 0 44px #0008}.editorHeader{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 15px 12px}.editorHeader strong{font-family:Georgia,serif;font-size:20px}.subtleBtn{padding:8px 10px;font-size:11px}.tabs{display:flex;gap:4px;padding:0 13px 12px;border-bottom:1px solid #82948730}.tabs button{flex:1;padding:10px 4px;font-size:11px;background:transparent}.tabs button.active,.toolGrid button.active{color:var(--gold);border-color:var(--gold);background:#3b3d2f9c}.editBody{padding:14px;overflow:auto;flex:1}.editHelp{margin:0 0 13px;line-height:1.5;color:#b4c5bf;font-size:12px}.toolGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.toolActions{display:flex;gap:7px;margin-top:10px}.toolActions button{flex:1;font-size:10px;padding:11px 7px}.editTab label{margin:10px 0;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:12px;color:#cad4c8}.editTab label input[type=number],.editTab label select{width:46%}.previewLine{font-size:11px;color:#bbd0bc;line-height:1.7;border-top:1px solid #4e645360;padding-top:12px;margin-top:13px}.editTab textarea{width:100%;line-height:1.5;resize:vertical;touch-action:auto}.editTab .primary{width:100%;margin-top:8px}.cmdResult{font-size:12px;border:1px solid #4e6f5f;background:#1b3330;padding:11px;border-radius:8px;line-height:1.5;margin-top:11px}.examples{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}.examples div{width:100%;font-size:11px;color:#a2b5ae}.examples button{font-size:10px;padding:7px 9px}.editFooter{padding:12px;border-top:1px solid #82948733;display:grid;gap:7px}.editFooter .toolActions{margin:0}.editFooter>.primary{padding:13px}.editFooter>button:last-child{background:#4b2933;border-color:#86525b}.editor:not(.hidden)~.controls{display:none}.editor .editFooter button{font-size:12px}
 @media (max-width:760px){.editor{top:auto;bottom:0;left:0;right:0;width:100%;height:min(58vh,510px);border-left:0;border-top:1px solid #7c8b7e66;border-radius:18px 18px 0 0}.editorHeader{padding-top:12px}.home{padding:20px 23px}.home h1{font-size:48px}.homeButtons button{min-height:44px}.hud{padding-top:max(12px,env(safe-area-inset-top))}.joyBase{left:19px;bottom:8px;width:104px;height:104px}.joyKnob{left:23px;top:23px}.actionArea{right:17px;bottom:6px}.controls{height:117px}.editor .editBody{padding-top:10px}}
 @media (max-height:680px){.home{padding:12px 20px}.home h1{font-size:38px;margin:0 0 8px}.home .logoGlyph{display:none}.home .tagline{font-size:12px;margin-bottom:10px}.homeButtons button{min-height:38px;padding:8px}.smallMuted{display:none}.controls{transform:scale(.83);transform-origin:bottom center}}
@@ -574,6 +574,32 @@
 .ns96InviteFriend small{display:block;color:#9eb6ad;font-size:11px}
 .ns96InviteFriend button{flex-shrink:0;padding:8px;font-size:12px;min-height:38px}
 #ns96InviteHint{font-size:11px;color:#aebfb7;display:block}
+
+/* v97: event-driven mobile-friendly end-of-match scoreboard + rematch votes */
+.ns97Results{margin:7px 0 14px;padding:12px 10px;background:#10252a;border:1px solid #819d82;border-radius:13px;text-align:left;box-shadow:0 4px 15px #06101566}
+.ns97Header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:5px;align-items:center;color:#f2daa4}
+.ns97Header strong{font-size:15px}.ns97Header small{font-size:11px;color:#c7d7cc}
+.ns97TeamTotals{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.ns97TeamTotals span{padding:6px 8px;border:1px solid #72907b65;border-radius:8px;background:#233e3d;font-size:12px;font-weight:700}
+.ns97Scoreboard{display:grid;gap:6px;max-height:36vh;overflow:auto;overscroll-behavior:contain}
+.ns97ScoreRow{background:#203435;border:1px solid #5f787266;border-radius:10px;padding:8px}
+.ns97ScoreRow.mine{border-color:#e0c38e99;background:#32403b}
+.ns97ScoreName{display:flex;flex-wrap:wrap;justify-content:space-between;gap:5px;align-items:center;font-size:13px;font-weight:800}
+.ns97ScoreName small{color:#a9caba;font-size:11px}
+.ns97ScoreDetail{color:#c1d2ca;font-size:11px;margin:3px 0 6px}
+.ns97ScoreMetrics{display:flex;flex-wrap:wrap;gap:4px}
+.ns97ScoreMetrics span{background:#0c2228;border-radius:6px;padding:5px 7px;font-size:11px;color:#e3e8d7}
+.ns97VoteBox{margin-top:12px;padding-top:10px;border-top:1px solid #607b72}
+.ns97VoteBox>strong{font-size:14px;color:#eddfb8}
+.ns97VoteProgress{margin:5px 0;font-weight:700;font-size:12px;color:#dfebd4}
+.ns97VoteList{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 10px}
+.ns97VoteList span{padding:5px 7px;background:#1b3337;border-radius:7px;font-size:11px;color:#d2dfd9}
+.ns97VoteList .yes{color:#a4e5bb}.ns97VoteList .no{color:#e7b29a}
+.ns97VoteActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ns97VoteActions button{min-height:45px;font-size:12px;font-weight:850;padding:7px 5px}
+.ns97VoteActions button.selected{outline:2px solid #d9c896;outline-offset:1px}
+#ns97VoteHint{display:block;margin-top:9px;font-size:11px;color:#a9c7b8;line-height:1.4}
+@media(max-width:390px){.ns97Results{padding:9px 8px}.ns97TeamTotals span{font-size:11px}.ns97Scoreboard{max-height:30vh}}
 </style></head>
 .netExplain{font-size:11px;line-height:1.5;color:#adcbc1;margin:9px 0}.netTurn{margin-top:7px;border:1px solid #688a8177;border-radius:11px;padding:10px;background:#15292c}.netTurn summary{font-size:12px;color:#f0cb8c;font-weight:700}.netTurn input{width:100%;margin-top:7px}.netTurn button{margin-top:8px;width:100%}
 #retryJoinBtn{width:100%;margin-top:8px;background:#36504b;color:#f4dcb0}
@@ -663,7 +689,7 @@
 </section>
 <div id="reviveDock" class="reviveDock hidden"><button id="reviveBtn" class="reviveBtn" type="button" aria-label="Hold to revive teammate">✚ <span>DRŽI ZA OŽIVLJAVANJE</span></button><small id="reviveTarget" class="reviveTarget"></small></div>
 <div aria-live="polite" class="spectatorPanel hidden" id="spectatorPanel"><div class="spectatorTitle">☠ POGINUO SI · GLEDAŠ EKIPU</div><div class="spectatorLine"><button aria-label="Prethodni živi igrač" id="spectatorPrev">◀</button><strong id="spectatorLabel">IGRAČ 2</strong><button aria-label="Sledeći živi igrač" id="spectatorNext">▶</button></div><small id="spectatorCount">1 PREŽIVEO</small><button type="button" id="sosBtn" class="sosAction hidden" aria-label="Send one SOS signal">⚑ SEND SOS</button><small id="sosStatus" class="sosStatus hidden" aria-live="polite"></small></div><div class="controls hidden" id="controls"><div aria-hidden="true" class="joyBase hidden" id="joyBase"><div class="joyKnob" id="joyKnob"></div></div><div class="actionArea"><button aria-label="Izbegavanje, cooldown 2.8 sekunde" class="dashBtn" id="dashBtn">↝<small>IZBEGNI</small><span class="dashCooldown" id="dashCooldown"></span></button></div></div><div id="ns93SpellDock" class="hidden" aria-label="Spellcasting"><div class="ns93Mana"><span id="ns93ManaValue">64 / 64 MP</span><div class="ns93ManaTrack"><div id="ns93ManaFill"></div></div></div><div id="ns93SpellList"></div><button type="button" id="ns95SpellSwap" title="Change selected spell" aria-label="Choose equipped spell">⇄</button><div id="ns95SpellPicker" class="hidden"></div></div><div id="ns93Target" aria-hidden="true"></div><button aria-label="Pauza i meni" class="cornerPause hidden" id="pauseBtn" title="Otvori pauzu / meni">☰<small>MENI</small></button>
-<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL • v96</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
+<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL • v97</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
  <div class="ns50MenuGroups" id="ns50MenuGroups">
   <details class="ns50MenuGroup" id="ns50MenuPlay" open><summary><span class="ns50GroupIcon">▶</span><span class="ns50GroupWords"><strong data-ns50-en="PLAY" data-ns50-sr="IGRAJ">PLAY</strong><small data-ns50-en="Solo, campaign, co-op" data-ns50-sr="Solo, kampanja, co-op">Solo, campaign, co-op</small></span><span class="ns50Chevron">⌄</span></summary><div class="ns50GroupBody">
    <button class="primary ns50MainPlay" id="startBtn">⚔ ZAPOČNI IGRU</button>
@@ -732,7 +758,18 @@
  <button type="button" id="ns61RelaySave">SAČUVAJ I KORISTI RELAY</button>
  <button type="button" id="ns61RelayOff">DIREKTNI WEBRTC (bez relay-a)</button>
  <small id="ns61RelayInfo">Nije podešen relay · direktni WebRTC može da ne uspe na 5G.</small>
-</div><details class="netTurn" style="display:none"><summary>NAPREDNO: TURN server za mobilne mreže</summary><small>Samo ako imaš svoj TURN servis. Podaci ostaju u ovoj sesiji, ne snimaju se u fajl.</small><input id="turnUrl" placeholder="turns:server.example:443?transport=tcp"/><input id="turnUser" placeholder="Korisničko ime"/><input id="turnPassword" type="password" placeholder="TURN šifra"/><button id="turnApply" type="button">PRIMENI ZA NOVE VEZE</button></details></div><div class="hidden" id="lobbyArea"><p class="lobbyLabel">KOD SOBE · POŠALJI DRUGIMA</p><div class="roomCode" id="roomCode"></div><div id="ns96InviteWrap" class="ns96InviteWrap hidden"><button type="button" id="ns96InviteToggle" class="primary ns96InviteToggle" aria-expanded="false" aria-controls="ns96InvitePanel">✉ INVITE FRIENDS</button><div id="ns96InvitePanel" class="ns96InvitePanel hidden"><div class="ns96InviteHeader"><strong id="ns96InviteStatus"></strong><button id="ns96InviteRefresh" type="button">↻</button></div><div id="ns96InviteList" class="ns96InviteList"></div><small id="ns96InviteHint">In-game friends only. Both players must be online.</small></div></div><button type="button" id="ns62ShareRoomCode" class="primary">📨 POŠALJI KOD DRUGARU</button><div class="lobbyIdentity" id="lobbyIdentity">MOJ PROFIL · NIVO 1</div><div class="coopEarned hidden" id="coopEarned">✦ TVOJA NAGRADA: +0</div><div aria-live="polite" class="lobbyRoster" id="lobbyRoster"></div>
+</div><details class="netTurn" style="display:none"><summary>NAPREDNO: TURN server za mobilne mreže</summary><small>Samo ako imaš svoj TURN servis. Podaci ostaju u ovoj sesiji, ne snimaju se u fajl.</small><input id="turnUrl" placeholder="turns:server.example:443?transport=tcp"/><input id="turnUser" placeholder="Korisničko ime"/><input id="turnPassword" type="password" placeholder="TURN šifra"/><button id="turnApply" type="button">PRIMENI ZA NOVE VEZE</button></details></div><div class="hidden" id="lobbyArea"><section class="ns97Results hidden" id="ns97Results" aria-label="Post-match results">
+ <div class="ns97Header"><strong id="ns97Title">MATCH RESULTS</strong><small id="ns97Subtitle"></small></div>
+ <div class="ns97TeamTotals" id="ns97TeamTotals"></div>
+ <div class="ns97Scoreboard" id="ns97Scoreboard"></div>
+ <div class="ns97VoteBox">
+  <strong id="ns97VoteHeading">PLAY AGAIN?</strong>
+  <div class="ns97VoteProgress" id="ns97VoteProgress" aria-live="polite"></div>
+  <div class="ns97VoteList" id="ns97VoteList"></div>
+  <div class="ns97VoteActions"><button class="primary" id="ns97VoteYes" type="button">✓ PLAY AGAIN</button><button id="ns97VoteNo" type="button">✕ NOT NOW</button></div>
+  <small id="ns97VoteHint">The party stays together. All connected players must agree.</small>
+ </div>
+ </section><p class="lobbyLabel">KOD SOBE · POŠALJI DRUGIMA</p><div class="roomCode" id="roomCode"></div><div id="ns96InviteWrap" class="ns96InviteWrap hidden"><button type="button" id="ns96InviteToggle" class="primary ns96InviteToggle" aria-expanded="false" aria-controls="ns96InvitePanel">✉ INVITE FRIENDS</button><div id="ns96InvitePanel" class="ns96InvitePanel hidden"><div class="ns96InviteHeader"><strong id="ns96InviteStatus"></strong><button id="ns96InviteRefresh" type="button">↻</button></div><div id="ns96InviteList" class="ns96InviteList"></div><small id="ns96InviteHint">In-game friends only. Both players must be online.</small></div></div><button type="button" id="ns62ShareRoomCode" class="primary">📨 POŠALJI KOD DRUGARU</button><div class="lobbyIdentity" id="lobbyIdentity">MOJ PROFIL · NIVO 1</div><div class="coopEarned hidden" id="coopEarned">✦ TVOJA NAGRADA: +0</div><div aria-live="polite" class="lobbyRoster" id="lobbyRoster"></div>
 <div id="ns76Chat" class="ns76Chat"><div class="ns76ChatTop"><strong id="ns76ChatTitle">💬 LOBBY CHAT</strong><small id="ns76ChatSubtitle">Room only · messages are not saved</small></div>
 <div id="ns76ChatLog" class="ns76ChatLog" role="log" aria-live="polite" aria-relevant="additions text"><div class="ns76Empty">Say hello when someone joins 👋</div></div>
 <div class="ns76ChatForm"><input id="ns76ChatInput" type="text" maxlength="160" autocomplete="off" enterkeyhint="send" placeholder="Type a message…" aria-label="Lobby chat message"/><button type="button" id="ns76ChatSend" aria-label="Send message">➤</button></div>
@@ -3066,7 +3103,7 @@ let darknessCanvas=null,darknessCtx=null;
 function drawDarknessOverlay(){if(!nightDark()||G.mode!=='play')return;const vw=viewSize().w,vh=viewSize().h;const w=Math.ceil(vw),h=Math.ceil(vh);if(!darknessCanvas){darknessCanvas=document.createElement('canvas');darknessCtx=darknessCanvas.getContext('2d')}if(darknessCanvas.width!==w||darknessCanvas.height!==h){darknessCanvas.width=w;darknessCanvas.height=h}darknessCtx.globalCompositeOperation='source-over';darknessCtx.clearRect(0,0,w,h);darknessCtx.fillStyle='rgba(4,9,15,0.69)';darknessCtx.fillRect(0,0,w,h);darknessCtx.globalCompositeOperation='destination-out';
  const lights=props.filter(o=>o.type==='torch').map(o=>({x:o.x,y:o.y,r:NIGHT_LIGHT_RADIUS}));for(const p of G.players)if(!p.dead)lights.push({x:p.x,y:p.y,r:NIGHT_PLAYER_RADIUS});for(const l of lights){const s=screenPoint(l.x,l.y);if(s.x+l.r<0||s.y+l.r<0||s.x-l.r>vw||s.y-l.r>vh)continue;const gr=darknessCtx.createRadialGradient(s.x,s.y,Math.max(0,l.r*.38),s.x,s.y,l.r);gr.addColorStop(0,'rgba(0,0,0,.95)');gr.addColorStop(.65,'rgba(0,0,0,.9)');gr.addColorStop(1,'rgba(0,0,0,0)');darknessCtx.fillStyle=gr;darknessCtx.beginPath();darknessCtx.arc(s.x,s.y,l.r,0,TAU);darknessCtx.fill()}darknessCtx.globalCompositeOperation='source-over';ctx.drawImage(darknessCanvas,0,0)}
 function updateNightHUD(){const hud=$('nightHud');if(!hud)return;if(G.mode!=='play'||G.specialMode!=='night'){hud.classList.add('hidden');return}hud.classList.remove('hidden');const remain=Math.ceil(nightDark()?NIGHT_CYCLE-G.time%NIGHT_CYCLE:NIGHT_DAY-G.time%NIGHT_CYCLE);const focus=G.players.find(p=>p.id===(NET.role?NET.localId:'p1'))||G.players[0];const towers=props.filter(o=>o.type==='nightTower'&&!o.destroyed);towers.sort((a,b)=>Math.hypot(a.x-focus.x,a.y-focus.y)-Math.hypot(b.x-focus.x,b.y-focus.y));const closest=towers[0];const angle=closest?Math.atan2(closest.y-focus.y,closest.x-focus.x):0;const arrows=['→','↘','↓','↙','←','↖','↑','↗'];const arrow=arrows[Math.round(((angle+TAU)%TAU)/(TAU/8))%8];hud.textContent=`${nightDark()?'🌑 MRAK':'🔥 SVETLO'} · ${Math.max(0,remain)} s · KULE ${G.nightTowersDestroyed||0}/3 · ${closest?'NAJBLIŽA '+arrow+' '+Math.round(Math.hypot(closest.x-focus.x,closest.y-focus.y))+' m':''} · ${nightDark()?'VAN SVETLA ŠTETA 1':'NORMALNA ŠTETA'}`}
-function performAttack(p){const wp=MEDIEVAL_WEAPONS[p.weapon]||MEDIEVAL_WEAPONS.sword;sfx(['axe','halberd','warhammer','mace','flail'].includes(p.weapon)?'axe':['spear','dagger'].includes(p.weapon)?'spear':'attack');p.attackT=.30;p.attackCD=p.attackRate*(wp.speed||1)*(G.time<(p.ns75RushUntil||0)?.92:1);const range=p.range+wp.range,crit=rnd()<((p.perks.crit?.10:0)+(p.critBonus||0)),damage=p.damage*wp.damage*(crit?1.6:1);if(crit)effect('loot',p.x+Math.cos(p.facing)*34,p.y+Math.sin(p.facing)*34);const evolveTarget=G.mobs.find(m=>!m.dead&&Math.hypot(m.x-p.x,m.y-p.y)<range+m.r);for(const m of G.mobs){if(m.dead)continue;let dist=Math.hypot(m.x-p.x,m.y-p.y);let an=Math.atan2(m.y-p.y,m.x-p.x),diff=Math.atan2(Math.sin(an-p.facing),Math.cos(an-p.facing));if(dist<range+m.r&&Math.abs(diff)<1.25){const trueDamage=lightAt(m.x,m.y,p)?damage:1;m.hp-=trueDamage;m.flash=.26;NSX.applyLegendaryHit(p,m);sfx('hit');effect('hit',m.x,m.y,Math.round(trueDamage));if(m.hp<=0)killMob(m,p)}}NSX.tryDamageDestructibles(p,range);damageOverworldBarrels(p,range,lightAt(p.x,p.y,p)?damage:1);triggerEvolutionAttack(p,evolveTarget);towerAttack(p);effect('slash',p.x,p.y,{angle:p.facing,weapon:p.weapon,range:65+(wp.range*.65),arc:wp.arc});if(cfgSettings.vibrate&&navigator.vibrate&&p.id===(NET.role==='guest'?NET.localId:'p1'))navigator.vibrate(8)}
+function performAttack(p){const wp=MEDIEVAL_WEAPONS[p.weapon]||MEDIEVAL_WEAPONS.sword;sfx(['axe','halberd','warhammer','mace','flail'].includes(p.weapon)?'axe':['spear','dagger'].includes(p.weapon)?'spear':'attack');p.attackT=.30;p.attackCD=p.attackRate*(wp.speed||1)*(G.time<(p.ns75RushUntil||0)?.92:1);const range=p.range+wp.range,crit=rnd()<((p.perks.crit?.10:0)+(p.critBonus||0)),damage=p.damage*wp.damage*(crit?1.6:1);if(crit)effect('loot',p.x+Math.cos(p.facing)*34,p.y+Math.sin(p.facing)*34);const evolveTarget=G.mobs.find(m=>!m.dead&&Math.hypot(m.x-p.x,m.y-p.y)<range+m.r);for(const m of G.mobs){if(m.dead)continue;let dist=Math.hypot(m.x-p.x,m.y-p.y);let an=Math.atan2(m.y-p.y,m.x-p.x),diff=Math.atan2(Math.sin(an-p.facing),Math.cos(an-p.facing));if(dist<range+m.r&&Math.abs(diff)<1.25){const trueDamage=lightAt(m.x,m.y,p)?damage:1;p.runWeaponDamage=(p.runWeaponDamage||0)+Math.max(0,Math.min(Math.max(0,m.hp),trueDamage));m.hp-=trueDamage;m.flash=.26;NSX.applyLegendaryHit(p,m);sfx('hit');effect('hit',m.x,m.y,Math.round(trueDamage));if(m.hp<=0)killMob(m,p)}}NSX.tryDamageDestructibles(p,range);damageOverworldBarrels(p,range,lightAt(p.x,p.y,p)?damage:1);triggerEvolutionAttack(p,evolveTarget);towerAttack(p);effect('slash',p.x,p.y,{angle:p.facing,weapon:p.weapon,range:65+(wp.range*.65),arc:wp.arc});if(cfgSettings.vibrate&&navigator.vibrate&&p.id===(NET.role==='guest'?NET.localId:'p1'))navigator.vibrate(8)}
 // v91: fixed twelve Common-rarity, one-time achievement rewards.
 const NS91_ACHIEVEMENTS=Object.freeze([
  {id:'k100',kind:'kills',goal:100,en:'First Hundred',sr:'Prva stotka',enDesc:'100 enemies in one run',srDesc:'100 neprijatelja u jednoj partiji',item:'scout_wrap'},
@@ -3253,7 +3290,7 @@ function updateRevives(dt){if(NET.role!=='host'||NET.phase!=='playing'||G.mode!=
   let active=G.reviveActive[id];if(!active||active.target!==victim.id)active=G.reviveActive[id]={target:victim.id,progress:0,x:savior.x,y:savior.y};
   if(Math.hypot(savior.x-active.x,savior.y-active.y)>REVIVE_MOVE_LIMIT){delete G.reviveActive[id];G.reviveSuppressed.add(id);if(id!==NET.localId){try{NET.clients.get(id)?.send({t:'reviveInterrupted'})}catch{}}else{G.reviveHeld=false;toast('Oživljavanje prekinuto · pomerio si se');}continue;}
   active.progress=Math.min(REVIVE_SECONDS,active.progress+Math.max(0,Math.min(.08,dt)));
-  if(active.progress>=REVIVE_SECONDS){victim.dead=false;NS91.onRevive();victim.hp=Math.max(1,Math.ceil(victim.maxHp*REVIVE_HP_RATIO));victim.reviveCount=(victim.reviveCount||0)+1;victim.sosUsed=false;victim.sosAt=-1;victim.deathT=0;victim.invul=REVIVE_INVUL;victim.flash=0;victim.reviveBy=id;effect('heal',victim.x,victim.y);for(let i=0;i<7;i++)effect('loot',victim.x+(rnd()-.5)*45,victim.y+(rnd()-.5)*45);sfx('level');announce('SAIGRAČ OŽIVLJEN · '+victim.reviveCount+'/'+REVIVE_MAX,3);delete G.reviveActive[id];delete G.reviveIntent[id];G.reviveSuppressed.add(id);if(id===NET.localId)G.reviveHeld=false;syncSpectator();}
+  if(active.progress>=REVIVE_SECONDS){victim.dead=false;savior.runRevives=(savior.runRevives||0)+1;NS91.onRevive();victim.hp=Math.max(1,Math.ceil(victim.maxHp*REVIVE_HP_RATIO));victim.reviveCount=(victim.reviveCount||0)+1;victim.sosUsed=false;victim.sosAt=-1;victim.deathT=0;victim.invul=REVIVE_INVUL;victim.flash=0;victim.reviveBy=id;effect('heal',victim.x,victim.y);for(let i=0;i<7;i++)effect('loot',victim.x+(rnd()-.5)*45,victim.y+(rnd()-.5)*45);sfx('level');announce('SAIGRAČ OŽIVLJEN · '+victim.reviveCount+'/'+REVIVE_MAX,3);delete G.reviveActive[id];delete G.reviveIntent[id];G.reviveSuppressed.add(id);if(id===NET.localId)G.reviveHeld=false;syncSpectator();}
  }
 }
 function updateReviveHUD(){const dock=$('reviveDock');if(!dock)return;const id=NET.role?NET.localId:'p1',savior=G.players.find(x=>x.id===id);if(!NET.role||NET.phase!=='playing'||G.mode!=='play'||!savior||savior.dead){dock.classList.add('hidden');return}
@@ -3263,7 +3300,7 @@ function updateReviveHUD(){const dock=$('reviveDock');if(!dock)return;const id=N
 }
 (function setupReviveTouch(){const b=$('reviveBtn');if(!b)return;let pointer=null;b.addEventListener('pointerdown',e=>{if(pointer!==null)return;e.preventDefault();pointer=e.pointerId;try{b.setPointerCapture(e.pointerId)}catch{}setReviveHeld(true)});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,e=>{if(pointer===e.pointerId){pointer=null;setReviveHeld(false)}});window.addEventListener('blur',()=>{pointer=null;setReviveHeld(false)});})();
 
-function damagePlayer(p,dmg,attacker=null){if(p.invul>0||p.dead||G.time<p.shieldUntil)return;if(NET.role==='host')interruptRevive(p.id);dmg=Math.max(1,dmg-(p.perks.armor?2:0)-(p.armorBonus||0));p.hp-=dmg;NSX.onDamage(p,dmg);sfx('enemyHit');if(p.hp/p.maxHp<.35)coopVoiceCueOrLocal(p,'hurt');p.invul=.55;p.flash=.32;if(attacker&&(p.perks.thorns||p.nsThornsDamage)&&!attacker.dead){attacker.hp-=(p.perks.thorns?7:0)+(p.nsThornsDamage||0);attacker.flash=.16;if(attacker.hp<=0)killMob(attacker,p)}effect('hit',p.x,p.y,Math.round(dmg));if(p.hp<=0){p.hp=0;p.dead=true;p.deathT=0;p.reviveProgress=0;p.reviveBy=null;p.sosUsed=false;p.sosAt=-1;if(NET.role==='host'&&NET.phase==='playing'){syncSpectator();if(G.players.every(q=>q.dead))finishNetworkRound()}else if(G.players.every(q=>q.dead)){G.mode='over';settleRun('dead');hideGameplayOverlayBoxes();$('pauseBtn').classList.add('hidden');sfx('dead');voiceLine('dead',true);$('controls').classList.add('hidden');$('gameOver').classList.remove('hidden');updateUpgradeHints();$('endStats').textContent=`Nivo ${G.level} · Talas ${G.wave} · ${G.kills} protivnika`;}}}
+function damagePlayer(p,dmg,attacker=null){if(p.invul>0||p.dead||G.time<p.shieldUntil)return;if(NET.role==='host')interruptRevive(p.id);dmg=Math.max(1,dmg-(p.perks.armor?2:0)-(p.armorBonus||0));p.hp-=dmg;NSX.onDamage(p,dmg);sfx('enemyHit');if(p.hp/p.maxHp<.35)coopVoiceCueOrLocal(p,'hurt');p.invul=.55;p.flash=.32;if(attacker&&(p.perks.thorns||p.nsThornsDamage)&&!attacker.dead){attacker.hp-=(p.perks.thorns?7:0)+(p.nsThornsDamage||0);attacker.flash=.16;if(attacker.hp<=0)killMob(attacker,p)}effect('hit',p.x,p.y,Math.round(dmg));if(p.hp<=0){p.hp=0;p.dead=true;p.runKnockdowns=(p.runKnockdowns||0)+1;p.deathT=0;p.reviveProgress=0;p.reviveBy=null;p.sosUsed=false;p.sosAt=-1;if(NET.role==='host'&&NET.phase==='playing'){syncSpectator();if(G.players.every(q=>q.dead))finishNetworkRound()}else if(G.players.every(q=>q.dead)){G.mode='over';settleRun('dead');hideGameplayOverlayBoxes();$('pauseBtn').classList.add('hidden');sfx('dead');voiceLine('dead',true);$('controls').classList.add('hidden');$('gameOver').classList.remove('hidden');updateUpgradeHints();$('endStats').textContent=`Nivo ${G.level} · Talas ${G.wave} · ${G.kills} protivnika`;}}}
 // v3.8: host-authoritative SOS. A victim may ping once per knockdown.
 function sosEligible(player){return !!player&&player.dead&&(player.reviveCount||0)<REVIVE_MAX&&NET.phase==='playing'&&G.mode==='play';}
 function sosPlayerLabel(p){return multiplayerDisplayName(p?.id)||('P'+String(p?.id||'').slice(1));}
@@ -5040,6 +5077,141 @@ const NS76CHAT=(()=>{
 })();
 NS76CHAT.wire();
 
+
+/* v97: the same lobby becomes a results room; one compact result snapshot + votes,
+   no extra per-frame multiplayer messages. Host confirms all voting decisions. */
+const NS97_POST=(()=>{
+ let timer=null;
+ const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
+ const num=(n,max=1e7)=>Math.max(0,Math.min(max,Math.floor(Number(n)||0)));
+ const hasResult=()=>NET.phase==='lobby'&&!!NET.ns97Results&&NET.ns97Results.round===NET.round;
+ function cancel(){if(timer){clearTimeout(timer);timer=null}if(NET.ns97Results)NET.ns97Results.startAt=0}
+ function clear(){cancel();NET.ns97Results=null;render()}
+ function make(victory=false){
+  const roster=currentLobbyRoster(),profiles=new Map(roster.map(p=>[p.id,p]));
+  return {version:1,round:NET.round,win:!!victory,seconds:num(G.time,86400),wave:num(G.wave,9999),
+   kills:num(G.kills,9999999),votes:{},startAt:0,players:G.players.filter(p=>/^p[1-6]$/.test(p.id)).map(p=>{
+    const data=profiles.get(p.id);
+    return {id:p.id,name:ns97DisplayName(data?.name||multiplayerDisplayName(p.id),p.id),
+     hero:safePlayerName(data?.heroName||p.look?.name||'STRAŽAR'),kills:num(p.runKills),
+     revives:num(p.runRevives,10000),downs:num(p.runKnockdowns,10000),
+     weaponDamage:num(p.runWeaponDamage),level:num(p.level,999),shards:num(p.runShards,10000)};
+   })};
+ }
+ function clean(data){
+  if(!data||data.version!==1||!Number.isInteger(data.round)||data.round<0||!Array.isArray(data.players)||data.players.length>6)return null;
+  const ids=new Set();
+  const players=data.players.filter(p=>/^p[1-6]$/.test(String(p?.id||''))&&!ids.has(p.id)&&ids.add(p.id)).map(p=>({
+   id:p.id,name:ns97DisplayName(p.name,p.id),hero:safePlayerName(p.hero),
+   kills:num(p.kills),revives:num(p.revives,10000),downs:num(p.downs,10000),
+   weaponDamage:num(p.weaponDamage),level:num(p.level,999),shards:num(p.shards,10000)
+  }));
+  const votes={};for(const [id,choice] of Object.entries(data.votes||{}))if(/^p[1-6]$/.test(id)&&['yes','no'].includes(choice))votes[id]=choice;
+  return {version:1,round:data.round,win:!!data.win,seconds:num(data.seconds,86400),
+    wave:num(data.wave,9999),kills:num(data.kills),players,votes,startAt:num(data.startAt,9e15)};
+ }
+ function receive(data){
+  const next=clean(data);if(!next||next.round!==NET.round)return false;
+  // Server-authored results always replace a guest's optimistic local selection.
+  NET.ns97Results=next;render();return true;
+ }
+ function allYes(){
+  const r=NET.ns97Results,ids=currentLobbyRoster().map(p=>p.id);
+  return NET.role==='host'&&hasResult()&&ids.length>=2&&
+   ids.every(id=>r.votes[id]==='yes')&&
+   ids.filter(id=>id!==NET.localId).every(id=>NET.worldReadyPlayers.get(id));
+ }
+ function schedule(){
+  if(!allYes()){cancel();return false}
+  if(timer)return true;
+  const round=NET.round,r=NET.ns97Results;
+  r.startAt=Date.now()+4500;
+  timer=setTimeout(()=>{
+   timer=null;
+   if(NET.round!==round||!allYes())return;
+   NET.localReady=true;NET.readyPlayers.set(NET.localId,true);
+   for(const id of NET.clients.keys())NET.readyPlayers.set(id,r.votes[id]==='yes');
+   if(!startLobbyMatch()){if(NET.ns97Results)NET.ns97Results.startAt=0;broadcastLobby()}
+  },4500);
+  return true;
+ }
+ function receiveVote(id,data){
+  if(NET.role!=='host'||!hasResult()||!NET.clients.get(id)?.open||!/^p[2-6]$/.test(id))return false;
+  if(data.round!==NET.round||!['yes','no'].includes(data.choice))return false;
+  NET.ns97Results.votes[id]=data.choice;
+  NET.readyPlayers.set(id,data.choice==='yes');
+  schedule();broadcastLobby();return true;
+ }
+ function vote(choice){
+  if(!hasResult()||!['yes','no'].includes(choice))return false;
+  if(NET.role==='host'){
+   NET.ns97Results.votes[NET.localId]=choice;NET.localReady=choice==='yes';
+   NET.readyPlayers.set(NET.localId,NET.localReady);schedule();broadcastLobby();return true;
+  }
+  if(NET.role==='guest'&&NET.conn?.open){
+   NET.ns97Results.votes[NET.localId]=choice;NET.localReady=choice==='yes';
+   NET.conn.send({t:'ns97Vote',round:NET.round,choice});render();return true;
+  }
+  toast(tr('Connection lost. Reconnect before voting.','Veza je prekinuta. Poveži se ponovo da bi glasao.'));return false;
+ }
+ function render(){
+  const container=$('ns97Results');if(!container)return;
+  const r=hasResult()?NET.ns97Results:null;container.classList.toggle('hidden',!r);
+  $('lobbyReadyBtn')?.classList.toggle('hidden',!!r);
+  if(!r)return;
+  $('lobbyStartBtn')?.classList.add('hidden');$('lobbyForceBtn')?.classList.add('hidden');
+  $('ns97Title').textContent=r.win?tr('✦ TEAM VICTORY','✦ TIMSKA POBEDA'):tr('☠ END OF RUN','☠ KRAJ PARTIJE');
+  $('ns97Subtitle').textContent=tr('ROUND ','RUNDA ')+r.round;
+  const totals=$('ns97TeamTotals');totals.replaceChildren();
+  const chips=[
+   tr('WAVE ','TALAS ')+r.wave,
+   tr('TIME ','VREME ')+Math.floor(r.seconds/60)+':'+String(r.seconds%60).padStart(2,'0'),
+   tr('TEAM KILLS ','TIMSKA UBISTVA ')+r.kills,
+   tr('PLAYERS ','IGRAČI ')+r.players.length
+  ];
+  for(const label of chips){const chip=document.createElement('span');chip.textContent=label;totals.append(chip)}
+  const board=$('ns97Scoreboard');board.replaceChildren();
+  for(const p of [...r.players].sort((a,b)=>b.kills-a.kills||a.id.localeCompare(b.id))){
+   const row=document.createElement('div');row.className='ns97ScoreRow'+(p.id===NET.localId?' mine':'');
+   const head=document.createElement('div');head.className='ns97ScoreName';
+   const name=document.createElement('strong');name.textContent=p.name;
+   const rank=document.createElement('small');rank.textContent=tr('PLAYER ','IGRAČ ')+p.id.slice(1);
+   head.append(name,rank);
+   const hero=document.createElement('div');hero.className='ns97ScoreDetail';hero.textContent=tr('Hero: ','Heroj: ')+p.hero;
+   const metrics=document.createElement('div');metrics.className='ns97ScoreMetrics';
+   for(const txt of [
+    '⚔ '+p.kills+' '+tr('kills','ubistava'),
+    '✚ '+p.revives+' '+tr('revives','oživljavanja'),
+    '☠ '+p.downs+' '+tr('downs','padova'),
+    '🗡 '+p.weaponDamage+' '+tr('melee dmg','štete oružjem'),
+    '◈ '+p.shards+' '+tr('shards','čvorišta'),
+    '✦ '+tr('level ','nivo ')+p.level
+   ]){const chip=document.createElement('span');chip.textContent=txt;metrics.append(chip)}
+   row.append(head,hero,metrics);board.append(row);
+  }
+  $('ns97VoteHeading').textContent=tr('PLAY AGAIN?','IGRAMO OPET?');
+  const roster=currentLobbyRoster(),yes=roster.filter(p=>r.votes[p.id]==='yes').length,no=roster.filter(p=>r.votes[p.id]==='no').length;
+  $('ns97VoteProgress').textContent=yes+'/'+roster.length+' '+tr('voted YES','glasalo ZA')+(no?' · '+no+' '+tr('not now','NE SADA'):'')+(r.startAt&&NET.role==='host'?tr(' · starting in a few seconds',' · uskoro počinje'):'');
+  const votes=$('ns97VoteList');votes.replaceChildren();
+  for(const p of roster){
+   const v=r.votes[p.id];const el=document.createElement('span');el.className=v||'waiting';
+   el.textContent=(v==='yes'?'✓ ':v==='no'?'✕ ':'○ ')+ns97DisplayName(p.name,p.id);
+   votes.append(el);
+  }
+  const mine=r.votes[NET.localId],yesBtn=$('ns97VoteYes'),noBtn=$('ns97VoteNo');
+  yesBtn.textContent=tr('✓ PLAY AGAIN','✓ IGRAJ OPET');noBtn.textContent=tr('✕ NOT NOW','✕ NE SADA');
+  yesBtn.classList.toggle('selected',mine==='yes');noBtn.classList.toggle('selected',mine==='no');
+  $('ns97VoteHint').textContent=tr(
+   'All connected players must vote YES to start automatically. You stay in the same room; no new invite needed.',
+   'Nova runda kreće kada SVI prisutni glasaju ZA. Ostajete u istoj sobi, bez ponovnog povezivanja.'
+  );
+ }
+ $('ns97VoteYes').onclick=()=>vote('yes');
+ $('ns97VoteNo').onclick=()=>vote('no');
+ return {make,clean,receive,vote,receiveVote,render,clear,schedule,get active(){return hasResult()}};
+})();
+window.__NS97_POST=NS97_POST;
+
 function resetLobbyUI(){
  NS92_DIR.stop();$('coopSetup').classList.remove('hidden');$('lobbyArea').classList.add('hidden');
  $('coopTitle').textContent='IGRAJTE ZAJEDNO';$('coopForge').classList.add('hidden');$('closeCoop').classList.remove('hidden');
@@ -5051,7 +5223,7 @@ function resetLobbyUI(){
 function closeNet(){
  if(NET.role==='host')NS92_DIR.publish(false,true);NS92_DIR.stop();NS76CHAT.reset();coopVoiceReset();NETMIG.reset();NETLAB.clear();NET.sessionToken=null;NET.lastEarned=null;clearTimeout(NET.joinRetryTimer);NET.joinRetryTimer=null;NET.joinRetryCount=0;NET.lastConnectError='';const clients=[...NET.clients.values()],connection=NET.conn,peer=NET.peer;
  // Reset role BEFORE disconnect events fire to avoid a recursive menu change.
- NET.role='';NET.phase='idle';NET.hostId='p1';NET.migrationTarget=null;NET.migrationEpoch=0;NET.round=0;NET.lastRoundText='';NET.peer=null;NET.conn=null;NET.localId='p1';
+ NET.role='';NET.phase='idle';NET.hostId='p1';NET.migrationTarget=null;NET.migrationEpoch=0;NET.round=0;NET.lastRoundText='';NS97_POST.clear();NET.peer=null;NET.conn=null;NET.localId='p1';
  NET.clients.clear();NET.remoteInputs.clear();NET.pendingOffers.clear();NET.profiles.clear();NET.heroLooks.clear();
  NET.readyPlayers.clear();NET.worldReadyPlayers.clear();NET.startAcks.clear();NET.localReady=false;NET.worldReady=false;NET.roster=[];NET.hostProps=null;NET.code='';
  for(const c of clients)try{c.close()}catch{}
@@ -5088,7 +5260,7 @@ function renderLobby(){NSX&&NSX.opt&&document.getElementById('nsLobbyRole')&&(do
  const roster=currentLobbyRoster(),root=$('lobbyRoster');root.textContent='';refreshProfileLabels();const earned=$('coopEarned');if(earned){earned.classList.toggle('hidden',NET.lastEarned==null);earned.textContent='✦ TVOJA NAGRADA IZ PROŠLE PARTIJE: +'+(NET.lastEarned||0)+' POENA ČASTI'}
  for(const p of roster){
   const row=document.createElement('div');row.className='lobbyPlayer'+(p.id===NET.localId?' you':'');
-  const who=document.createElement('span');who.className='lobbyPerson';const whoTitle=document.createElement('strong');whoTitle.textContent='⚔ '+safePlayerName(p.name)+(p.id===(NET.hostId||'p1')?' · DOMAĆIN':'')+(p.id===NET.localId?' · TI':'');const whoRank=document.createElement('small');whoRank.textContent=`IGRAČ ${p.id.slice(1)} · TRAJNI NIVO ${clamp(Number(p.level)||1,1,150)} · ${Math.max(0,Number(p.ranksTotal)||0)} UNAPREĐENJA · HEROJ ${p.heroName||'STRAŽAR'} (N.${p.heroLevel||1})`;who.append(whoTitle,whoRank);const avatar=avatarFace(p.avatarId,p.avatarImg);
+  const who=document.createElement('span');who.className='lobbyPerson';const whoTitle=document.createElement('strong');whoTitle.textContent='⚔ '+ns97DisplayName(p.name,p.id)+(p.id===(NET.hostId||'p1')?' · DOMAĆIN':'')+(p.id===NET.localId?' · TI':'');const whoRank=document.createElement('small');whoRank.textContent=`IGRAČ ${p.id.slice(1)} · TRAJNI NIVO ${clamp(Number(p.level)||1,1,150)} · ${Math.max(0,Number(p.ranksTotal)||0)} UNAPREĐENJA · HEROJ ${p.heroName||'STRAŽAR'} (N.${p.heroLevel||1})`;who.append(whoTitle,whoRank);const avatar=avatarFace(p.avatarId,p.avatarImg);
   const state=document.createElement('span');state.className='lobbyState'+(p.ready?' ready':'');
   state.textContent=p.ready?'✓ SPREMAN':'○ ČEKA';row.append(avatar,who,state);
   if(p.id!==NET.localId && FRIEND_CODE_RE.test(String(p.friendId||''))){
@@ -5107,16 +5279,17 @@ function renderLobby(){NSX&&NSX.opt&&document.getElementById('nsLobbyRole')&&(do
  $('lobbyStartBtn').disabled=!allReady||NET.role!=='host';
  $('lobbyStartBtn').textContent=allReady?'▶ POKRENI PARTIJU':`▶ ČEKAM SPREMNOST (${roster.filter(p=>p.ready).length}/${roster.length})`;
  const force=$('lobbyForceBtn');if(force){force.classList.toggle('hidden',NET.role!=='host');force.disabled=NET.role!=='host'||!haveGuest||!allSynced;force.textContent=haveGuest&&allSynced?'⚡ FORCE START · BEZ READY':'⚡ FORCE START · ČEKAM MAPU'}
- $('lobbyHint').textContent=!haveGuest?'Pošalji kod drugaru. Biće spreman automatski kada učita mapu.':!allSynced?'Sinhronizujem mapu sa ostalim igračima. Igra još ne može da počne.':allReady?'Svi su spremni! Domaćin može da pokrene partiju.':'Sačekajte da svi potvrde SPREMAN. Igra još nije počela.';if(NET.lastRoundText&&!allReady)$('lobbyHint').textContent=NET.lastRoundText+' '+$('lobbyHint').textContent;NS96_INVITES.render();
+ $('lobbyHint').textContent=!haveGuest?'Pošalji kod drugaru. Biće spreman automatski kada učita mapu.':!allSynced?'Sinhronizujem mapu sa ostalim igračima. Igra još ne može da počne.':allReady?'Svi su spremni! Domaćin može da pokrene partiju.':'Sačekajte da svi potvrde SPREMAN. Igra još nije počela.';if(NET.lastRoundText&&!allReady)$('lobbyHint').textContent=NET.lastRoundText+' '+$('lobbyHint').textContent;NS96_INVITES.render();NS97_POST.render();
 }
 function broadcastLobby(){
  if(NET.role!=='host'||NET.phase!=='lobby')return;
  NS92_DIR.publish();
- const roster=currentLobbyRoster(),packet={t:'lobby',code:NET.code,hostId:NET.localId,round:NET.round,specialMode:selectedMode,difficulty:NSX.opt.difficulty,result:NET.lastRoundText,players:roster,chat:NS76CHAT.items()};
+ const roster=currentLobbyRoster(),packet={t:'lobby',code:NET.code,hostId:NET.localId,round:NET.round,specialMode:selectedMode,difficulty:NSX.opt.difficulty,result:NET.lastRoundText,players:roster,chat:NS76CHAT.items(),post:NET.ns97Results||null};
  for(const c of NET.clients.values())if(c.open)try{c.send(packet)}catch{}
  renderLobby();
 }
 function setMyReady(){
+ if(NS97_POST.active)return;
  if(NET.phase!=='lobby'||(NET.role==='guest'&&!NET.worldReady))return;
  NET.localReady=!NET.localReady;if(NET.role==='guest'&&NET.conn?.open)NET.conn.send({t:'profile',...localMPProfile()});
  if(NET.role==='host'){NET.readyPlayers.set(NET.localId,NET.localReady);broadcastLobby()}
@@ -5133,37 +5306,39 @@ function resetToLobbyAfterRound(result=''){coopVoiceReset();sendSocialStatus();
 }
 function finishNetworkRound(victory=false){
  if(NET.role!=='host'||NET.phase!=='playing')return false;
+ NET.ns97Results=NS97_POST.make(victory);
  settleRun(victory?'victory':'dead');
   for(const p of G.players){const packet={t:'mpReward',round:NET.round,session:NET.sessionToken,kills:p.runKills||0,seconds:G.time,wave:G.wave,shards:p.runShards||0};if(p.id===NET.localId)awardMP(packet);else try{NET.clients.get(p.id)?.send(packet)}catch{}}
  const result=victory?`NOĆNI PLAMEN: SVE TRI KULE UNIŠTENE! · Talas ${G.wave} · Nova runda.`:`Svi igrači su pali · Talas ${G.wave} · ${G.kills} ubistava. Spremite se za novu rundu.`;
  resetToLobbyAfterRound(result);
  NET.readyPlayers.clear();NET.readyPlayers.set(NET.localId,false);NET.startAcks.clear();NET.remoteInputs.clear();NET.pendingOffers.clear();NET.spectateTargets.clear();
- for(const [id,c] of NET.clients){NET.readyPlayers.set(id,false);NET.remoteInputs.set(id,{x:0,y:0,attack:false,dash:false});if(c.open)try{c.send({t:'roundOver',round:NET.round,result})}catch{}}
+ for(const [id,c] of NET.clients){NET.readyPlayers.set(id,false);NET.remoteInputs.set(id,{x:0,y:0,attack:false,dash:false});if(c.open)try{c.send({t:'roundOver',round:NET.round,result,post:NET.ns97Results})}catch{}}
  broadcastLobby();return true;
+}
+function ns97DisplayName(value,id){
+ const name=safePlayerName(value||'STRAŽAR');
+ return name.toUpperCase()==='STRAŽAR'&&/^p[1-6]$/.test(String(id||''))?'STRAŽAR '+String(id).slice(1):name;
 }
 function multiplayerDisplayName(id){
  if(!/^p[1-6]$/.test(String(id||'')))return '';
- const preferNamed=(profile,hero)=>{
-  const name=safePlayerName(profile||'STRAŽAR'),charName=safePlayerName(hero||'STRAŽAR');
-  return name.toUpperCase()==='STRAŽAR'&&charName.toUpperCase()!=='STRAŽAR'?charName:name;
- };
  if(NET.role==='host'){
-  if(id===NET.localId)return preferNamed(getActiveAccount()?.name,heroStyle.name);
+  if(id===NET.localId)return ns97DisplayName(getActiveAccount()?.name,id);
   const profile=NET.profiles.get(id);
-  if(profile)return preferNamed(profile.name,profile.heroName||profile.spec?.name);
+  if(profile)return ns97DisplayName(profile.name,id);
  }
  const roster=NET.roster?.find(p=>p.id===id);
- if(roster)return preferNamed(roster.name,roster.heroName);
+ if(roster)return ns97DisplayName(roster.name,id);
  const player=G.players?.find(p=>p.id===id);
- return preferNamed(player?.mpName,player?.look?.name);
+ return ns97DisplayName(player?.mpName,id);
 }
 function markMultiplayerNames(){if(!NET.role)return;for(const p of G.players)p.mpName=multiplayerDisplayName(p.id);}
 function coopLooks(){return Object.fromEntries(G.players.map(p=>[p.id,p.look||networkHeroStyle(heroStyle)]))}
 function startLobbyMatch(){
  if(NET.role!=='host'||NET.phase!=='lobby')return false;
+ if(NS97_POST.active&&!NET.ns97Results.startAt)return false;
  const roster=currentLobbyRoster();
  if(roster.length<2||(!NET.forceRequest&&!roster.every(p=>p.ready))||roster.slice(1).some(p=>!NET.worldReadyPlayers.get(p.id))){NET.forceRequest=false;netStatus('Nisu svi spremni. Čekamo najmanje 2 igrača.');renderLobby();return false}
- NET.forceRequest=false;NET.lastEarned=null;NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
+ NET.forceRequest=false;NET.lastEarned=null;NS97_POST.clear();NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
  // Host is authoritative: start the battle only here, never when a room is created.
  startGame({specialMode:selectedMode,difficulty:NSX.opt.difficulty});
  markMultiplayerNames();
@@ -5255,7 +5430,7 @@ function setupConnection(c){
     if(NET.phase==='lobby'&&assigned){
      if(!welcomeAcknowledged)sendWelcome();
      else if(worldSend&&!worldSend.done)sendWorldPart();
-     else if(NET.round>0)safeSend({t:'lobby',code:NET.code,round:NET.round,result:NET.lastRoundText,players:currentLobbyRoster(),chat:NS76CHAT.items()});
+     else if(NET.round>0)safeSend({t:'lobby',code:NET.code,round:NET.round,result:NET.lastRoundText,players:currentLobbyRoster(),chat:NS76CHAT.items(),post:NET.ns97Results||null});
     }else if(NET.phase==='playing'&&assigned&&!NET.startAcks.get(assigned))safeSend({t:'start',round:NET.round,looks:coopLooks()});
    }else if(NET.role==='guest')guestHello();
   },1050);
@@ -5263,6 +5438,7 @@ function setupConnection(c){
  c.on('data',data=>{
   if(!data||typeof data!=='object')return;
   if(NETLAB.handle(data,c,NET.role==='host'?(assigned||'pending'):'host'))return;
+  if(data.t==='ns97Vote'&&NET.role==='host'&&assigned&&NET.phase==='lobby'){NS97_POST.receiveVote(assigned,data);return;}
   if(data.t==='ns76ChatSend'){if(NET.role==='host'&&assigned&&NET.phase==='lobby')NS76CHAT.acceptFromGuest(data,assigned);return;}
   if(data.t==='ns76ChatMsg'){if(NET.role==='guest'&&NET.phase==='lobby')NS76CHAT.receive(data);return;}
   if(data.t==='nsV63Part'||data.t==='nsV63Play'||data.t==='nsV66Repeat'){coopVoiceHandleNetwork(data,NET.role==='host'?assigned:data.from);return;}
@@ -5324,10 +5500,10 @@ function setupConnection(c){
    if(data.t==='full'){rejectReason='Soba je puna · najviše 6 igrača.';netStatus(rejectReason);toast('Soba je puna');return}
    if(data.t==='in_progress'){rejectReason='Partija je već počela. Napravi novu sobu.';netStatus(rejectReason);return}
    if(data.t==='roundOver'&&NET.phase==='playing'&&Number(data.round)>=NET.round){
-    NET.round=Number(data.round)||NET.round;resetToLobbyAfterRound(data.result||'Svi igrači su završili partiju.');return;
+    NET.round=Number(data.round)||NET.round;NS97_POST.receive(data.post);resetToLobbyAfterRound(data.result||'Svi igrači su završili partiju.');return;
    }
    if(data.t==='lobby'&&NET.phase==='playing'&&Number(data.round)>=NET.round){
-    NET.round=Number(data.round)||NET.round;resetToLobbyAfterRound(data.result||'Partija je završena.');
+    NET.round=Number(data.round)||NET.round;NS97_POST.receive(data.post);resetToLobbyAfterRound(data.result||'Partija je završena.');
    }
    if(data.t==='welcome'){
     if(data.v!==95){NET.joinRetryCount=4;netStatus('RAZLIČITE VERZIJE: oba telefona moraju koristiti kompletnu HTML v93 igru.');$('retryJoinBtn').classList.remove('hidden');return;}
@@ -5359,12 +5535,12 @@ function setupConnection(c){
     return;
    }
    if(data.t==='worldPart'&&NET.phase==='lobby'&&NET.worldReady){safeSend({t:'worldAck',index:data.index});safeSend({t:'worldDone'});return}
-   if(data.t==='lobby'&&NET.phase==='lobby'){NS76CHAT.history(data.chat);
+   if(data.t==='lobby'&&NET.phase==='lobby'){NS76CHAT.history(data.chat);if(data.post)NS97_POST.receive(data.post);
     NET.hostId=/^p[1-6]$/.test(data.hostId)?data.hostId:'p1';NET.code=data.code||NET.code;if(['normal','night','rush'].includes(data.specialMode))selectedMode=data.specialMode;
     NET.roster=Array.isArray(data.players)?data.players.filter(p=>/^p[1-6]$/.test(p.id)).map(p=>({id:p.id,ready:!!p.ready,name:safePlayerName(p.name),friendId:FRIEND_CODE_RE.test(String(p.friendId||''))?p.friendId:'',level:clamp(Math.floor(Number(p.level)||1),1,150),ranksTotal:Math.max(0,Math.floor(Number(p.ranksTotal)||0)),heroLevel:clamp(Math.floor(Number(p.heroLevel)||1),1,100),heroName:String(p.heroName||'STRAŽAR').slice(0,24),avatarId:safeAvatarId(p.avatarId),avatarImg:safeAvatarImage(p.avatarImg)})):[];
     renderLobby();return;
    }
-   if(data.t==='start'&&NET.phase==='lobby'&&NET.worldReady){NET.heroLooks=new Map(Object.entries(data.looks||{}));
+   if(data.t==='start'&&NET.phase==='lobby'&&NET.worldReady){NS97_POST.clear();NET.heroLooks=new Map(Object.entries(data.looks||{}));
     NET.phase='playing';NET.lastEarned=null;NET.round=Number(data.round)||NET.round;NET.sessionToken=typeof data.session==='string'?data.session:null;NET.lastRoundText='';startGame({specialMode:data.specialMode});resize();voiceLine('start',true);if(data.specialMode==='night'){props=props.filter(o=>o.type!=='nightTower').concat((Array.isArray(data.towers)?data.towers:[]).slice(0,3));invalidateNavigation()}safeSend({t:'started'});netStatus('Partija je pokrenuta.');return;
    }
    if(data.t==='start'&&NET.phase==='playing'){safeSend({t:'started'});return}
