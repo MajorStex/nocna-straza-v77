@@ -5,7 +5,7 @@ let n=0;const yes=(a,m)=>{assert.ok(a,m);n++};const eq=(a,b,m)=>{assert.equal(a,
 const scriptTags=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(m=>!m[1].includes('src='));
 eq(scriptTags.length,4,'four original inline scripts');
 for(const part of scriptTags){new vm.Script(part[2]);n++}
-yes(html.includes("\x3ctitle>Night Watch v98 — Cave Reconnect & In-Game Mana (Night Watch v95 compatible)</title>"),'v94 title');
+yes(html.includes("\x3ctitle>Night Watch v99 — Coop Pause Voting & 3s Level Picks (Night Watch v95 compatible)</title>"),'v94 title');
 yes(html.includes("if(assigned&&data.t==='ns93Cast')"),'host receives validated spells');
 yes(html.includes("if(data.t==='ns93CastAck')"),'guest gets authoritative ack');
 yes(html.includes("NS93_MAGIC.soundAt(e.value?.id,e.x,e.y)"),'guest audio from synchronized FX');
