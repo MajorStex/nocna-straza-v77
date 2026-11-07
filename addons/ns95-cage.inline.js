@@ -114,7 +114,6 @@ const NS95_CAGE=(()=>{
   if(d>640){a.x=p.x-35;a.y=p.y+38}
   else if(d>95){
    const speed=d>270?207:115;
-   movingCircle({x:a.x,y:a.y,r:13,get dead(){return false}},0,0); // no mutation, collision probes are below
    const pseudo={x:a.x,y:a.y,r:13};
    movingCircle(pseudo,dx/d*speed*h,dy/d*speed*h);a.x=pseudo.x;a.y=pseudo.y;
   }
