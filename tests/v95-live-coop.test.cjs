@@ -75,6 +75,39 @@ const {chromium}=require('playwright-core');
   assert.equal(hostCast,true,'Host casts spell');
   await guest.waitForFunction(()=>window.__nightWatch.G.effects.some(e=>e.type==='ns93Magic'),{timeout:5000});
   console.log('LIVE_MP_HOST_FX_VISIBLE_TO_GUEST=yes');
+  const firstCage=await host.evaluate(()=>{
+    const g=window.__nightWatch,c=g.G.ns95Cage;
+    return{exists:!!c,x:c?.x,y:c?.y,guards:g.G.mobs.filter(m=>m.ns95Guard&&!m.dead).length};
+  });
+  assert.equal(firstCage.exists,true,'v95 cage created in host world');
+  assert.equal(firstCage.guards,3,'three local orc guards generated');
+  await guest.waitForFunction(()=>!!window.__nightWatch.G.ns95Cage,{timeout:9000});
+  const guestCage=await guest.evaluate(()=>{
+    const g=window.__nightWatch,c=g.G.ns95Cage;
+    return{x:c.x,y:c.y,freed:c.freed,guards:c.guards};
+  });
+  assert.equal(guestCage.x,firstCage.x,'guest sees same prison cage x');
+  assert.equal(guestCage.y,firstCage.y,'guest sees same prison cage y');
+  assert.equal(guestCage.guards,3,'guest receives host-owned guard count');
+  console.log('LIVE_MP_CAGE_SYNC=yes');
+  await host.evaluate(()=>{
+    const g=window.__nightWatch,c=g.G.ns95Cage;
+    const p=g.G.players.find(x=>x.id===g.NET.localId);
+    p.x=c.x-115;p.y=c.y+40;
+    for(const m of g.G.mobs.filter(x=>x.ns95Guard&&!x.dead))g.killMob(m,p);
+    window.__NS95_CAGE.tick(.15);
+    if(!c.freed||!c.ally)throw Error('Cage not freed by nearby rescuer after all guard deaths');
+  });
+  await guest.waitForFunction(()=>{
+    const c=window.__nightWatch.G.ns95Cage;
+    return c&&c.freed&&c.ally?.hp>0;
+  },{timeout:9000});
+  const rescue=await guest.evaluate(()=>{
+    const g=window.__nightWatch;
+    return{freed:g.G.ns95Cage.freed,hp:g.G.ns95Cage.ally.hp,players:g.G.players.length};
+  });
+  assert.equal(rescue.players,2,'companion does not become a third player');
+  console.log('LIVE_MP_RESCUED_ALLY_VISIBLE=yes');
   const beforeRewards=await guest.evaluate(()=>window.__nightWatch.mpProgress.coins);
   await host.evaluate(()=>{
     const g=window.__nightWatch;
@@ -95,7 +128,7 @@ const {chromium}=require('playwright-core');
   assert.equal(reward.shards,1,'once-only shard reward received');
   console.log('LIVE_MP_ECONOMY_REWARD_ONCE=yes');
   assert.deepEqual(errors.filter(x=>/ReferenceError|TypeError|SyntaxError/.test(x)),[],'no mobile runtime crashes');
-  console.log('PASS live v94 2-phone Chrome multiplayer: create/join, host-verified guest casting, synced mana, visible host FX.');
+  console.log('PASS live v95 2-phone Chrome multiplayer: create/join, host-verified guest casting, synced mana, visible host FX.');
  } finally {
   for(const c of contexts)await c.close().catch(()=>{});
   await browser.close();
