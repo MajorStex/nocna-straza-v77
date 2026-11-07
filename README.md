@@ -1,3 +1,20 @@
+# Noćna Straža v90 — optimizovani HP barovi i pregled stabilnosti
+
+## HP iznad neprijatelja
+- **Trol:** HP bar kada je na ekranu i na ≤520 svetskih jedinica od heroja. Ime + HP / MAX HP na ≤290, bez teksta na većoj daljini.
+- **Brute:** HP bar samo kada je povređen i udaljen ≤310; maksimum 4 Brute indikatora po kadru. Na `low` grafici i kada ima preko 45 neprijatelja Brute HP indikatori se preskaču.
+- **Boss/Rotfiend:** zadržava raniji veliki HP HUD. Obični goblini nemaju stalne trake.
+- Canvas fillRect bez novih HTML čvorova, senki i gradijenata u petlji; provera vidljivosti se koristi iz već postojećeg renderera; nema novih mrežnih paketa. Guest koristi `m.hp`/`m.maxHp` iz postojećeg host snapshot-a.
+- Dvojezični TROL/TROLL, bez menjanja cloud-save ključeva ili inventara. Novi multiplayer handshake `v90` zahteva da svi učesnici otvore v90.
+
+## Provere i ograničenja
+- Automatski testovi: JS sintaksa, wave 10 spawn, limit trolova, različite vrste oružja i DPS, prikaz HP-a i multiplayer paket sa HP poljima.
+- End-to-end automatska provera javnog GitHub Pages linka i Firebase statičkih fajlova.
+- Stvarni FPS, multiplayer lag na šest različitih telefona i svi korisnički tokovi nisu potvrđeni realnim uređajima. Cloudflare relay podešavanje nije menjano.
+- Javno objavljivanje: `https://majorstex.github.io/nocna-straza-v90/`; test trola bez čekanja ostaje u staroj v89 test putanji.
+
+---
+
 # Noćna Straža v89 — Trol od 10. talasa
 
 - Novi **trol goblin**: proceduralni hod nogama i rukama, usporeno kretanje, veći ali ne ogroman, ograničen na 2 istovremeno pre talasa 20 i 3 kasnije. Garantovani prvi susret u talasu 10.
