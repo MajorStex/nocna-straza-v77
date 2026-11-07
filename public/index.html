@@ -4397,7 +4397,7 @@ function sendSnapshot(){
   if(!c.open||Number(c.bufferSize||0)>16000)continue;
   const near=(p,rad)=>Math.abs(p.x-focus.x)<rad&&Math.abs(p.y-focus.y)<rad;
   const mobs=G.mobs.filter(m=>!m.dead&&near(m,700)).sort((a,b)=>{
-   const important=m=>(m.type==='boss'||m.nsCaveSpider||m.nsExploreBoss?-250000:0);
+   const important=m=>(m.type==='boss'||m.nsCaveSpider||m.nsExploreBoss?-250000:m.type==='troll'?-40000:0);
    return (a.x-focus.x)**2+(a.y-focus.y)**2+important(a)-((b.x-focus.x)**2+(b.y-focus.y)**2+important(b));
   }).slice(0,32).map(m=>[m.id,m.type,Math.round(m.x*10)/10,Math.round(m.y*10)/10,m.r,m.hp,m.maxHp,m.angle,m.frame,m.flash,m.attackT,m.deathT,m.dead?1:0,m.spitWindup,m.bossPhase||1,m.bossCast?{...m.bossCast}:null,!!m.nsExploreBoss,m.nsExploreTag||0,!!m.nsCaveSpider,!!m.nsCaveThief,m.nsThiefUntil||0]);
   const fx=G.effects.filter(e=>e.id&&e.t<.4&&near(e,720)).slice(-9).map(e=>({id:e.id,type:e.type,x:e.x,y:e.y,value:e.value,life:e.life}));
