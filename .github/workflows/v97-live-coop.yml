@@ -1,0 +1,23 @@
+name: Live Noćna Straža v97 – Results and Rematch Relay
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tests/v97-live-coop.test.cjs"
+      - ".github/workflows/v97-live-coop.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-coop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install mobile Chromium browser driver
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Two mobile Chrome peers via live Cloudflare relay, post-match results and rematch votes
+        run: node tests/v97-live-coop.test.cjs
