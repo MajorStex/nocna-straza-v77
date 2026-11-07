@@ -1100,7 +1100,7 @@ function safeSet(k,v){try{
 // Persistent, local-only roguelite progression. Record only ordinary completed solo runs.
 const META_KEY='ns_stats_meta_v23';
 const oldMeta=safeGet(META_KEY)||{};
-const META_UPGRADES={heart:{name:'ČVRŠĆI OKLOP',icon:'♥',desc:'+6 maksimalnih HP po rangu',costs:[18,36,60]},blade:{name:'NAOŠTRENO ORUŽJE',icon:'⚔',desc:'+2 početne štete po rangu',costs:[20,40,65]},stride:{name:'ČIZME STRAŽARA',icon:'➤',desc:'+2% brzine kretanja po rangu',costs:[16,32,55]}};
+const META_UPGRADES={heart:{name:'ČVRŠĆI OKLOP',icon:'♥',desc:'+6 maksimalnih HP po rangu',costs:[18,36,60]},blade:{name:'NAOŠTRENO ORUŽJE',icon:'⚔',desc:'+2 početne štete po rangu',costs:[20,40,65]},stride:{name:'ČIZME STRAŽARA',icon:'➤',desc:'+2% brzine kretanja po rangu',costs:[16,32,55]},mana:{name:'REZERVA MANE',icon:'✧',desc:'+8 MP i +0.12 regeneracije po rangu',costs:[17,33,54]},arcana:{name:'IZUČAVANJE MAGIJE',icon:'☄',desc:'+1.5% štete magija po rangu',costs:[20,38,62]}};
 let meta={runs:Math.max(0,Number(oldMeta.runs)||0),totalKills:Math.max(0,Number(oldMeta.totalKills)||0),totalSeconds:Math.max(0,Number(oldMeta.totalSeconds)||0),bestWave:Math.max(1,Number(oldMeta.bestWave)||1),bestLevel:Math.max(1,Number(oldMeta.bestLevel)||1),bestKills:Math.max(0,Number(oldMeta.bestKills)||0),bestSeconds:Math.max(0,Number(oldMeta.bestSeconds)||0),bestScore:Math.max(0,Number(oldMeta.bestScore)||0),bestItem:oldMeta.bestItem&&typeof oldMeta.bestItem.weapon==='string'?oldMeta.bestItem:null,points:Math.max(0,Number(oldMeta.points)||0),totalEarned:Math.max(0,Number(oldMeta.totalEarned)||0),ranks:{heart:0,blade:0,stride:0},history:Array.isArray(oldMeta.history)?oldMeta.history.slice(0,30):[]};
 for(const id of Object.keys(META_UPGRADES))meta.ranks[id]=clamp(Math.floor(Number(oldMeta.ranks?.[id])||0),0,3);
 function persistMeta(){safeSet(META_KEY,meta)}
@@ -1114,7 +1114,9 @@ const MP_SKILLS={
  agility:{icon:'➤',name:'OKRETNOST',effect:'+0.35% brzine',max:25,start:5},
  tempo:{icon:'⌁',name:'BRZINA ZAMAHA',effect:'+0.45% brzine napada',max:25,start:7},
  armor:{icon:'◈',name:'OKLOP',effect:'+0.15 zaštite',max:25,start:7},
- fortune:{icon:'✦',name:'SREĆA',effect:'+0.15% šanse za kritični udarac',max:20,start:9}
+ fortune:{icon:'✦',name:'SREĆA',effect:'+0.15% šanse za kritični udarac',max:20,start:9},
+ mana:{icon:'✧',name:'REZERVA MANE',effect:'+4 MP i +0.07 MP/s',max:12,start:7},
+ arcana:{icon:'☄',name:'VEŠTINA MAGIJE',effect:'+0.8% štete magija; mali porast cooldowna',max:10,start:9}
 };
 function newMPProgress(){return{coins:0,earned:0,shards:0,runs:0,awarded:{},ranks:Object.fromEntries(Object.keys(MP_SKILLS).map(k=>[k,0]))}}
 const oldMP=safeGet(MP_STORE_KEY)||{};
@@ -2185,7 +2187,7 @@ const NS93_MAGIC=(()=>{
   if(x<30||y<30||x>WORLD.w-30||y>WORLD.h-30||Math.hypot(x-p.x,y-p.y)>s.range)
    return {ok:false,reason:'range'};
   p.ns93Mana=Math.max(0,p.ns93Mana-s.cost);
-  p.ns93Cooldown[id]=now+s.cd;
+  p.ns93Cooldown[id]=now+s.cd*(1+(p.ns95ArcanaRank||0)*.006);
   let hits=0;
   if(s.heal){
    for(const ally of G.players.filter(a=>!a.dead&&Math.hypot(a.x-x,a.y-y)<s.radius).slice(0,6)){
@@ -2199,7 +2201,7 @@ const NS93_MAGIC=(()=>{
     if(distance>s.radius+m.r)continue;
     const falloff=Math.max(.42,1-distance/(s.radius+m.r)*.5);
     const boss=m.type==='boss'||m.type==='rotfiend'?0.48:1;
-    const dmg=Math.max(1,Math.round(s.damage*falloff*boss*(p.nsCombatClass==='mage'?1.09:1)));
+    const dmg=Math.max(1,Math.round(s.damage*falloff*boss*(p.nsCombatClass==='mage'?1.09:1)*(p.ns95SpellMult||1)));
     const real=lightAt(m.x,m.y,p)?dmg:1;
     m.hp-=real;m.flash=.22;
     if(s.slow&&!m.ns93BaseSpeed){m.ns93BaseSpeed=m.speed;m.speed*=.69;m.ns93SlowUntil=now+s.slow;}
@@ -2298,6 +2300,33 @@ const NS93_MAGIC=(()=>{
 })();
 window.__NS93_MAGIC=NS93_MAGIC;
 
+// v95 progression: all spending uses EXISTING base/forge cards, not a new panel.
+// Small linear mana and arcana gains; in-run gains capped at four selections.
+const NS95_PROGRESS={
+ apply(p){
+  if(!p||!Number.isFinite(p.ns93MaxMana))return;
+  const ranks=NET.role?p.ns95ProfileRanks||mpProgress.ranks:meta.ranks;
+  const mana=Math.max(0,Math.min(NET.role?12:3,Math.floor(Number(ranks?.mana)||0)));
+  const arcana=Math.max(0,Math.min(NET.role?10:3,Math.floor(Number(ranks?.arcana)||0)));
+  p.ns93MaxMana+=mana*(NET.role?4:8);
+  p.ns93Mana=p.ns93MaxMana;
+  p.ns93ManaRegen+=mana*(NET.role?.07:.12);
+  p.ns95ArcanaRank=arcana;
+  p.ns95SpellMult=1+arcana*(NET.role?.008:.015);
+  p.ns95RunManaRanks=0;
+ },
+ boost(p){
+  if(!p||!Number.isFinite(p.ns93MaxMana)||(p.ns95RunManaRanks||0)>=4)return false;
+  p.ns95RunManaRanks=(p.ns95RunManaRanks||0)+1;
+  p.ns93MaxMana=Math.min(190,p.ns93MaxMana+8);
+  p.ns93Mana=Math.min(p.ns93MaxMana,(p.ns93Mana||0)+10);
+  p.ns93ManaRegen=Math.min(7.3,(p.ns93ManaRegen||2.5)+.12);
+  return true;
+ }
+};
+window.__NS95_PROGRESS=NS95_PROGRESS;
+
+
 function player(id,x,y){const c=configs.hero;return{secondaryWeapon:null,weaponSwapAt:-10,reviveCount:0,reviveProgress:0,reviveBy:null,sosUsed:false,sosAt:-1,id,evolutions:{},evolutionCooldown:{},perks:{},perkTimers:{},shieldUntil:0,freezeUntil:0,perkKills:0,keys:0,crystals:0,xp:0,level:1,xpNeed:160,runKills:0,armorBonus:0,critBonus:0,offerUntil:0,eatUntil:0,burgerCooldownUntil:0,x,y,r:17*c.size,hp:c.hp,maxHp:c.hp,speed:c.speed,angle:0,facing:-Math.PI/2,bodyFacing:-Math.PI/2,headFacing:-Math.PI/2,visualSide:1,frame:0,attackT:0,attackCD:0,invul:0,dashT:0,dashCD:0,dead:false,weapon:c.weapon,damage:27,attackRate:.78,range:100,dirX:0,dirY:1,walking:false,flash:0,deathT:0}}
 function addMob(type,x,y,levelOverride){const c=configs[type],level=levelOverride||G.level;const mul=type==='boss'?1+Math.floor((level-1)/10)*.92:1+Math.min(3.4,(G.wave-1)*.06);let hp=Math.round(c.hp*mul),mob={id:G.nextId++,type,x,y,r:(type==='boss'?30:type==='rotfiend'?38:type==='elephant'?24:type==='troll'?21:type==='brute'?18:type==='goblin'?13:type==='worm'?18:15)*c.size,hp,maxHp:hp,damage:(type==='boss'?23:type==='rotfiend'?19:type==='elephant'?17:type==='troll'?15:type==='brute'?15:type==='goblin'?9:type==='worm'?10:8)*(1+Math.floor(G.wave/8)*.12),speed:c.speed*(1+Math.min(.6,G.wave*.015)),angle:0,frame:rnd()*6,attackT:0,attackCD:rnd()*.5,flash:0,deathT:0,dead:false,side:rnd()>.5?1:-1,stuck:0,approach:Math.floor(rnd()*5),phase:rnd()*TAU,routeOffset:70+rnd()*85,detourSide:0,detourProp:-1,detourTime:0,navRadius:type==='boss'?48:type==='rotfiend'?54:type==='elephant'?34:type==='troll'?26:type==='brute'?23:type==='worm'?19:15,nsTrollHitAt:0,nsTrollVictim:null,spitReady:G.time+3.2+rnd()*2.4,spitWindup:0,roarAt:G.time+2.5+rnd()*4,targetId:null,targetLockUntil:0,bossPhase:1,bossCast:null,bossNextCastAt:G.time+5.2+rnd()*1.4,bossPhaseSummons:0,bossEnraged:false,bossCastCount:0};if((G.relicEnemyHaste||1)!==1)mob.speed*=G.relicEnemyHaste;NSX.applyDifficulty(mob);G.mobs.push(mob);return mob}
 function applyCombatClass(p,cls){
@@ -2306,7 +2335,7 @@ function applyCombatClass(p,cls){
  else if(kind==='ranger'){p.speed*=1.045;p.range+=13;}
  else if(kind==='mage'){p.maxHp=Math.max(65,Math.round(p.maxHp*.86));p.hp=Math.min(p.hp,p.maxHp);p.damage*=1.045;p.nsSpellBonus=.15;p.perks.shock=1;p.perkTimers.shock=G.time+8;}
  else if(kind==='support'){p.maxHp+=8;p.hp+=8;p.nsSupportHealAt=G.time+12;}
- NS93_MAGIC.initPlayer(p,p.ns93Spells||mpProgress.spells);
+ NS93_MAGIC.initPlayer(p,p.ns93Spells||mpProgress.spells);NS95_PROGRESS.apply(p);
 }
 function swapPlayerWeapon(p){if(!p||p.dead||!MEDIEVAL_WEAPONS[p.secondaryWeapon]||G.time-(p.weaponSwapAt??-10)<.4)return false;
  const previous=p.weapon;p.weapon=p.secondaryWeapon;p.secondaryWeapon=previous;p.weaponSwapAt=G.time;checkWeaponEvolution(p);G.abilityDirty=true;return true;
@@ -2517,7 +2546,7 @@ mapReset();NSX.start(opts);$('pauseBtn').classList.remove('hidden');$('home').cl
 function addRemotePlayer(id){
  if(G.players.some(p=>p.id===id))return;
  const origin=G.players.find(p=>p.id===NET.localId)||G.players[0]||{x:START.x,y:START.y};const n=Number(id.slice(1))||2;
- const p=player(id,origin.x+Math.cos(n*TAU/6)*65,origin.y+Math.sin(n*TAU/6)*65);const profile=NET.profiles.get(id)||{spec:networkHeroStyle(FACTORY_HERO),ranks:{}};p.look=profile.spec;p.weapon=profile.spec.weapon;p.ns93Spells=profile.spells||{};applyCombatClass(p,profile.spec.heroClass);applyCoopBonuses(p,profile.ranks);const ownTalent=profile.heroBranches||{};p.maxHp+=clamp(Number(ownTalent.health)||0,0,20)*2;p.hp=p.maxHp;p.damage*=1+clamp(Number(ownTalent.damage)||0,0,20)*.007;p.speed*=1+clamp(Number(ownTalent.speed)||0,0,12)*.003;NSX.applyRole(p,profile.role||'guardian');NSX.applyProfileEquipment(p,profile.equipment||{},profile.equippedWeapon);p.nsLegendaryWeapon=profile.legendaryWeapon||null;G.players.push(p);
+ const p=player(id,origin.x+Math.cos(n*TAU/6)*65,origin.y+Math.sin(n*TAU/6)*65);const profile=NET.profiles.get(id)||{spec:networkHeroStyle(FACTORY_HERO),ranks:{}};p.look=profile.spec;p.weapon=profile.spec.weapon;p.ns93Spells=profile.spells||{};p.ns95ProfileRanks=profile.ranks||{};applyCombatClass(p,profile.spec.heroClass);applyCoopBonuses(p,profile.ranks);const ownTalent=profile.heroBranches||{};p.maxHp+=clamp(Number(ownTalent.health)||0,0,20)*2;p.hp=p.maxHp;p.damage*=1+clamp(Number(ownTalent.damage)||0,0,20)*.007;p.speed*=1+clamp(Number(ownTalent.speed)||0,0,12)*.003;NSX.applyRole(p,profile.role||'guardian');NSX.applyProfileEquipment(p,profile.equipment||{},profile.equippedWeapon);p.nsLegendaryWeapon=profile.legendaryWeapon||null;G.players.push(p);
  G.spawnCursor=n-1;for(let i=0;i<G.mobs.length;i++){const m=G.mobs[i];if(!m.dead&&i%G.players.length===n%G.players.length){m.targetId=id;m.targetLockUntil=G.time+3.5}}
  announce('IGRAČ '+n+' SE PRIDRUŽIO',3);
 }
@@ -3668,12 +3697,14 @@ function tryRelicShrine(){if(G.runType!=='default'||G.specialMode!=='normal'||NE
 const QUICK_POWERS=[
  {id:'damage',name:'OŠTRIJI UDARAC',desc:'+13% štete'},
  {id:'health',name:'ČVRŠĆE SRCE',desc:'+20 HP i lečenje'},
- {id:'speed',name:'BRZI KORACI',desc:'+7% kretanja i 5% brzine napada'}
+ {id:'speed',name:'BRZI KORACI',desc:'+7% kretanja i 5% brzine napada'},
+ {id:'mana',name:'BISTRINA UMA',desc:'+8 MP, +0.12 MP/s (do 4 puta po partiji)'}
 ];
 function applyQuickPower(p,id){if(!p||!QUICK_POWERS.some(o=>o.id===id))return false;
  if(id==='damage')p.damage=Math.round(p.damage*1.13);
  if(id==='health'){p.maxHp+=20;p.hp=Math.min(p.maxHp,p.hp+30)}
  if(id==='speed'){p.speed*=1.07;p.attackRate=Math.max(.31,p.attackRate*.95)}
+ if(id==='mana')return NS95_PROGRESS.boost(p);
  return true;
 }
 function showChoiceTimer(panelId,seconds){const node=$(panelId);if(!node)return;const label=node.querySelector('.coopCountdown');if(!label)return;label.classList.toggle('hidden',!NET.role);if(!NET.role)return;const token=String(Math.random());label.dataset.token=token;for(let elapsed=0;elapsed<=seconds;elapsed++){setTimeout(()=>{if(label.dataset.token===token&&!node.classList.contains('hidden'))label.textContent='⏱ JOŠ '+(seconds-elapsed)+' SEKUNDI'},elapsed*1000)}}
@@ -3681,7 +3712,7 @@ function closeQuickChoice(){const el=$('quickChoicePanel');if(el)el.classList.ad
 function showQuickChoice(p,remote=false){G.quickChoice={id:p.id,remote,round:NET.round};const panel=$('quickChoicePanel');if(!panel)return;
  panel.classList.remove('hidden');$('quickChoiceTitle').textContent='NIVO '+p.level+' · IZABERI MOĆ';let root=$('quickChoiceItems');root.textContent='';
  const choose=id=>{if(!G.quickChoice)return;if(remote)NET.conn?.send({t:'powerChoice',id});else{applyQuickPower(p,id);p.offerUntil=0}closeQuickChoice()};
- for(const u of QUICK_POWERS){let b=document.createElement('button');b.className='guildItem';b.innerHTML='<strong>'+u.name+'</strong><small>'+u.desc+'</small>';b.onclick=()=>choose(u.id);root.append(b)}
+ for(const u of QUICK_POWERS.filter(o=>o.id!=='mana'||(p.ns95RunManaRanks||0)<4)){let b=document.createElement('button');b.className='guildItem';b.innerHTML='<strong>'+u.name+'</strong><small>'+u.desc+'</small>';b.onclick=()=>choose(u.id);root.append(b)}
  $('quickChoiceClock').textContent='7';let seq=G.quickChoice;
  for(let k=6;k>=0;k--)setTimeout(()=>{if(G.quickChoice!==seq)return;$('quickChoiceClock').textContent=String(k);if(k===0)choose(QUICK_POWERS[0].id)},(7-k)*1000);
 }
@@ -3693,7 +3724,7 @@ function coopLevelUp(p){if(!p||p.dead||p.offerUntil>G.time)return;
 function coopXP(p,amount){p.xp=Math.max(0,(p.xp||0)+amount);if(p.xp>=p.xpNeed&&p.offerUntil<=G.time){p.xp-=p.xpNeed;coopLevelUp(p)}}
 
 function upgradeLevel(){G.level++;for(const hero of G.players)checkWeaponEvolution(hero);sfx('level');voiceLine('level');G.xpNeed=Math.ceil(xpRequirement(G.level)*(G.relicXpTax||1));for(const p of G.players){p.hp=Math.min(p.maxHp,p.hp+12)}if(G.level%10===0)spawnBoss(G.level);if(NET.role==='host')for(const c of NET.clients.values())if(c.open)c.send({t:'level',n:G.level});G.paused=true;$('controls').classList.add('hidden');$('upgradePanel').classList.remove('hidden');$('levelHeading').textContent=`NIVO ${G.level}`;
-const opts=[{name:'KOVANI MAČ',desc:'+23% štete',fn:()=>G.players.forEach(p=>p.damage=Math.round(p.damage*1.23))},{name:'SRCE STRAŽARA',desc:'+30 HP i odmah izlečenje',fn:()=>G.players.forEach(p=>{p.maxHp+=30;p.hp=Math.min(p.maxHp,p.hp+46)})},{name:'BRZI KORACI',desc:'+10% kretanja i udaraca',fn:()=>G.players.forEach(p=>{p.speed*=1.10;p.attackRate=Math.max(.26,p.attackRate*.91)})}];$('upgradeCards').innerHTML='';for(let up of opts){let btn=document.createElement('button');let top=document.createElement('b');top.textContent=up.name;let low=document.createElement('span');low.textContent=up.desc;btn.append(top,low);btn.onclick=()=>{up.fn();G.paused=false;$('upgradePanel').classList.add('hidden');$('controls').classList.remove('hidden');announce('NIVO '+G.level+' · NADOGRADNJA',2)};$('upgradeCards').append(btn)}}
+const opts=[{name:'KOVANI MAČ',desc:'+23% štete',fn:()=>G.players.forEach(p=>p.damage=Math.round(p.damage*1.23))},{name:'SRCE STRAŽARA',desc:'+30 HP i odmah izlečenje',fn:()=>G.players.forEach(p=>{p.maxHp+=30;p.hp=Math.min(p.maxHp,p.hp+46)})},{name:'BRZI KORACI',desc:'+10% kretanja i udaraca',fn:()=>G.players.forEach(p=>{p.speed*=1.10;p.attackRate=Math.max(.26,p.attackRate*.91)})}];if((G.players[0]?.ns95RunManaRanks||0)<4)opts.push({name:'BISTRINA UMA',desc:'+8 MP i +0.12 MP/s do kraja partije',fn:()=>G.players.forEach(p=>NS95_PROGRESS.boost(p))});$('upgradeCards').innerHTML='';for(let up of opts){let btn=document.createElement('button');let top=document.createElement('b');top.textContent=up.name;let low=document.createElement('span');low.textContent=up.desc;btn.append(top,low);btn.onclick=()=>{up.fn();G.paused=false;$('upgradePanel').classList.add('hidden');$('controls').classList.remove('hidden');announce('NIVO '+G.level+' · NADOGRADNJA',2)};$('upgradeCards').append(btn)}}
 function update(dt){if((G.mode!=='play'||G.paused)&&floatingStick.pointerId!==null)resetFloatingJoystick();if(G.mode==='menu'){if($('nightHud'))$('nightHud').classList.add('hidden');G.players[0].frame+=dt*2;G.camera.x=START.x+Math.sin(performance.now()/15000)*120;G.camera.y=START.y+Math.cos(performance.now()/11000)*80;return}if(G.mode==='editor'){G.players[0].frame+=dt*3;return}if(G.mode!=='play'||G.paused)return;G.time+=dt;NSX.tick(dt);NS93_MAGIC.tick(dt);if(!G.caveMode)G.waveClock+=dt;G.waveNoticeT=Math.max(0,G.waveNoticeT-dt);
 if(NET.role==='guest'){
  const mine=G.players.find(p=>p.id===NET.localId),inp=mine&&!mine.dead&&!G.quickChoice&&!G.guildPending&&!G.lootPending&&!G.marketPending?getLocalInput():{x:0,y:0,dash:false};
