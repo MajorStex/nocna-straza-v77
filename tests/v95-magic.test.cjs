@@ -13,7 +13,7 @@ yes(html.includes("p.ns93ManaRegen||2.5,p.ns93Cooldown||{}"),'host sends mana st
 yes(html.includes("NS93_MAGIC.tick(dt)"),'mana host regen');
 yes(html.includes("const life=type==='ns93Magic'?.78"),'bounded FX lifetime');
 yes(html.includes("ns93Mana:Number(p[43])||0"),'guest reconstructs mana');
-yes(html.includes("data.v!==95"),'protocol version');
+yes(html.includes("data.v!==99"),'protocol version');
 yes(html.includes("NS93_MAGIC.initPlayer(p,p.ns93Spells||mpProgress.spells)"),'all classes gain mana');
 const begin=html.indexOf('const NS93_MAGIC=(()=>{'),end=html.indexOf('window.__NS93_MAGIC=NS93_MAGIC;',begin);
 yes(begin>0&&end>begin,'magic module embedded in game scope');
