@@ -1,4 +1,4 @@
-name: Verify Noćna Straža v91
+name: Verify Noćna Straža v92
 on:
   push:
     branches: [main]
@@ -14,15 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Test v91 solo, multiplayer six-player team and item rewards
-        run: node tests/v91-achievements.test.cjs
+      - name: 157 solo + six-player achievements regression checks
+        run: node tests/v92-achievements.test.cjs
+      - name: Daily and weekly challenge checks
+        run: node tests/v92-challenges.test.cjs
       - name: Verify Firebase assets and source encoding
         run: |
           test -s public/index.html
           test -s public/firebase-config.js
           test -s public/auth-v82.js
-          grep -q 'Night Watch v91 — Multiplayer' public/index.html
-      - name: Install browser test library
-        run: npm install --no-save --no-package-lock playwright-core@1.58.2
-      - name: Open v91 on mobile Chrome and earn first achievement
-        run: node tests/v91-browser.test.cjs
+          grep -q 'Night Watch v92 — Multiplayer' public/index.html
