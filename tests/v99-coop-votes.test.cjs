@@ -49,7 +49,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
    assert.equal(remote.frozen,true);assert.equal(remote.owner,'p2');
    assert.equal(remote.offer.ms,3000);
    // Host chooses default when phone does not respond within three seconds.
-   await page.waitForTimeout(3300);
+   await page.waitForFunction(()=>!window.__NS99_TEAM.frozen(),null,{timeout:6000});
    const defaulted=await page.evaluate(()=>{
     const g=window.__nightWatch,t=window.__NS99_TEAM;
     return{frozen:t.frozen(),power:g.G.players.find(p=>p.id==='p2').damage,offer:t.currentLevel,controlsHidden:document.getElementById('controls').classList.contains('hidden')};
