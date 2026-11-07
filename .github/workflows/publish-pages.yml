@@ -1,4 +1,4 @@
-name: Verify Noćna Straža v98 – Cave Coop & Mana HUD
+name: Verify Noćna Straža v99 – Coop Vote and Background Recovery
 on:
   push:
     branches: [main]
@@ -35,7 +35,7 @@ jobs:
           test -s public/index.html
           test -s public/firebase-config.js
           test -s public/auth-v82.js
-          grep -q '<title>Night Watch v98' public/index.html
+          grep -q '<title>Night Watch v99' public/index.html
       - name: Install mobile Chromium test driver
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
       - name: Mobile 360/412 screen gameplay, spell HUD and six-player packet test
@@ -44,3 +44,5 @@ jobs:
         run: node tests/v97-postmatch.test.cjs
       - name: V98 cave reconnect and gameplay-only mana HUD mobile regressions
         run: node tests/v98-cave-mana.test.cjs
+      - name: V99 shared pause, 3s level selection, reconnect status and votes on mobile
+        run: node tests/v99-coop-votes.test.cjs
