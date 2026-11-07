@@ -41,7 +41,21 @@ const assert=require('node:assert/strict'),path=require('node:path'),fs=require(
     const tracked=[...a.ns100RotfiendWaves].sort((x,y)=>x-y);
     g.startGame({specialMode:'normal'});
     const reset=a.ns100RotfiendWaves.size;
-    return {randomBefore,early:!!early,firstWave,firstCount,firstId,sameWave,deadFirstAgain:!!deadFirstAgain,later:!!later,duringOther,secondWave,secondCount,secondId,secondDuplicate,after30:!!after30,randomLate,tracked,reset};
+    // A resumed solo game may never duplicate a milestone elite.
+    a.time=150;a.wave=22;a.ns100RotfiendWaves.add(20);a.mobs=[];
+    const saved=g.NSX.autoSave();
+    const persisted=g.NSX.getSave();
+    const loaded=g.NSX.resume();
+    const restored=[...a.ns100RotfiendWaves];
+    const reappear=g.spawnRotfiend();
+    // Backward-compatible old V99 saves must not import early random Rotfiends.
+    if(persisted){
+      const old={...persisted,wave:12,time:90,savedAt:Date.now(),mobs:[{type:'rotfiend',x:500,y:500,hp:300}],ns100RotfiendWaves:undefined};
+      localStorage.setItem('nsx_v43_continue',JSON.stringify(old));
+    }
+    const oldLoaded=!!persisted&&g.NSX.resume();
+    const legacyRots=a.mobs.filter(m=>m.type==='rotfiend').length;
+    return {randomBefore,early:!!early,firstWave,firstCount,firstId,sameWave,deadFirstAgain:!!deadFirstAgain,later:!!later,duringOther,secondWave,secondCount,secondId,secondDuplicate,after30:!!after30,randomLate,tracked,reset,saved,loaded,restored,reappear:!!reappear,oldLoaded,legacyRots};
    });
    assert.equal(result.randomBefore,0,'never random before wave20');
    assert.equal(result.early,false,'forced early rotfiend blocked');
@@ -58,6 +72,12 @@ const assert=require('node:assert/strict'),path=require('node:path'),fs=require(
    assert.equal(result.randomLate,0,'no random Rotfiend on wave31');
    assert.deepEqual(result.tracked,[20,30]);
    assert.equal(result.reset,0,'new game resets occurrence tracking');
+   assert.equal(result.saved,true,'continue autosave succeeds');
+   assert.equal(result.loaded,true,'saved game resumes');
+   assert.deepEqual(result.restored,[20],'wave 20 occurrence persists across resume');
+   assert.equal(result.reappear,false,'wave22 does not spawn another Rotfiend');
+   assert.equal(result.oldLoaded,true,'legacy save resumes');
+   assert.equal(result.legacyRots,0,'early random v99 Rotfiend does not return from legacy save');
    assert.deepEqual(errors.filter(e=>/SyntaxError|ReferenceError|TypeError/.test(e)),[],errors.join(' | '));
    console.log('PASS V100 Rotfiend only at wave20 and wave30, one each, never random, no repeat after kill, reset works · '+width+'px');
    await context.close();
