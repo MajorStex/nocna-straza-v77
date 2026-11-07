@@ -80,7 +80,7 @@ ok(Array.isArray(state[5]),'companion serialized without player registration');
 eq(game.players.length,1,'friendly never becomes an extra network player');
 const save=api.save();ok(save&&save.rewarded,'cage persists with claimed XP');
 const ally=game.ns95Cage.ally;
-const decoy={id:5,x:ally.x+12,y:ally.y+6,hp:60,r:13,damage:6,speed:70,dead:false};
+const decoy={id:5,type:'goblin',x:ally.x+12,y:ally.y+6,hp:60,r:13,damage:6,speed:70,attackCD:0,dead:false};
 mobs.push(decoy);api.beginMobTick();
 ok(api.decoyStep(decoy,.08),'eligible creep attacks the ally');
 eq(game.players.length,1,'decoy never mutates player roster');
