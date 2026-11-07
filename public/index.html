@@ -4887,6 +4887,9 @@ const itemTemplates=[
  {id:'storm_blade',slot:'weapon',set:'delver',en:'Stormblade',sr:'Olujni mač',stats:{damage:13,crit:.04}},
  {id:'earth_axe',slot:'weapon',set:'thorn',en:'Earthshaker Axe',sr:'Sekira zemljotresa',stats:{damage:15,range:5}},
  {id:'frost_edge',slot:'weapon',set:'warden',en:'Frostfang',sr:'Ledeni očnjak',stats:{damage:12,speed:.03}},
+ {id:'scout_wrap',slot:'armor',set:'delver',en:'Scout Wrap',sr:'Izviđački zavoj',stats:{hp:10}},
+ {id:'rookie_mace',slot:'weapon',set:'warden',en:'Patrol Mace',sr:'Patrolni buzdovan',stats:{damage:3,range:4}},
+ {id:'hunter_charm',slot:'relic',set:'thorn',en:'Hunter Charm',sr:'Lovčeva amajlija',stats:{crit:.01,range:3}},
 ];
 const claimedCaveLoot=new Set();let runNonce='';
  const caveTemplates=['delver_blade','delver_mail','delver_lamp','warden_sword','thorn_seed','thorn_plate','storm_blade','earth_axe','frost_edge'];
@@ -4912,6 +4915,19 @@ function itemName(it){return lang(it.nameEn,it.nameSr);}
 function equipItem(uid){const it=itemByUid(uid);if(!it)return false;armory.equipped[it.slot]=uid;saveArmory();renderArmoryPanel();return true;}
 function unequipAll(){armory.equipped={weapon:null,armor:null,relic:null};saveArmory();renderArmoryPanel();}
 function salvageDuplicates(){const seen=new Set(),keep=[];let gained=0;for(const it of armory.inventory){const key=[it.template,it.rarity].join('|');const protectedItem=it.rarity==='legendary'||Object.values(armory.equipped).includes(it.uid);if(protectedItem||!seen.has(key)){seen.add(key);keep.push(it);}else gained+=1;}armory.inventory=keep;armory.salvage=(armory.salvage||0)+gained;saveArmory();renderArmoryPanel();toast(lang(`Salvaged ${gained} duplicates. Legendary and equipped gear are protected.`,`Rastavljeno: ${gained}. Legendarna i opremljena oprema je zaštićena.`));}
+// One-time reward, deterministic item identity and same per-account armory as all gear.
+function grantAchievementGear(achievementId,templateId){
+ const def=NS91_ACHIEVEMENTS.find(x=>x.id===achievementId&&x.item===templateId);
+ if(!def)return false;
+ const template=itemTemplates.find(x=>x.id===templateId);
+ if(!template)return false;
+ const uid='ns91_'+String(getActiveAccount()?.id||'default').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,40)+'_'+achievementId;
+ const existing=armory.inventory.find(item=>item.uid===uid);
+ if(existing)return existing;
+ const item=makeArmoryItem(template,'common');
+ item.uid=uid;item.source='achievement';armory.inventory.push(item);saveArmory();
+ return item;
+}
 function collectGearDrop(item){if(!item||!item.uid)return false;if(armory.inventory.some(i=>i.uid===item.uid))return false;armory.inventory.push(item);saveArmory();return true;}
  function caveClaimKey(claimId){return 'ns52_cave_claim_'+String(getActiveAccount()?.id||'default')+'_'+claimId;}
  function receiveCaveLootClaim(c){if(!c?.claimId||!c?.lootTaken||!c?.lootRarity||!c?.lootTemplate)return false;const key=caveClaimKey(c.claimId);if(claimedCaveLoot.has(key)||read(key,false))return false;claimedCaveLoot.add(key);write(key,true);grantArmoryItem('cave',c.lootRarity,c.lootTemplate);return true;}
@@ -5490,7 +5506,14 @@ function applyCaveVisuals(){return !!(progress.cave?.active||G.caveMode);}
  function advanceTutorial(n){if(opt.tutorialDone||progress.tutorialStage>=n)return;progress.tutorialStage=n;renderTutorialHint();showTutorialForMoment();}
  function finishTutorial(){clearTimeout(tutorialHintTimer);opt.tutorialDone=true;write(OPTIONS,opt);$x('nsTutorialHint').classList.add('hidden');}
  function resetTutorial(){opt.tutorialDone=false;write(OPTIONS,opt);progress.tutorialStage=0;if(G.mode==='play'){renderTutorialHint();showTutorialForMoment();}else{toast(lang('Tutorial will start next run','Tutorijal počinje u sledećoj partiji'));}}
- function showList(which){const root=$x('nsGuidePanel'),title=$x('nsGuideTitle'),list=$x('nsGuideList');list.textContent='';title.textContent=which==='bestiary'?lang('BESTIARY','BESTIJARIJ'):lang('ACHIEVEMENTS','DOSTIGNUĆA');const entries=which==='bestiary'?Object.entries(categories).map(([id,name])=>({title:name,desc:permanent.bestiary[id]?.kills?`${permanent.bestiary[id].kills} ${lang('defeated','poraženo')}`:lang('Not discovered','Nije otkriveno'),locked:!permanent.bestiary[id]})):achievementList.map(a=>({title:a.title,desc:a.desc+(permanent.achievements.includes(a.id)?' · ✓':` · +${a.points} ✦`),locked:!permanent.achievements.includes(a.id)}));
+ function showList(which){const root=$x('nsGuidePanel'),title=$x('nsGuideTitle'),list=$x('nsGuideList');list.textContent='';title.textContent=which==='bestiary'?lang('BESTIARY','BESTIJARIJ'):lang('ACHIEVEMENTS','DOSTIGNUĆA');const legacy=achievementList.map(a=>({title:a.title,desc:a.desc+(permanent.achievements.includes(a.id)?' · ✓':` · +${a.points} ✦`),locked:!permanent.achievements.includes(a.id)}));
+  const fresh=NS91.list().map(a=>{
+   const template=itemTemplates.find(it=>it.id===a.item),name=template?lang(template.en,template.sr):'';
+   const current=Math.min(a.goal,Math.max(0,a.current));
+   const text=lang(a.enDesc,a.srDesc);
+   return {title:lang(a.en,a.sr),desc:text+' · '+(a.owned?'✓':current+'/'+a.goal)+' · '+lang('COMMON','OBIČAN')+': '+name,locked:!a.owned};
+  });
+  const entries=which==='bestiary'?Object.entries(categories).map(([id,name])=>({title:name,desc:permanent.bestiary[id]?.kills?`${permanent.bestiary[id].kills} ${lang('defeated','poraženo')}`:lang('Not discovered','Nije otkriveno'),locked:!permanent.bestiary[id]})):[...legacy,...fresh];
   for(const item of entries){const row=document.createElement('div');row.className='nsListRow';row.textContent=`${item.locked?'◇':'✦'} ${item.title} · ${item.desc}`;list.append(row)}
   root.classList.remove('hidden');$('home').classList.add('hidden');}
  const paidCatalog=[{sku:'cosmetic_shadow_skin',en:'Shadow Guardian skin',sr:'Senovita koža Stražara',price:'2.99'},{sku:'cosmetic_winter_blade',en:'Winter blade appearance',sr:'Zimski izgled mača',price:'3.99'},{sku:'cosmetic_blue_flame',en:'Blue flame effects',sr:'Plavi vatreni efekti',price:'4.99'}];
@@ -5513,7 +5536,7 @@ function applyCaveVisuals(){return !!(progress.cave?.active||G.caveMode);}
   $x('nsOpenShop').addEventListener('click',openShop);$x('nsShopClose').addEventListener('click',()=>closeModal('nsShopPanel'));$x('ns64PaypalPreviewClose').addEventListener('click',()=>{$x('ns64PaypalPreview').classList.add('hidden')});
   syncDifficultyUI();updateResumeButton();
  }
- return {opt,progress,permanent,shopItems,paidCatalog,achievementList,onCaveSpecialKill,applyLegendaryHit,caveDripTick,caveSpiderTick,drawCaveAmbient,drawCaveMarkers,legendaryWeapon,spawnCaveSpecials,receiveCaveBonusClaims,openArmory,renderArmoryPanel,renderArmorySummary,reloadArmory,salvageDuplicates,unequipAll,equipmentBonuses,equippedWeapon,applyProfileEquipment,applyArmoryToPlayer,collectGearDrop,tryDamageDestructibles,damageDestructible,enterCaveEvent,exitCave,caveTick,caveStatePack,generateCaveProps,saveOverworldState,restoreOverworldState,drawCaveExit,applyCaveVisuals,receiveCaveLootClaim,get armory(){return armory},get rarityDefs(){return rarityDefs},get setDefs(){return setDefs},get world(){return WORLD},questTypes,questSpecs,exploreKinds,exploreDefs,rareRelics,reputation,repRank,adjustReputation,updateRepSummary,bountyTick,openRareChoice,chooseRare,completeRareBattle,closeRareChoice,spawnExploreEvent,spawnExploreGuards,explorationTick,grantExploreReward,exploreBossDefeated,drawExploreEvent,updateExploreBeacon,startNextSideQuest,completeSideQuest,sideQuestTick,drawQuestObjects,start,onKill,onCrystal,onDamage,onEnd,onMenu,tick,updateHud,reportFPS,effectsCap,pixelRatio,setDifficulty,setRole,setQuality,applyDifficulty,applyRole,snapshot,onGuestSnapshot,extract,completeMission,triggerEvent,buyWithHonor,renderShop,openShop,autoSave,clearSave,getSave,resume,updateResumeButton,showList,tutorialSteps,finishTutorial,bind};
+ return {opt,progress,permanent,shopItems,paidCatalog,achievementList,onCaveSpecialKill,applyLegendaryHit,caveDripTick,caveSpiderTick,drawCaveAmbient,drawCaveMarkers,legendaryWeapon,spawnCaveSpecials,receiveCaveBonusClaims,openArmory,renderArmoryPanel,renderArmorySummary,reloadArmory,grantAchievementGear,salvageDuplicates,unequipAll,equipmentBonuses,equippedWeapon,applyProfileEquipment,applyArmoryToPlayer,collectGearDrop,tryDamageDestructibles,damageDestructible,enterCaveEvent,exitCave,caveTick,caveStatePack,generateCaveProps,saveOverworldState,restoreOverworldState,drawCaveExit,applyCaveVisuals,receiveCaveLootClaim,get armory(){return armory},get rarityDefs(){return rarityDefs},get setDefs(){return setDefs},get world(){return WORLD},questTypes,questSpecs,exploreKinds,exploreDefs,rareRelics,reputation,repRank,adjustReputation,updateRepSummary,bountyTick,openRareChoice,chooseRare,completeRareBattle,closeRareChoice,spawnExploreEvent,spawnExploreGuards,explorationTick,grantExploreReward,exploreBossDefeated,drawExploreEvent,updateExploreBeacon,startNextSideQuest,completeSideQuest,sideQuestTick,drawQuestObjects,start,onKill,onCrystal,onDamage,onEnd,onMenu,tick,updateHud,reportFPS,effectsCap,pixelRatio,setDifficulty,setRole,setQuality,applyDifficulty,applyRole,snapshot,onGuestSnapshot,extract,completeMission,triggerEvent,buyWithHonor,renderShop,openShop,autoSave,clearSave,getSave,resume,updateResumeButton,showList,tutorialSteps,finishTutorial,bind};
 })();
 const progress=NSX.progress;const lang=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
 NSX.bind();NETLAB.bind();
