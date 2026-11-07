@@ -22,3 +22,7 @@ jobs:
           test -s public/firebase-config.js
           test -s public/auth-v82.js
           grep -q 'Night Watch v91 — Multiplayer' public/index.html
+      - name: Install browser test library
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Open v91 on mobile Chrome and earn first achievement
+        run: node tests/v91-browser.test.cjs
