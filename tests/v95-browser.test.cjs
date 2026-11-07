@@ -12,7 +12,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
    const res=await gamePage.goto('https://majorstex.github.io/nocna-straza-v95/',{waitUntil:'domcontentloaded',timeout:30000});
    assert.equal(res?.status(),200,'public v93 loads');
    await gamePage.waitForFunction(()=>!!window.__nightWatch&&!!window.__NS91&&!!window.__NS92_DIR&&!!window.__NS92_CHALLENGES&&!!window.__NS93_MAGIC,{timeout:25000});
-   assert.match(await gamePage.title(),/Night Watch v95/);
+   assert.match(await gamePage.title(),/Night Watch v101/);
    const result=await gamePage.evaluate(()=>{
     const game=window.__nightWatch,ach=window.__NS91,daily=window.__NS92_CHALLENGES;
     game.startGame({specialMode:'normal'});
