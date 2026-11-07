@@ -2795,8 +2795,9 @@ function updateAbilities(dt){for(const p of G.players){if(p.dead)continue;const 
  G.blasts=G.blasts.filter(b=>b.age<1.60);
 }
 function drawAbilityEffects(){
+ const {w:effectVW,h:effectVH}=viewSize();
  // Air-to-ground bombs, pulsing orange targets and a luminous impact that cannot be missed.
- for(const b of G.blasts){const pos=screenPoint(b.x,b.y);if(pos.x<-110||pos.y<-180||pos.x>width+110||pos.y>height+110)continue;
+ for(const b of G.blasts){const pos=screenPoint(b.x,b.y);if(pos.x<-110||pos.y<-180||pos.x>effectVW+110||pos.y>effectVH+110)continue;
   const k=clamp(b.age/.8,0,1),boom=clamp((b.age-.8)/.8,0,1);ctx.save();ctx.translate(pos.x,pos.y);
   if(!b.done){
    ctx.globalAlpha=.45+.27*Math.sin(b.age*19)**2;ellipse(0,0,b.rad,b.rad*.43,'#e953313d');ctx.globalAlpha=1;
@@ -2815,6 +2816,7 @@ function drawAbilityEffects(){
  }
  // Persistently visible poison aura (drifting wisps), frost field and timed invulnerability.
  for(const p of G.players){if(p.dead)continue;const pos=screenPoint(p.x,p.y);
+  if(pos.x<-145||pos.y<-145||pos.x>effectVW+145||pos.y>effectVH+145)continue;
   if(p.perks?.aura){ctx.save();ctx.translate(pos.x,pos.y);const pulse=Math.sin(G.time*3)*4;
    const grad=ctx.createRadialGradient(0,0,12,0,0,105);grad.addColorStop(0,'#60a83b15');grad.addColorStop(.65,'#77d03a36');grad.addColorStop(.91,'#a9f05d28');grad.addColorStop(1,'#6bdb4400');ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,105,0,TAU);ctx.fill();
    ctx.strokeStyle='#b3ff67bd';ctx.lineWidth=3;ctx.setLineDash([10,8]);ctx.beginPath();ctx.arc(0,0,86+pulse,0,TAU);ctx.stroke();ctx.setLineDash([]);
