@@ -118,3 +118,15 @@ jobs:
             sleep 3
           done
           exit 1
+      - name: Confirm v90 troll practice public link
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://majorstex.github.io/nocna-straza-v90-trol-test/"
+          for attempt in $(seq 1 15); do
+            if curl --fail --location --silent --show-error --max-time 20 "$url" -o /tmp/ns90troll.html && grep -q 'Night Watch v90 — Troll practice' /tmp/ns90troll.html && grep -q 'NS89_TROLL_TEST=true' /tmp/ns90troll.html && grep -q 'function ns90DrawHp(m,focus)' /tmp/ns90troll.html && curl --fail --location --silent --show-error --max-time 20 "${url}auth-v82.js?v=90" -o /tmp/ns90troll-auth.js && curl --fail --location --silent --show-error --max-time 20 "${url}firebase-config.js?v=90" -o /tmp/ns90troll-config.js; then
+              echo "v90 troll practice publicly accessible"; exit 0
+            fi
+            sleep 3
+          done
+          exit 1
