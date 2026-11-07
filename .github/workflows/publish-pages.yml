@@ -1,4 +1,4 @@
-name: Verify Noćna Straža v93 – Mage and Multiplayer
+name: Verify Noćna Straža v94 – Economy & Adaptive FX
 on:
   push:
     branches: [main]
@@ -18,19 +18,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: v93 combat, mana, costs, casting, host validation and JS syntax
-        run: node tests/v93-magic.test.cjs
-      - name: Original 157 solo and six-player achievement regressions
-        run: node tests/v93-achievements.test.cjs
-      - name: Original daily and weekly challenge regressions
+      - name: v94 economy anti-replay, bounded purchases and adaptive FPS simulation
+        run: node tests/v94-economy-fx.test.cjs
+      - name: Regression - spells, mana, cooldown and host validation
+        run: node tests/v94-magic.test.cjs
+      - name: Regression - solo/multiplayer achievements
+        run: node tests/v94-achievements.test.cjs
+      - name: Regression - daily/weekly challenges
         run: node tests/v92-challenges.test.cjs
-      - name: Verify cloud assets and version
+      - name: Verify v94 release assets
         run: |
           test -s public/index.html
-          test -s public/firebase-config.js
           test -s public/auth-v82.js
-          grep -q 'Night Watch v93' public/index.html
-      - name: Install mobile Chromium test library
+          test -s public/firebase-config.js
+          grep -q 'Night Watch v94' public/index.html
+      - name: Install Chromium browser test driver
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
-      - name: Real Chromium mobile v93 spell, login, room and six-player snapshot tests
-        run: node tests/v93-browser.test.cjs
+      - name: Real mobile browser solo, spell and six-player snapshot regression
+        run: node tests/v94-browser.test.cjs
