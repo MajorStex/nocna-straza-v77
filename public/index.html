@@ -4253,7 +4253,7 @@ const NS99_TEAM=(()=>{
  function render(){
   const btn=$('ns99PauseOpen'),box=$('ns99PausePanel'),banner=$('ns99PauseBanner');
   if(!btn||!box||!banner)return;
-  const active=multiplayer()&&G.mode==='play',s=NET.role==='host'?{m:manual,h:hostSleeping,l:level,b:ballot}:guestState;
+  const active=multiplayer()&&G.mode==='play',s=NET.role==='host'?{m:manual,h:hostSleeping,l:level,c:chest,b:ballot}:guestState;
   btn.classList.toggle('hidden',!active);
   if(!active){box.classList.add('hidden');banner.classList.add('hidden');return}
   const status=s?.h?tr('HOST PHONE LOCKED · WAITING','HOST JE ZAKLJUČAO TELEFON · ČEKANJE'):
