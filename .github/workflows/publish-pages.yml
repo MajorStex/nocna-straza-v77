@@ -1,9 +1,10 @@
-name: Verify Noćna Straža v92
+name: Verify Noćna Straža v93 – Mage and Multiplayer
 on:
   push:
     branches: [main]
     paths:
       - "public/**"
+      - "addons/**"
       - "tests/**"
       - ".github/workflows/publish-pages.yml"
   workflow_dispatch:
@@ -14,17 +15,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 157 solo + six-player achievements regression checks
-        run: node tests/v92-achievements.test.cjs
-      - name: Daily and weekly challenge checks
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: v93 combat, mana, costs, casting, host validation and JS syntax
+        run: node tests/v93-magic.test.cjs
+      - name: Original 157 solo and six-player achievement regressions
+        run: node tests/v93-achievements.test.cjs
+      - name: Original daily and weekly challenge regressions
         run: node tests/v92-challenges.test.cjs
-      - name: Verify Firebase assets and source encoding
+      - name: Verify cloud assets and version
         run: |
           test -s public/index.html
           test -s public/firebase-config.js
           test -s public/auth-v82.js
-          grep -q 'Night Watch v92 — Multiplayer' public/index.html
-      - name: Install browser test library
+          grep -q 'Night Watch v93' public/index.html
+      - name: Install mobile Chromium test library
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
-      - name: Real mobile Chromium test, login assets, SP, lobby and six snapshots
-        run: node tests/v92-browser.test.cjs
+      - name: Real Chromium mobile v93 spell, login, room and six-player snapshot tests
+        run: node tests/v93-browser.test.cjs
