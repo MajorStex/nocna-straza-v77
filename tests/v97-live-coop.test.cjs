@@ -27,7 +27,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
   await host.waitForFunction(()=>{const n=window.__nightWatch.NET;return n.clients.size===1&&n.worldReadyPlayers.get('p2')===true},{timeout:15000});
   const hostRoster=await host.evaluate(()=>{const n=window.__nightWatch.NET;return n.profiles.get('p2')?.name});
   assert.equal(hostRoster,'Milan','host sees the real player nickname');
-  await guest.evaluate(()=>document.getElementById('lobbyReadyBtn')?.click());
+  await guest.evaluate(()=>{const g=window.__nightWatch;if(!g.NET.localReady)document.getElementById('lobbyReadyBtn')?.click()});
   await host.waitForFunction(()=>window.__nightWatch.NET.readyPlayers.get('p2')===true,{timeout:10000});
   await host.evaluate(()=>{const g=window.__nightWatch;g.NET.forceRequest=true;if(!g.startLobbyMatch())throw Error('Host did not start match')});
   await guest.waitForFunction(()=>window.__nightWatch.NET.phase==='playing'&&window.__nightWatch.G.mode==='play',{timeout:25000});
