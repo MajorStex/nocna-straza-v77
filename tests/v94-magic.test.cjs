@@ -24,7 +24,7 @@ const NET={role:'host',phase:'playing',round:5,clients:new Map()};
 const mpProgress={coins:60,spells:{}};
 const sound={sfx:false,sfxVolume:.5};
 const ctx=vm.createContext({
- G,NET,mpProgress,window:{__gameLanguage:{value:'en'},addEventListener(){}},
+ G,NET,mpProgress,NS94_ECON:{pay(cost){if(!Number.isSafeInteger(cost)||cost<1||mpProgress.coins<cost)return false;mpProgress.coins-=cost;return true;}},window:{__gameLanguage:{value:'en'},addEventListener(){}},
  WORLD:{w:4200,h:4200},cfgSettings:sound,
  '$':()=>null,
  effect:(type,x,y,value)=>{events.push({type,x,y,value});G.effects.push({id:++G.fxSeq,type,x,y,value})},
@@ -94,4 +94,4 @@ const healing={id:'healer',x:2100,y:2100,hp:50,maxHp:90,nsCombatClass:'mage'};
 api.initPlayer(healing,{heal:1});G.players.push(healing);
 const a=api.cast(healing,'heal',2100,2100);
 yes(a.ok,'healing circle casts');yes(healing.hp>50,'healing restores allies');
-console.log('PASS '+n+' v93 gameplay and security checks: syntax, 8 spells, mana, bounds, boss resistance, host authority, unlock economy, all classes, co-op healing.');
+console.log('PASS '+n+' v94 gameplay and security checks: syntax, 8 spells, mana, bounds, boss resistance, host authority, unlock economy, all classes, co-op healing.');
