@@ -23,11 +23,13 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
     if(!p1||!p2)throw Error('two players not created');
     const epoch=net.round,oldTime=game.G.time;
     game.coopXP(p1,p1.xpNeed+20);
-    return {stage:game.G.mode,paused:team.frozen(),levelOwner:team.currentLevel?.id,score:game.G.level,pauseButton:!document.getElementById('ns99PauseOpen').classList.contains('hidden'),levelCounter:document.getElementById('quickChoiceClock').textContent,hasMessage:packets.some(p=>p.t==='ns99State'&&p.round===epoch),time:oldTime};
+    return {stage:game.G.mode,paused:team.frozen(),levelOwner:team.currentLevel?.id,score:game.G.level,pauseButton:!document.getElementById('ns99PauseOpen').classList.contains('hidden'),levelCounter:document.getElementById('quickChoiceClock').textContent,hasMessage:packets.some(p=>p.t==='ns99State'&&p.round===epoch),time:oldTime,liveMarkets:game.props.filter(p=>p.type==='market').length,legacyMarkets:game.defaultPlayMap.filter(p=>p.type==='market').length};
    });
    assert.equal(initial.stage,'play');assert.equal(initial.paused,true,'all paused on host level-up');
    assert.equal(initial.levelOwner,'p1');assert.equal(initial.levelCounter,'3');
    assert.equal(initial.hasMessage,true);
+   assert.ok(initial.liveMarkets<=2,'no more than two burger bars in live world');
+   assert.ok(initial.legacyMarkets>=initial.liveMarkets,'persistent map left untouched');
    await page.waitForTimeout(480);
    const froze=await page.evaluate(()=>({frozen:window.__NS99_TEAM.frozen(),time:window.__nightWatch.G.time}));
    assert.equal(froze.frozen,true);
