@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><title>Night Watch v93 — Mage & Spells</title><style>
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><title>Night Watch v94 — Economy & Smooth FX</title><style>
 :root{--bg:#0e171d;--surface:#17232a;--card:#1d2c33;--line:#52605888;--sage:#a7d3ae;--gold:#e9c17d;--ink:#f1eddf;--muted:#aab7b8;--red:#bf5550}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;touch-action:none}button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--ink);background:#26363c;border:1px solid #60706d71;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:800;letter-spacing:.035em}button:active{transform:scale(.98)}button:hover{border-color:#c1c9a0}button.primary{background:linear-gradient(135deg,#d2a665,#f0cf91);color:#202c29;border:0;box-shadow:0 5px 24px #0006}button:disabled{opacity:.5}input,select,textarea{color:#eee9df;background:#101b22;border:1px solid #536660;border-radius:9px;padding:9px;min-width:0}input[type=color]{height:38px;padding:3px;width:58px}input[type=range]{padding:0;accent-color:var(--gold);flex:1}input[type=checkbox]{accent-color:var(--gold);width:19px;height:19px}#app,#gameCanvas{width:100%;height:100%;position:absolute;inset:0}#gameCanvas{display:block;touch-action:none;background:#28332f}.veil{pointer-events:none;position:absolute;inset:0;background:linear-gradient(90deg,#0a1014a8,transparent 75%);opacity:.45}.hidden{display:none!important}.kicker{color:var(--gold);font-size:10px;font-weight:900;letter-spacing:.18em}.panel{position:absolute;z-index:5}.home{top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 34px));background:linear-gradient(160deg,#18272bed,#0d161ce9);border:1px solid #80918c59;border-radius:23px;padding:27px 29px 22px;text-align:center;box-shadow:0 30px 100px #000a;backdrop-filter:blur(12px)}.logoGlyph{font-size:39px;color:var(--gold);margin:10px 0 0}.home h1{font-family:Georgia,'Times New Roman',serif;line-height:.9;letter-spacing:.07em;font-size:clamp(42px,9vw,63px);margin:8px auto 16px;text-shadow:0 5px 20px #0009}.home h1 em{font-style:normal;color:var(--gold)}.tagline{color:#bac5be;font-size:14px;line-height:1.55;max-width:320px;margin:0 auto 19px}.homeButtons{display:grid;gap:9px}.homeButtons button{min-height:47px}.smallMuted{color:#8ba09b;font-size:11px;margin:17px auto 0}.hud{position:absolute;z-index:3;top:0;left:0;right:0;padding:max(12px,env(safe-area-inset-top)) 14px 8px;pointer-events:none;background:linear-gradient(#0b1118d6,#0b111800)}.hudTop{display:flex;align-items:start;gap:10px}.stats{width:54%;max-width:300px;display:grid;gap:6px}.bar{position:relative;overflow:hidden;background:#142024c9;border:2px solid #8c958259;border-radius:5px;height:21px;box-shadow:0 2px 10px #0005}.bar>div{position:absolute;inset:0 auto 0 0;width:100%;transition:width .16s linear}.bar span{position:absolute;inset:0;display:grid;place-items:center;font-size:10px;font-weight:900;text-shadow:1px 1px 2px #000}.hpbar>div{background:linear-gradient(90deg,#922e35,#d06b59)}.xpbar>div{background:linear-gradient(90deg,#378ba0,#9bd5cd)}.miniStats{margin:auto;display:grid;gap:3px;text-align:right;font-size:12px;color:#e5d2a8;font-weight:900}.iconBtn{pointer-events:auto;padding:8px 12px;font-size:19px;background:#202c34df}.bossHud{margin:15px auto 0;width:min(480px,92%)}.bossHead{display:flex;justify-content:space-between;font-family:Georgia,serif;font-size:12px;color:#f0b6a4;font-weight:bold;text-shadow:0 2px 3px #000}.bossbar{height:15px;margin-top:4px;border-color:#853f40}.bossbar>div{background:linear-gradient(90deg,#8a1e39,#f07564)}.notice{text-align:center;font-family:Georgia,serif;letter-spacing:.1em;color:var(--gold);font-weight:bold;margin-top:12px;text-shadow:1px 2px 3px #000}.controls{position:absolute;bottom:max(19px,env(safe-area-inset-bottom));left:0;right:0;height:130px;z-index:3;pointer-events:none}.joyBase{position:absolute;bottom:0;left:24px;width:120px;height:120px;border-radius:50%;border:2px solid #b2b4a64d;background:#13232c65;pointer-events:auto;touch-action:none;box-shadow:inset 0 0 26px #0006}.joyBase:before{content:'✣';position:absolute;inset:0;display:grid;place-items:center;font-size:44px;color:#9fc7b340}.joyKnob{position:absolute;width:56px;height:56px;left:30px;top:30px;border-radius:50%;background:radial-gradient(circle at 32% 25%,#829d93,#46645f);border:2px solid #a0bbb1a3;box-shadow:0 4px 14px #000a;transform:translate(0,0)}.actionArea{position:absolute;bottom:0;right:23px;display:flex;align-items:end;gap:12px;pointer-events:auto}.attackBtn,.dashBtn{display:grid;place-items:center;align-content:center;gap:1px;touch-action:none;border-radius:50%;box-shadow:0 3px 18px #0009}.attackBtn{width:91px;height:91px;background:radial-gradient(circle at 35% 25%,#e3b478,#975b44);border:2px solid #e7d2a3;color:#141b20;font-size:31px}.dashBtn{height:64px;width:64px;background:#283f46c9;border-color:#8baeb1;font-size:26px}.actionArea small{font-size:8px;letter-spacing:.06em}.modal{position:absolute;inset:0;z-index:10;background:#061117cb;display:grid;place-items:center;padding:14px;backdrop-filter:blur(7px)}.modalBox{width:min(420px,100%);max-height:calc(100vh - 30px);overflow-y:auto;background:linear-gradient(145deg,#1a2b31,#101d25);border:1px solid #7b8a825c;border-radius:19px;padding:24px;box-shadow:0 20px 80px #000c;text-align:center;display:grid;gap:12px}.modalBox h2{font-family:Georgia,serif;font-size:29px;margin:0}.modalBox p{font-size:14px;line-height:1.45;color:#b6c6c1;margin:0}.settingRow{display:flex;align-items:center;justify-content:space-between;text-align:left;font-size:13px;gap:10px}.upgradeCards{display:grid;gap:8px}.upgradeCards button{display:grid;gap:5px;text-align:left}.upgradeCards button span{font-weight:400;font-size:11px;color:#a9b7b4}.roomCode{padding:14px;border:1px dashed var(--gold);font-size:30px;font-weight:900;letter-spacing:.23em;color:var(--gold);user-select:all}.separator{color:#8ba09b;text-transform:uppercase;font-size:12px}.joinRow{display:flex;gap:6px}.joinRow input{width:100%;text-transform:uppercase;letter-spacing:.12em}.netStatus{font-size:12px;color:#a9c2b9;line-height:1.45;text-align:left;background:#122028;padding:10px;border-radius:8px}.toast{pointer-events:none;position:absolute;z-index:30;left:50%;bottom:145px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 30px);padding:11px 17px;border-radius:12px;border:1px solid #a0b19b5e;background:#15272cef;font-weight:700;font-size:12px;box-shadow:0 10px 30px #0009}.editor{position:absolute;z-index:7;right:0;top:0;bottom:0;width:min(375px,100%);display:flex;flex-direction:column;background:#111e25f5;border-left:1px solid #7c8b7e66;box-shadow:-14px 0 44px #0008}.editorHeader{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 15px 12px}.editorHeader strong{font-family:Georgia,serif;font-size:20px}.subtleBtn{padding:8px 10px;font-size:11px}.tabs{display:flex;gap:4px;padding:0 13px 12px;border-bottom:1px solid #82948730}.tabs button{flex:1;padding:10px 4px;font-size:11px;background:transparent}.tabs button.active,.toolGrid button.active{color:var(--gold);border-color:var(--gold);background:#3b3d2f9c}.editBody{padding:14px;overflow:auto;flex:1}.editHelp{margin:0 0 13px;line-height:1.5;color:#b4c5bf;font-size:12px}.toolGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.toolActions{display:flex;gap:7px;margin-top:10px}.toolActions button{flex:1;font-size:10px;padding:11px 7px}.editTab label{margin:10px 0;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:12px;color:#cad4c8}.editTab label input[type=number],.editTab label select{width:46%}.previewLine{font-size:11px;color:#bbd0bc;line-height:1.7;border-top:1px solid #4e645360;padding-top:12px;margin-top:13px}.editTab textarea{width:100%;line-height:1.5;resize:vertical;touch-action:auto}.editTab .primary{width:100%;margin-top:8px}.cmdResult{font-size:12px;border:1px solid #4e6f5f;background:#1b3330;padding:11px;border-radius:8px;line-height:1.5;margin-top:11px}.examples{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}.examples div{width:100%;font-size:11px;color:#a2b5ae}.examples button{font-size:10px;padding:7px 9px}.editFooter{padding:12px;border-top:1px solid #82948733;display:grid;gap:7px}.editFooter .toolActions{margin:0}.editFooter>.primary{padding:13px}.editFooter>button:last-child{background:#4b2933;border-color:#86525b}.editor:not(.hidden)~.controls{display:none}.editor .editFooter button{font-size:12px}
 @media (max-width:760px){.editor{top:auto;bottom:0;left:0;right:0;width:100%;height:min(58vh,510px);border-left:0;border-top:1px solid #7c8b7e66;border-radius:18px 18px 0 0}.editorHeader{padding-top:12px}.home{padding:20px 23px}.home h1{font-size:48px}.homeButtons button{min-height:44px}.hud{padding-top:max(12px,env(safe-area-inset-top))}.joyBase{left:19px;bottom:8px;width:104px;height:104px}.joyKnob{left:23px;top:23px}.actionArea{right:17px;bottom:6px}.controls{height:117px}.editor .editBody{padding-top:10px}}
 @media (max-height:680px){.home{padding:12px 20px}.home h1{font-size:38px;margin:0 0 8px}.home .logoGlyph{display:none}.home .tagline{font-size:12px;margin-bottom:10px}.homeButtons button{min-height:38px;padding:8px}.smallMuted{display:none}.controls{transform:scale(.83);transform-origin:bottom center}}
@@ -633,7 +633,7 @@
 </section>
 <div id="reviveDock" class="reviveDock hidden"><button id="reviveBtn" class="reviveBtn" type="button" aria-label="Hold to revive teammate">✚ <span>DRŽI ZA OŽIVLJAVANJE</span></button><small id="reviveTarget" class="reviveTarget"></small></div>
 <div aria-live="polite" class="spectatorPanel hidden" id="spectatorPanel"><div class="spectatorTitle">☠ POGINUO SI · GLEDAŠ EKIPU</div><div class="spectatorLine"><button aria-label="Prethodni živi igrač" id="spectatorPrev">◀</button><strong id="spectatorLabel">IGRAČ 2</strong><button aria-label="Sledeći živi igrač" id="spectatorNext">▶</button></div><small id="spectatorCount">1 PREŽIVEO</small><button type="button" id="sosBtn" class="sosAction hidden" aria-label="Send one SOS signal">⚑ SEND SOS</button><small id="sosStatus" class="sosStatus hidden" aria-live="polite"></small></div><div class="controls hidden" id="controls"><div aria-hidden="true" class="joyBase hidden" id="joyBase"><div class="joyKnob" id="joyKnob"></div></div><div class="actionArea"><button aria-label="Izbegavanje, cooldown 2.8 sekunde" class="dashBtn" id="dashBtn">↝<small>IZBEGNI</small><span class="dashCooldown" id="dashCooldown"></span></button></div></div><div id="ns93SpellDock" class="hidden" aria-label="Spellcasting"><div class="ns93Mana"><span id="ns93ManaValue">64 / 64 MP</span><div class="ns93ManaTrack"><div id="ns93ManaFill"></div></div></div><div id="ns93SpellList"></div></div><div id="ns93Target" aria-hidden="true"></div><button aria-label="Pauza i meni" class="cornerPause hidden" id="pauseBtn" title="Otvori pauzu / meni">☰<small>MENI</small></button>
-<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL • v93</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
+<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL • v94</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
  <div class="ns50MenuGroups" id="ns50MenuGroups">
   <details class="ns50MenuGroup" id="ns50MenuPlay" open><summary><span class="ns50GroupIcon">▶</span><span class="ns50GroupWords"><strong data-ns50-en="PLAY" data-ns50-sr="IGRAJ">PLAY</strong><small data-ns50-en="Solo, campaign, co-op" data-ns50-sr="Solo, kampanja, co-op">Solo, campaign, co-op</small></span><span class="ns50Chevron">⌄</span></summary><div class="ns50GroupBody">
    <button class="primary ns50MainPlay" id="startBtn">⚔ ZAPOČNI IGRU</button>
@@ -1105,7 +1105,62 @@ const oldMP=safeGet(MP_STORE_KEY)||{};
 let mpProgress={...newMPProgress(),coins:Math.max(0,Math.floor(Number(oldMP.coins)||0)),earned:Math.max(0,Math.floor(Number(oldMP.earned)||0)),shards:Math.max(0,Math.floor(Number(oldMP.shards)||0)),runs:Math.max(0,Math.floor(Number(oldMP.runs)||0)),awarded:typeof oldMP.awarded==='object'&&oldMP.awarded?oldMP.awarded:{},ranks:{}};
 mpProgress.spells=typeof oldMP.spells==='object'&&oldMP.spells?Object.fromEntries(Object.entries(oldMP.spells).filter(([k,v])=>typeof k==='string'&&v===1&&k.length<40)):{};
 for(const [id,s] of Object.entries(MP_SKILLS))mpProgress.ranks[id]=clamp(Math.floor(Number(oldMP.ranks?.[id])||0),0,s.max);
-function saveMP(){safeSet(MP_STORE_KEY,mpProgress);savePlayerAccounts();refreshProfileLabels()}
+
+// v94: defensive local progression rules. Host stays authoritative for room damage and
+// run rewards. Client-only localStorage is NOT tamper-proof: a signed server ledger
+// will be required before money, trading or ranked leaderboards can be trusted.
+const NS94_ECON=(()=>{
+ const MAX_COINS=2000000,MAX_SHARDS=100000,MAX_SESSIONS=12000,MAX_RUNS=200000;
+ const int=(v,limit)=>Number.isFinite(Number(v))?Math.min(limit,Math.max(0,Math.floor(Number(v)))):0;
+ const validSession=s=>typeof s==='string'&&/^session-[a-z0-9]{1,25}$/.test(s);
+ const keyOf=(session,round)=>session+':'+round;
+ function normalize(){
+  mpProgress.coins=int(mpProgress.coins,MAX_COINS);
+  mpProgress.earned=int(mpProgress.earned,MAX_COINS);
+  mpProgress.shards=int(mpProgress.shards,MAX_SHARDS);
+  mpProgress.runs=int(mpProgress.runs,MAX_RUNS);
+  for(const [id,meta] of Object.entries(MP_SKILLS))
+   mpProgress.ranks[id]=int(mpProgress.ranks?.[id],meta.max);
+  const allowed=new Set(['lightning','fire','frost','chain','comet','heal','nova']);
+  mpProgress.spells=Object.fromEntries(Object.entries(mpProgress.spells&&typeof mpProgress.spells==='object'?mpProgress.spells:{})
+   .filter(([k,v])=>allowed.has(k)&&v===1).map(([k])=>[k,1]));
+  const seen=mpProgress.awarded&&typeof mpProgress.awarded==='object'&&!Array.isArray(mpProgress.awarded)?mpProgress.awarded:{};
+  mpProgress.awarded=Object.fromEntries(Object.entries(seen).slice(-MAX_SESSIONS).filter(([key,v])=>v===1&&/^session-[a-z0-9]{1,25}:[1-9][0-9]{0,5}$/.test(key)));
+ }
+ function rewardValid(packet){
+  if(NET.role!=='host'&&NET.role!=='guest')return false;
+  if(!packet||!Number.isInteger(packet.round)||packet.round<1||packet.round>999999)return false;
+  if(!validSession(packet.session)||packet.session!==NET.sessionToken||packet.round!==NET.round)return false;
+  const {kills,seconds,wave,shards}=packet;
+  if(!Number.isFinite(kills)||!Number.isFinite(seconds)||!Number.isFinite(wave)||!Number.isFinite(shards))return false;
+  if(kills<0||seconds<0||seconds>28800||wave<1||shards<0||shards>100000)return false;
+  // Broad sanity limits: do not reject legitimate six-player horde battles.
+  if(kills>Math.max(100,seconds*10)||wave>Math.max(12,seconds/7+8))return false;
+  if(Object.prototype.hasOwnProperty.call(mpProgress.awarded,keyOf(packet.session,packet.round)))return false;
+  if(Object.keys(mpProgress.awarded).length>=MAX_SESSIONS)return false; // fail closed, no replay gap
+  return true;
+ }
+ function reward(packet,amount){
+  if(!rewardValid(packet)||!Number.isSafeInteger(amount)||amount<0||amount>45)return false;
+  const key=keyOf(packet.session,packet.round);
+  mpProgress.awarded[key]=1;
+  mpProgress.coins=Math.min(MAX_COINS,mpProgress.coins+amount);
+  mpProgress.earned=Math.min(MAX_COINS,mpProgress.earned+amount);
+  mpProgress.runs=Math.min(MAX_RUNS,mpProgress.runs+1);
+  mpProgress.shards=Math.min(MAX_SHARDS,mpProgress.shards+Math.min(5,int(packet.shards,5)));
+  return true;
+ }
+ function pay(price){
+  if(!Number.isSafeInteger(price)||price<1||price>100000)return false;
+  if(!Number.isSafeInteger(mpProgress.coins)||mpProgress.coins<price)return false;
+  mpProgress.coins-=price;return true;
+ }
+ function status(){return{localOnly:true,balance:mpProgress.coins,awards:Object.keys(mpProgress.awarded).length,capacity:MAX_SESSIONS}}
+ normalize();
+ return{normalize,rewardValid,reward,pay,status};
+})();
+window.__NS94_ECON=NS94_ECON;
+function saveMP(){NS94_ECON.normalize();safeSet(MP_STORE_KEY,mpProgress);savePlayerAccounts();refreshProfileLabels()}
 function mpCost(id,rank){const s=MP_SKILLS[id];return s?Math.ceil(s.start+rank*2.5+rank*rank*.9):Infinity}
 function applyCoopBonuses(p,ranks){for(const [id,s] of Object.entries(MP_SKILLS)){const n=clamp(Math.floor(Number(ranks?.[id])||0),0,s.max);
  if(id==='vitality'){p.maxHp+=n*2;p.hp=p.maxHp}
@@ -1116,16 +1171,16 @@ function applyCoopBonuses(p,ranks){for(const [id,s] of Object.entries(MP_SKILLS)
  if(id==='fortune')p.critBonus=n*.0015;
 }}
 function earnMPReward(kills,seconds,wave){if(seconds<60||kills<10)return 0;return Math.max(1,Math.min(45,Math.floor((kills-8)*.48+Math.max(0,wave-1)*2+Math.floor(seconds/45)*1.5),Math.floor(kills*.85),Math.floor(seconds/30)*8))}
-function awardMP(packet){if(!packet||!Number.isInteger(packet.round)||packet.round<1)return false;
- const key=String(packet.session||'unknown')+':'+packet.round;
- if(mpProgress.awarded[key])return false;
- const amount=earnMPReward(Math.max(0,Number(packet.kills)||0),Math.max(0,Number(packet.seconds)||0),Math.max(1,Number(packet.wave)||1));
- mpProgress.awarded[key]=1;NET.lastEarned=amount;mpProgress.coins+=amount;mpProgress.earned+=amount;mpProgress.runs++;if(amount>0){const shards=Math.min(5,Math.max(0,Math.floor(Number(packet.shards)||0)));mpProgress.shards+=shards;levelHeroAfterRun(Math.min(70,amount*2+Math.floor(Math.max(0,Number(packet.kills)||0)/4)));}
- const keys=Object.keys(mpProgress.awarded);if(keys.length>250)for(const k of keys.slice(0,keys.length-250))delete mpProgress.awarded[k];
+function awardMP(packet){
+ if(!NS94_ECON.rewardValid(packet))return false;
+ const amount=earnMPReward(packet.kills,packet.seconds,packet.wave);
+ if(!NS94_ECON.reward(packet,amount))return false;
+ NET.lastEarned=amount;
+ if(amount>0)levelHeroAfterRun(Math.min(70,amount*2+Math.floor(packet.kills/4)));
  saveMP();renderCoopForge();return amount;
 }
 function buyCoopSkill(id){if(NET.phase==='playing')return false;const s=MP_SKILLS[id],r=mpProgress.ranks[id];if(!s||r>=s.max||mpProgress.coins<mpCost(id,r))return false;
- mpProgress.coins-=mpCost(id,r);mpProgress.ranks[id]++;saveMP();renderCoopForge();if($('playerProfilePanel')&&!$('playerProfilePanel').classList.contains('hidden'))renderPlayerProfile();if(NET.role==='guest'&&NET.conn?.open)NET.conn.send({t:'profile',spec:networkHeroStyle(heroStyle),ranks:mpProgress.ranks});
+ if(!NS94_ECON.pay(mpCost(id,r)))return false;mpProgress.ranks[id]++;saveMP();renderCoopForge();if($('playerProfilePanel')&&!$('playerProfilePanel').classList.contains('hidden'))renderPlayerProfile();if(NET.role==='guest'&&NET.conn?.open)NET.conn.send({t:'profile',spec:networkHeroStyle(heroStyle),ranks:mpProgress.ranks});
  if(NET.role==='host')broadcastLobby();sfx('save');return true}
 function renderCoopForge(){const balance=$('coopCoinBalance'),holder=$('coopForgeList');if(!balance||!holder)return;NS93_MAGIC.renderStores();
  balance.textContent=mpProgress.coins+' ✦ · '+mpProgress.runs+' završenih partija';holder.textContent='';
@@ -1965,7 +2020,7 @@ const NS93_MAGIC=(()=>{
   const s=byId[id];
   if(!s||!s.price||G.mode==='play'||NET.phase==='playing'||mpProgress.spells?.[id]===1)return false;
   if(mpProgress.coins<s.price){toast(tr('Not enough honor coins','Nema dovoljno poena časti'));return false;}
-  mpProgress.coins-=s.price;
+  if(!NS94_ECON.pay(s.price))return false;
   mpProgress.spells[id]=1;
   saveMP();
   renderStores();
@@ -2185,7 +2240,7 @@ const NS93_MAGIC=(()=>{
   ctx.globalAlpha*=.5;
   ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(0,0,Math.max(3,r*.2*life),0,TAU);ctx.fill();
   ctx.globalAlpha=life*.95;
-  const spikes=low?4:val.id==='comet'||val.id==='nova'?9:7;
+  const spikes=NS94_FX.spikes(val.id==='comet'||val.id==='nova');
   for(let i=0;i<spikes;i++){
    const angle=i*TAU/spikes+e.id*.3;
    const rr=(.2+q*.68)*r;
@@ -2444,6 +2499,45 @@ function hideGameplayOverlayBoxes(){['nsExtractionBtn','nsMissionHUD','nsTutoria
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),1800)}
 // v77: adaptive canvas budget for both host and guest. Host must keep its game
 // simulation authoritative; only pixel resolution is adjusted, never game speed.
+
+// v94: self-tuning cosmetic quality, independent of gameplay, enemy AI and snapshots.
+// Hysteresis avoids toggling quality on brief Wi-Fi/frame hitches.
+const NS94_FX=(()=>{
+ let quality=2,lastTs=0,average=16.7,slow=0,good=0,changes=0;
+ function observe(ts){
+  if(!Number.isFinite(ts))return quality;
+  if(document.hidden||G.mode!=='play'){
+   lastTs=ts;slow=0;good=0;return quality;
+  }
+  if(!lastTs){lastTs=ts;return quality;}
+  const frame=ts-lastTs;lastTs=ts;
+  if(frame<2||frame>180){slow=0;good=0;return quality;}
+  average=average*.91+frame*.09;
+  if(average>26.5){
+   slow+=frame;good=0;
+   if(slow>=2100&&quality>0){quality--;changes++;slow=0;}
+  }else if(average<19.2){
+   good+=frame;slow=0;
+   if(good>=6800&&quality<2){quality++;changes++;good=0;}
+  }else{slow=Math.max(0,slow-frame*.5);good=0;}
+  return quality;
+ }
+ function shouldDraw(e){
+  if(!e||!e.type)return false;
+  if(e.type==='ns93Magic'||e.type==='bossBeam'||e.type==='bossQuake'||e.type==='hit')return true;
+  if(quality===2)return true;
+  if(!['puff','crumb','auraPulse','acid'].includes(e.type))return true;
+  const id=Math.max(0,Number(e.id)||0);
+  return quality===1?id%2===0:id%4===0;
+ }
+ function spikes(heavy){
+  return quality===0?3:quality===1?(heavy?5:4):(heavy?9:7);
+ }
+ function tier(){return quality;}
+ function stats(){return{tier:quality,estimatedFps:Math.round(1000/Math.max(1,average)),changes};}
+ return{observe,shouldDraw,spikes,tier,stats};
+})();
+window.__NS94_FX=NS94_FX;
 const NS77PERF={guestCap:1.18,hostCap:1.35,ms:0,measured:0,lastAdjust:0,guestActive:false,hostActive:false,lastRenderMs:0,changes:0,
  sample(ms){if(!(this.guestActive||this.hostActive))return;this.measured++;this.ms+=ms;
   if(performance.now()-this.lastAdjust<4500||this.measured<70)return;
@@ -3399,9 +3493,9 @@ function drawAbilityEffects(){
   }else{
    ctx.globalAlpha=(1-boom)*.83;ellipse(0,0,b.rad*.74,b.rad*.46,'#35221d');
    const rr=6+boom*(b.rad+24);ctx.shadowColor='#ffb43b';ctx.shadowBlur=25*(1-boom);
-   const grad=ctx.createRadialGradient(0,0,0,0,0,Math.max(1,b.rad*(1-boom*.25)));grad.addColorStop(0,'#fff8c8cc');grad.addColorStop(.25,'#ffc15da4');grad.addColorStop(.65,'#ff6d3470');grad.addColorStop(1,'#ff4c1900');ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,b.rad*(1-boom*.15),0,TAU);ctx.fill();
+   if(NS94_FX.tier()>0){const grad=ctx.createRadialGradient(0,0,0,0,0,Math.max(1,b.rad*(1-boom*.25)));grad.addColorStop(0,'#fff8c8cc');grad.addColorStop(.25,'#ffc15da4');grad.addColorStop(.65,'#ff6d3470');grad.addColorStop(1,'#ff4c1900');ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,b.rad*(1-boom*.15),0,TAU);ctx.fill()}else{ellipse(0,0,b.rad*(1-boom*.2),b.rad*(1-boom*.2),'#ff954e88')}
    ctx.strokeStyle='#ffe3a1';ctx.lineWidth=9*(1-boom);ctx.beginPath();ctx.arc(0,0,rr,0,TAU);ctx.stroke();
-   ctx.shadowBlur=0;for(let j=0;j<12;j++){const a=j*TAU/12+b.seed,dist=boom*(b.rad+30);ellipse(Math.cos(a)*dist,Math.sin(a)*dist*.8,3+3*(1-boom),2+3*(1-boom),'#ffbb69')}
+   ctx.shadowBlur=0;for(let j=0;j<(NS94_FX.tier()===0?3:NS94_FX.tier()===1?6:12);j++){const a=j*TAU/12+b.seed,dist=boom*(b.rad+30);ellipse(Math.cos(a)*dist,Math.sin(a)*dist*.8,3+3*(1-boom),2+3*(1-boom),'#ffbb69')}
   }ctx.restore();
  }
  // Persistently visible poison aura (drifting wisps), frost field and timed invulnerability.
@@ -4144,7 +4238,7 @@ if(isHero){if(heroStyle.gear==='hood'){ctx.fillStyle=heroStyle.hair;ctx.beginPat
 if(isBoss){ctx.strokeStyle='#bc6781';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-11,-24);ctx.lineTo(-15,-38);ctx.moveTo(11,-24);ctx.lineTo(15,-38);ctx.stroke()}
 ctx.restore();if(isHero){if(G.players.length>1){ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillStyle='#f0d7a9';ctx.fillText('IGRAČ '+e.id.slice(1),0,-r*3.35)}}else{if(e.type==='boss'||e.hp<e.maxHp){ctx.fillStyle='#1c2423';ctx.fillRect(-r,-r*2.6,r*2,5);ctx.fillStyle=e.type==='boss'?'#d9566e':'#b89a75';ctx.fillRect(-r,-r*2.6,r*2*Math.max(0,e.hp/e.maxHp),5)}}ctx.restore()}
 function drawWeapon(type,attack){ctx.save();ctx.translate(15,8);ctx.rotate(attack?-.9-1.6*(1-attack/.30):-.18);ctx.strokeStyle='#8e6d4c';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,4);ctx.lineTo(0,-15);ctx.stroke();if(type==='axe'){ctx.fillStyle='#c4d5ce';ctx.beginPath();ctx.moveTo(-3,-23);ctx.lineTo(15,-25);ctx.lineTo(14,-11);ctx.lineTo(-4,-13);ctx.closePath();ctx.fill()}else if(type==='spear'){ctx.strokeStyle='#b9b9a2';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,5);ctx.lineTo(0,-38);ctx.stroke();ctx.fillStyle='#e8e1bc';ctx.beginPath();ctx.moveTo(0,-46);ctx.lineTo(-5,-35);ctx.lineTo(5,-35);ctx.fill()}else{ctx.fillStyle='#dbe7df';ctx.beginPath();ctx.moveTo(-3,-12);ctx.lineTo(3,-12);ctx.lineTo(4,-35);ctx.lineTo(0,-43);ctx.lineTo(-4,-35);ctx.closePath();ctx.fill();ctx.strokeStyle='#c99659';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-9,-11);ctx.lineTo(9,-11);ctx.stroke()}ctx.restore()}
-function drawEffects(){for(const e of G.effects){const p=screenPoint(e.x,e.y);if(p.x<-50||p.x>viewSize().w+50||p.y<-50||p.y>viewSize().h+50)continue;ctx.save();ctx.translate(p.x,p.y);let life=1-e.t/e.life;ctx.globalAlpha=life;if(e.type==='ns93Magic'){NS93_MAGIC.drawSpell(e,life)}else if(['shield','heal','frost','aura','shock','bomb'].includes(e.type)){const clr={shield:'#92d9ff',heal:'#8cf2b2',frost:'#98d2ff',aura:'#b9ee72',shock:'#d4bdff',bomb:'#ffb069'}[e.type];ctx.strokeStyle=clr;ctx.lineWidth=3*life;ctx.beginPath();ctx.arc(0,0,(1-life)*38+8,0,TAU);ctx.stroke();if(e.type==='heal'){ctx.fillStyle='#b7ffc9';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('+'+MARKET_TRADE.hp,0,-18-12*(1-life))}}else if(e.type==='hit'){ctx.fillStyle=e.value>0?'#ffe2a1':'#d9a1bb';ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.fillText(e.value?'-'+e.value:'✦',0,-15-25*(1-life))}else if(e.type==='slash'){
+function drawEffects(){for(const e of G.effects){if(!NS94_FX.shouldDraw(e))continue;const p=screenPoint(e.x,e.y);if(p.x<-50||p.x>viewSize().w+50||p.y<-50||p.y>viewSize().h+50)continue;ctx.save();ctx.translate(p.x,p.y);let life=1-e.t/e.life;ctx.globalAlpha=life;if(e.type==='ns93Magic'){NS93_MAGIC.drawSpell(e,life)}else if(['shield','heal','frost','aura','shock','bomb'].includes(e.type)){const clr={shield:'#92d9ff',heal:'#8cf2b2',frost:'#98d2ff',aura:'#b9ee72',shock:'#d4bdff',bomb:'#ffb069'}[e.type];ctx.strokeStyle=clr;ctx.lineWidth=3*life;ctx.beginPath();ctx.arc(0,0,(1-life)*38+8,0,TAU);ctx.stroke();if(e.type==='heal'){ctx.fillStyle='#b7ffc9';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('+'+MARKET_TRADE.hp,0,-18-12*(1-life))}}else if(e.type==='hit'){ctx.fillStyle=e.value>0?'#ffe2a1':'#d9a1bb';ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.fillText(e.value?'-'+e.value:'✦',0,-15-25*(1-life))}else if(e.type==='slash'){
  const a=e.value?.angle??-Math.PI/2,weapon=e.value?.weapon||'sword',r=e.value?.range||66;
  ctx.save();ctx.rotate(a);ctx.globalAlpha*=Math.max(.05,life);
  const phase=1-life,spread=(e.value?.arc||1.25),begin=-spread*.65+phase*.22,end=spread*.55+phase*.22;
@@ -4332,7 +4426,7 @@ function mapTick(ts){if(G.mode!=='play'){if(!$('mapDock').classList.contains('hi
 $('mapToggle').addEventListener('click',mapOpen);$('mapClose').addEventListener('click',mapClose);
 $('mapOverlay').addEventListener('click',e=>{if(e.target===$('mapOverlay'))mapClose()});
 
-function loop(ts){NSX.reportFPS(ts);let dt=clamp((ts-lastTs)/1000,.001,.035);lastTs=ts;update(dt);NS89_PICK.tick();NS77PERF.tick();const ns76DrawStart=performance.now();draw();NS77PERF.sample(performance.now()-ns76DrawStart);mapTick(ts);NETLAB.tick(ts);NETMIG.tick();requestAnimationFrame(loop)}
+function loop(ts){NSX.reportFPS(ts);NS94_FX.observe(ts);let dt=clamp((ts-lastTs)/1000,.001,.035);lastTs=ts;update(dt);NS89_PICK.tick();NS77PERF.tick();const ns76DrawStart=performance.now();draw();NS77PERF.sample(performance.now()-ns76DrawStart);mapTick(ts);NETLAB.tick(ts);NETMIG.tick();requestAnimationFrame(loop)}
 // Free-position analog joystick. It appears exactly where the player touches
 // the gameplay canvas; the attack/dash buttons have their own pointer targets.
 const floatingStick={pointerId:null,startX:0,startY:0,radius:47,deadZone:7};
@@ -4651,7 +4745,7 @@ function startLobbyMatch(){
  // Host is authoritative: start the battle only here, never when a room is created.
  startGame({specialMode:selectedMode,difficulty:NSX.opt.difficulty});
  markMultiplayerNames();
- for(const c of NET.clients.values())if(c.open)c.send({t:'start',round:NET.round,difficulty:NSX.opt.difficulty,specialMode:G.specialMode,towers:props.filter(o=>o.type==='nightTower'),looks:coopLooks()});
+ for(const c of NET.clients.values())if(c.open)c.send({t:'start',round:NET.round,session:NET.sessionToken,difficulty:NSX.opt.difficulty,specialMode:G.specialMode,towers:props.filter(o=>o.type==='nightTower'),looks:coopLooks()});
  sendSnapshot();voiceLine('start',true);
  return true;
 }
@@ -4849,7 +4943,7 @@ function setupConnection(c){
     renderLobby();return;
    }
    if(data.t==='start'&&NET.phase==='lobby'&&NET.worldReady){NET.heroLooks=new Map(Object.entries(data.looks||{}));
-    NET.phase='playing';NET.lastEarned=null;NET.round=Number(data.round)||NET.round;NET.lastRoundText='';startGame({specialMode:data.specialMode});resize();voiceLine('start',true);if(data.specialMode==='night'){props=props.filter(o=>o.type!=='nightTower').concat((Array.isArray(data.towers)?data.towers:[]).slice(0,3));invalidateNavigation()}safeSend({t:'started'});netStatus('Partija je pokrenuta.');return;
+    NET.phase='playing';NET.lastEarned=null;NET.round=Number(data.round)||NET.round;NET.sessionToken=typeof data.session==='string'?data.session:null;NET.lastRoundText='';startGame({specialMode:data.specialMode});resize();voiceLine('start',true);if(data.specialMode==='night'){props=props.filter(o=>o.type!=='nightTower').concat((Array.isArray(data.towers)?data.towers:[]).slice(0,3));invalidateNavigation()}safeSend({t:'started'});netStatus('Partija je pokrenuta.');return;
    }
    if(data.t==='start'&&NET.phase==='playing'){safeSend({t:'started'});return}
    if(data.t==='snapshot'&&NET.phase==='playing')receiveSnapshot(data);
@@ -5030,7 +5124,7 @@ $('lobbyStartBtn').onclick=startLobbyMatch;
 $('ns62ShareRoomCode').onclick=async()=>{
  const code=String(NET.code||$('roomCode').textContent||'').trim().toUpperCase();
  if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('Prvo napravi sobu.');return;}
- const message='Noćna Straža v93 🎮\nKod sobe: '+code+'\nOtvori igru → Multiplayer → unesi kod → PRIDRUŽI SE. Server se povezuje automatski.';
+ const message='Noćna Straža v94 🎮\nKod sobe: '+code+'\nOtvori igru → Multiplayer → unesi kod → PRIDRUŽI SE. Server se povezuje automatski.';
  try{if(navigator.share){await navigator.share({title:'Noćna Straža — poziv',text:message});return;}}catch(err){if(err?.name==='AbortError')return}
  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(message);toast('Poziv je kopiran. Pošalji ga drugaru.');return;}}catch{}
  window.prompt('Kopiraj kod sobe i pošalji drugaru:',code);
@@ -6190,7 +6284,7 @@ function visit(node){if(!node)return;if(node.nodeType===3){localizeText(node);re
 let enabled=true;
 const ob=new MutationObserver(records=>{if(!enabled)return;const visited=new Set();for(const record of records){if(record.type==='characterData'){const n=record.target;if(!visited.has(n)){visited.add(n);localizeText(n);}}else if(record.type==='attributes'){localizeAttrs(record.target);}else{for(const child of record.addedNodes){if(!visited.has(child)){visited.add(child);visit(child);}}}}});
 ob.observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});
-function syncSelectors(){document.querySelectorAll('[data-game-language]').forEach(select=>{if(select.value!==current)select.value=current;});document.documentElement.lang=current==='sr'?'sr':'en';document.title=current==='sr'?'Noćna Straža v93':'Night Watch v93';}
+function syncSelectors(){document.querySelectorAll('[data-game-language]').forEach(select=>{if(select.value!==current)select.value=current;});document.documentElement.lang=current==='sr'?'sr':'en';document.title=current==='sr'?'Noćna Straža v94':'Night Watch v94';}
 function setLanguage(lang){current=lang==='sr'?'sr':'en';try{localStorage.setItem('ns_game_language_v1',current);}catch(_){};syncSelectors();visit(document.body);}
 document.querySelectorAll('[data-game-language]').forEach(select=>{select.value=current;select.addEventListener('change',()=>{setLanguage(select.value);setTimeout(()=>window.__nightWatch?.NSX?.updateHud?.(),0);});});
 syncSelectors();visit(document.body);
@@ -6359,7 +6453,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div class="ns82-auth" id="ns82-auth" role="dialog" aria-modal="true" aria-label="Night Watch account" hidden>
  <section class="ns82-card">
   <button id="ns84AuthBack" class="ns84-auth-back" type="button" aria-label="Back / Nazad">← BACK / NAZAD</button>
-  <div class="ns82-logo">✦ NIGHT WATCH / NOĆNA STRAŽA · v93</div>
+  <div class="ns82-logo">✦ NIGHT WATCH / NOĆNA STRAŽA · v94</div>
   <h2 id="ns83-account-heading" data-ns82-en="YOUR GAME ACCOUNT" data-ns82-sr="TVOJ NALOG ZA IGRU">YOUR GAME ACCOUNT</h2>
   <p id="ns83-account-subheading" data-ns82-en="Save your level, inventory, characters and progress online. Sign in from another phone to continue." data-ns82-sr="Sačuvaj nivo, inventar, likove i napredak na mreži. Prijavi se na drugom telefonu da nastaviš.">Save your level, inventory, characters and progress online. Sign in from another phone to continue.</p>
   <div id="ns82-config" class="ns82-alert" hidden data-ns82-en="Online accounts are not yet enabled. You can still play safely on this phone and export your progress." data-ns82-sr="Online nalozi još nisu aktivirani. Možeš da igraš na ovom telefonu i izvezeš svoj napredak."></div>
