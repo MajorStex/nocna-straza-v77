@@ -70,12 +70,14 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
     ]})}));
    await lobbyPage.goto('https://majorstex.github.io/nocna-straza-v92/',{waitUntil:'domcontentloaded',timeout:30000});
    await lobbyPage.waitForFunction(()=>!!window.__NS92_DIR);
+   // Account gate is expected on a fresh browser: choose the supported local guest flow.
+   await lobbyPage.evaluate(()=>{document.getElementById('ns82-guest')?.click()});
    await lobbyPage.evaluate(()=>document.getElementById('coopBtn').click());
    await lobbyPage.waitForFunction(()=>document.querySelectorAll('.ns92Room').length===2,{timeout:15000});
    assert.equal(await lobbyPage.locator('#ns92Public').isChecked(),true,'public by default');
    assert.equal(await lobbyPage.locator('#ns92Locked').isChecked(),false,'unlocked by default');
    assert.equal(await lobbyPage.locator('#ns92Max').inputValue(),'6','six slots by default');
-   await lobbyPage.locator('.ns92Room').nth(1).locator('button').click();
+   await lobbyPage.locator('.ns92Room').nth(1).locator('button').click({force:true});
    assert.equal(await lobbyPage.locator('#joinCode').inputValue(),'K7P3RX','listing and code share the same join field');
    assert.equal(await lobbyPage.locator('#ns92JoinPass').count(),1,'password input exists for code joins');
    const errs=runtimeErrors.filter(x=>/ReferenceError|SyntaxError|is not defined|Cannot read properties of undefined|NS92_/i.test(x));
