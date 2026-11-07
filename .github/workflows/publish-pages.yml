@@ -1,4 +1,4 @@
-name: Publish Night Watch (GitHub Pages)
+name: Verify Night Watch v89 game
 on:
   push:
     branches: [main]
@@ -8,35 +8,53 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: night-watch-pages
-  cancel-in-progress: true
 jobs:
-  publish:
+  test:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Validate v88 HTML scripts and assets
+      - name: Run source and gameplay smoke tests
+        shell: bash
         run: |
           node <<'NODE'
-          const fs = require('node:fs'), vm = require('node:vm');
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+          const assert = require('node:assert/strict');
           const html = fs.readFileSync('public/index.html','utf8');
-          if (!html.includes('Night Watch v88') || !html.includes('NS88_VIEW_CACHE')) throw Error('Incorrect build');
-          if (!fs.existsSync('public/firebase-config.js') || !fs.existsSync('public/auth-v82.js')) throw Error('Auth files missing');
           const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(x=>!x[1].includes('src='));
+          assert.equal(scripts.length,4);
           for (const [, , script] of scripts) new vm.Script(script);
-          console.log('v88 smoke check passed; '+scripts.length+' inline scripts parsed.');
+          assert.match(html,/Night Watch v89 — Multiplayer/);
+          assert.match(html,/function drawTroll\(e,model\)/);
+          assert.match(html,/m\.nsTrollHitAt=G\.time\+\.52/);
+          assert.match(html,/NSX\.applyDifficulty\(mob\)/);
+          assert.match(html,/data\.t==='ns89TakeWeapon'/);
+          assert.match(html,/data\.v!==89/);
+          assert.match(html,/if\(d\.type==='weapon'\)continue/);
+          assert.match(html,/window\.__NS89_PICK=NS89_PICK/);
+          assert.ok(fs.existsSync('public/auth-v82.js'));
+          assert.ok(fs.existsSync('public/firebase-config.js'));
+          const match=html.match(/const MEDIEVAL_WEAPONS=({[^;]+});/);
+          assert.ok(match,'weapon specs available');
+          const weapons=vm.runInNewContext('('+match[1]+')');
+          for(const name of ['trollclub','trollmaul']){
+            assert.ok(weapons[name]);
+            assert.ok(weapons[name].damage>weapons.sword.damage);
+            assert.ok(weapons[name].speed>1);
+            assert.ok(weapons[name].damage/weapons[name].speed<1.1);
+          }
+          const start=html.indexOf('function spawnEnemy(forcedType=null)');
+          const end=html.indexOf('\nfunction spawnRotfiend()',start);
+          assert.ok(start>0&&end>start);
+          const ctx={G:{mobs:[],wave:9},configs:{crawler:{size:1},goblin:{size:1},skeleton:{size:1},worm:{size:1},brute:{size:1},elephant:{size:1},rotfiend:{size:1},troll:{size:1}},TAU:Math.PI*2,WORLD:{w:4200,h:4200},rnd:()=>.5,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),nextSpawnTarget:()=>({x:2100,y:2100,id:'p1'}),canStepClear:()=>true};
+          ctx.addMob=(type,x,y)=>{const m={type,x,y,r:20,dead:false};ctx.G.mobs.push(m);return m};
+          vm.runInNewContext(html.slice(start,end)+'\nthis.spawnEnemy=spawnEnemy;',ctx);
+          assert.notEqual(ctx.spawnEnemy().type,'troll','no troll before wave 10');
+          ctx.G.wave=10;ctx.G.mobs=[];
+          assert.equal(ctx.spawnEnemy('troll').type,'troll','guaranteed troll at wave 10');
+          ctx.G.mobs=[{type:'troll',dead:false,x:100,y:100,r:20},{type:'troll',dead:false,x:150,y:100,r:20}];
+          assert.notEqual(ctx.spawnEnemy('troll').type,'troll','max two trolls at wave 10');
+          ctx.G.wave=20;
+          assert.equal(ctx.spawnEnemy('troll').type,'troll','third troll allowed from wave 20');
+          console.log('PASS: 4 scripts parsed; wave 9/10/20, mob cap, telegraph, difficulty hook, weapon balance, multiplayer pickup and cloud assets.');
           NODE
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: public
-      - id: deployment
-        uses: actions/deploy-pages@v4
