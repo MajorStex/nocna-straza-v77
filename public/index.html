@@ -4177,7 +4177,7 @@ const NS99_TEAM=(()=>{
   if(NET.role!=='host'||!activeIds().includes(id)||!!level||hostSleeping||ballot)return false;
   if(kind!==(manual?'resume':'pause'))return false;
   const now=Date.now();
-  if(now-(lastVoteRequests.get(id)||0)<15000&&activeIds().length>1)return false;
+  if(kind==='pause'&&now-(lastVoteRequests.get(id)||0)<15000&&activeIds().length>1)return false;
   lastVoteRequests.set(id,now);
   ballot={kind,until:now+12000,votes:{[id]:'yes'}};panelOpen=true;checkVotes();publish();return true;
  }
