@@ -1,13 +1,13 @@
 'use strict';
-const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=require('playwright-core');
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{chromium}=require('playwright-core');
 (async()=>{
  const bin=['/usr/bin/google-chrome','/usr/bin/chromium','/opt/google/chrome/chrome'].find(fs.existsSync);if(!bin)throw Error('No Chromium');
  const browser=await chromium.launch({headless:true,executablePath:bin,args:['--no-sandbox','--disable-dev-shm-usage']});
- const contexts=[],errors=[],url='https://majorstex.github.io/nocna-straza-v99/';
+ const contexts=[],errors=[],local=process.env.NS99_USE_LOCAL==='1',url=local?'file://'+path.resolve(__dirname,'../public/index.html'):'https://majorstex.github.io/nocna-straza-v99/';
  async function phone(name){
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});contexts.push(context);
   const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));
-  const r=await p.goto(url,{waitUntil:'domcontentloaded',timeout:30000});assert.equal(r?.status(),200);
+  const r=await p.goto(url,{waitUntil:'domcontentloaded',timeout:30000});if(!local)assert.equal(r?.status(),200);
   await p.waitForFunction(()=>!!window.__nightWatch&&!!window.__NS99_TEAM,{timeout:25000});
   assert.match(await p.title(),/Night Watch v99|Noćna Straža v99/);
   await p.evaluate(()=>document.getElementById('ns82-guest')?.click());
