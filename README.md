@@ -1,3 +1,23 @@
+# Noćna Straža v91 — dostignuća i obični predmeti (7. novembar 2026.)
+
+## Novi achievement sistem
+12 timskih ciljeva (solo igrač je tim od jednog): ubij 100, 200, 350, 500, 750 i 1.000 protivnika u jednoj partiji; prvi Trol Goblin; 10 crva-pljuvača; 10. i 20. talas; 5 otvorenih sanduka; oživi saigrača u co-opu. Napredak i nazivi su dvojezični (engleski podrazumevano, srpski izbor).
+
+Svako dostignuće daje **jedan trajno sačuvan predmet Common/Običan** u postojećoj Oružarnici, samo prvi put na nalogu. Tri nova skromna predmeta: Izviđački zavoj (+10 HP), Patrolni buzdovan (+3 damage i +4 range) i Lovčeva amajlija (+1% crit, +3 range). Preostale nagrade biraju se među postojećim običnim oklopima, oružjem i amajlijama. Nema retkih/legendarnih nagrada niti neograničenog farmanja.
+
+U co-opu host potvrđuje timski napredak i šalje kompaktnu 12-bitnu masku nagrada; svih šest igrača zadržava odvojenu evidenciju vezanu za profil, a ponovno slanje snapshot-a / rejoin / rezervni host ne može da duplicira predmete. Nagrade iz Oružarnice mogu se opremiti pre sledeće partije.
+
+Stari cloud save, Google login, stara dostignuća, statistika i prethodni v90 ostaju netaknuti. Solo nastavak čuva novi napredak i prihvata starije sačuvane partije.
+
+## Testiranje
+Automatski regresioni testovi za sintaksu sva četiri HTML skripta, 12 achievement uslova, granice za ubistva, Common item retkost, solo resume, 1 host + 5 simuliranih klijenata, host-migration, retransmisiju i odvojene korisničke profile.
+
+Ovo nije merilo stvarnog FPS-a niti stvarni test šest fizičkih telefona. Pre velikog testa s drugarima preporučuje se provera na 4G/5G i povratak u sobu posle prekida.
+
+Javni link: https://majorstex.github.io/nocna-straza-v91/
+
+---
+
 # Noćna Straža v90 — optimizovani HP barovi i pregled stabilnosti
 
 ## HP iznad neprijatelja
