@@ -42,7 +42,7 @@ const ctx=vm.createContext({
  obstacleInPath:()=>false,
  damagePlayer:(p,amount,m)=>{attacks.push({id:p.id,damage:amount,guard:m.ns95Guard});p.hp-=amount},
  effect:(type,x,y)=>effects.push([type,x,y]),sfx:()=>{},announce:s=>allies.push(s),
- coopXP:(p,amount)=>{p.xp=(p.xp||0)+amount},
+ coopXP:(p,amount)=>{p.xp=(p.xp||0)+amount},killMob:(m)=>{m.dead=true},
  screenPoint:(x,y)=>({x:x-game.camera.x+180,y:y-game.camera.y+380}),
  viewSize:()=>({w:360,h:800}),
  ellipse:()=>{},ctx:{save(){},restore(){},translate(){},strokeRect(){},fillRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},fill(){},arc(){},fillText(){},set globalAlpha(v){},set strokeStyle(v){},set lineWidth(v){},set fillStyle(v){},set font(v){},set textAlign(v){}},
