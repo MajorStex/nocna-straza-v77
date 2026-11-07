@@ -1,0 +1,40 @@
+name: Publish Night Watch (GitHub Pages)
+on:
+  push:
+    branches: [main]
+    paths:
+      - "public/**"
+      - ".github/workflows/publish-pages.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: night-watch-pages
+  cancel-in-progress: true
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate v88 HTML scripts and assets
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs'), vm = require('node:vm');
+          const html = fs.readFileSync('public/index.html','utf8');
+          if (!html.includes('Night Watch v88') || !html.includes('NS88_VIEW_CACHE')) throw Error('Incorrect build');
+          if (!fs.existsSync('public/firebase-config.js') || !fs.existsSync('public/auth-v82.js')) throw Error('Auth files missing');
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(x=>!x[1].includes('src='));
+          for (const [, , script] of scripts) new vm.Script(script);
+          console.log('v88 smoke check passed; '+scripts.length+' inline scripts parsed.');
+          NODE
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deployment
+        uses: actions/deploy-pages@v4
