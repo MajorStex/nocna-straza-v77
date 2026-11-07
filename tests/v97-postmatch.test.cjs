@@ -17,7 +17,7 @@ const assert=require('node:assert/strict'),path=require('node:path'),fs=require(
     const g=window.__nightWatch,n=g.NET;
     n.role='host';n.phase='lobby';n.localId='p1';n.hostId='p1';n.code='ACD234';n.round=5;n.sessionToken='test-v97';
     n.clients.set('p2',{open:true,send(packet){window.__ns97Packets.push(packet)}});
-    n.profiles.set('p2',{name:'Milan',heroName:'Lovkinja',friendId:'A2B3C4D5',level:2,heroLevel:1,ranksTotal:0,avatarId:'guardian'});
+    n.profiles.set('p2',{spec:{...g.FACTORY_HERO},ranks:{},heroBranches:{},spells:{},equipment:{},name:'Milan',heroName:'Lovkinja',friendId:'A2B3C4D5',level:2,heroLevel:1,ranksTotal:0,avatarId:'guardian'});
     n.worldReadyPlayers.set('p2',true);
     n.readyPlayers.set('p2',false);window.__ns97Packets=[];
     // Existing default player nickname is independent from chosen character.
