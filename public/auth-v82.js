@@ -13,10 +13,20 @@ const RELOAD_GUARD = 'ns87_restored_this_tab';
 const EMPTY_GUARD = 'ns87_fresh_profile_uid';
 const RELOAD_WINDOW_MS = 120000;
 function readSessionJSON(key){try{return JSON.parse(sessionStorage.getItem(key)||'null')}catch{return null}}
-function recentlyReloadedFor(uid){const guard=readSessionJSON(RELOAD_GUARD);return guard?.uid===uid&&Date.now()-guard.at<RELOAD_WINDOW_MS}
-function reloadOnceFor(uid){
- if(recentlyReloadedFor(uid))return false;
- try{sessionStorage.setItem(RELOAD_GUARD,JSON.stringify({uid,at:Date.now()}))}catch{}
+function cloudSignature(saved){
+ // Lightweight non-security fingerprint; only used to prevent duplicate reloads.
+ let hash=2166136261;
+ const feed=str=>{for(let i=0;i<str.length;i++)hash=Math.imul(hash^str.charCodeAt(i),16777619)};
+ for(const [key,val] of [...saved].sort((a,b)=>a[0]<b[0]?-1:1)){
+  feed(key);feed(String(val.length));feed(val.slice(0,64));feed(val.slice(-64));
+ }
+ return (hash>>>0).toString(36);
+}
+function recentlyReloadedFor(uid,signature){const guard=readSessionJSON(RELOAD_GUARD);
+ return guard?.uid===uid&&(guard.signature===signature||Date.now()-guard.at<RELOAD_WINDOW_MS)}
+function reloadOnceFor(uid,signature='fresh'){
+ if(recentlyReloadedFor(uid,signature))return false;
+ try{sessionStorage.setItem(RELOAD_GUARD,JSON.stringify({uid,signature,at:Date.now()}))}catch{}
  location.reload();return true;
 }
 function setFreshUid(uid){try{sessionStorage.setItem(EMPTY_GUARD,uid)}catch{}}
@@ -137,6 +147,7 @@ async function bootstrapCloud(user){
    if(Array.from({length:g.total},(_,i)=>g.parts.has(i)).some(ok=>!ok))throw Error('Incomplete cloud save for '+k);
    saved.set(k,Array.from({length:g.total},(_,i)=>g.parts.get(i)).join(''));
   }
+  const remoteSignature=cloudSignature(saved);
   const local=currentSave();
   const pending=getDirty(user.uid);
   // Local changes from a previously offline session win only for the same UID.
@@ -170,7 +181,7 @@ async function bootstrapCloud(user){
    cloudReady=true;snapshotSaved=currentSave();
    if(changedDevice){
     sessionUid=user.uid;window.sessionStorage.setItem('ns82_verified_uid',user.uid);
-    if(reloadOnceFor(user.uid))return;
+    if(reloadOnceFor(user.uid,remoteSignature))return;
     // Reapply the remote save but do not create another reload loop.
    }
    status(tr('Cloud progress loaded ✓','Cloud napredak učitan ✓'),'ok');
