@@ -4822,14 +4822,14 @@ const NS92_DIR=(()=>{
  }
  function schedule(){
   if(cycle)clearTimeout(cycle);
-  if(visible())cycle=setTimeout(()=>{refresh(false)},45000);
+  if(visible())cycle=setTimeout(()=>{refresh(false)},60000);
  }
  async function refresh(force=false){
   if(!visible()||activeFetch)return false;
   const now=Date.now();
   if(now<backoffUntil)return false;
   if(force&&now-lastFetch<12000){status('Refresh is limited to once every 12 seconds.','Osvežavanje je ograničeno na 12 sekundi.');return false;}
-  if(!force&&now-lastFetch<40000){schedule();return false;}
+  if(!force&&now-lastFetch<55000){schedule();return false;}
   lastFetch=now;activeFetch=true;
   const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7500);
   try{
