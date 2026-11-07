@@ -73,14 +73,15 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
    assert.equal(resume.started,true);assert.equal(resume.before,true);
    assert.equal(resume.after,false);assert.equal(resume.manual,false);
    const veto=await page.evaluate(()=>{
-    const team=window.__NS99_TEAM;const started=team.request('pause','p1');
+    const team=window.__NS99_TEAM;team.reset();const started=team.request('pause','p1');
     team.castVote('pause','p2','no');
     return{started,paused:team.frozen(),ballot:team.ballot};
    });
    assert.equal(veto.started,true);assert.equal(veto.paused,false);assert.equal(veto.ballot,null);
    const disconnect=await page.evaluate(()=>{
      const g=window.__nightWatch,team=window.__NS99_TEAM;
-     // New room without resetting request cooldown: temporarily disconnect teammate.
+     team.reset();
+     // After disconnect, the only connected player may confirm pause/resume.
      g.NET.clients.delete('p2');
      const started=team.request('pause','p1');
      const frozen=team.frozen();
