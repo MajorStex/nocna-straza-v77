@@ -98,7 +98,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
     return {mode:g.G.mode,test:g.G.ns95TestOnly,debug:g.G.debugRun,guards:g.G.mobs.filter(m=>m.ns95Guard&&!m.dead).length,
       ally:c?.ally||null,playerDistance:Math.hypot(g.G.players[0].x-c.x,g.G.players[0].y-c.y),
       spellCount:document.querySelectorAll('#ns93SpellList .ns93Spell').length,
-      spellVisible:!!spell,dockBottom:full.bottom,controlsTop:control.top,controlsClass:document.getElementById('controls').className,controlDisplay:getComputedStyle(document.getElementById('controls')).display,controlsPosition:getComputedStyle(document.getElementById('controls')).position,controlsBottom:getComputedStyle(document.getElementById('controls')).bottom,controlsBounds:[control.x,control.y,control.width,control.height],viewportHeight:innerHeight,controlsOffsetParent:document.getElementById('controls').offsetParent?.id,controlsParent:document.getElementById('controls').parentElement?.id,gamePaused:g.G.paused,quickChoice:!!g.G.quickChoice,lootPending:!!g.G.lootPending,
+      spellVisible:!!spell,dockBottom:full.bottom,controlsTop:control.top,dashTop:document.getElementById('dashBtn').getBoundingClientRect().top,controlsClass:document.getElementById('controls').className,controlDisplay:getComputedStyle(document.getElementById('controls')).display,controlsPosition:getComputedStyle(document.getElementById('controls')).position,controlsBottom:getComputedStyle(document.getElementById('controls')).bottom,controlsBounds:[control.x,control.y,control.width,control.height],viewportHeight:innerHeight,controlsOffsetParent:document.getElementById('controls').offsetParent?.id,controlsParent:document.getElementById('controls').parentElement?.id,gamePaused:g.G.paused,quickChoice:!!g.G.quickChoice,lootPending:!!g.G.lootPending,
       picker:!!document.getElementById('ns95SpellPicker'),selectedMana:g.G.players[0].ns93MaxMana};
    });
    console.log('CAGE_UI_GEOMETRY='+JSON.stringify(cageTest));
@@ -109,7 +109,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
    assert.ok(cageTest.playerDistance<210,'hero starts near the cage for testing');
    assert.equal(cageTest.spellCount,1,'exactly one active spell occupies game screen');
    assert.equal(cageTest.picker,true,'compact ability selector is present');
-   assert.ok(cageTest.dockBottom<cageTest.controlsTop+5,'spell dock sits above joystick control strip');
+   assert.ok(cageTest.dockBottom<cageTest.dashTop-5,'magic dock does not overlap the real lower-left dash button');
    const errs=runtimeErrors.filter(x=>/ReferenceError|SyntaxError|is not defined|Cannot read properties of undefined|NS92_/i.test(x));
    assert.deepEqual(errs,[],'no runtime exceptions '+errs.join(' | '));
    console.log('PASS mobile Chromium '+width+'px: SP, 100-kill Common, daily/weekly claims, public room UI'+(width>=400?', five MP snapshots/6 players':''));
