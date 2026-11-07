@@ -17,7 +17,7 @@ source('NS92_CHALLENGES.receive(d.c92)');
 source('NS92_CHALLENGES.onKill(m)');
 source('NS92_CHALLENGES.onChest()');
 source('state.c92=NS92_CHALLENGES.saveRun()');
-source('data.v!==95');source('required:95');source("t:'hello',v:95");
+source('data.v!==99');source('required:99');source("t:'hello',v:99");
 source('function ns90DrawHp(m,focus)');source('function drawTroll(e,model)');
 source('NS91.onKill(m)');source('NS91.onWave()');source('NS91.onChest()');source('NS91.onRevive()');
 source('a91:NS91.getMask()');source('NS91.receiveMask(d.a91)');
