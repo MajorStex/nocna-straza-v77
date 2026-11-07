@@ -996,7 +996,7 @@ const NETMIG=(()=>{
   const state={};for(const k of fields)state[k]=G[k];
   for(const k of ['players','mobs','drops','projectiles','blasts','blueCrystals','effects'])state[k]=G[k];
   // Props hold physical barriers, chests, towers, damage state and the opened gate.
-  state.props=props;state.a91=NS91.save();state.c92=NS92_CHALLENGES.saveRun();state.nextEvent=NSX.progress.nextEvent;state.caveMode=!!G.caveMode;state.worldWidth=WORLD.w;state.worldHeight=WORLD.h;state.nsOverworldState=G.caveMode?G.nsOverworldState:null;
+  state.props=props;state.a91=NS91.save();state.c92=NS92_CHALLENGES.saveRun();state.c95=NS95_CAGE.save();state.nextEvent=NSX.progress.nextEvent;state.caveMode=!!G.caveMode;state.worldWidth=WORLD.w;state.worldHeight=WORLD.h;state.nsOverworldState=G.caveMode?G.nsOverworldState:null;
   const payload={t:'migrationBackup',v:1,round:NET.round,seq:NET.snapshotSeq,epoch:NET.migrationEpoch||0,sent:Date.now(),meta,
    tokens:Object.fromEntries([...NETLAB.tokens].map(([id,x])=>[id,{token:x.token}])),state,
    mission:NSX.snapshot(),session:NET.sessionToken,heroLooks:Object.fromEntries(NET.heroLooks)};
@@ -1062,7 +1062,7 @@ const NETMIG=(()=>{
   NET.heroLooks=new Map(Object.entries(b.heroLooks||{}));
   for(const p of G.players)if(p?.mpName)p.mpName=safePlayerName(p.mpName);
   NET.sessionToken=b.session||NET.sessionToken;G.mode='play';G.paused=false;G.abilityDirty=true;
-  G.reviveIntent={};G.reviveActive={};G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.sosNotified=new Set();G.sosPendingSince=-100;G.lastReviveSignal=0;G.mpBossTiers=G.mpBossTiers||new Set();G.camera={x:G.players[0].x,y:G.players[0].y};NSX.onGuestSnapshot(b.mission);NS91.resume(s.a91);NS92_CHALLENGES.resume(s.c92);NSX.progress.nextEvent=Number(s.nextEvent)||G.time+70;
+  G.reviveIntent={};G.reviveActive={};G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.sosNotified=new Set();G.sosPendingSince=-100;G.lastReviveSignal=0;G.mpBossTiers=G.mpBossTiers||new Set();G.camera={x:G.players[0].x,y:G.players[0].y};NSX.onGuestSnapshot(b.mission);NS91.resume(s.a91);NS92_CHALLENGES.resume(s.c92);NS95_CAGE.resume(s.c95);NSX.progress.nextEvent=Number(s.nextEvent)||G.time+70;
   // No old host receives currency; the migrated leader is the local player.
   NETLAB.stopReconnect();NETLAB.peer('host').lastSnap=now();
   for(const pid of Object.keys(b.meta.peers))if(pid!==id&&pid!=='p1')NET.remoteInputs.set(pid,{x:0,y:0,attack:false,dash:false});
@@ -2327,6 +2327,287 @@ const NS95_PROGRESS={
 window.__NS95_PROGRESS=NS95_PROGRESS;
 
 
+
+// Noćna Straža v95: small host-owned rescue event.
+// A single cage, three leash-bound orc guards and at most one weak temporary helper.
+// Never adds the helper to G.players (no extra input, player snapshots or revive slots).
+const NS95_CAGE=(()=>{
+ const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
+ const now=()=>G.time||0;
+ const testMode=()=>{try{return new URLSearchParams(location.search).get('cage-test')==='1'}catch{return false}};
+ let stepped=0;
+ function current(){return G.ns95Cage||null}
+ function posValid(x,y){return Number.isFinite(x)&&Number.isFinite(y)&&x>130&&y>130&&x<WORLD.w-130&&y<WORLD.h-130}
+ function chooseLocation(){
+  const ox=START.x,oy=START.y;
+  const offsets=[[410,-170],[-350,210],[365,320],[-370,-290],[170,-400],[-130,415]];
+  for(const [dx,dy] of offsets){
+   const x=ox+dx,y=oy+dy;
+   if(!posValid(x,y))continue;
+   if(!canStepClear({r:44},x,y))continue;
+   if(props.some(p=>isSolidProp(p.type)&&Math.hypot(p.x-x,p.y-y)<p.r+70))continue;
+   return{x,y};
+  }
+  return{x:ox+410,y:oy-170};
+ }
+ function spawnGuards(c){
+  const placements=[[83,0],[-78,22],[3,89]];
+  c.guardIds=[];
+  for(let i=0;i<placements.length;i++){
+   const [dx,dy]=placements[i],x=c.x+dx,y=c.y+dy;
+   let x2=x,y2=y;
+   for(let tryNo=0;tryNo<8&&!canStepClear({r:15},x2,y2);tryNo++){
+    const a=tryNo*TAU/8;x2=x+Math.cos(a)*25;y2=y+Math.sin(a)*25;
+   }
+   if(!posValid(x2,y2))continue;
+   const m=addMob('goblin',x2,y2);
+   m.ns95Guard=true;m.ns95AnchorX=x2;m.ns95AnchorY=y2;
+   m.ns95CageX=c.x;m.ns95CageY=c.y;
+   m.hp=Math.round(58*(1+Math.min(1.4,(G.wave-1)*.08)));
+   m.maxHp=m.hp;m.damage=8;m.speed=50;m.attackCD=1.0+i*.2;
+   m.approach=0;m.targetLockUntil=0;m.ns95PatrolPhase=i*2.1;
+   c.guardIds.push(m.id);
+  }
+ }
+ function reset(){
+  stepped=0;
+  G.ns95Cage=null;
+  if(NET.role==='guest'||G.caveMode||!['default','network'].includes(G.runType))return;
+  const {x,y}=chooseLocation();
+  const c={x,y,freed:false,rewarded:false,createdAt:now(),guards:3,guardIds:[],ally:null,attractors:0};
+  G.ns95Cage=c;spawnGuards(c);
+ }
+ function guardCount(c=current()){
+  if(!c||c.freed)return 0;
+  return G.mobs.reduce((n,m)=>n+(!m.dead&&m.ns95Guard?1:0),0);
+ }
+ function guardStep(m,dt,alive){
+  const c=current();
+  if(!c||!m.ns95Guard)return false;
+  const at=alive.filter(p=>!p.dead&&Math.hypot(p.x-c.x,p.y-c.y)<195)
+    .sort((a,b)=>(a.x-m.x)**2+(a.y-m.y)**2-((b.x-m.x)**2+(b.y-m.y)**2))[0];
+  const guardDist=Math.hypot(m.x-c.x,m.y-c.y);
+  if(at){
+   const dx=at.x-m.x,dy=at.y-m.y,dist=Math.max(1,Math.hypot(dx,dy));
+   m.angle=Math.atan2(dy,dx);
+   if(dist<m.r+at.r+46&&!obstacleInPath(m.x,m.y,at.x,at.y,Math.min(10,m.r*.5))){
+    if(m.attackCD<=0){m.attackCD=1.65;m.attackT=.33;damagePlayer(at,m.damage,m);sfx('goblinAttack')}
+   }else if(guardDist<145&&dist>m.r+at.r+34) movingCircle(m,dx/dist*m.speed*dt,dy/dist*m.speed*dt);
+  }else{
+   const a=now()*.48+(m.ns95PatrolPhase||0);
+   const x=(m.ns95AnchorX||c.x)+Math.cos(a)*21;
+   const y=(m.ns95AnchorY||c.y)+Math.sin(a)*18;
+   const dx=x-m.x,dy=y-m.y,d=Math.hypot(dx,dy);
+   if(d>5)movingCircle(m,dx/d*dt*32,dy/d*dt*32);
+   m.angle=a;
+  }
+  if(guardDist>152){
+   const dx=c.x-m.x,dy=c.y-m.y,d=Math.max(1,Math.hypot(dx,dy));
+   movingCircle(m,dx/d*dt*75,dy/d*dt*75);
+  }
+  return true;
+ }
+ function free(c){
+  if(!c||c.freed||guardCount(c)>0)return false;
+  const rescuer=G.players.filter(p=>!p.dead)
+    .sort((a,b)=>(a.x-c.x)**2+(a.y-c.y)**2-((b.x-c.x)**2+(b.y-c.y)**2))[0];
+  if(!rescuer||Math.hypot(rescuer.x-c.x,rescuer.y-c.y)>210)return false;
+  c.freed=true;c.guards=0;c.ally={
+   x:c.x+8,y:c.y+26,hp:64,maxHp:64,until:now()+110,
+   attackAt:now()+1.3,frame:0,owner:rescuer.id,phase:0
+  };
+  if(!c.rewarded){
+   c.rewarded=true;
+   if(NET.role==='host'){
+    coopXP(rescuer,40);
+   }else if(NET.role===''){
+    G.xp=Math.max(0,Math.min(G.xpNeed-1,G.xp+45));
+   }
+  }
+  effect('loot',c.x,c.y);sfx('unlock');
+  announce(tr('PRISONER FREED · WEAK ALLY + XP','ZAROBLJENIK OSLOBOĐEN · SAVEZNIK + XP'),3.5);
+  return true;
+ }
+ function tick(dt){
+  const c=current();
+  if(!c||NET.role==='guest'||G.mode!=='play'||G.caveMode)return;
+  stepped+=dt;
+  if(stepped<.09)return;const h=Math.min(stepped,.2);stepped=0;
+  if(!c.freed){c.guards=guardCount(c);if(!c.guards)free(c);return}
+  const a=c.ally;if(!a)return;
+  if(now()>a.until||a.hp<=0){c.ally=null;return}
+  a.frame=(a.frame||0)+h*6;a.phase=(a.phase||0)+h;
+  const p=G.players.find(p=>p.id===a.owner&&!p.dead)||G.players.find(p=>!p.dead);
+  if(!p)return;
+  const dx=p.x-a.x,dy=p.y-a.y,d=Math.max(1,Math.hypot(dx,dy));
+  if(d>640){a.x=p.x-35;a.y=p.y+38}
+  else if(d>95){
+   const speed=d>270?207:115;
+   const pseudo={x:a.x,y:a.y,r:13};
+   movingCircle(pseudo,dx/d*speed*h,dy/d*speed*h);a.x=pseudo.x;a.y=pseudo.y;
+  }
+  if(now()>=a.attackAt){
+   a.attackAt=now()+2.35;
+   const nearest=G.mobs.find(m=>!m.dead&&!m.ns95Guard&&Math.hypot(m.x-a.x,m.y-a.y)<54);
+   if(nearest){nearest.hp-=3;nearest.flash=.1;if(nearest.hp<=0)killMob(nearest,p)}
+  }
+ }
+ function beginMobTick(){const c=current();if(c)c.attractors=0}
+ function decoyStep(m,dt){
+  const c=current(),a=c?.ally;
+  if(!a||G.caveMode||m.ns95Guard||m.dead||m.id%5!==0||!['goblin','crawler','skeleton'].includes(m.type)||c.attractors>=2)return false;
+  if(now()>=a.until||a.hp<=0)return false;
+  const d=Math.hypot(m.x-a.x,m.y-a.y);
+  if(d>160)return false;
+  c.attractors++;
+  m.angle=Math.atan2(a.y-m.y,a.x-m.x);
+  if(d>m.r+15){
+   const step=Math.min(m.speed,100)*dt;
+   movingCircle(m,(a.x-m.x)/Math.max(1,d)*step,(a.y-m.y)/Math.max(1,d)*step);
+  }else if(m.attackCD<=0){
+   m.attackCD=1.6;m.attackT=.25;
+   a.hp=Math.max(0,a.hp-7);
+  }
+  return true;
+ }
+ function snapshot(){
+  const c=current();
+  if(!c)return null;
+  const a=c.ally;
+  return [Math.round(c.x),Math.round(c.y),c.freed?1:0,c.rewarded?1:0,
+   c.freed?0:guardCount(c),a?[Math.round(a.x),Math.round(a.y),Math.round(a.hp),Math.round(a.until-now()),a.owner]:null];
+ }
+ function receive(data){
+  if(NET.role!=='guest')return;
+  if(!Array.isArray(data)||data.length<5||!posValid(data[0],data[1])){G.ns95Cage=null;return}
+  const old=current(),freed=!!data[2];
+  const ally=Array.isArray(data[5])&&data[5].length>=4?{
+    x:Number(data[5][0])||0,y:Number(data[5][1])||0,
+    hp:Math.max(0,Math.min(64,Number(data[5][2])||0)),maxHp:64,
+    until:now()+Math.max(0,Math.min(120,Number(data[5][3])||0)),
+    frame:(old?.ally?.frame||0)+.13,owner:String(data[5][4]||'p1')
+  }:null;
+  G.ns95Cage={x:data[0],y:data[1],freed,rewarded:!!data[3],
+   guards:Math.max(0,Math.min(3,Number(data[4])||0)),ally,guardIds:[]};
+  if(freed&&!old?.freed)effect('loot',data[0],data[1]);
+ }
+ function save(){
+  const c=current();if(!c)return null;
+  return {x:c.x,y:c.y,freed:c.freed,rewarded:c.rewarded,
+   guards:guardCount(c),ally:c.ally?{...c.ally}:null};
+ }
+ function resume(o){
+  if(!o||!posValid(Number(o.x),Number(o.y)))return false;
+  const old=current(),freed=!!o.freed;
+  const c={x:Number(o.x),y:Number(o.y),freed,rewarded:!!o.rewarded,guards:0,guardIds:[],ally:null};
+  if(freed){
+   const a=o.ally;
+   if(a&&Number.isFinite(Number(a.hp))&&Number(a.hp)>0)c.ally={
+    x:Number(a.x)||c.x,y:Number(a.y)||c.y,hp:clamp(Number(a.hp),0,64),
+    maxHp:64,until:Math.max(now()+2,Math.min(now()+120,Number(a.until)||now()+40)),
+    owner:String(a.owner||'p1'),frame:0,attackAt:now()+1.7
+   };
+  }
+  G.ns95Cage=c;
+  if(!freed){
+   for(const m of G.mobs){
+    if(m.dead||Math.hypot(m.x-c.x,m.y-c.y)>130)continue;
+    if(m.ns95Guard){
+     m.ns95CageX=c.x;m.ns95CageY=c.y;
+     m.ns95AnchorX=m.ns95AnchorX||m.x;m.ns95AnchorY=m.ns95AnchorY||m.y;
+     c.guardIds.push(m.id);
+    }
+   }
+   if(!c.guardIds.length)spawnGuards(c);
+   c.guards=guardCount(c);
+  }
+  return true;
+ }
+ function draw(){
+  const c=current();
+  if(!c||G.caveMode||G.mode!=='play')return;
+  const p=screenPoint(c.x,c.y),v=viewSize();
+  if(p.x<-125||p.x>v.w+125||p.y<-120||p.y>v.h+135)return;
+  ctx.save();ctx.translate(p.x,p.y);
+  if(!c.freed){
+   // Tiled silhouette cage: prisoner is BEHIND front bars, never detached.
+   ellipse(0,22,55,17,'#061011a8');
+   ctx.fillStyle='#3b3933';ctx.fillRect(-38,11,76,9);
+   ctx.strokeStyle='#a98d66';ctx.lineWidth=4;
+   ctx.strokeRect(-43,-55,86,77);
+   ctx.strokeStyle='#667d72';ctx.lineWidth=3.2;
+   ctx.beginPath();ctx.moveTo(-43,-56);ctx.lineTo(-27,-67);ctx.lineTo(27,-67);ctx.lineTo(43,-56);ctx.stroke();
+   // Captive humanoid with head, hands and boots, in muted matching palette.
+   ellipse(0,-34,10,11,'#d2b29b');ellipse(0,-52,10,5,'#453e3b');
+   ctx.fillStyle='#aeb4a1';ctx.fillRect(-10,-23,20,27);
+   ctx.strokeStyle='#9b8b7f';ctx.lineWidth=5;ctx.beginPath();
+   ctx.moveTo(-10,-14);ctx.lineTo(-19,1);ctx.moveTo(10,-14);ctx.lineTo(19,1);
+   ctx.moveTo(-5,4);ctx.lineTo(-8,18);ctx.moveTo(5,4);ctx.lineTo(8,18);ctx.stroke();
+   // Foreground iron bars rendered over the prisoner.
+   ctx.strokeStyle='#566b68';ctx.lineWidth=5;ctx.beginPath();
+   for(const dx of [-31,-14,3,20,36]){ctx.moveTo(dx,-54);ctx.lineTo(dx,17)}ctx.stroke();
+   ctx.strokeStyle='#b0bcb1';ctx.lineWidth=1.5;ctx.beginPath();
+   for(const dx of [-31,-14,3,20,36]){ctx.moveTo(dx-2,-51);ctx.lineTo(dx-2,14)}ctx.stroke();
+   ctx.fillStyle='#936d43';ctx.fillRect(-11,-1,22,20);
+   ctx.strokeStyle='#d6ac71';ctx.lineWidth=2;ctx.strokeRect(-11,-1,22,20);
+   ctx.fillStyle='#e2d3ac';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+   ctx.fillText(tr('SAVE PRISONER','OSLOBODI'),0,-80);
+  }else{
+   ctx.strokeStyle='#648577';ctx.lineWidth=3;ctx.globalAlpha=.55;
+   ctx.beginPath();ctx.moveTo(-35,-30);ctx.lineTo(-35,16);ctx.lineTo(-12,16);ctx.moveTo(35,-30);ctx.lineTo(35,16);ctx.stroke();
+  }
+  ctx.restore();
+  const a=c.ally;
+  if(!a||a.hp<=0||now()>a.until)return;
+  const q=screenPoint(a.x,a.y);
+  if(q.x<-35||q.y<-70||q.x>v.w+35||q.y>v.h+55)return;
+  ctx.save();ctx.translate(q.x,q.y);
+  ellipse(0,16,16,5,'#06121088');
+  const sway=Math.sin(a.frame||0)*3;
+  ctx.strokeStyle='#6f7e72';ctx.lineWidth=5;ctx.beginPath();
+  ctx.moveTo(-5,3);ctx.lineTo(-5+sway,16);ctx.moveTo(5,3);ctx.lineTo(5-sway,16);ctx.stroke();
+  ctx.fillStyle='#7e9d8b';ctx.fillRect(-9,-20,18,23);
+  ctx.fillStyle='#d2b49b';ctx.beginPath();ctx.arc(0,-27,10,0,TAU);ctx.fill();
+  ctx.fillStyle='#4b423d';ctx.fillRect(-9,-36,18,6);
+  ctx.strokeStyle='#c2ad8d';ctx.lineWidth=4;ctx.beginPath();
+  ctx.moveTo(-10,-15);ctx.lineTo(-16,-3);ctx.moveTo(10,-15);ctx.lineTo(15,-3);ctx.stroke();
+  ctx.fillStyle='#182e28';ctx.fillRect(-18,-47,36,5);
+  ctx.fillStyle='#82d6ab';ctx.fillRect(-18,-47,36*clamp(a.hp/64,0,1),5);
+  ctx.fillStyle='#bdeac8';ctx.font='bold 9px system-ui';ctx.textAlign='center';
+  ctx.fillText(tr('ALLY','SAVEZNIK'),0,-51);ctx.restore();
+ }
+ function drawGuard(a){
+  if(!a.ns95Guard||a.dead)return;
+  ctx.save();ctx.strokeStyle='#d29c63';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-a.r-6,-a.r-18);ctx.lineTo(a.r+6,-a.r-18);ctx.stroke();
+  ctx.fillStyle='#5e3933';ctx.fillRect(-a.r-6,-a.r-21,8,8);ctx.fillRect(a.r-2,-a.r-21,8,8);
+  ctx.fillStyle='#e2b37b';ctx.font='bold 9px sans-serif';ctx.textAlign='center';
+  ctx.fillText(tr('CAGE GUARD','ČUVAR'),0,-a.r-28);ctx.restore();
+ }
+ function runTest(){
+  if(NET.role)return false;
+  startGame({specialMode:'normal'});
+  const c=current();if(!c)return false;
+  G.debugRun=true;G.ns95TestOnly=true;
+  // The test keeps existing combat and controls but deliberately disables ordinary spawns/rewards.
+  G.mobs=G.mobs.filter(m=>m.ns95Guard);
+  const p=G.players[0];p.x=c.x-155;p.y=c.y+35;G.camera.x=p.x;G.camera.y=p.y;
+  announce(tr('TEST: FREE THE PRISONER · GUARDS HOLD THEIR POSTS','TEST: OSLOBODI ZAROBLJENIKA · ČUVARI BRANE KAVEZ'),4);
+  return true;
+ }
+ function initTestUI(){
+  if(!testMode())return;
+  const home=$('home');if(!home||$('ns95TestLaunch'))return;
+  const b=document.createElement('button');b.id='ns95TestLaunch';b.type='button';b.className='primary';
+  b.style.cssText='width:100%;margin:8px 0;border:2px solid #b8a271;background:#304637;color:#f9e7b8;min-height:54px';
+  b.textContent=tr('🧪 START CAGE TEST — no permanent rewards','🧪 TESTIRAJ KAVEZ — bez trajnih nagrada');
+  b.onclick=runTest;home.insertBefore(b,home.firstChild);
+  // Preserve account login and guest choice; user only needs to press this button after login.
+ }
+ return {reset,guardStep,guardCount,tick,beginMobTick,decoyStep,snapshot,receive,save,resume,draw,drawGuard,runTest,initTestUI};
+})();
+window.__NS95_CAGE=NS95_CAGE;
+
 function player(id,x,y){const c=configs.hero;return{secondaryWeapon:null,weaponSwapAt:-10,reviveCount:0,reviveProgress:0,reviveBy:null,sosUsed:false,sosAt:-1,id,evolutions:{},evolutionCooldown:{},perks:{},perkTimers:{},shieldUntil:0,freezeUntil:0,perkKills:0,keys:0,crystals:0,xp:0,level:1,xpNeed:160,runKills:0,armorBonus:0,critBonus:0,offerUntil:0,eatUntil:0,burgerCooldownUntil:0,x,y,r:17*c.size,hp:c.hp,maxHp:c.hp,speed:c.speed,angle:0,facing:-Math.PI/2,bodyFacing:-Math.PI/2,headFacing:-Math.PI/2,visualSide:1,frame:0,attackT:0,attackCD:0,invul:0,dashT:0,dashCD:0,dead:false,weapon:c.weapon,damage:27,attackRate:.78,range:100,dirX:0,dirY:1,walking:false,flash:0,deathT:0}}
 function addMob(type,x,y,levelOverride){const c=configs[type],level=levelOverride||G.level;const mul=type==='boss'?1+Math.floor((level-1)/10)*.92:1+Math.min(3.4,(G.wave-1)*.06);let hp=Math.round(c.hp*mul),mob={id:G.nextId++,type,x,y,r:(type==='boss'?30:type==='rotfiend'?38:type==='elephant'?24:type==='troll'?21:type==='brute'?18:type==='goblin'?13:type==='worm'?18:15)*c.size,hp,maxHp:hp,damage:(type==='boss'?23:type==='rotfiend'?19:type==='elephant'?17:type==='troll'?15:type==='brute'?15:type==='goblin'?9:type==='worm'?10:8)*(1+Math.floor(G.wave/8)*.12),speed:c.speed*(1+Math.min(.6,G.wave*.015)),angle:0,frame:rnd()*6,attackT:0,attackCD:rnd()*.5,flash:0,deathT:0,dead:false,side:rnd()>.5?1:-1,stuck:0,approach:Math.floor(rnd()*5),phase:rnd()*TAU,routeOffset:70+rnd()*85,detourSide:0,detourProp:-1,detourTime:0,navRadius:type==='boss'?48:type==='rotfiend'?54:type==='elephant'?34:type==='troll'?26:type==='brute'?23:type==='worm'?19:15,nsTrollHitAt:0,nsTrollVictim:null,spitReady:G.time+3.2+rnd()*2.4,spitWindup:0,roarAt:G.time+2.5+rnd()*4,targetId:null,targetLockUntil:0,bossPhase:1,bossCast:null,bossNextCastAt:G.time+5.2+rnd()*1.4,bossPhaseSummons:0,bossEnraged:false,bossCastCount:0};if((G.relicEnemyHaste||1)!==1)mob.speed*=G.relicEnemyHaste;NSX.applyDifficulty(mob);G.mobs.push(mob);return mob}
 function applyCombatClass(p,cls){
@@ -2541,8 +2822,8 @@ function drawAmbientCrystals(){const vw=viewSize().w,vh=viewSize().h;for(const c
  ctx.fillStyle='#60d3ff';ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(11,-2);ctx.lineTo(0,13);ctx.lineTo(-11,-2);ctx.closePath();ctx.fill();
  ctx.fillStyle='#d5f6ff';ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(0,8);ctx.lineTo(-9,-2);ctx.closePath();ctx.fill();ctx.restore();
 }}
-function startGame(opts={}){NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ensureMapLife(cloneProps(NET.hostProps)));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';G.paused=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
-mapReset();NSX.start(opts);$('pauseBtn').classList.remove('hidden');$('home').classList.add('hidden');$('editorPanel').classList.add('hidden');$('pausePanel').classList.add('hidden');$('gameOver').classList.add('hidden');$('coopPanel').classList.add('hidden');$('settingsPanel').classList.add('hidden');$('hud').classList.remove('hidden');$('controls').classList.remove('hidden');$('veil').classList.add('hidden');$('spectatorPanel').classList.add('hidden');resetFloatingJoystick();updateHUD();updateNightHUD();announce(opts.bossTest?'BOSS TEST · NIVO 10':G.runType==='campaign'?`KAMPANJA · ${findLevel(G.stageId).name}`:'TALAS 1 · PREŽIVI',2);sfx('wave');voiceLine('preview',true)}
+function startGame(opts={}){NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ensureMapLife(cloneProps(NET.hostProps)));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
+mapReset();NSX.start(opts);NS95_CAGE.reset();$('pauseBtn').classList.remove('hidden');$('home').classList.add('hidden');$('editorPanel').classList.add('hidden');$('pausePanel').classList.add('hidden');$('gameOver').classList.add('hidden');$('coopPanel').classList.add('hidden');$('settingsPanel').classList.add('hidden');$('hud').classList.remove('hidden');$('controls').classList.remove('hidden');$('veil').classList.add('hidden');$('spectatorPanel').classList.add('hidden');resetFloatingJoystick();updateHUD();updateNightHUD();announce(opts.bossTest?'BOSS TEST · NIVO 10':G.runType==='campaign'?`KAMPANJA · ${findLevel(G.stageId).name}`:'TALAS 1 · PREŽIVI',2);sfx('wave');voiceLine('preview',true)}
 function addRemotePlayer(id){
  if(G.players.some(p=>p.id===id))return;
  const origin=G.players.find(p=>p.id===NET.localId)||G.players[0]||{x:START.x,y:START.y};const n=Number(id.slice(1))||2;
@@ -3259,7 +3540,7 @@ function ns90TrollCanHit(m,victim){
  if(Math.abs(Math.atan2(Math.sin(diff),Math.cos(diff)))>1.1)return false;
  return !obstacleInPath(m.x,m.y,victim.x,victim.y,Math.min(12,m.r*.46));
 }
-function updateMobs(dt){buildMobGrid();
+function updateMobs(dt){buildMobGrid();NS95_CAGE.beginMobTick();
   const alive=availableTargets(),loads=new Map(alive.map(p=>[p.id,0]));
   const frostActive=G.players.some(p=>p.perks.frost&&G.time<p.freezeUntil);
   for(const m of G.mobs){
@@ -3277,6 +3558,8 @@ function updateMobs(dt){buildMobGrid();
     }
     if(m.nsCaveThief)continue;if(BOSS_TYPES.has(m.type)&&m.bossCast){m.angle=m.bossCast.kind==='beam'?m.bossCast.angle:m.angle;continue}if(m.type==='rotfiend'&&G.time>=m.roarAt){m.roarAt=G.time+6+rnd()*5;if(G.players.some(p=>!p.dead&&Math.hypot(p.x-m.x,p.y-m.y)<430))sfx('rotfiend')}
     if(!alive.length)continue;
+    if(m.ns95Guard&&NS95_CAGE.guardStep(m,dt,alive))continue;
+    if(NS95_CAGE.decoyStep(m,dt))continue;
     const p=selectMobTarget(m,alive,loads);
     const dx=p.x-m.x,dy=p.y-m.y,dist=Math.max(1,Math.hypot(dx,dy));
     m.angle=Math.atan2(dy,dx);
@@ -3725,7 +4008,7 @@ function coopXP(p,amount){p.xp=Math.max(0,(p.xp||0)+amount);if(p.xp>=p.xpNeed&&p
 
 function upgradeLevel(){G.level++;for(const hero of G.players)checkWeaponEvolution(hero);sfx('level');voiceLine('level');G.xpNeed=Math.ceil(xpRequirement(G.level)*(G.relicXpTax||1));for(const p of G.players){p.hp=Math.min(p.maxHp,p.hp+12)}if(G.level%10===0)spawnBoss(G.level);if(NET.role==='host')for(const c of NET.clients.values())if(c.open)c.send({t:'level',n:G.level});G.paused=true;$('controls').classList.add('hidden');$('upgradePanel').classList.remove('hidden');$('levelHeading').textContent=`NIVO ${G.level}`;
 const opts=[{name:'KOVANI MAČ',desc:'+23% štete',fn:()=>G.players.forEach(p=>p.damage=Math.round(p.damage*1.23))},{name:'SRCE STRAŽARA',desc:'+30 HP i odmah izlečenje',fn:()=>G.players.forEach(p=>{p.maxHp+=30;p.hp=Math.min(p.maxHp,p.hp+46)})},{name:'BRZI KORACI',desc:'+10% kretanja i udaraca',fn:()=>G.players.forEach(p=>{p.speed*=1.10;p.attackRate=Math.max(.26,p.attackRate*.91)})}];if((G.players[0]?.ns95RunManaRanks||0)<4)opts.push({name:'BISTRINA UMA',desc:'+8 MP i +0.12 MP/s do kraja partije',fn:()=>G.players.forEach(p=>NS95_PROGRESS.boost(p))});$('upgradeCards').innerHTML='';for(let up of opts){let btn=document.createElement('button');let top=document.createElement('b');top.textContent=up.name;let low=document.createElement('span');low.textContent=up.desc;btn.append(top,low);btn.onclick=()=>{up.fn();G.paused=false;$('upgradePanel').classList.add('hidden');$('controls').classList.remove('hidden');announce('NIVO '+G.level+' · NADOGRADNJA',2)};$('upgradeCards').append(btn)}}
-function update(dt){if((G.mode!=='play'||G.paused)&&floatingStick.pointerId!==null)resetFloatingJoystick();if(G.mode==='menu'){if($('nightHud'))$('nightHud').classList.add('hidden');G.players[0].frame+=dt*2;G.camera.x=START.x+Math.sin(performance.now()/15000)*120;G.camera.y=START.y+Math.cos(performance.now()/11000)*80;return}if(G.mode==='editor'){G.players[0].frame+=dt*3;return}if(G.mode!=='play'||G.paused)return;G.time+=dt;NSX.tick(dt);NS93_MAGIC.tick(dt);if(!G.caveMode)G.waveClock+=dt;G.waveNoticeT=Math.max(0,G.waveNoticeT-dt);
+function update(dt){if((G.mode!=='play'||G.paused)&&floatingStick.pointerId!==null)resetFloatingJoystick();if(G.mode==='menu'){if($('nightHud'))$('nightHud').classList.add('hidden');G.players[0].frame+=dt*2;G.camera.x=START.x+Math.sin(performance.now()/15000)*120;G.camera.y=START.y+Math.cos(performance.now()/11000)*80;return}if(G.mode==='editor'){G.players[0].frame+=dt*3;return}if(G.mode!=='play'||G.paused)return;G.time+=dt;if(!G.ns95TestOnly)NSX.tick(dt);NS93_MAGIC.tick(dt);NS95_CAGE.tick(dt);if(!G.caveMode)G.waveClock+=dt;G.waveNoticeT=Math.max(0,G.waveNoticeT-dt);
 if(NET.role==='guest'){
  const mine=G.players.find(p=>p.id===NET.localId),inp=mine&&!mine.dead&&!G.quickChoice&&!G.guildPending&&!G.lootPending&&!G.marketPending?getLocalInput():{x:0,y:0,dash:false};
  // Optimistic local movement removes the 130-ms stop/start of the remote hero.
@@ -3753,7 +4036,7 @@ for(const [id,offer] of NET.pendingOffers){if(G.time<offer.deadline)continue;con
 const inp=(G.quickChoice||G.lootPending||G.marketPending||G.guildPending||G.relicPending)?{x:0,y:0,dash:false}:getLocalInput();updatePlayer(G.players.find(p=>p.id===(NET.role==='host'?NET.localId:'p1'))||G.players[0],inp,dt);input.dash=false;if(NET.role==='host')for(const [id,v] of NET.remoteInputs){const remote=G.players.find(p=>p.id===id);if(remote)updatePlayer(remote,v,dt);v.dash=false;}updateMobs(dt);updateBossPhases();updateRevives(dt);if(G.nightVictory&&completeNightRun())return;updateProjectiles(dt);updateAbilities(dt);collectBlueCrystals(dt);tryLootChests();tryMarkets();tryGuildShop();tryRelicShrine();
 for(const e of G.effects)e.t+=dt;G.effects=G.effects.filter(e=>e.t<e.life);
 for(const d of G.drops){d.phase+=dt*4;if(d.type==='weapon')continue;for(const p of G.players){if(p.dead)continue;let dx=p.x-d.x,dy=p.y-d.y,dist=Math.hypot(dx,dy);if(d.type!=='weapon'&&dist<120+(p.perks.magnet?60:0)){let speed=200+(120-dist)*2.2;d.x+=dx/Math.max(1,dist)*speed*dt;d.y+=dy/Math.max(1,dist)*speed*dt}if(dist<p.r+d.r+5){if(d.type==='key'){p.keys=(p.keys||0)+1;sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='shard'){p.runShards=(p.runShards||0)+1;sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='gear'&&d.item){NSX.collectGearDrop(d.item);sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='weapon'){claimWorldWeapon(p,d)}else if(d.type==='fieldKit'){useFieldKit(p,d)}else{if(NET.role==='host')coopXP(p,d.amount);else G.xp+=d.amount;sfx('xp')}d.amount=0;break}}}G.drops=G.drops.filter(d=>d.amount>0);if(NET.role!=='host'&&G.xp>=G.xpNeed){G.xp-=G.xpNeed;upgradeLevel()}
-if(!G.caveMode){G.spawnClock+=dt;}const spawnInterval=Math.max(.64,4.12-Math.max(0,G.time-30)*.022-Math.max(0,G.wave-1)*.16);if(!G.caveMode&&G.spawnClock>=spawnInterval*(G.specialMode==='rush'?.72:1)){G.spawnClock-=spawnInterval;const cap=Math.min(82,12+Math.floor(Math.max(0,G.time-30)*.47)+G.wave*3);if(G.mobs.filter(m=>!m.dead).length<cap){const batch=G.time<48?1:G.wave<4?2:Math.min(3,2+Math.floor(G.wave/6));for(let i=0;i<batch;i++)spawnEnemy()}}if(!G.caveMode&&G.waveClock>=cfgSettings.waveDuration){G.wave++;NS91.onWave();NS92_CHALLENGES.onWave();
+if(!G.caveMode&&!G.ns95TestOnly){G.spawnClock+=dt;}const spawnInterval=Math.max(.64,4.12-Math.max(0,G.time-30)*.022-Math.max(0,G.wave-1)*.16);if(!G.caveMode&&!G.ns95TestOnly&&G.spawnClock>=spawnInterval*(G.specialMode==='rush'?.72:1)){G.spawnClock-=spawnInterval;const cap=Math.min(82,12+Math.floor(Math.max(0,G.time-30)*.47)+G.wave*3);if(G.mobs.filter(m=>!m.dead).length<cap){const batch=G.time<48?1:G.wave<4?2:Math.min(3,2+Math.floor(G.wave/6));for(let i=0;i<batch;i++)spawnEnemy()}}if(!G.caveMode&&!G.ns95TestOnly&&G.waveClock>=cfgSettings.waveDuration){G.wave++;NS91.onWave();NS92_CHALLENGES.onWave();
  if(G.wave===10&&spawnEnemy('troll'))announce('⚠ TROL GOBLIN · TEŠKA BATINA · TALAS 10',3.6);
  G.ns75KitsThisWave=0;G.waveClock=0;if(G.wave>=3&&G.wave%5===3&&G.mobs.filter(m=>m.type==='rotfiend'&&!m.dead).length<2){spawnRotfiend()}if(G.runType==='campaign'){G.stageWaveIndex++;const stage=findLevel(G.stageId);if(stage&&G.stageWaveIndex>=stage.waves){advanceStage()}else{announce(`KAMPANJA ${G.stageId} · TALAS ${G.stageWaveIndex+1}`,2);sfx('wave');voiceLine('wave');coopVoiceRequestOneGuest('wave')}}else{announce('TALAS '+G.wave+' · INTENZITET RASTE',2);sfx('wave');voiceLine('wave');coopVoiceRequestOneGuest('wave')}if(!G.campaignDone)for(let i=0;i<Math.min(11,2+Math.ceil(G.wave*1.1));i++)spawnEnemy()}
 let target=G.players.filter(p=>!p.dead).reduce((a,p)=>({x:a.x+p.x,y:a.y+p.y,n:a.n+1}),{x:0,y:0,n:0});if(target.n){target.x/=target.n;target.y/=target.n;const me=G.players.find(p=>p.id===(NET.role==='host'?NET.localId:'p1'));const watch=NET.role==='host'&&!me?.dead?me:me?.dead?G.players.find(p=>p.id===NET.viewTarget&&!p.dead)||G.players.find(p=>!p.dead):null;if(watch){target.x=watch.x;target.y=watch.y}G.camera.x+=(target.x-G.camera.x)*Math.min(1,dt*4);G.camera.y+=(target.y-G.camera.y)*Math.min(1,dt*4)}
@@ -4391,12 +4674,12 @@ function ns90DrawHp(m,focus){
   ctx.fillStyle='#f2e6c9';ctx.fillText((window.__gameLanguage?.value==='sr'?'TROL ':'TROLL ')+Math.ceil(m.hp)+'/'+Math.ceil(m.maxHp),0,y-6);
  }
 }
-function draw(){const scale=worldScale(),vw=viewSize().w,vh=viewSize().h;ctx.setTransform(dpr*scale,0,0,dpr*scale,dpr*(width-vw*scale)/2,dpr*(height-vh*scale)/2);drawGround();drawWorldProps();NSX.drawCaveAmbient();NSX.drawCaveMarkers();NSX.drawQuestObjects();NSX.drawExploreEvent();NSX.drawCaveExit();drawAmbientCrystals();drawBossTelegraphs();for(const d of G.drops){const p=screenPoint(d.x,d.y);if(p.x<-20||p.x>vw+20||p.y<-20||p.y>vh+20)continue;ctx.save();ctx.translate(p.x,p.y+Math.sin(d.phase)*3);ctx.shadowColor=d.type==='shard'?'#a17fe2':d.type==='gear'?({legendary:'#f6c567',epic:'#bd86ff',rare:'#74baff',uncommon:'#79df8d'}[d.item?.rarity]||'#d3e3dc'):d.type==='weapon'?'#eac47a':'#61dff7';ctx.shadowBlur=d.type==='gear'?22:14;if(d.type==='shard'){ctx.fillStyle='#a78bd9';ctx.strokeStyle='#e7d5ff';ctx.lineWidth=1.5;ctx.beginPath();for(let j=0;j<6;j++){const an=j*TAU/6-TAU/12;const x=Math.cos(an)*10,y=Math.sin(an)*10;if(j===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.closePath();ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.strokeStyle='#453e68';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-3,-5);ctx.lineTo(3,-1);ctx.lineTo(-2,5);ctx.stroke()}else if(d.type==='gear'){ctx.fillStyle=ctx.shadowColor;ctx.fillRect(-8,-8,16,16);ctx.strokeStyle='#fff0c2';ctx.lineWidth=2;ctx.strokeRect(-8,-8,16,16);ctx.fillStyle='#2f1e0a';ctx.fillRect(-2,-11,4,4)}else if(d.type==='weapon'){ctx.shadowColor='#eac47a';ctx.shadowBlur=16;ctx.save();ctx.scale(.42,.42);ctx.rotate(.7);drawMedievalWeapon(ctx,d.weapon);ctx.restore()}else if(d.type==='fieldKit'){ctx.shadowColor='#74dfa0';ctx.shadowBlur=10;ctx.fillStyle='#356b58';ctx.fillRect(-10,-9,20,18);ctx.fillStyle='#c8f0d4';ctx.fillRect(-3,-7,6,14);ctx.fillRect(-7,-3,14,6);ctx.strokeStyle='#aadbbb';ctx.lineWidth=1.5;ctx.strokeRect(-10,-9,20,18)}else{ctx.fillStyle='#5bc6e6';ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(7,0);ctx.lineTo(0,9);ctx.lineTo(-7,0);ctx.closePath();ctx.fill()}ctx.restore()}
+function draw(){const scale=worldScale(),vw=viewSize().w,vh=viewSize().h;ctx.setTransform(dpr*scale,0,0,dpr*scale,dpr*(width-vw*scale)/2,dpr*(height-vh*scale)/2);drawGround();drawWorldProps();NS95_CAGE.draw();NSX.drawCaveAmbient();NSX.drawCaveMarkers();NSX.drawQuestObjects();NSX.drawExploreEvent();NSX.drawCaveExit();drawAmbientCrystals();drawBossTelegraphs();for(const d of G.drops){const p=screenPoint(d.x,d.y);if(p.x<-20||p.x>vw+20||p.y<-20||p.y>vh+20)continue;ctx.save();ctx.translate(p.x,p.y+Math.sin(d.phase)*3);ctx.shadowColor=d.type==='shard'?'#a17fe2':d.type==='gear'?({legendary:'#f6c567',epic:'#bd86ff',rare:'#74baff',uncommon:'#79df8d'}[d.item?.rarity]||'#d3e3dc'):d.type==='weapon'?'#eac47a':'#61dff7';ctx.shadowBlur=d.type==='gear'?22:14;if(d.type==='shard'){ctx.fillStyle='#a78bd9';ctx.strokeStyle='#e7d5ff';ctx.lineWidth=1.5;ctx.beginPath();for(let j=0;j<6;j++){const an=j*TAU/6-TAU/12;const x=Math.cos(an)*10,y=Math.sin(an)*10;if(j===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.closePath();ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.strokeStyle='#453e68';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-3,-5);ctx.lineTo(3,-1);ctx.lineTo(-2,5);ctx.stroke()}else if(d.type==='gear'){ctx.fillStyle=ctx.shadowColor;ctx.fillRect(-8,-8,16,16);ctx.strokeStyle='#fff0c2';ctx.lineWidth=2;ctx.strokeRect(-8,-8,16,16);ctx.fillStyle='#2f1e0a';ctx.fillRect(-2,-11,4,4)}else if(d.type==='weapon'){ctx.shadowColor='#eac47a';ctx.shadowBlur=16;ctx.save();ctx.scale(.42,.42);ctx.rotate(.7);drawMedievalWeapon(ctx,d.weapon);ctx.restore()}else if(d.type==='fieldKit'){ctx.shadowColor='#74dfa0';ctx.shadowBlur=10;ctx.fillStyle='#356b58';ctx.fillRect(-10,-9,20,18);ctx.fillStyle='#c8f0d4';ctx.fillRect(-3,-7,6,14);ctx.fillRect(-7,-3,14,6);ctx.strokeStyle='#aadbbb';ctx.lineWidth=1.5;ctx.strokeRect(-10,-9,20,18)}else{ctx.fillStyle='#5bc6e6';ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(7,0);ctx.lineTo(0,9);ctx.lineTo(-7,0);ctx.closePath();ctx.fill()}ctx.restore()}
 const ns90Focus=G.players.find(p=>p.id===(NET.role?NET.localId:'p1')&&!p.dead)||G.players.find(p=>!p.dead)||G.players[0];NS90_BRUTE_BARS=0;
 const actorCamera=G.mode==='editor'?G.pan:G.camera;const actorLeft=actorCamera.x-vw/2-190,actorRight=actorCamera.x+vw/2+190,actorTop=actorCamera.y-vh/2-190,actorBottom=actorCamera.y+vh/2+190;let actors=[...G.mobs.filter(m=>m.x>=actorLeft&&m.x<=actorRight&&m.y>=actorTop&&m.y<=actorBottom).map(m=>({...m,hero:false})),...G.players.filter(p=>p.x>=actorLeft&&p.x<=actorRight&&p.y>=actorTop&&p.y<=actorBottom).map(p=>({...p,hero:true}))].sort((a,b)=>a.y-b.y);if(G.mode==='menu'&&actors.length<3){let t=performance.now()/1000;actors.push({type:'crawler',x:(START.x-500)+Math.cos(t)*110,y:(START.y-380)+Math.sin(t)*80,r:15,frame:t*7,hp:48,maxHp:48,angle:t,flash:0,attackT:0},{type:'goblin',x:(START.x-395)+Math.cos(t*1.2)*88,y:(START.y-340)+Math.sin(t*1.15)*56,r:13,frame:t*8,hp:52,maxHp:52,angle:t+.9,flash:0,attackT:0},{type:'skeleton',x:(START.x-300)+Math.cos(t*.8)*100,y:(START.y-360)+Math.sin(t*.8)*60,r:15,frame:t*5,hp:67,maxHp:67,angle:t+.4,flash:0,attackT:0})}
 if(G.mode==='editor'){actors.push({type:'rotfiend',x:1440,y:1375,r:38*configs.rotfiend.size,frame:performance.now()/300,hp:configs.rotfiend.hp,maxHp:configs.rotfiend.hp,angle:1,flash:0,attackT:0,deathT:.39},{type:'worm',x:1190,y:1240,r:18*configs.worm.size,frame:performance.now()/150,hp:configs.worm.hp,maxHp:configs.worm.hp,angle:.7,flash:0,attackT:0,spitWindup:.25},{type:'crawler',x:1060,y:1150,r:15*configs.crawler.size,frame:performance.now()/170,hp:48,maxHp:48,angle:1,flash:0,attackT:0},{type:'goblin',x:1200,y:1100,r:13*configs.goblin.size,frame:performance.now()/150,hp:52,maxHp:52,angle:.2,flash:0,attackT:0},{type:'skeleton',x:1340,y:1120,r:15*configs.skeleton.size,frame:performance.now()/190,hp:67,maxHp:67,angle:-.8,flash:0,attackT:0},{type:'brute',x:1330,y:1320,r:15*configs.brute.size,frame:performance.now()/200,hp:155,maxHp:155,angle:-.5,flash:0,attackT:0},{type:'boss',x:1040,y:1350,r:30*configs.boss.size,frame:performance.now()/190,hp:configs.boss.hp,maxHp:configs.boss.hp,angle:-.9,flash:0,attackT:0})}
 for(const a of actors){let s=screenPoint(a.x,a.y);if(s.x<-165||s.x>vw+165||s.y<-165||s.y>vh+165)continue;ctx.save();ctx.translate(s.x,s.y);if(crowdDrawSimple(a))crowdDrawMob(a);else drawFigure({...a,x:0,y:0},a.hero);
- if(!a.hero)ns90DrawHp(a,ns90Focus);
+ if(!a.hero){ns90DrawHp(a,ns90Focus);NS95_CAGE.drawGuard(a);}
  if(a.hero&&NET.role&&G.mode==='play'&&!a.dead){
   const tag=safePlayerName(a.mpName||multiplayerDisplayName(a.id));
   ctx.save();ctx.font='bold 12px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -4440,6 +4723,7 @@ function mapMarkers(){const unlocked=mapGateUnlocked(),list=[];
  for(const m of G.mobs){if(!m.dead&&(m.type==='boss'||m.type==='rotfiend')&&mapSeen(m.x,m.y))list.push({x:m.x,y:m.y,type:'boss'});}
  for(const q of (NSX.progress.sideQuest?.objects||[])){if(!q.taken&&mapSeen(q.x,q.y))list.push({x:q.x,y:q.y,type:'quest'});}
  const explore=NSX.progress.exploration;if(explore&&!explore.done&&mapSeen(explore.x,explore.y))list.push({x:explore.x,y:explore.y,type:'explore'});
+ const c95=G.ns95Cage;if(c95&&!c95.freed&&mapSeen(c95.x,c95.y))list.push({x:c95.x,y:c95.y,type:'quest'});
  return list;
 }
 function mapDraw(canvas,large){if(G.mode!=='play')return;const context=canvas.getContext('2d'),w=canvas.width,h=canvas.height,p=mapFocus();if(!p||!context)return;
@@ -5062,7 +5346,7 @@ function sendSnapshot(){
  if(!ready.length)return;
  const migrationMeta=NETMIG.hostRoster();NETMIG.sendBackup(migrationMeta);
  // Static and team-wide state costs the same for every recipient.
- const shared={mig:migrationMeta,a91:NS91.getMask(),c92:NS92_CHALLENGES.snapshot(),
+ const shared={mig:migrationMeta,a91:NS91.getMask(),c92:NS92_CHALLENGES.snapshot(),c95:NS95_CAGE.snapshot(),
    nx:(G.caveMode||ready.some(({id})=>((NET.ns80PeerSeq.get(id)||0)+1)%3===1))?NSX.snapshot():undefined,
    specialMode:G.specialMode,
    towers:props.filter(o=>o.type==='nightTower').map(o=>[o.seed,Math.round(o.hp),o.destroyed?1:0]),
@@ -5079,7 +5363,7 @@ function sendSnapshot(){
   const mobs=G.mobs.filter(m=>!m.dead&&near(m,700)).sort((a,b)=>{
    const important=m=>(m.type==='boss'||m.nsCaveSpider||m.nsExploreBoss?-250000:m.type==='troll'?-40000:0);
    return (a.x-focus.x)**2+(a.y-focus.y)**2+important(a)-((b.x-focus.x)**2+(b.y-focus.y)**2+important(b));
-  }).slice(0,32).map(m=>[m.id,m.type,Math.round(m.x*10)/10,Math.round(m.y*10)/10,m.r,m.hp,m.maxHp,m.angle,m.frame,m.flash,m.attackT,m.deathT,m.dead?1:0,m.spitWindup,m.bossPhase||1,m.bossCast?{...m.bossCast}:null,!!m.nsExploreBoss,m.nsExploreTag||0,!!m.nsCaveSpider,!!m.nsCaveThief,m.nsThiefUntil||0]);
+  }).slice(0,32).map(m=>[m.id,m.type,Math.round(m.x*10)/10,Math.round(m.y*10)/10,m.r,m.hp,m.maxHp,m.angle,m.frame,m.flash,m.attackT,m.deathT,m.dead?1:0,m.spitWindup,m.bossPhase||1,m.bossCast?{...m.bossCast}:null,!!m.nsExploreBoss,m.nsExploreTag||0,!!m.nsCaveSpider,!!m.nsCaveThief,m.nsThiefUntil||0,!!m.ns95Guard]);
   const fx=G.effects.filter(e=>e.id&&e.t<.4&&near(e,720)).slice(-9).map(e=>({id:e.id,type:e.type,x:e.x,y:e.y,value:e.value,life:e.life}));
   const peerSeq=(NET.ns80PeerSeq.get(id)||0)+1;NET.ns80PeerSeq.set(id,peerSeq);
   const snap={t:'snapshot',seq:peerSeq,round:NET.round,...shared,
@@ -5140,9 +5424,9 @@ function receiveSnapshot(d){
  if(Number.isInteger(d.round)&&d.round!==NET.round)return;
  if(Number.isInteger(d.seq)&&d.seq<=NET.lastSnapSeq)return;
  if(Number.isInteger(d.seq)){if(NET.lastSnapSeq>0&&d.seq>NET.lastSnapSeq+1)NS79STATS.dropped+=d.seq-NET.lastSnapSeq-1;NET.lastSnapSeq=d.seq;}const snapshotNow=performance.now(),snapshotInterval=(snapshotNow-(NET.lastReceiveAt||snapshotNow-150))/1000;NET.lastReceiveAt=snapshotNow;const hostStep=Number.isFinite(d.time)&&Number.isFinite(NET.ns80LastHostTime)?d.time-NET.ns80LastHostTime:snapshotInterval;NET.ns80LastHostTime=Number(d.time)||null;NS79STATS.receive(d.seq,snapshotNow,snapshotInterval);NETLAB.snapshotReceived();NETMIG.observe(d.mig);
- if(d.nx)NSX.onGuestSnapshot(d.nx);NS91.receiveMask(d.a91);NS92_CHALLENGES.receive(d.c92);G.wave=d.w;if(d.specialMode)G.specialMode=d.specialMode;G.time=Math.max(G.time,d.time||0);if(Array.isArray(d.towers))for(const st of d.towers){const tower=props.find(o=>o.type==='nightTower'&&o.seed===st[0]);if(tower){tower.hp=st[1];tower.destroyed=!!st[2]}}G.nightTowersDestroyed=props.filter(o=>o.type==='nightTower'&&o.destroyed).length;G.level=d.l;G.xp=d.xp;G.xpNeed=d.xpn;G.kills=d.k;G.bossId=d.b;
+ if(d.nx)NSX.onGuestSnapshot(d.nx);NS91.receiveMask(d.a91);NS92_CHALLENGES.receive(d.c92);NS95_CAGE.receive(d.c95);G.wave=d.w;if(d.specialMode)G.specialMode=d.specialMode;G.time=Math.max(G.time,d.time||0);if(Array.isArray(d.towers))for(const st of d.towers){const tower=props.find(o=>o.type==='nightTower'&&o.seed===st[0]);if(tower){tower.hp=st[1];tower.destroyed=!!st[2]}}G.nightTowersDestroyed=props.filter(o=>o.type==='nightTower'&&o.destroyed).length;G.level=d.l;G.xp=d.xp;G.xpNeed=d.xpn;G.kills=d.k;G.bossId=d.b;
  // Do not overwrite the render position: blend it toward the authoritative state.
- G.players=reconcilePositions(G.players,d.p.map(p=>Array.isArray(p)?{id:p[0],x:p[1],y:p[2],r:p[3],hp:p[4],maxHp:p[5],speed:p[6],weapon:p[7],damage:p[8],range:p[9],attackRate:p[10],attackT:p[11],attackCD:p[12],dashCD:p[13],frame:p[14],walking:!!p[15],visualSide:p[16],facing:p[17],headFacing:p[18],bodyFacing:p[19],flash:p[20],dead:!!p[21],deathT:p[22],shieldUntil:p[23],freezeUntil:p[24],crystals:p[25],keys:p[26],perks:p[27],perkTimers:p[28],visualScale:p[29],xp:p[30],level:p[31],xpNeed:p[32],reviveCount:p[33]||0,sosUsed:!!p[34],sosAt:Number(p[35])||0,evolutions:p[36]||{},evolutionCooldown:p[37]||{},nsRole:p[38]||'guardian',nsLegendaryWeapon:p[39]||null,secondaryWeapon:MEDIEVAL_WEAPONS[p[40]]?p[40]:null,nsCombatClass:['warrior','ranger','mage','support'].includes(p[41])?p[41]:'warrior',mpName:safePlayerName(p[42]||multiplayerDisplayName(p[0])),ns93Mana:Number(p[43])||0,ns93MaxMana:Number(p[44])||64,ns93ManaRegen:Number(p[45])||2.5,ns93Cooldown:p[46]||{},look:NET.heroLooks.get(p[0])||networkHeroStyle(FACTORY_HERO)}:p),hostStep);G.mobs=reconcilePositions(G.mobs,(d.m||[]).map(m=>Array.isArray(m)?{id:m[0],type:m[1],x:m[2],y:m[3],r:m[4],hp:m[5],maxHp:m[6],angle:m[7],frame:m[8],flash:m[9],attackT:m[10],deathT:m[11],dead:!!m[12],spitWindup:m[13],bossPhase:m[14]||1,bossCast:m[15]||null,nsExploreBoss:!!m[16],nsExploreTag:m[17]||0,nsCaveSpider:!!m[18],nsCaveThief:!!m[19],nsThiefUntil:m[20]||0}:m),hostStep);
+ G.players=reconcilePositions(G.players,d.p.map(p=>Array.isArray(p)?{id:p[0],x:p[1],y:p[2],r:p[3],hp:p[4],maxHp:p[5],speed:p[6],weapon:p[7],damage:p[8],range:p[9],attackRate:p[10],attackT:p[11],attackCD:p[12],dashCD:p[13],frame:p[14],walking:!!p[15],visualSide:p[16],facing:p[17],headFacing:p[18],bodyFacing:p[19],flash:p[20],dead:!!p[21],deathT:p[22],shieldUntil:p[23],freezeUntil:p[24],crystals:p[25],keys:p[26],perks:p[27],perkTimers:p[28],visualScale:p[29],xp:p[30],level:p[31],xpNeed:p[32],reviveCount:p[33]||0,sosUsed:!!p[34],sosAt:Number(p[35])||0,evolutions:p[36]||{},evolutionCooldown:p[37]||{},nsRole:p[38]||'guardian',nsLegendaryWeapon:p[39]||null,secondaryWeapon:MEDIEVAL_WEAPONS[p[40]]?p[40]:null,nsCombatClass:['warrior','ranger','mage','support'].includes(p[41])?p[41]:'warrior',mpName:safePlayerName(p[42]||multiplayerDisplayName(p[0])),ns93Mana:Number(p[43])||0,ns93MaxMana:Number(p[44])||64,ns93ManaRegen:Number(p[45])||2.5,ns93Cooldown:p[46]||{},look:NET.heroLooks.get(p[0])||networkHeroStyle(FACTORY_HERO)}:p),hostStep);G.mobs=reconcilePositions(G.mobs,(d.m||[]).map(m=>Array.isArray(m)?{id:m[0],type:m[1],x:m[2],y:m[3],r:m[4],hp:m[5],maxHp:m[6],angle:m[7],frame:m[8],flash:m[9],attackT:m[10],deathT:m[11],dead:!!m[12],spitWindup:m[13],bossPhase:m[14]||1,bossCast:m[15]||null,nsExploreBoss:!!m[16],nsExploreTag:m[17]||0,nsCaveSpider:!!m[18],nsCaveThief:!!m[19],nsThiefUntil:m[20]||0,ns95Guard:!!m[21]}:m),hostStep);
  const own=G.players.find(p=>p.id===NET.localId);
  if(own&&Number.isFinite(own.tx)){
   const desired=getLocalInput(),rtt=NETLAB.peer('host').rtt;
@@ -6250,11 +6534,11 @@ function applyCaveVisuals(){return !!(progress.cave?.active||G.caveMode);}
  return {opt,progress,permanent,shopItems,paidCatalog,achievementList,onCaveSpecialKill,applyLegendaryHit,caveDripTick,caveSpiderTick,drawCaveAmbient,drawCaveMarkers,legendaryWeapon,spawnCaveSpecials,receiveCaveBonusClaims,openArmory,renderArmoryPanel,renderArmorySummary,reloadArmory,grantAchievementGear,grantWeeklyCommonGear,salvageDuplicates,unequipAll,equipmentBonuses,equippedWeapon,applyProfileEquipment,applyArmoryToPlayer,collectGearDrop,tryDamageDestructibles,damageDestructible,enterCaveEvent,exitCave,caveTick,caveStatePack,generateCaveProps,saveOverworldState,restoreOverworldState,drawCaveExit,applyCaveVisuals,receiveCaveLootClaim,get armory(){return armory},get rarityDefs(){return rarityDefs},get setDefs(){return setDefs},get world(){return WORLD},questTypes,questSpecs,exploreKinds,exploreDefs,rareRelics,reputation,repRank,adjustReputation,updateRepSummary,bountyTick,openRareChoice,chooseRare,completeRareBattle,closeRareChoice,spawnExploreEvent,spawnExploreGuards,explorationTick,grantExploreReward,exploreBossDefeated,drawExploreEvent,updateExploreBeacon,startNextSideQuest,completeSideQuest,sideQuestTick,drawQuestObjects,start,onKill,onCrystal,onDamage,onEnd,onMenu,tick,updateHud,reportFPS,effectsCap,pixelRatio,setDifficulty,setRole,setQuality,applyDifficulty,applyRole,snapshot,onGuestSnapshot,extract,completeMission,triggerEvent,buyWithHonor,renderShop,openShop,autoSave,clearSave,getSave,resume,updateResumeButton,showList,tutorialSteps,finishTutorial,bind};
 })();
 const progress=NSX.progress;const lang=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
-NSX.bind();NETLAB.bind();
+NSX.bind();NETLAB.bind();NS95_CAGE.initTestUI();
 
 
 
-window.__nightWatch={NETMIG,NSX,NETLAB,updateHUD,draw,bossPhaseOf,bossTarget,bossSummonWave,bossStartCast,bossResolveCast,updateBossPhases,drawBossTelegraphs,WEAPON_EVOLUTIONS,checkWeaponEvolution,currentEvolution,triggerEvolutionAttack,renderEvolutionGuide,openEvolutionGuide,updateEvolutionHud,sosRequest,sosRegister,sosEligible,sosActive,sosCompassTarget,updateSOSHUD,sosObserveSnapshot,REVIVE_RANGE,REVIVE_SECONDS,REVIVE_MAX,REVIVE_HP_RATIO,REVIVE_INVUL,teamColor,drawTeamTriangle,drawTeamEdgeMarkers,reviveCandidate,setReviveHeld,interruptRevive,updateRevives,updateReviveHUD,miniMap,mapReset,mapReveal,mapDraw,mapMarkers,mapGateUnlocked,mapOpen,mapClose,mapSeen,mapFocus,completeNightRun,finishNetworkRound,startLobbyMatch,sendSnapshot,receiveSnapshot,selectPlayerAccount,performAttack,settleRun,awardMP,levelHeroAfterRun,giveSoloLifetimeRewards,earnMPReward,createArchetype,heroLevelStats,heroFreePoints,getHeroTrack,improveChosenHero,renderPreRun,showPreRun,selectPreHero,buildNightTowers,nightDark,lightAt,towerAttack,get selectedMode(){return selectedMode},get mpProgress(){return mpProgress},portableDiagnostics,exportLocalSave,importLocalSave,SOCIAL,get socialId(){return ensureSocialIdentity()},get socialFriends(){return SOCIAL.db?.friends||{}},startSocial,showFriends,socialConnectTo,socialHandlePacket,acceptSocialAction,joinFriendRoom,sendFriendInvite,requestFriendJoin,sendSocialStatus,renderFriends,mpProgress,get playerAccounts(){return playerAccounts},get activeAccount(){return getActiveAccount()},avatarFace,safeAvatarId,safeAvatarImage,saveCurrentAvatar,renderMPAvatarPreview,profileLevelStats,currentProfileLevel,safePlayerName,renderPlayerProfile,selectPlayerAccount,createPlayerAccount,commitMPName,MP_SKILLS,mpCost,buyCoopSkill,earnMPReward,awardMP,applyCoopBonuses,networkHeroStyle,showQuickChoice,coopXP,applyQuickPower,goBack,renderLobby,broadcastLobby,setMyReady,startLobbyMatch,showLobbyUI,leaveLobby,closeNet,damagePlayer,killMob,meta,calculateRunReward,settleRun,showStats,showBase,buyMetaUpgrade,applyMetaBonuses,openGuildShop,closeGuildShop,buyGuildItem,tryGuildShop,get guildItems(){return GUILD_ITEMS},renderRelicChoices,openRelicPanel,chooseRelic,tryRelicShrine,G,NET,configs,VoiceClips,CoopVoice,coopVoiceSendClip,coopVoicePreparedBlob,coopVoiceReceive,coopVoiceHandleNetwork,coopVoicePlayReceived,coopVoiceUpdatePreference,microphoneDiagnostics,FACTORY_HERO,get activeHeroProfile(){return activeHeroProfile},get heroProfiles(){return heroProfiles},applyHeroProfile,createHeroProfile,deleteActiveHero,MEDIEVAL_WEAPONS,drawMedievalWeapon,drawWardrobeExtras,recordVoice,stopVoiceRecording,checkMicPermission,microphoneDiagnostics,exportVoiceClip,saveVoiceClip,removeVoiceClip,playClip,refreshVoiceUI,WARD_CONTROLS,get props(){return props},get defaultPlayMap(){return defaultPlayMap},get levels(){return levelCollection},get editorLevelId(){return editorLevelId},get heroStyle(){return heroStyle},get settings(){return cfgSettings},get projectiles(){return G.projectiles},updateProjectiles,spawnAmbientCrystal,collectBlueCrystals,drawAmbientCrystals,Music,startMusic,stopMusic,tryLootChests,tryMarkets,showLootChoice,lootOptions,grantTreasure,updateAbilities,spawnRotfiend,spawnEnemy,addMob,selectMobTarget,availableTargets,nextSpawnTarget,TREASURES,separateMobBodies,spawnAcid,setupConnection,addRemotePlayer,sendSnapshot,receiveSnapshot,isSolidProp,turnToward,ensureLootAndHouses,saveCurrentLevel,openLevel,addLevel,deleteLevel,saveCharacter,sfx,voiceLine,command,startGame,spawnBoss,generateMap,update,updateMobs,flowDirection,obstacleInPath,invalidateNavigation,draw,move:movingCircle,worldPoint,showMenu,save:persist,xpRequirement};
+window.__nightWatch={NS95_CAGE,NS95_PROGRESS,NETMIG,NSX,NETLAB,updateHUD,draw,bossPhaseOf,bossTarget,bossSummonWave,bossStartCast,bossResolveCast,updateBossPhases,drawBossTelegraphs,WEAPON_EVOLUTIONS,checkWeaponEvolution,currentEvolution,triggerEvolutionAttack,renderEvolutionGuide,openEvolutionGuide,updateEvolutionHud,sosRequest,sosRegister,sosEligible,sosActive,sosCompassTarget,updateSOSHUD,sosObserveSnapshot,REVIVE_RANGE,REVIVE_SECONDS,REVIVE_MAX,REVIVE_HP_RATIO,REVIVE_INVUL,teamColor,drawTeamTriangle,drawTeamEdgeMarkers,reviveCandidate,setReviveHeld,interruptRevive,updateRevives,updateReviveHUD,miniMap,mapReset,mapReveal,mapDraw,mapMarkers,mapGateUnlocked,mapOpen,mapClose,mapSeen,mapFocus,completeNightRun,finishNetworkRound,startLobbyMatch,sendSnapshot,receiveSnapshot,selectPlayerAccount,performAttack,settleRun,awardMP,levelHeroAfterRun,giveSoloLifetimeRewards,earnMPReward,createArchetype,heroLevelStats,heroFreePoints,getHeroTrack,improveChosenHero,renderPreRun,showPreRun,selectPreHero,buildNightTowers,nightDark,lightAt,towerAttack,get selectedMode(){return selectedMode},get mpProgress(){return mpProgress},portableDiagnostics,exportLocalSave,importLocalSave,SOCIAL,get socialId(){return ensureSocialIdentity()},get socialFriends(){return SOCIAL.db?.friends||{}},startSocial,showFriends,socialConnectTo,socialHandlePacket,acceptSocialAction,joinFriendRoom,sendFriendInvite,requestFriendJoin,sendSocialStatus,renderFriends,mpProgress,get playerAccounts(){return playerAccounts},get activeAccount(){return getActiveAccount()},avatarFace,safeAvatarId,safeAvatarImage,saveCurrentAvatar,renderMPAvatarPreview,profileLevelStats,currentProfileLevel,safePlayerName,renderPlayerProfile,selectPlayerAccount,createPlayerAccount,commitMPName,MP_SKILLS,mpCost,buyCoopSkill,earnMPReward,awardMP,applyCoopBonuses,networkHeroStyle,showQuickChoice,coopXP,applyQuickPower,goBack,renderLobby,broadcastLobby,setMyReady,startLobbyMatch,showLobbyUI,leaveLobby,closeNet,damagePlayer,killMob,meta,calculateRunReward,settleRun,showStats,showBase,buyMetaUpgrade,applyMetaBonuses,openGuildShop,closeGuildShop,buyGuildItem,tryGuildShop,get guildItems(){return GUILD_ITEMS},renderRelicChoices,openRelicPanel,chooseRelic,tryRelicShrine,G,NET,configs,VoiceClips,CoopVoice,coopVoiceSendClip,coopVoicePreparedBlob,coopVoiceReceive,coopVoiceHandleNetwork,coopVoicePlayReceived,coopVoiceUpdatePreference,microphoneDiagnostics,FACTORY_HERO,get activeHeroProfile(){return activeHeroProfile},get heroProfiles(){return heroProfiles},applyHeroProfile,createHeroProfile,deleteActiveHero,MEDIEVAL_WEAPONS,drawMedievalWeapon,drawWardrobeExtras,recordVoice,stopVoiceRecording,checkMicPermission,microphoneDiagnostics,exportVoiceClip,saveVoiceClip,removeVoiceClip,playClip,refreshVoiceUI,WARD_CONTROLS,get props(){return props},get defaultPlayMap(){return defaultPlayMap},get levels(){return levelCollection},get editorLevelId(){return editorLevelId},get heroStyle(){return heroStyle},get settings(){return cfgSettings},get projectiles(){return G.projectiles},updateProjectiles,spawnAmbientCrystal,collectBlueCrystals,drawAmbientCrystals,Music,startMusic,stopMusic,tryLootChests,tryMarkets,showLootChoice,lootOptions,grantTreasure,updateAbilities,spawnRotfiend,spawnEnemy,addMob,selectMobTarget,availableTargets,nextSpawnTarget,TREASURES,separateMobBodies,spawnAcid,setupConnection,addRemotePlayer,sendSnapshot,receiveSnapshot,isSolidProp,turnToward,ensureLootAndHouses,saveCurrentLevel,openLevel,addLevel,deleteLevel,saveCharacter,sfx,voiceLine,command,startGame,spawnBoss,generateMap,update,updateMobs,flowDirection,obstacleInPath,invalidateNavigation,draw,move:movingCircle,worldPoint,showMenu,save:persist,xpRequirement};
 /* v50 — first-use hints appear only when the relevant screen is opened; no modal, no click interception. */
 const NS50MENU=(()=>{
  const KEY='ns50_context_hints_v1',readSeen=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch{return {}}};
