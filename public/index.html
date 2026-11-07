@@ -4103,8 +4103,9 @@ const NS99_TEAM=(()=>{
    b:ballot?{kind:ballot.kind,until:ballot.until,votes:{...ballot.votes}}:null});
  function publish(){
   if(NET.role!=='host'||NET.phase!=='playing')return;
-  seq++;const packet={t:'ns99State',round:NET.round,state:state()};
+  seq++;lastPublish=Date.now();const packet={t:'ns99State',round:NET.round,state:state()};
   for(const c of NET.clients.values())if(c?.open&&Number(c.bufferSize||0)<12000)try{c.send(packet)}catch{}
+  if(!frozen()&&G.mode==='play'&&!G.paused&&!G.quickChoice&&!G.lootPending&&!G.marketPending&&!G.guildPending)$('controls')?.classList.remove('hidden');
   render();
  }
  function reset(){
@@ -5727,6 +5728,7 @@ function setupConnection(c){
    if(assigned&&data.t==='reviveHold'){if(!data.held){delete G.reviveIntent[assigned];delete G.reviveActive[assigned];G.reviveSuppressed?.delete(assigned)}else if(!G.reviveSuppressed?.has(assigned))G.reviveIntent[assigned]={held:true,at:G.time};return;}
    if(assigned&&data.t==='spectate'){const watch=G.players.find(p=>p.id===data.id&&!p.dead);if(watch)NET.spectateTargets.set(assigned,watch.id);return}
    if(assigned&&data.t==='powerChoice'&&NS99_TEAM.currentLevel?.id===assigned){NS99_TEAM.select(assigned,data.id);return}
+   if(assigned&&data.t==='powerChoice'&&data.round!==NET.round)return;
    if(assigned&&data.t==='powerChoice'){const o=NET.pendingOffers.get(assigned),p=G.players.find(q=>q.id===assigned);if(o?.type==='power'&&p&&G.time<=o.deadline+1){applyQuickPower(p,data.id);p.offerUntil=0;NET.pendingOffers.delete(assigned)}return;}
    if(assigned&&data.t==='input'&&data.v){let v=data.v;NET.remoteInputs.set(assigned,NET.pendingOffers.has(assigned)?{x:0,y:0,attack:false,dash:false}:{x:clamp(Number(v.x)||0,-1,1),y:clamp(Number(v.y)||0,-1,1),attack:!!v.attack,dash:!!v.dash})}
    else if(assigned&&data.t==='chestChoice'){
