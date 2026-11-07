@@ -1,9 +1,10 @@
-name: Verify Night Watch v90 game
+name: Verify Noćna Straža v91
 on:
   push:
     branches: [main]
     paths:
       - "public/**"
+      - "tests/**"
       - ".github/workflows/publish-pages.yml"
   workflow_dispatch:
 permissions:
@@ -13,120 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run source and gameplay smoke tests
-        shell: bash
+      - name: Test v91 solo, multiplayer six-player team and item rewards
+        run: node tests/v91-achievements.test.cjs
+      - name: Verify Firebase assets and source encoding
         run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const vm = require('node:vm');
-          const assert = require('node:assert/strict');
-          const html = fs.readFileSync('public/index.html','utf8');
-          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(x=>!x[1].includes('src='));
-          assert.equal(scripts.length,4);
-          for (const [, , script] of scripts) new vm.Script(script);
-          assert.match(html,/Night Watch v90 — Multiplayer/);
-          assert.match(html,/function drawTroll\(e,model\)/);
-          assert.match(html,/m\.nsTrollHitAt=G\.time\+\.52/);
-          assert.match(html,/NSX\.applyDifficulty\(mob\)/);
-          assert.match(html,/data\.t==='ns89TakeWeapon'/);
-          assert.match(html,/data\.v!==90/);
-          assert.match(html,/if\(d\.type==='weapon'\)continue/);
-          assert.match(html,/window\.__NS89_PICK=NS89_PICK/);
-          assert.ok(fs.existsSync('public/auth-v82.js'));
-          assert.ok(fs.existsSync('public/firebase-config.js'));
-          const match=html.match(/const MEDIEVAL_WEAPONS=({[^;]+});/);
-          assert.ok(match,'weapon specs available');
-          const weapons=vm.runInNewContext('('+match[1]+')');
-          for(const name of ['trollclub','trollmaul']){
-            assert.ok(weapons[name]);
-            assert.ok(weapons[name].damage>weapons.sword.damage);
-            assert.ok(weapons[name].speed>1);
-            assert.ok(weapons[name].damage/weapons[name].speed<1.1);
-          }
-          const start=html.indexOf('function spawnEnemy(forcedType=null)');
-          const end=html.indexOf('\nfunction spawnRotfiend()',start);
-          assert.ok(start>0&&end>start);
-          const ctx={G:{mobs:[],wave:9},configs:{crawler:{size:1},goblin:{size:1},skeleton:{size:1},worm:{size:1},brute:{size:1},elephant:{size:1},rotfiend:{size:1},troll:{size:1}},TAU:Math.PI*2,WORLD:{w:4200,h:4200},rnd:()=>.5,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),nextSpawnTarget:()=>({x:2100,y:2100,id:'p1'}),canStepClear:()=>true};
-          ctx.addMob=(type,x,y)=>{const m={type,x,y,r:20,dead:false};ctx.G.mobs.push(m);return m};
-          vm.runInNewContext(html.slice(start,end)+'\nthis.spawnEnemy=spawnEnemy;',ctx);
-          assert.notEqual(ctx.spawnEnemy().type,'troll','no troll before wave 10');
-          ctx.G.wave=10;ctx.G.mobs=[];
-          assert.equal(ctx.spawnEnemy('troll').type,'troll','guaranteed troll at wave 10');
-          ctx.G.mobs=[{type:'troll',dead:false,x:100,y:100,r:20},{type:'troll',dead:false,x:150,y:100,r:20}];
-          assert.notEqual(ctx.spawnEnemy('troll').type,'troll','max two trolls at wave 10');
-          ctx.G.wave=20;ctx.G.mobs=ctx.G.mobs.filter(m=>m.type==='troll');
-          assert.equal(ctx.spawnEnemy('troll').type,'troll','third troll allowed from wave 20');
-          const aimStart=html.indexOf('function ns90TrollCanHit(m,victim){');
-          const aimEnd=html.indexOf('function updateMobs(dt){',aimStart);
-          assert.ok(aimStart>0&&aimEnd>aimStart,'troll hit direction helper');
-          const aim={obstacleInPath:()=>false,Math};
-          vm.runInNewContext(html.slice(aimStart,aimEnd)+'\nthis.hit=ns90TrollCanHit;',aim);
-          const mob={x:0,y:0,r:21,angle:0};
-          assert.equal(aim.hit(mob,{x:60,y:0,r:16,dead:false}),true,'troll strikes forward');
-          assert.equal(aim.hit(mob,{x:-45,y:0,r:16,dead:false}),false,'dodging behind avoids damage');
-          assert.equal(aim.hit(mob,{x:180,y:0,r:16,dead:false}),false,'far targets are safe');
-          aim.obstacleInPath=()=>true;
-          assert.equal(aim.hit(mob,{x:60,y:0,r:16,dead:false}),false,'obstacle shields from strike');
-          const hpStart=html.indexOf('let NS90_BRUTE_BARS=0;');
-          const hpEnd=html.indexOf('function draw(){',hpStart);
-          assert.ok(hpStart>0&&hpEnd>hpStart,'health bar module present');
-          assert.match(html,/m\.r,m\.hp,m\.maxHp/,'authoritative host includes health');
-          assert.match(html,/hp:m\[5\],maxHp:m\[6\]/,'guest decodes health');
-          let rects=0,labels=0;
-          const hud={G:{mode:'play',mobs:[]},NSX:{opt:{quality:'high'}},ctx:{fillRect(){rects++},fillText(){labels++}},clamp:(v,a,b)=>Math.max(a,Math.min(v,b)),window:{__gameLanguage:{value:'sr'}}};
-          vm.runInNewContext(html.slice(hpStart,hpEnd)+'\nthis.showHP=ns90ShouldShowHp;this.renderHP=ns90DrawHp;',hud);
-          const focus={x:0,y:0};
-          const troll={type:'troll',x:270,y:0,r:21,hp:132,maxHp:132,dead:false};
-          assert.equal(hud.showHP(troll,focus,'high',8),true,'troll is visible near player even at full HP');
-          assert.equal(hud.showHP({...troll,x:550},focus,'high',8),false,'distant troll is hidden');
-          assert.equal(hud.showHP({...troll,dead:true},focus,'high',8),false,'dead troll hidden');
-          assert.equal(hud.showHP({...troll,type:'goblin'},focus,'high',8),false,'normal mobs without bars');
-          const brute={type:'brute',x:125,y:0,r:20,hp:100,maxHp:155,dead:false};
-          assert.equal(hud.showHP(brute,focus,'high',8),true,'damaged nearby brute');
-          assert.equal(hud.showHP({...brute,hp:155},focus,'high',8),false,'full HP brute hidden');
-          assert.equal(hud.showHP(brute,focus,'low',80),false,'crowded low-end mode skips brute');
-          hud.renderHP(troll,focus);assert.equal(labels,1,'near troll name with HP label');
-          hud.renderHP({...troll,x:340},focus);assert.equal(labels,1,'mid-distance bar has no label');
-          for(let k=0;k<8;k++)hud.renderHP({...brute,x:125+k},focus);
-          assert.equal(rects,4+3+3*4,'maximum four brute health bars per frame');
-          console.log('PASS: troll and brute HP culling, crowd limits, guest sync health, wave 9/10/20, weapon balance and 4 JS scripts.');
-
-          NODE
-      - name: Confirm v90 public URL and Firebase assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          url="https://majorstex.github.io/nocna-straza-v90/"
-          for attempt in $(seq 1 24); do
-            if curl --fail --location --silent --show-error --max-time 20 "$url" -o /tmp/night-watch-v90.html && grep -q 'Night Watch v90' /tmp/night-watch-v90.html && curl --fail --location --silent --show-error --max-time 20 "${url}firebase-config.js?v=89" -o /tmp/ns89-firebase.js && curl --fail --location --silent --show-error --max-time 20 "${url}auth-v82.js?v=89" -o /tmp/ns89-auth.js; then
-              echo "PUBLIC V90 PASS: $url"; exit 0
-            fi
-            echo "Waiting for GitHub Pages release ($attempt/24)"
-            sleep 5
-          done
-          echo "V90 public release not available after attempted checks" >&2
-          exit 1
-      - name: Check immediate troll practice link
-        shell: bash
-        run: |
-          set -euo pipefail
-          url="https://majorstex.github.io/nocna-straza-v89-trol-test/"
-          for attempt in $(seq 1 14); do
-            if curl --location --fail --silent --show-error --max-time 20 "$url" -o /tmp/troll.html && grep -q 'Night Watch v89 · TROLL TEST' /tmp/troll.html && grep -q 'NS89_TROLL_TEST=true' /tmp/troll.html && curl --location --fail --silent --show-error --max-time 20 "${url}auth-v82.js?v=89" -o /tmp/troll-auth.js && curl --location --fail --silent --show-error --max-time 20 "${url}firebase-config.js?v=89" -o /tmp/troll-config.js; then
-              echo "PASS: troll preview opens with cloud assets at $url"; exit 0
-            fi
-            sleep 3
-          done
-          exit 1
-      - name: Confirm v90 troll practice public link
-        shell: bash
-        run: |
-          set -euo pipefail
-          url="https://majorstex.github.io/nocna-straza-v90-trol-test/"
-          for attempt in $(seq 1 15); do
-            if curl --fail --location --silent --show-error --max-time 20 "$url" -o /tmp/ns90troll.html && grep -q 'Night Watch v90 — Troll practice' /tmp/ns90troll.html && grep -q 'NS89_TROLL_TEST=true' /tmp/ns90troll.html && grep -q 'function ns90DrawHp(m,focus)' /tmp/ns90troll.html && curl --fail --location --silent --show-error --max-time 20 "${url}auth-v82.js?v=90" -o /tmp/ns90troll-auth.js && curl --fail --location --silent --show-error --max-time 20 "${url}firebase-config.js?v=90" -o /tmp/ns90troll-config.js; then
-              echo "v90 troll practice publicly accessible"; exit 0
-            fi
-            sleep 3
-          done
-          exit 1
+          test -s public/index.html
+          test -s public/firebase-config.js
+          test -s public/auth-v82.js
+          grep -q 'Night Watch v91 — Multiplayer' public/index.html
