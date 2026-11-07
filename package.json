@@ -1,6 +1,6 @@
 {
   "name": "nocna-straza",
-  "version": "91.0.0",
+  "version": "92.0.0",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy"
