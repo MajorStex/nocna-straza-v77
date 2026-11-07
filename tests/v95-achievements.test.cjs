@@ -10,7 +10,7 @@ const source=(a)=>ok(html.includes(a),'Expected source text: '+a);
 const scripts=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(m=>!m[1].includes('src='));
 eq(scripts.length,4,'HTML script blocks');
 for(const m of scripts){new vm.Script(m[2]);checked++}
-source("\x3ctitle>Night Watch v97 — Match Stats & Vote (Night Watch v95 compatible)</title>");
+source("\x3ctitle>Night Watch v98 — Cave Reconnect & In-Game Mana (Night Watch v95 compatible)</title>");
 source('const NS92_DIR=(()=>{');
 source('const NS92_CHALLENGES=(()=>{');
 source('NS92_CHALLENGES.receive(d.c92)');
