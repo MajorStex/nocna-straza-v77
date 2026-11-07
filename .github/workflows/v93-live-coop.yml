@@ -1,0 +1,23 @@
+name: Live two-device co-op v93 spell verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tests/v93-live-coop.test.cjs"
+      - ".github/workflows/v93-live-coop.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-coop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install test browser driver
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Join two real Chrome contexts via Cloudflare relay and cast both directions
+        run: node tests/v93-live-coop.test.cjs
