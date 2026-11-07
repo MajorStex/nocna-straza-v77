@@ -7,7 +7,7 @@ const eq=(a,b,message)=>{assert.equal(a,b,message);checked++};
 for(const script of [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(m=>!m[1].includes('src='))){
  new vm.Script(script[2]);checked++;
 }
-ok(html.includes('<title>Night Watch v95 — The Prisoner's Guard</title>'),'v95 title');
+ok(html.includes("\x3ctitle>Night Watch v95 — The Prisoner's Guard</title>"),'v95 title');
 ok(html.includes("NET.sessionToken=typeof data.session==='string'?data.session:null"),'guest receives scoped run token');
 ok(html.includes("session:NET.sessionToken,difficulty:NSX.opt.difficulty"),'host sends scoped run token');
 ok(html.includes('NS94_ECON.pay(s.price)'),'spell purchases use safe debit');
