@@ -31,8 +31,10 @@ const {chromium}=require('playwright-core');
    document.getElementById('joinBtn').click();
   },code);
   await guest.waitForFunction(()=>window.__nightWatch.NET.role==='guest'&&window.__nightWatch.NET.phase==='lobby'&&window.__nightWatch.NET.worldReady,{timeout:25000});
-  await host.waitForFunction(()=>window.__nightWatch.NET.clients.size===1&&window.__nightWatch.NET.worldReadyPlayers.size>0,{timeout:15000});
+  await host.waitForFunction(()=>window.__nightWatch.NET.clients.size===1&&window.__nightWatch.NET.worldReadyPlayers.get('p2')===true,{timeout:15000});
   console.log('LIVE_MP_GUEST_CONNECTED=yes');
+  await guest.evaluate(()=>{document.getElementById('lobbyReadyBtn')?.click()});
+  await host.waitForFunction(()=>window.__nightWatch.NET.readyPlayers.get('p2')===true,{timeout:9000});
   await host.evaluate(()=>{
    const game=window.__nightWatch;
    game.NET.forceRequest=true;
