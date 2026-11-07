@@ -1,3 +1,15 @@
+# Noćna Straža v89 — Trol od 10. talasa
+
+- Novi **trol goblin**: proceduralni hod nogama i rukama, usporeno kretanje, veći ali ne ogroman, ograničen na 2 istovremeno pre talasa 20 i 3 kasnije. Garantovani prvi susret u talasu 10.
+- **Balans**: bazni HP 132, brzina 69, osnovni udarac 15; postojeći sistem težina Easy / Normal / Hard / Nightmare automatski utiče na trola. Zamah se priprema 0,52 s i može se izbeći udaljavanjem.
+- **Nagrade**: četiri XP fragmenta; 11% šanse da ispadne Trolov toljag ili Trolov teški malj (ako limit drops dozvoljava). Oružja daju jači udarac ali sporiji napad.
+- **Poređenje**: kad igrač priđe oružju, bira Uzmi/Ostavi i upoređuje štetu, napade u sekundi, DPS, domet i širinu zamaha; staro aktivno oružje ostaje kao rezervno. Domaćin proverava mrežni zahtev gosta.
+- Postojeće privatno čuvanje, Google prijava, jezici i druge funkcije ostaju. Stari profili nisu brisani.
+- Testovi: automatizovani GitHub Actions sintaksni i simulirani testovi prošli. Nije testirano na 6 pravih telefona.
+- Za objavljivanje koristi se `MajorStex/MajorStex.github.io/nocna-straza-v89/`, a ovaj repo čuva izvor.
+
+---
+
 # Noćna Straža v88 — mobilne optimizacije (7.11.2026)
 
 v88 čuva sve postojeće naloge, sinhronizaciju, multiplayer protokol, karaktere i napredak. Ubrzano je crtanje rekvizita preko jednog izračunavanja vidljivog polja, keširan je prikaz veličine ekrana i vinjeta; uklonjena je nepotrebna linijska provera prepreka van dometa napada, usporavanje neprijatelja računa se samo jednom po kadru, a grafički efekti koji nisu vidljivi ne crtaju se.
