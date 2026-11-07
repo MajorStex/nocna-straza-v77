@@ -54,7 +54,7 @@ jobs:
           assert.equal(ctx.spawnEnemy('troll').type,'troll','guaranteed troll at wave 10');
           ctx.G.mobs=[{type:'troll',dead:false,x:100,y:100,r:20},{type:'troll',dead:false,x:150,y:100,r:20}];
           assert.notEqual(ctx.spawnEnemy('troll').type,'troll','max two trolls at wave 10');
-          ctx.G.wave=20;
+          ctx.G.wave=20;ctx.G.mobs=ctx.G.mobs.filter(m=>m.type==='troll');
           assert.equal(ctx.spawnEnemy('troll').type,'troll','third troll allowed from wave 20');
           console.log('PASS: 4 scripts parsed; wave 9/10/20, mob cap, telegraph, difficulty hook, weapon balance, multiplayer pickup and cloud assets.');
           NODE
