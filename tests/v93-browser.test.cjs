@@ -22,6 +22,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
     game.killMob(mob,hero);
     const gear=game.NSX.armory.inventory.find(item=>item.uid?.endsWith('_k100'));
     const baseline={mode:game.G.mode,kills:game.G.kills,firstBadge:ach.owned('k100'),firstGear:gear?.rarity};
+    const spellBefore=hero.ns93Mana;
+    const spell=window.__NS93_MAGIC.cast(hero,'spark',hero.x+70,hero.y+20);
+    const spellManaAfter=hero.ns93Mana;
     const challenges=daily.list();
     for(const c of challenges){
       if(c.kind==='kills')game.G.kills=Math.max(game.G.kills,c.goal);
@@ -44,12 +47,14 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
       game.sendSnapshot();
       mp={sent:received.length,players:received.map(x=>x.packet.p.length),dailyWeeklyBits:received.map(x=>x.packet.c92?.b),bytes:received.map(x=>JSON.stringify(x.packet).length)};
     }
-    return {...baseline,firstTeam,achievements:achievements.map(x=>({id:x.id,owned:x.owned})),weekly:weekly?.rarity,mask:ach.getMask(),mp};
+    return {...baseline,firstTeam,spellOk:spell.ok,spellBefore,spellManaAfter,achievements:achievements.map(x=>({id:x.id,owned:x.owned})),weekly:weekly?.rarity,mask:ach.getMask(),mp};
    });
    assert.equal(result.mode,'play','SP starts');
    assert.equal(result.firstBadge,true,'100 kills unlocks');
    assert.equal(result.firstGear,'common','achievement item is Common');
    assert.equal(result.firstTeam,1,'SP starts with one hero');
+   assert.equal(result.spellOk,true,'v93 tap/drag spell API works in browser');
+   assert.equal(result.spellBefore-result.spellManaAfter,12,'host spends correct mana for Spark');
    assert.deepEqual(result.achievements.map(x=>x.owned),[true,true],'daily & weekly complete');
    assert.equal(result.weekly,'common','weekly equipment Common');
    if(width>=400){
