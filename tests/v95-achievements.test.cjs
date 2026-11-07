@@ -22,7 +22,7 @@ source('function ns90DrawHp(m,focus)');source('function drawTroll(e,model)');
 source('NS91.onKill(m)');source('NS91.onWave()');source('NS91.onChest()');source('NS91.onRevive()');
 source('a91:NS91.getMask()');source('NS91.receiveMask(d.a91)');
 source('NS91.resume(d)');source('NS91.resume(s.a91)');
-source('achChests:G.chestsOpened||0,...NS91.save()');
+source('achChests:G.chestsOpened||0,ns100RotfiendWaves:');source('...NS91.save()');
 source('state.a91=NS91.save()');
 source("item=makeArmoryItem(template,'common')");
 source("item.uid=uid;item.source='achievement'");
