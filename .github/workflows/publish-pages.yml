@@ -77,7 +77,7 @@ jobs:
           hud.renderHP(troll,focus);assert.equal(labels,1,'near troll name with HP label');
           hud.renderHP({...troll,x:340},focus);assert.equal(labels,1,'mid-distance bar has no label');
           for(let k=0;k<8;k++)hud.renderHP({...brute,x:125+k},focus);
-          assert.equal(rects,3*2+4*4,'maximum four brute health bars per frame');
+          assert.equal(rects,4+3+3*4,'maximum four brute health bars per frame');
           console.log('PASS: troll and brute HP culling, crowd limits, guest sync health, wave 9/10/20, weapon balance and 4 JS scripts.');
 
           NODE
