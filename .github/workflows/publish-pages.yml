@@ -1,4 +1,4 @@
-name: Verify Night Watch v89 game
+name: Verify Night Watch v90 game
 on:
   push:
     branches: [main]
@@ -24,12 +24,12 @@ jobs:
           const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(x=>!x[1].includes('src='));
           assert.equal(scripts.length,4);
           for (const [, , script] of scripts) new vm.Script(script);
-          assert.match(html,/Night Watch v89 — Multiplayer/);
+          assert.match(html,/Night Watch v90 — Multiplayer/);
           assert.match(html,/function drawTroll\(e,model\)/);
           assert.match(html,/m\.nsTrollHitAt=G\.time\+\.52/);
           assert.match(html,/NSX\.applyDifficulty\(mob\)/);
           assert.match(html,/data\.t==='ns89TakeWeapon'/);
-          assert.match(html,/data\.v!==89/);
+          assert.match(html,/data\.v!==90/);
           assert.match(html,/if\(d\.type==='weapon'\)continue/);
           assert.match(html,/window\.__NS89_PICK=NS89_PICK/);
           assert.ok(fs.existsSync('public/auth-v82.js'));
@@ -56,21 +56,44 @@ jobs:
           assert.notEqual(ctx.spawnEnemy('troll').type,'troll','max two trolls at wave 10');
           ctx.G.wave=20;ctx.G.mobs=ctx.G.mobs.filter(m=>m.type==='troll');
           assert.equal(ctx.spawnEnemy('troll').type,'troll','third troll allowed from wave 20');
-          console.log('PASS: 4 scripts parsed; wave 9/10/20, mob cap, telegraph, difficulty hook, weapon balance, multiplayer pickup and cloud assets.');
+          const hpStart=html.indexOf('let NS90_BRUTE_BARS=0;');
+          const hpEnd=html.indexOf('function draw(){',hpStart);
+          assert.ok(hpStart>0&&hpEnd>hpStart,'health bar module present');
+          assert.match(html,/m\.r,m\.hp,m\.maxHp/,'authoritative host includes health');
+          assert.match(html,/hp:m\[5\],maxHp:m\[6\]/,'guest decodes health');
+          let rects=0,labels=0;
+          const hud={G:{mode:'play',mobs:[]},NSX:{opt:{quality:'high'}},ctx:{fillRect(){rects++},fillText(){labels++}},clamp:(v,a,b)=>Math.max(a,Math.min(v,b)),window:{__gameLanguage:{value:'sr'}}};
+          vm.runInNewContext(html.slice(hpStart,hpEnd)+'\nthis.showHP=ns90ShouldShowHp;this.renderHP=ns90DrawHp;',hud);
+          const focus={x:0,y:0};
+          const troll={type:'troll',x:270,y:0,r:21,hp:132,maxHp:132,dead:false};
+          assert.equal(hud.showHP(troll,focus,'high',8),true,'troll is visible near player even at full HP');
+          assert.equal(hud.showHP({...troll,x:550},focus,'high',8),false,'distant troll is hidden');
+          assert.equal(hud.showHP({...troll,dead:true},focus,'high',8),false,'dead troll hidden');
+          assert.equal(hud.showHP({...troll,type:'goblin'},focus,'high',8),false,'normal mobs without bars');
+          const brute={type:'brute',x:125,y:0,r:20,hp:100,maxHp:155,dead:false};
+          assert.equal(hud.showHP(brute,focus,'high',8),true,'damaged nearby brute');
+          assert.equal(hud.showHP({...brute,hp:155},focus,'high',8),false,'full HP brute hidden');
+          assert.equal(hud.showHP(brute,focus,'low',80),false,'crowded low-end mode skips brute');
+          hud.renderHP(troll,focus);assert.equal(labels,1,'near troll name with HP label');
+          hud.renderHP({...troll,x:340},focus);assert.equal(labels,1,'mid-distance bar has no label');
+          for(let k=0;k<8;k++)hud.renderHP({...brute,x:125+k},focus);
+          assert.equal(rects,3*2+4*4,'maximum four brute health bars per frame');
+          console.log('PASS: troll and brute HP culling, crowd limits, guest sync health, wave 9/10/20, weapon balance and 4 JS scripts.');
+
           NODE
-      - name: Confirm v89 public URL and Firebase assets
+      - name: Confirm v90 public URL and Firebase assets
         shell: bash
         run: |
           set -euo pipefail
-          url="https://majorstex.github.io/nocna-straza-v89/"
+          url="https://majorstex.github.io/nocna-straza-v90/"
           for attempt in $(seq 1 24); do
-            if curl --fail --location --silent --show-error --max-time 20 "$url" -o /tmp/night-watch-v89.html && grep -q 'Night Watch v89' /tmp/night-watch-v89.html && curl --fail --location --silent --show-error --max-time 20 "${url}firebase-config.js?v=89" -o /tmp/ns89-firebase.js && curl --fail --location --silent --show-error --max-time 20 "${url}auth-v82.js?v=89" -o /tmp/ns89-auth.js; then
-              echo "PUBLIC V89 PASS: $url"; exit 0
+            if curl --fail --location --silent --show-error --max-time 20 "$url" -o /tmp/night-watch-v90.html && grep -q 'Night Watch v90' /tmp/night-watch-v90.html && curl --fail --location --silent --show-error --max-time 20 "${url}firebase-config.js?v=89" -o /tmp/ns89-firebase.js && curl --fail --location --silent --show-error --max-time 20 "${url}auth-v82.js?v=89" -o /tmp/ns89-auth.js; then
+              echo "PUBLIC V90 PASS: $url"; exit 0
             fi
             echo "Waiting for GitHub Pages release ($attempt/24)"
             sleep 5
           done
-          echo "V89 public release not available after attempted checks" >&2
+          echo "V90 public release not available after attempted checks" >&2
           exit 1
       - name: Check immediate troll practice link
         shell: bash
