@@ -85,6 +85,30 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
    await lobbyPage.locator('.ns92Room').nth(1).locator('button').click({force:true});
    assert.equal(await lobbyPage.locator('#joinCode').inputValue(),'K7P3RX','listing and code share the same join field');
    assert.equal(await lobbyPage.locator('#ns92JoinPass').count(),1,'password input exists for code joins');
+   const cagePage=await context.newPage();cagePage.on('pageerror',e=>runtimeErrors.push(e.message));
+   await cagePage.goto('https://majorstex.github.io/nocna-straza-v95/?cage-test=1',{waitUntil:'domcontentloaded',timeout:30000});
+   await cagePage.waitForFunction(()=>window.__NS95_CAGE&&document.getElementById('ns95TestLaunch'));
+   await cagePage.evaluate(()=>document.getElementById('ns82-guest')?.click());
+   await cagePage.locator('#ns95TestLaunch').click({force:true});
+   const cageTest=await cagePage.evaluate(()=>{
+    const g=window.__nightWatch, c=g.G.ns95Cage;
+    const spell=document.querySelector('#ns93SpellList .ns93Spell');
+    const dock=document.querySelector('#ns93SpellDock');
+    const full=dock.getBoundingClientRect(), control=document.querySelector('#controls').getBoundingClientRect();
+    return {mode:g.G.mode,test:g.G.ns95TestOnly,debug:g.G.debugRun,guards:g.G.mobs.filter(m=>m.ns95Guard&&!m.dead).length,
+      ally:c?.ally||null,playerDistance:Math.hypot(g.G.players[0].x-c.x,g.G.players[0].y-c.y),
+      spellCount:document.querySelectorAll('#ns93SpellList .ns93Spell').length,
+      spellVisible:!!spell,dockBottom:full.bottom,controlsTop:control.top,
+      picker:!!document.getElementById('ns95SpellPicker'),selectedMana:g.G.players[0].ns93MaxMana};
+   });
+   assert.equal(cageTest.mode,'play','cage link immediately enters dedicated playable scene');
+   assert.equal(cageTest.test,true,'test isolates only cage enemies');
+   assert.equal(cageTest.debug,true,'cage test does not farm permanent honors');
+   assert.equal(cageTest.guards,3,'all 3 jail guards present');
+   assert.ok(cageTest.playerDistance<210,'hero starts near the cage for testing');
+   assert.equal(cageTest.spellCount,1,'exactly one active spell occupies game screen');
+   assert.equal(cageTest.picker,true,'compact ability selector is present');
+   assert.ok(cageTest.dockBottom<cageTest.controlsTop+5,'spell dock sits above joystick control strip');
    const errs=runtimeErrors.filter(x=>/ReferenceError|SyntaxError|is not defined|Cannot read properties of undefined|NS92_/i.test(x));
    assert.deepEqual(errs,[],'no runtime exceptions '+errs.join(' | '));
    console.log('PASS mobile Chromium '+width+'px: SP, 100-kill Common, daily/weekly claims, public room UI'+(width>=400?', five MP snapshots/6 players':''));
