@@ -6137,45 +6137,59 @@ const NS92_DIR=(()=>{
  // Confirm the host is still listed. A directory outage falls back to the
  // existing code path instead of introducing a second fragile connection path.
  async function joinListedRoom(room,button){
-  const code=String(room?.code||'').toUpperCase().trim();
+  const code=String(room?.code||'').trim().toUpperCase();
   if(joiningListedRoom||NET.role||NET.phase!=='idle'){
    status('Already connecting or in a room.','Već se povezuješ ili si u sobi.');return false;
   }
   if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code))return false;
   if(room.status!=='waiting'||room.players>=room.maxPlayers){
-   status('Room no longer available. Refresh.','Soba više nije dostupna. Osveži listu.');return false;
+   status('Room is unavailable. Refresh the list.','Soba nije dostupna. Osveži listu.');return false;
   }
   joiningListedRoom=true;
   if(button){button.disabled=true;button.textContent=tr('CONNECTING…','POVEZUJEM…')}
-  status('Checking the room…','Proveravam da li domaćin još čeka…');
-  let selected=room,confirmed=false;
-  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),4000);
+  status('Checking if the host is still online…','Proveravam da li je domaćin još u sobi…');
   try{
-   const response=await fetch(root+'/api/lobbies',{method:'GET',cache:'no-store',signal:ctrl.signal,credentials:'omit'});
-   if(response.ok){
-    const data=await response.json();
-    if(data?.version===2&&Array.isArray(data.rooms)){
-     confirmed=true;
-     rooms=data.rooms.filter(r=>/^[A-HJ-NP-Z2-9]{6}$/.test(r.code)&&Number.isInteger(r.players)&&r.players>=1&&r.players<=6).slice(0,50);
-     selected=rooms.find(r=>r.code===code);
-     if(!selected||selected.status!=='waiting'||selected.players>=selected.maxPlayers){
-      render();
-      status('The host left, started or room became full.','Host je izašao, partija je počela ili je soba puna.');
-      return false;
+   let selected=room,confirmed=false,unavailable=false;
+   const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),4500);
+   try{
+    // New relays check the actual host WebSocket, not an 85-second directory entry.
+    // Old relays gracefully fall back to the V92 public directory.
+    const live=await fetch(root+'/api/lobbies/'+code,{cache:'no-store',credentials:'omit',signal:ctrl.signal});
+    if(live.ok){
+     const result=await live.json();
+     if(result?.version===3&&result.code===code){
+      confirmed=true;
+      unavailable=!result.joinable||result.status!=='waiting';
+      selected={...room,locked:!!result.locked,players:result.players,maxPlayers:result.maxPlayers,status:result.status};
      }
     }
+    if(!confirmed){
+     const response=await fetch(root+'/api/lobbies',{cache:'no-store',credentials:'omit',signal:ctrl.signal});
+     if(response.ok){
+      const data=await response.json();
+      if(data?.version===2&&Array.isArray(data.rooms)){
+       confirmed=true;
+       rooms=data.rooms.filter(r=>/^[A-HJ-NP-Z2-9]{6}$/.test(r.code)&&Number.isInteger(r.players)&&r.players>=1&&r.players<=6).slice(0,50);
+       selected=rooms.find(r=>r.code===code);
+       unavailable=!selected||selected.status!=='waiting'||selected.players>=selected.maxPlayers;
+      }
+     }
+    }
+   }catch{/* If the directory is offline, directly use the original code Join. */}
+   finally{clearTimeout(timer)}
+   if(confirmed&&unavailable){
+    render();status('The host left, started or room is full.','Host je izašao, partija je počela ili je soba puna.');
+    return false;
    }
-  }catch{/* Still attempt the working code join if the directory is unavailable. */}
-  finally{clearTimeout(timer)}
-  try{
    if(selected.locked&&String($id('ns92JoinPass')?.value||'').length<4){
-    status('Enter the room password.','Soba je zaključana. Unesi šifru i ponovi.');
+    status('Enter the password for this room.','Soba je zaključana. Unesi šifru i ponovi.');
     $id('ns92JoinPass')?.focus();return false;
    }
    if(NET.role||NET.phase!=='idle')return false;
    $id('joinCode').value=code;
-   status(confirmed?'Available · joining via code…':'Directory delayed · joining via code…',
-          confirmed?'Soba je dostupna · povezujem kao preko koda…':'Lista je spora · povezujem preko koda…');
+   status(confirmed?'Live host confirmed · joining via code…':'Directory unavailable · trying the original code Join…',
+          confirmed?'Host je tu · povezujem kao preko koda…':'Lista je nedostupna · povezujem direktno preko koda…');
+   // Do not duplicate the connection implementation: preserve its existing retries.
    $id('joinBtn').click();
    return true;
   }finally{
