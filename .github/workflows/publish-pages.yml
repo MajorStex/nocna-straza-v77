@@ -1,4 +1,4 @@
-name: Verify Noćna Straža v94 – Economy & Adaptive FX
+name: Verify Noćna Straža v95 – Cage, Mana & Coop
 on:
   push:
     branches: [main]
@@ -11,28 +11,32 @@ on:
 permissions:
   contents: read
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: v94 economy anti-replay, bounded purchases and adaptive FPS simulation
-        run: node tests/v94-economy-fx.test.cjs
-      - name: Regression - spells, mana, cooldown and host validation
-        run: node tests/v94-magic.test.cjs
-      - name: Regression - solo/multiplayer achievements
-        run: node tests/v94-achievements.test.cjs
-      - name: Regression - daily/weekly challenges
+      - name: Simulated cage guards, prisoner, companion AI and solo resume
+        run: node tests/v95-cage.test.cjs
+      - name: Mana progression and ability balance tests
+        run: node tests/v95-progression.test.cjs
+      - name: Old magic, cooldown and host security regression
+        run: node tests/v95-magic.test.cjs
+      - name: 157 achievement and six simulated co-op player checks
+        run: node tests/v95-achievements.test.cjs
+      - name: Daily and weekly challenge regression
         run: node tests/v92-challenges.test.cjs
-      - name: Verify v94 release assets
+      - name: v94 economy replay and adaptive frame-rate regression
+        run: node tests/v95-economy-fx.test.cjs
+      - name: Verify release files and version
         run: |
           test -s public/index.html
-          test -s public/auth-v82.js
           test -s public/firebase-config.js
-          grep -q 'Night Watch v94' public/index.html
-      - name: Install Chromium browser test driver
+          test -s public/auth-v82.js
+          grep -q 'Night Watch v95' public/index.html
+      - name: Install mobile Chromium test driver
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
-      - name: Real mobile browser solo, spell and six-player snapshot regression
-        run: node tests/v94-browser.test.cjs
+      - name: Mobile 360/412 screen gameplay, spell HUD and six-player packet test
+        run: node tests/v95-browser.test.cjs
