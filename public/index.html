@@ -4201,10 +4201,10 @@ function grantTreasure(p,id){const item=TREASURES.find(t=>t.id===id);if(!item)re
  checkWeaponEvolution(p);G.abilityDirty=true;announceSmallLoot('SANDUK · '+item.name);sfx('loot');return true;
 }
 function showLootChoice(p,chest){if(G.lootPending)return false;
+ if(NET.role==='host'&&NET.phase==='playing'&&!NS99_TEAM.beginChest(p.id,7))return false;
  chest.opened=true;G.chestsOpened=(G.chestsOpened||0)+1;NS91.onChest();NS92_CHALLENGES.onChest();G.lootPending={playerId:p.id,chestId:chest.seed};G.paused=NET.role==='' ;resetFloatingJoystick();$('controls').classList.add('hidden');$('chestPanel').classList.remove('hidden');showChoiceTimer('chestPanel',7);
  const holder=$('chestCards');holder.textContent='';const items=lootOptions(p);
  G.lootPending.items=items;
- if(NET.role==='host'&&NET.phase==='playing')NS99_TEAM.beginChest(p.id,7);
  for(const item of items){let button=document.createElement('button');button.className='lootOption';let icon=document.createElement('span');icon.className='lootIcon';icon.textContent=item.icon;let body=document.createElement('span');body.className='lootWords';let name=document.createElement('strong');name.textContent=item.name;let desc=document.createElement('small');desc.textContent=item.desc;body.append(name,desc);button.append(icon,body);button.onclick=()=>{if(!G.lootPending)return;grantTreasure(p,item.id);maybeGrantRopeKey(chest);G.lootPending=null;$('chestPanel').classList.add('hidden');G.paused=false;NS99_TEAM.finishChest(p.id);if(!NS99_TEAM.frozen())$('controls').classList.remove('hidden');updateHUD()};holder.append(button)}
  if(NET.role==='host'&&items.length){const offer=G.lootPending;setTimeout(()=>{if(G.lootPending===offer){grantTreasure(p,items[0].id);maybeGrantRopeKey(chest);G.lootPending=null;$('chestPanel').classList.add('hidden');NS99_TEAM.finishChest(p.id);if(!NS99_TEAM.frozen())$('controls').classList.remove('hidden')}},7000)}
  if(!items.length){G.lootPending=null;G.paused=false;$('chestPanel').classList.add('hidden');NS99_TEAM.finishChest(p.id);if(!NS99_TEAM.frozen())$('controls').classList.remove('hidden')}
@@ -4270,7 +4270,7 @@ function drawAbilityEffects(){
 }
 function updateAbilityHUD(){const mine=G.players.find(p=>p.id===(NET.role?NET.localId:'p1'))||G.players[0];const el=$('abilityHud');if(!el||!mine)return;const own=TREASURES.filter(t=>mine.perks?.[t.id]);el.textContent='';for(const t of own){const chip=document.createElement('span');chip.title=t.name;chip.textContent=t.icon;el.append(chip)}G.abilityDirty=false}
 
-function tryLootChests(){if(G.lootPending)return;for(const chest of props){if(chest.type!=='chest'||chest.opened)continue;for(const p of G.players){if(p.dead||NET.pendingOffers.has(p.id))continue;if(Math.hypot(p.x-chest.x,p.y-chest.y)>p.r+chest.r+16)continue;
+function tryLootChests(){if(G.lootPending||NS99_TEAM.currentShop)return;for(const chest of props){if(chest.type!=='chest'||chest.opened)continue;for(const p of G.players){if(p.dead||NET.pendingOffers.has(p.id))continue;if(Math.hypot(p.x-chest.x,p.y-chest.y)>p.r+chest.r+16)continue;
  if(chest.special==='ropeChest'){
    if((progress.ropeKeyCount||0)<=0&&!progress.hasRope){toast(lang('Rope chest locked · find its special key in random chests or buy it in the forge.','Sanduk sa kanapom je zaključan · nađi poseban ključ u nasumičnim sanducima ili ga kupi u kovnici.'));effect('hit',chest.x,chest.y,0);return;}
    chest.opened=true;chest.locked=false;effect('loot',chest.x,chest.y);sfx('unlock');gainRope();updateHUD();return;
@@ -4280,7 +4280,7 @@ function tryLootChests(){if(G.lootPending)return;for(const chest of props){if(ch
  if(NET.role==='host'&&p.id!=='p1'){
    if(NET.pendingOffers.has(p.id))continue;
    const conn=NET.clients.get(p.id);
-   if(conn?.open){chest.opened=true;G.chestsOpened=(G.chestsOpened||0)+1;NS91.onChest();NS92_CHALLENGES.onChest();const items=lootOptions(p);NET.pendingOffers.set(p.id,{type:'chest',deadline:G.time+7,items,chestSeed:chest.seed});NET.remoteInputs.set(p.id,{x:0,y:0,attack:false,dash:false});conn.send({t:'chestOffer',items});NS99_TEAM.beginChest(p.id,7);return}
+   if(conn?.open){if(!NS99_TEAM.beginChest(p.id,7))continue;chest.opened=true;G.chestsOpened=(G.chestsOpened||0)+1;NS91.onChest();NS92_CHALLENGES.onChest();const items=lootOptions(p);NET.pendingOffers.set(p.id,{type:'chest',deadline:G.time+7,items,chestSeed:chest.seed});NET.remoteInputs.set(p.id,{x:0,y:0,attack:false,dash:false});conn.send({t:'chestOffer',items,round:NET.round});return}
  }
  showLootChoice(p,chest);return;
 }}}
@@ -4293,10 +4293,16 @@ const GUILD_ITEMS=[
  {id:'aegis',icon:'◈',title:'AMULET ŠTITA',desc:'Automatski štit na svakih 7 s',cost:95,apply:p=>{p.perks.aegis=1;p.perkTimers.aegis=G.time+7;G.abilityDirty=true}},
  {id:'ropeKey',icon:'🪢',title:'KLJUČ SANDUKA SA KANAPOM',desc:'Otvara poseban sanduk u kome je kanap za pećine',cost:58,apply:p=>{grantRopeKey('shop')}}
 ];
-function closeGuildShop(){if(!G.guildPending)return;G.guildPending=null;G.paused=false;$('guildPanel').classList.add('hidden');$('controls').classList.remove('hidden');updateHUD()}
+function closeGuildShop(notify=true){if(!G.guildPending)return;
+ const id=G.guildPending.playerId;G.guildPending=null;G.paused=false;$('guildPanel').classList.add('hidden');
+ if(NET.role==='guest'&&notify&&NET.conn?.open)try{NET.conn.send({t:'shopDone',kind:'guild',round:NET.round})}catch{}
+ if(NET.role==='host')NS99_TEAM.finishShop(id,'guild');
+ if(!NS99_TEAM.frozen())$('controls').classList.remove('hidden');updateHUD()}
 function openGuildShop(p,guild){if(G.guildPending||G.lootPending||G.marketPending)return false;
  if(NET.role==='guest')return false
- if(!(NET.role?p.guildUnlocked:G.guildUnlocked)){if((p.keys||0)<1){toast('Stara kovnica je zaključana — pronađi ključ (na primer posle 18 ubistava)');return false}p.keys--;if(NET.role)p.guildUnlocked=true;else G.guildUnlocked=true;sfx('unlock')}
+ if(!(NET.role?p.guildUnlocked:G.guildUnlocked)&&(p.keys||0)<1){toast('Stara kovnica je zaključana — pronađi ključ (na primer posle 18 ubistava)');return false}
+  if(NET.role==='host'&&NET.phase==='playing'&&!NS99_TEAM.beginShop(p.id,'guild',7))return false;
+  if(!(NET.role?p.guildUnlocked:G.guildUnlocked)){p.keys--;if(NET.role)p.guildUnlocked=true;else G.guildUnlocked=true;sfx('unlock')}
  G.guildPending={playerId:p.id,seed:guild.seed};G.paused=NET.role==='' ;G.shopVisits=Math.min(1,(G.shopVisits||0)+1);
  resetFloatingJoystick();$('controls').classList.add('hidden');$('guildPanel').classList.remove('hidden');showChoiceTimer('guildPanel',7);renderGuildShop();if(NET.role==='host'){const offer=G.guildPending;setTimeout(()=>{if(G.guildPending===offer)closeGuildShop()},7000)}return true
 }
@@ -4308,22 +4314,36 @@ function buyGuildItem(id){if(!G.guildPending)return false;const item=GUILD_ITEMS
  if(!item||!p)return false;if(NET.role==='guest'){NET.conn?.send({t:'guildBuy',id});closeGuildShop();return true}const bought=NET.role?(p.guildPurchases||(p.guildPurchases={})):G.guildPurchases;const xp=NET.role?(p.xp||0):G.xp;if(item.id==='ropeKey'&&(progress.hasRope||(progress.ropeKeyCount||0)>0))return false;if(bought[id]||xp<item.cost)return false;
  if(NET.role)p.xp-=item.cost;else G.xp-=item.cost;bought[id]=true;item.apply(p);sfx('loot');effect('heal',p.x,p.y);if(NET.role==='host')closeGuildShop();else renderGuildShop();updateHUD();return true
 }
-function tryGuildShop(){if(G.guildPending||G.lootPending||G.marketPending)return;
- for(const p of G.players){if(p.dead)continue;const guild=props.find(o=>o.type==='guild'&&Math.hypot(o.x-p.x,o.y-p.y)<p.r+o.r+25);if(!guild){p.guildNearby=false;continue}if(p.guildNearby)continue;p.guildNearby=true;if(NET.role==='host'&&p.id!=='p1'){const c=NET.clients.get(p.id);if(!c?.open)continue;if(!p.guildUnlocked){if(!p.keys)continue;p.keys--;p.guildUnlocked=true}NET.pendingOffers.set(p.id,{type:'guild',deadline:G.time+7});c.send({t:'guildOffer'});continue}openGuildShop(p,guild)}
+function tryGuildShop(){if(G.guildPending||G.lootPending||G.marketPending||NS99_TEAM.currentShop)return;
+ for(const p of G.players){if(p.dead)continue;const guild=props.find(o=>o.type==='guild'&&Math.hypot(o.x-p.x,o.y-p.y)<p.r+o.r+25);if(!guild){p.guildNearby=false;continue}if(p.guildNearby)continue;p.guildNearby=true;if(NET.role==='host'&&p.id!=='p1'){
+ const c=NET.clients.get(p.id);if(!c?.open)continue;if(!p.guildUnlocked&&!p.keys)continue;
+ if(!NS99_TEAM.beginShop(p.id,'guild',7)){p.guildNearby=false;continue}
+ if(!p.guildUnlocked){p.keys--;p.guildUnlocked=true}
+ NET.pendingOffers.set(p.id,{type:'guild',deadline:Date.now()+7000});c.send({t:'guildOffer',round:NET.round});return;
+ }if(!openGuildShop(p,guild))p.guildNearby=false;}
 }
 
-function closeMarketPanel(){if(!G.marketPending)return;G.marketPending=null;G.paused=false;$('marketPanel').classList.add('hidden');$('controls').classList.remove('hidden');updateHUD()}
-function openMarket(p,market){if(G.marketPending||G.lootPending)return false;G.marketPending={playerId:p.id,marketSeed:market.seed};G.paused=NET.role==='';resetFloatingJoystick();$('controls').classList.add('hidden');$('marketPanel').classList.remove('hidden');showChoiceTimer('marketPanel',7);const left=Math.max(0,Math.ceil((p.burgerCooldownUntil||0)-G.time));$('marketInfo').textContent=left>0?`Burger Bar Market je na cooldownu još ${left}s. Cena ostaje ${MARKET_TRADE.xp} XP za ${MARKET_TRADE.hp} HP.`:`Burger Bar Market vraća ${MARKET_TRADE.hp} HP za ${MARKET_TRADE.xp} XP iz trenutnog nivoa. Nivo ostaje isti. Trenutno: ${Math.floor(G.xp)} XP i ${Math.ceil(p.hp)}/${Math.ceil(p.maxHp)} HP.`;$('buyBurgerBtn').disabled=left>0;$('buyBurgerBtn').innerHTML=left>0?`<b>BURGER NA HLAĐENJU</b><span>Sačekaj još ${left}s.</span>`:`<b>BURGER +${MARKET_TRADE.hp} HP</b><span>Košta ${MARKET_TRADE.xp} XP iz trenutne XP trake.</span>`;const offer=G.marketPending;if(NET.role)setTimeout(()=>{if(G.marketPending===offer)closeMarketPanel()},7000);return true}
+function closeMarketPanel(notify=true){if(!G.marketPending)return;
+ const id=G.marketPending.playerId;G.marketPending=null;G.paused=false;$('marketPanel').classList.add('hidden');
+ if(NET.role==='guest'&&notify&&NET.conn?.open)try{NET.conn.send({t:'shopDone',kind:'market',round:NET.round})}catch{}
+ if(NET.role==='host')NS99_TEAM.finishShop(id,'market');
+ if(!NS99_TEAM.frozen())$('controls').classList.remove('hidden');updateHUD()}
+function openMarket(p,market){if(G.marketPending||G.lootPending)return false;if(NET.role==='host'&&NET.phase==='playing'&&!NS99_TEAM.beginShop(p.id,'market',7))return false;G.marketPending={playerId:p.id,marketSeed:market.seed,remote:NET.role==='guest'};G.paused=NET.role==='';resetFloatingJoystick();$('controls').classList.add('hidden');$('marketPanel').classList.remove('hidden');showChoiceTimer('marketPanel',7);const left=Math.max(0,Math.ceil((p.burgerCooldownUntil||0)-G.time));$('marketInfo').textContent=left>0?`Burger Bar Market je na cooldownu još ${left}s. Cena ostaje ${MARKET_TRADE.xp} XP za ${MARKET_TRADE.hp} HP.`:`Burger Bar Market vraća ${MARKET_TRADE.hp} HP za ${MARKET_TRADE.xp} XP iz trenutnog nivoa. Nivo ostaje isti. Trenutno: ${Math.floor(G.xp)} XP i ${Math.ceil(p.hp)}/${Math.ceil(p.maxHp)} HP.`;$('buyBurgerBtn').disabled=left>0;$('buyBurgerBtn').innerHTML=left>0?`<b>BURGER NA HLAĐENJU</b><span>Sačekaj još ${left}s.</span>`:`<b>BURGER +${MARKET_TRADE.hp} HP</b><span>Košta ${MARKET_TRADE.xp} XP iz trenutne XP trake.</span>`;const offer=G.marketPending;if(NET.role)setTimeout(()=>{if(G.marketPending===offer)closeMarketPanel()},7000);return true}
 function triggerBurgerEat(p){p.eatUntil=G.time+1.1;effect('heal',p.x,p.y,-MARKET_TRADE.hp);for(let i=0;i<16;i++)effect('crumb',p.x+(rnd()-.5)*8,p.y-18+rnd()*6,0);sfx('burger');setTimeout(()=>cfgSettings.sfx&&sfx('burger'),120);setTimeout(()=>cfgSettings.sfx&&sfx('burger'),245)}
 function buyBurgerTrade(){if(!G.marketPending)return;const p=G.players.find(q=>q.id===G.marketPending.playerId)||G.players[0];if(!p)return;if(NET.role==='guest'){NET.conn?.send({t:'marketBuy'});closeMarketPanel();return}const left=(p.burgerCooldownUntil||0)-G.time;if(left>0){toast(`Burger je na cooldownu još ${Math.ceil(left)}s`);return}if(p.hp>=p.maxHp){toast('HP je već pun');return}if((NET.role?p.xp:G.xp)<MARKET_TRADE.xp){toast(`Treba ti ${MARKET_TRADE.xp} XP za burger`);return}if(NET.role)p.xp=Math.max(0,p.xp-MARKET_TRADE.xp);else G.xp=Math.max(0,G.xp-MARKET_TRADE.xp);p.hp=Math.min(p.maxHp,p.hp+MARKET_TRADE.hp);p.burgerCooldownUntil=G.time+60;triggerBurgerEat(p);announce('BURGER BAR · +HP',2);closeMarketPanel()}
 function tryMarkets(){
- if(G.lootPending||G.marketPending)return;
+ if(G.lootPending||G.marketPending||NS99_TEAM.currentShop)return;
  for(const p of G.players){if(p.dead)continue;
    const market=props.find(o=>o.type==='market'&&Math.hypot(p.x-o.x,p.y-o.y)<=p.r+o.r+28);
    if(!market){p.marketNearby=false;continue}
    if(p.marketNearby)continue;p.marketNearby=true;
    if(NET.role==='host'&&p.id!=='p1'){
-     const c=NET.clients.get(p.id);if(c?.open){NET.remoteInputs.set(p.id,{x:0,y:0,dash:false});c.send({t:'marketOffer',seed:market.seed})}
+     const c=NET.clients.get(p.id);if(c?.open){
+    if(!NS99_TEAM.beginShop(p.id,'market',7)){p.marketNearby=false;continue}
+    NET.pendingOffers.set(p.id,{type:'market',deadline:Date.now()+7000});
+    NET.remoteInputs.set(p.id,{x:0,y:0,dash:false});
+    c.send({t:'marketOffer',seed:market.seed,round:NET.round});return;
+   }
    }else{openMarket(p,market);return}
  }
 }
@@ -6280,7 +6300,19 @@ function setupConnection(c){
    if(assigned&&data.t==='started'){NET.startAcks.set(assigned,true);return}
    if(assigned&&data.t==='stateRequest'&&data.round===NET.round){sendSnapshot();return}
    if(assigned&&data.t==='ns93Cast'){NS93_MAGIC.guestRequest(assigned,data);return;}
-   if(assigned&&data.t==='guildBuy'){const offer=NET.pendingOffers.get(assigned),p=G.players.find(q=>q.id===assigned),item=GUILD_ITEMS.find(q=>q.id===data.id);if(offer?.type==='guild'&&G.time<=offer.deadline+1&&p&&item){const bought=p.guildPurchases||(p.guildPurchases={});if(!bought[item.id]&&p.xp>=item.cost&&(item.id!=='ropeKey'||(!progress.hasRope&&!progress.ropeKeyCount))){p.xp-=item.cost;bought[item.id]=true;item.apply(p)}NET.pendingOffers.delete(assigned)}return;}
+   if(assigned&&data.t==='guildBuy'){
+     const offer=NET.pendingOffers.get(assigned),selection=NS99_TEAM.currentShop;
+     const p=G.players.find(q=>q.id===assigned),item=GUILD_ITEMS.find(q=>q.id===data.id);
+     if(selection?.id===assigned&&selection.kind==='guild'&&Date.now()<selection.deadline+250&&offer?.type==='guild'&&p&&item&&!p.dead){
+      const bought=p.guildPurchases||(p.guildPurchases={});
+      if(!bought[item.id]&&p.xp>=item.cost&&(item.id!=='ropeKey'||(!progress.hasRope&&!progress.ropeKeyCount))){p.xp-=item.cost;bought[item.id]=true;item.apply(p)}
+      NS99_TEAM.finishShop(assigned,'guild');
+     }return;
+    }
+    if(assigned&&data.t==='shopDone'){
+     if(data.round===NET.round&&['guild','market'].includes(data.kind))NS99_TEAM.finishShop(assigned,data.kind);
+     return;
+    }
    if(assigned&&data.t==='ns89TakeWeapon'&&data.round===NET.round){
     const ok=NS89_PICK.accept(assigned,data.id);
     safeSend({t:'ns89WeaponResult',id:data.id,ok});return;
@@ -6300,9 +6332,10 @@ function setupConnection(c){
     }
    }else if(assigned&&data.t==='marketBuy'){
     const p=G.players.find(q=>q.id===assigned),m=props.find(o=>o.type==='market'&&p&&Math.hypot(o.x-p.x,o.y-p.y)<p.r+o.r+50);
-    if(p&&m&&!p.dead&&p.xp>=MARKET_TRADE.xp&&p.hp<p.maxHp&&G.time>=(p.burgerCooldownUntil||0)){
+    if(NS99_TEAM.currentShop?.id===assigned&&NS99_TEAM.currentShop.kind==='market'&&NET.pendingOffers.get(assigned)?.type==='market'&&Date.now()<=NS99_TEAM.currentShop.deadline+250&&p&&m&&!p.dead&&p.xp>=MARKET_TRADE.xp&&p.hp<p.maxHp&&G.time>=(p.burgerCooldownUntil||0)){
      p.xp-=MARKET_TRADE.xp;p.hp=Math.min(p.maxHp,p.hp+MARKET_TRADE.hp);p.burgerCooldownUntil=G.time+60;triggerBurgerEat(p);safeSend({t:'marketResult',ok:true});
     }else safeSend({t:'marketResult',ok:false});
+     if(NS99_TEAM.currentShop?.id===assigned&&NS99_TEAM.currentShop.kind==='market')NS99_TEAM.finishShop(assigned,'market');
    }
   }else if(NET.role==='guest'){
    if(data.t==='kicked'||data.t==='alreadyHere'||data.t==='sessionReplaced'){const note=data.t==='kicked'?lang('Host removed you from the room.','Domaćin te je izbacio iz sobe.'):data.t==='alreadyHere'?lang('You already host this room.','Već si domaćin ove sobe.'):lang('This account connected in another tab.','Nalog je otvoren na drugoj kartici.');
@@ -6363,7 +6396,7 @@ function setupConnection(c){
    if(data.t==='snapshot'&&NET.phase==='playing')receiveSnapshot(data);
    else if(NET.phase==='playing'&&data.t==='powerOffer'){const own=G.players.find(p=>p.id===NET.localId)||G.players[0];own.level=data.level||own.level;showQuickChoice(own,true)}
    else if(NET.phase==='playing'&&data.t==='chestOffer')showRemoteLootChoice(data.items);
-   else if(NET.phase==='playing'&&data.t==='guildOffer'){const own=G.players.find(p=>p.id===NET.localId)||G.players[0];G.guildPending={playerId:own.id};G.paused=false;$('guildPanel').classList.remove('hidden');showChoiceTimer('guildPanel',7);renderGuildShop();const offer=G.guildPending;setTimeout(()=>{if(G.guildPending===offer)closeGuildShop()},7000)}
+   else if(NET.phase==='playing'&&data.t==='guildOffer'){const own=G.players.find(p=>p.id===NET.localId)||G.players[0];G.guildPending={playerId:own.id,remote:true};G.paused=false;$('guildPanel').classList.remove('hidden');showChoiceTimer('guildPanel',7);renderGuildShop();const offer=G.guildPending;setTimeout(()=>{if(G.guildPending===offer)closeGuildShop()},7000)}
    else if(NET.phase==='playing'&&data.t==='marketOffer'){const own=G.players.find(p=>p.id===NET.localId);if(own)openMarket(own,{seed:data.seed})}
    else if(NET.phase==='playing'&&data.t==='marketResult'&&!data.ok)toast('Nema dovoljno XP/HP ili je burger na cooldownu');
   }
