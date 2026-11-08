@@ -1,0 +1,18 @@
+name: V106 game syntax and multiplayer feature smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/index.html'
+      - 'tests/v106-multiplayer-ui.test.cjs'
+      - '.github/workflows/v106-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  syntax-and-feature-markers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript parsing and V106 features
+        run: node tests/v106-multiplayer-ui.test.cjs
