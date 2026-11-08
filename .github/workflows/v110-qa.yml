@@ -2,7 +2,7 @@ name: V110 village and multiplayer diagnostics
 on:
   push:
     branches: [main]
-    paths: ['public/v110/**','public/v110-village.js','tests/v110-village-rematch.test.cjs','.github/workflows/v110-qa.yml']
+    paths: ['public/v110/**','public/v110-village.js','tests/v110-village-rematch.test.cjs','tests/v110-relay-e2e.test.cjs','.github/workflows/v110-qa.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,5 +14,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2 ws@8
       - run: node tests/v110-village-rematch.test.cjs
+      - run: node tests/v110-relay-e2e.test.cjs
