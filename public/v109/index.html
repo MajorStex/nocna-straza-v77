@@ -1928,7 +1928,7 @@ function coopVoiceWire(){
  const manual=$('ns66SendVoiceTest');if(manual)manual.onclick=()=>{unlockSound();const note=$('ns66InGameVoiceStatus');if(!CoopVoice.share){if(note)note.textContent='Uključi deljenje snimaka u Multiplayer meniju.';return;}const kind=VoiceClips.clips.has('start')?'start':VOICE_EVENTS.find(k=>CV63_KINDS.has(k)&&VoiceClips.clips.has(k));if(!kind){if(note)note.textContent='Prvo snimi repliku u Editoru heroja (dovoljna je Moja replika).';return;}void coopVoiceSendClip(kind).then(ok=>{if(note)note.textContent=ok?'Replika je poslata mrežom; proveri sa saigračem da li je čuje.':'Slanje nije uspelo — proveri internet i dozvolu deljenja.';});};
  coopVoiceSyncControls();
 }
-function coopVoiceAvailable(){return ((NET.phase==='playing'&&G.mode==='play')||(NET.phase==='lobby'&&!!window.NS109_VILLAGE?.opened))&&(NET.role==='host'||NET.role==='guest')}
+function coopVoiceAvailable(){return ((NET.phase==='playing'&&G.mode==='play')||(NET.phase==='lobby'&&(!!window.NS109_VILLAGE?.opened||NET.role==='host')))&&(NET.role==='host'||NET.role==='guest')}
 function coopVoiceSend(packet){
  if(!coopVoiceAvailable())return false;
  if(NET.role==='guest'){
