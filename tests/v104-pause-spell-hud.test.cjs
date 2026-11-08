@@ -9,7 +9,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
    const context=await browser.newContext({viewport:{width,height:820},isMobile:true,hasTouch:true});
    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto('file://'+path.resolve(__dirname,'../public/index.html'),{waitUntil:'domcontentloaded'});
-   await page.waitForFunction(()=>!!window.__nightWatch?.NS93_MAGIC&&!!window.__nightWatch?.startGame,{timeout:25000});
+   await page.waitForFunction(()=>!!window.__NS93_MAGIC&&!!window.__nightWatch?.startGame,{timeout:25000});
    await page.evaluate(()=>document.getElementById('ns82-guest')?.click());
    const result=await page.evaluate(()=>{
     const game=window.__nightWatch;
@@ -21,7 +21,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
       pause:displayed(pause),hidden:dock.classList.contains('hidden'),target:target.style.display});
     game.NET.role='';game.NET.phase='idle';
     game.startGame({specialMode:'normal'});
-    game.NS93_MAGIC.renderHud();
+    window.__NS93_MAGIC.renderHud();
     const initial=state();
     document.getElementById('pauseBtn').click();
     const paused=state();
