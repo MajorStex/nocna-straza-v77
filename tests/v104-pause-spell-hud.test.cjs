@@ -45,8 +45,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
        document.querySelector('#pausePanel .ns102Version').textContent,document.querySelector('#coopPanel .ns102Version').textContent],
       pageTitle:document.title};
    });
-   assert.match(result.pageTitle,/Night Watch v104/);
-   assert.ok(result.versions.every(s=>s.includes('V104')),'V104 in main/pause/co-op menus');
+   assert.match(result.pageTitle,/Night Watch v105/);
+   assert.ok(result.versions.every(s=>s.includes('V105')),'V105 in main/pause/co-op menus');
    assert.equal(result.initial.game,'play');assert.equal(result.initial.spell,true,'spell visible when actually playing');
    assert.equal(result.initial.mana,true,'mana visible when actually playing');
    for(const x of [result.paused,result.stillPaused,result.again]){
@@ -68,7 +68,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
    assert.equal(result.home.spell,false,'spell hidden on home menu');
    assert.equal(result.home.mana,false,'mana hidden on home menu');
    assert.deepEqual(errors.filter(e=>/TypeError|ReferenceError|SyntaxError/i.test(e)),[],errors.join(' | '));
-   console.log('PASS V104 '+width+'px: spell/mana hidden instantly on pause and editor, visible after resume, absent from main menu');
+   console.log('PASS V105 '+width+'px: spell/mana hidden instantly on pause and editor, visible after resume, absent from main menu');
    await context.close();
   }
  }finally{await browser.close()}
