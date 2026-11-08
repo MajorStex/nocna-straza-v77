@@ -50,7 +50,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
     game.update(.02);
     return{versions,live,stale,legacy,joinCount,afterLive,afterStale,afterLegacy,input,buttonFreed,slowPackets:outgoing.p2.length,fastPackets:outgoing.p3.length,staleInput:net.remoteInputs.get('p2'),time:game.G.time};
    });
-   assert.ok(result.versions.every(x=>x.includes('V102')),'version visible in all menus');
+   assert.ok(result.versions.every(x=>x.includes('V103')),'version visible in all menus');
    assert.equal(result.live,true);assert.equal(result.input,'ABCD23');assert.equal(result.afterLive,1);
    assert.equal(result.stale,false);assert.equal(result.afterStale,1,'offline room must not open code connection');assert.equal(result.buttonFreed,true,'retry never stuck disabled');
    assert.equal(result.legacy,true);assert.equal(result.afterLegacy,2,'old relay fallback uses exact existing code join');
@@ -59,7 +59,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
    assert.equal(result.staleInput.x,0,'old input never keeps moving the disconnected guest');
    assert.ok(result.time>0);
    assert.deepEqual(errors.filter(e=>/TypeError|ReferenceError|SyntaxError/i.test(e)),[],errors.join(' | '));
-   console.log('PASS V102 '+width+'px: live/legacy public join, stale host rejection, permanent version, independent 2-peer snapshot cadence and stale input');
+   console.log('PASS V103 '+width+'px: live/legacy public join, stale host rejection, permanent version, independent 2-peer snapshot cadence and stale input');
    await context.close();
   }
  }finally{await browser.close()}

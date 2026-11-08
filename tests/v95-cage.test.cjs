@@ -7,7 +7,7 @@ const eq=(actual,expected,name)=>{assert.equal(actual,expected,name);total++};
 const tagScripts=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(x=>!x[1].includes('src='));
 eq(tagScripts.length,4,'standalone original script count');
 for(const s of tagScripts){new vm.Script(s[2]);total++}
-ok(html.includes('<title>Night Watch v102 — Rotfiend Waves 20 and 30'), 'v95 title');
+ok(html.includes('<title>Night Watch v103 — Rotfiend Waves 20 and 30'), 'v95 title');
 ok(html.includes("NS95_CAGE.reset()"),'one cage in gameplay start');
 ok(html.includes("NS95_CAGE.guardStep(m,dt,alive)"),'existing mob loop intercepts anchored guards');
 ok(html.includes("NS95_CAGE.decoyStep(m,dt)"),'companion only intercepts eligible mobs');

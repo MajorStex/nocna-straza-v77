@@ -10,14 +10,14 @@ const source=(a)=>ok(html.includes(a),'Expected source text: '+a);
 const scripts=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(m=>!m[1].includes('src='));
 eq(scripts.length,4,'HTML script blocks');
 for(const m of scripts){new vm.Script(m[2]);checked++}
-source("\x3ctitle>Night Watch v102 — Rotfiend Waves 20 and 30 (Night Watch v99 gameplay)</title>");
+source("\x3ctitle>Night Watch v103 — Rotfiend Waves 20 and 30 (Night Watch v99 gameplay)</title>");
 source('const NS92_DIR=(()=>{');
 source('const NS92_CHALLENGES=(()=>{');
 source('NS92_CHALLENGES.receive(d.c92)');
 source('NS92_CHALLENGES.onKill(m)');
 source('NS92_CHALLENGES.onChest()');
 source('state.c92=NS92_CHALLENGES.saveRun()');
-source('data.v!==102');source('required:100');source("t:'hello',v:102");
+source('data.v!==103');source('required:100');source("t:'hello',v:103");
 source('function ns90DrawHp(m,focus)');source('function drawTroll(e,model)');
 source('NS91.onKill(m)');source('NS91.onWave()');source('NS91.onChest()');source('NS91.onRevive()');
 source('a91:NS91.getMask()');source('NS91.receiveMask(d.a91)');
