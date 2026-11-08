@@ -1,0 +1,24 @@
+name: V107 multiplayer selections, identity, direct links and Temple QA
+on:
+  push:
+    branches: [v107-testing, main]
+    paths: ['public/**','tests/v107-*','.github/workflows/v107-qa.yml','RIGHTS_AND_SECURITY.md']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-multiplayer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Parse scripts and validate V107 rights and features
+        run: node tests/v107-static.test.cjs
+      - name: Install Chromium automation
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: V107 multiplayer timed shop/chest/level and identity browser tests
+        run: node tests/v107-multiplayer.test.cjs
+      - name: Regression - direct Temple entry, troll, key and exit
+        run: node tests/v105-temple.test.cjs
