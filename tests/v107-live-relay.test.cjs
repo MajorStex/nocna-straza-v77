@@ -35,6 +35,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
   const after=await host.evaluate(()=>({ids:[...window.__nightWatch.NET.clients.keys()],profiles:[...window.__nightWatch.NET.profiles.keys()]}));
   assert.deepEqual(after.ids,['p2'],'Rejoining via invite link must not create duplicate p3');
   console.log('LIVE_REJOIN_LOBBY: same p2 slot reused, link auto-filled and connected.');
+  await host.waitForFunction(()=>window.__nightWatch.NET.worldReadyPlayers.get('p2')===true,{timeout:18000});
   await host.evaluate(()=>{const g=window.__nightWatch;g.NET.forceRequest=true;if(!g.startLobbyMatch())throw Error('Could not launch co-op')});
   await guest.waitForFunction(()=>window.__nightWatch.NET.phase==='playing'&&window.__nightWatch.G.mode==='play',{timeout:20000});
   await host.evaluate(()=>{const g=window.__nightWatch;if(!window.__NS99_TEAM.beginShop('p2','guild',7))throw Error('Shop selection did not start')});
