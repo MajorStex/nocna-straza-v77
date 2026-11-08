@@ -17,6 +17,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
     const active=p?.profiles?.find(x=>x.id===p.activeId);
     if(!active)throw Error('Missing original stored profile for v103 persistence test');
     active.friendId='ABCD2345';
+    // Simulate importing a saved existing profile on a device without an anchor.
+    localStorage.removeItem('ns82_stable_friend_v103_'+active.id);
     localStorage.setItem('ns_player_profiles_v28',JSON.stringify(p));
    });
    await page.reload({waitUntil:'domcontentloaded'});
@@ -24,6 +26,11 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
    const first=await page.evaluate(()=>({id:window.__nightWatch.socialId,saved:JSON.parse(localStorage.getItem('ns_player_profiles_v28')).profiles[0].friendId}));
    assert.equal(first.id,'ABCD2345','original Friend ID must survive hard reload');
    assert.equal(first.saved,'ABCD2345','identity must remain persisted in player account');
+   await page.evaluate(()=>{
+    const p=JSON.parse(localStorage.getItem('ns_player_profiles_v28'));
+    p.profiles.find(x=>x.id===p.activeId).friendId='WRNG2345';
+    localStorage.setItem('ns_player_profiles_v28',JSON.stringify(p));
+   });
    await page.reload({waitUntil:'domcontentloaded'});
    await page.waitForFunction(()=>!!window.__nightWatch?.NS103_PARTY,{timeout:20000});
    assert.equal(await page.evaluate(()=>window.__nightWatch.socialId),'ABCD2345','Friend ID must survive multiple reloads');
