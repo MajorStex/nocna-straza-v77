@@ -6263,6 +6263,17 @@ function setupConnection(c){
  // request/ack retries prevent a lost initial host packet from trapping a guest.
  const sendWorldPart=()=>{
   if(!worldSend||worldSend.done||NET.role!=='host'||NET.phase!=='lobby')return;
+  // When every chunk is ACKed but worldDone was lost, re-send only the final piece,
+  // rate-limited, to trigger the guest's idempotent worldDone acknowledgement.
+  if(worldSend.index>=worldSend.parts.length){
+   const now=performance.now();
+   if(now-(worldSend.lastFinalRetry||0)>1150){
+    worldSend.lastFinalRetry=now;
+    const i=worldSend.parts.length-1;
+    safeSend({t:'worldPart',index:i,count:worldSend.parts.length,payload:worldSend.parts[i]});
+   }
+   return;
+  }
   // Four in-flight chunks; ACK of any order moves the window. Missing pieces are retried.
   for(let i=worldSend.index;i<Math.min(worldSend.parts.length,worldSend.index+4);i++)
    if(!worldSend.acked.has(i))safeSend({t:'worldPart',index:i,count:worldSend.parts.length,payload:worldSend.parts[i]});
