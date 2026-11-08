@@ -1,0 +1,20 @@
+name: V108 mobile HUD and copyright QA
+on:
+  push:
+    branches: [main]
+    paths: ['public/index.html','tests/v108-ui-rights.test.cjs','.github/workflows/v108-ui-rights.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile-hud:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Chromium
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: UI overlap geometry and anti-copy metadata
+        run: node tests/v108-ui-rights.test.cjs
