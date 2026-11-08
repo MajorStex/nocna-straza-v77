@@ -30,11 +30,14 @@ jobs:
             except Exception as ex:
               print('URL:',url,'ERROR:',str(ex),flush=True)
           import json
-          url='https://nocna-straza-relay.stefanstevic1996.workers.dev/api/lobbies/K7P3RX'
-          try:
-            with urllib.request.urlopen(urllib.request.Request(url,headers={'Cache-Control':'no-cache'}),timeout=20) as response:
-              data=json.load(response)
-              print('RELAY_V102:',data.get('version')==3,'LIVE_ROOM_CHECK:',data,flush=True)
-          except Exception as ex:
-            print('RELAY_V102_CHECK_ERROR:',str(ex),flush=True)
+          for subpath in ('/api/lobbies', '/api/lobbies/K7P3RX', '/api/lobbies/ZZZZZZ'):
+            url='https://nocna-straza-relay.stefanstevic1996.workers.dev'+subpath
+            try:
+              with urllib.request.urlopen(urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'NightWatch-V102-probe'}),timeout=20) as response:
+                body=response.read(5000).decode('utf-8','replace')
+                print('RELAY_PATH:',subpath,'STATUS:',response.status,'BODY:',body[:850],flush=True)
+            except urllib.error.HTTPError as ex:
+              print('RELAY_PATH:',subpath,'STATUS:',ex.code,'BODY:',ex.read(1500).decode('utf-8','replace'),flush=True)
+            except Exception as ex:
+              print('RELAY_PATH:',subpath,'ERROR:',str(ex),flush=True)
           PY
