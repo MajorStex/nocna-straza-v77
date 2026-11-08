@@ -5204,7 +5204,21 @@ $('exportBtn').onclick=exportData;$('importBtn').onclick=()=>$('importFile').cli
 const SOCIAL={peer:null,connected:false,starting:false,db:null,conns:new Map(),pending:new Map(),selected:null,action:null,ticker:null,pendingInvite:null,quietUntil:0,waitingJoins:new Set(),expandedNames:new Set()};
 const FRIEND_CODE_RE=/^[A-Z2-9]{8}$/;
 const friendPeerId=id=>'ns30-f-'+id.toLowerCase();
-function ensureSocialIdentity(){const a=getActiveAccount();if(!FRIEND_CODE_RE.test(String(a.friendId||''))){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const raw=new Uint8Array(8);if(window.crypto?.getRandomValues)crypto.getRandomValues(raw);else for(let i=0;i<8;i++)raw[i]=Math.floor(Math.random()*256);a.friendId=Array.from(raw,n=>chars[n%chars.length]).join('');savePlayerAccounts()}return a.friendId}
+// A device-local anchor protects a known friend ID from stale cloud restores.
+ // A different character profile has its own ID; every profile keeps the same ID
+ // across reloads. The ns82_ key is intentionally excluded from cloud syncing.
+function ensureSocialIdentity(){
+ const a=getActiveAccount(),key='ns82_stable_friend_v103_'+a.id;
+ let anchored='';try{anchored=localStorage.getItem(key)||''}catch{}
+ let id=FRIEND_CODE_RE.test(anchored)?anchored:FRIEND_CODE_RE.test(String(a.friendId||''))?a.friendId:'';
+ if(!id){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',raw=new Uint8Array(8);
+  if(window.crypto?.getRandomValues)crypto.getRandomValues(raw);else for(let i=0;i<8;i++)raw[i]=Math.floor(Math.random()*256);
+  id=Array.from(raw,n=>chars[n%chars.length]).join('');
+ }
+ try{if(anchored!==id)localStorage.setItem(key,id)}catch{}
+ if(a.friendId!==id){a.friendId=id;savePlayerAccounts()}
+ return id;
+}
 function socialDataKey(){return 'ns_friends_v29_'+getActiveAccount().id}
 function loadSocialData(){const stored=safeGet(socialDataKey())||{};const friends=stored.friends&&typeof stored.friends==='object'?stored.friends:{};const chats=stored.chats&&typeof stored.chats==='object'?stored.chats:{};SOCIAL.db={friends,chats}}
 function saveSocialData(){if(SOCIAL.db)safeSet(socialDataKey(),SOCIAL.db)}
@@ -5215,7 +5229,7 @@ function socialPacket(t){return {t,id:ensureSocialIdentity(),name:safePlayerName
 function socialSend(id,data){const c=SOCIAL.conns.get(id);if(!c?.open)return false;try{c.send(data);return true}catch{return false}}
 function sendSocialStatus(){for(const id of Object.keys(SOCIAL.db?.friends||{}))socialSend(id,socialPacket('status'));renderFriendsCorner();if(!$('friendsPanel').classList.contains('hidden'))renderFriends();NS96_INVITES.render()}
 function socialDisconnect(){if(SOCIAL.ticker)clearInterval(SOCIAL.ticker);SOCIAL.ticker=null;const peer=SOCIAL.peer;SOCIAL.peer=null;SOCIAL.connected=false;SOCIAL.starting=false;for(const c of SOCIAL.conns.values())try{c.close()}catch{}SOCIAL.conns.clear();try{peer?.destroy()}catch{}renderFriendsCorner()}
-function socialRefreshProfile(){socialDisconnect();SOCIAL.pending.clear();SOCIAL.action=null;SOCIAL.selected=null;loadSocialData();ensureSocialIdentity();renderFriends();startSocial()}
+function socialRefreshProfile(){socialDisconnect();SOCIAL.pending.clear();SOCIAL.expandedNames.clear();SOCIAL.action=null;SOCIAL.selected=null;NS103_PARTY.reset();loadSocialData();ensureSocialIdentity();renderFriends();startSocial()}
 async function startSocial(){if(SOCIAL.peer||SOCIAL.starting)return;SOCIAL.starting=true;ensureSocialIdentity();if(!SOCIAL.db)loadSocialData();try{const pending=JSON.parse(localStorage.getItem('ns60_friend_pending_'+getActiveAccount().id)||'[]');for(const id of pending)if(FRIEND_CODE_RE.test(id)&&id!==ensureSocialIdentity()&&!socialFriend(id))SOCIAL.pending.set(id,'add')}catch{}renderFriendsCorner();
  try{await loadPeer();if(!SOCIAL.starting)return;const peer=relayActive()?new window.NSRelayPeer(friendPeerId(ensureSocialIdentity()),{relayUrl:relayUrl(),roomCode:'FRNDSS'}):new Peer(friendPeerId(ensureSocialIdentity()),{debug:0});SOCIAL.peer=peer;
  peer.on('open',()=>{if(SOCIAL.peer!==peer)return;SOCIAL.connected=true;SOCIAL.starting=false;socialCheckFriends();SOCIAL.ticker=setInterval(()=>{if(SOCIAL.peer===peer&&SOCIAL.connected){socialCheckFriends();sendSocialStatus()}},7000);renderFriends()});
@@ -5327,7 +5341,7 @@ function renderFriends(){if(!$('friendsPanel'))return;ensureSocialIdentity();$('
  btn('UKLONI',()=>removeFriend(id));row.append(head,actions);
  const dup=duplicates.get(id);
  if(dup&&dup.hidden>0){const note=document.createElement('div');note.className='ns103Aliases';
-  const count=document.createElement('span');count.textContent=dup.hidden+' '+(window.__gameLanguage?.value==='sr'?'ranijih ID-eva istog imena':'older IDs with same name');
+  const count=document.createElement('span');count.textContent=dup.hidden+' '+(window.__gameLanguage?.value==='sr'?'drugih ID-eva istog imena':'other IDs with the same name');
   const toggle=document.createElement('button');const expanded=SOCIAL.expandedNames.has(dup.key);
   toggle.textContent=expanded?(window.__gameLanguage?.value==='sr'?'SAKRIJ':'HIDE'):(window.__gameLanguage?.value==='sr'?'PRIKAŽI':'SHOW');
   toggle.onclick=()=>{if(expanded)SOCIAL.expandedNames.delete(dup.key);else SOCIAL.expandedNames.add(dup.key);renderFriends()};
@@ -5376,6 +5390,7 @@ const NS103_PARTY=(()=>{
   else{if(pending.size)toast(tr('Some friends are offline; invite them from the lobby.','Neki prijatelji nisu na mreži; pozovi ih iz čekaonice.'));pending.clear();paint()}
  }
  function onLobbyReady(){if(!pending.size)return;clearTimer();attempts=0;deliver()}
+ function onHostFailed(){if(!pending.size)return;clearTimer();pending.clear();creating=false;toast(tr('Room creation failed. Your friends were not invited.','Soba nije napravljena. Prijateljima nije poslat poziv.'));paint()}
  function start(ids){
   if(NET.role==='guest'||NET.phase==='playing'||NET.phase==='connecting'||(NET.role==='host'&&NET.phase!=='lobby')){toast(tr('Leave the current game first','Prvo izađi iz trenutne igre'));return false}
   const targets=[...new Set(Array.isArray(ids)?ids:[])].filter(id=>FRIEND_CODE_RE.test(id)&&socialFriend(id)&&SOCIAL.conns.get(id)?.open).slice(0,5);
@@ -5385,13 +5400,19 @@ const NS103_PARTY=(()=>{
   creating=true;paint();
   $('friendsPanel').classList.add('hidden');
   $('coopBtn').click();$('mpNameInput').value=getActiveAccount().name;
+  // One-click parties are private, password-free and support up to five guests.
+  // Never change settings of an existing host lobby.
+  $('ns92Public').checked=false;
+  $('ns92Locked').checked=false;
+  $('ns92Locked').dispatchEvent(new Event('change'));
+  $('ns92Max').value='6';
   $('hostBtn').click();
   creating=false;paint();
   // Host lobby-ready callback triggers onLobbyReady only after the relay accepted the room.
   return true;
  }
  $('ns103StartSelected').onclick=()=>start([...selected]);
- return {selected,pending,select,start,paint,onLobbyReady,reset,get creating(){return creating}};
+ return {selected,pending,select,start,paint,onLobbyReady,onHostFailed,reset,get creating(){return creating}};
 })();
 window.__NS103_PARTY=NS103_PARTY;
 
@@ -5867,7 +5888,7 @@ function setupConnection(c){
   if(data.t==='nsV63Cue'&&NET.role==='guest'&&NET.phase==='playing'&&CV63_KINDS.has(data.kind)){voiceLine(data.kind,true);return;}
   if(NET.role==='host'){
    if(assigned&&NET.phase==='lobby'){
-    if(data.t==='hello'){if(data.v!==103){safeSend({t:'versionMismatch',required:100});return;}sendWelcome();return}
+    if(data.t==='hello'){if(data.v!==103){safeSend({t:'versionMismatch',required:103});return;}sendWelcome();return}
     if(data.t==='welcomeAck'&&data.id===assigned){welcomeAcknowledged=true;beginWorldTransfer();return}
     if(data.t==='worldAck'&&worldSend&&Number.isInteger(data.index)){
      if(data.index===worldSend.index){worldSend.index++;if(worldSend.index<worldSend.parts.length)sendWorldPart()}
@@ -6375,8 +6396,8 @@ $('hostBtn').onclick=async()=>{
    netStatus('SOBA SPREMNA ✓ Kod: '+NET.code+' · sada drugi igrači mogu da kliknu JOIN.');
   });
   NET.peer.on('connection',c=>setupConnection(c));
-  NET.peer.on('error',e=>{netStatus('Veza nije uspostavljena: '+(e.message||e.type)+'. Potreban je internet za signalni servis.');$('hostBtn').disabled=false});
- }catch(e){netStatus('Nije moguće otvoriti online sobu: '+e.message);$('hostBtn').disabled=false}
+  NET.peer.on('error',e=>{NS103_PARTY.onHostFailed();netStatus('Veza nije uspostavljena: '+(e.message||e.type)+'. Potreban je internet za signalni servis.');$('hostBtn').disabled=false});
+ }catch(e){NS103_PARTY.onHostFailed();netStatus('Nije moguće otvoriti online sobu: '+e.message);$('hostBtn').disabled=false}
 };
 $('joinBtn').onclick=async()=>{
  unlockSound();if(NET.role==='guest'&&NET.phase==='connecting'){netStatus('Povezivanje je u toku. Za ručni pokušaj koristi PONOVI POVEZIVANJE.');return}
