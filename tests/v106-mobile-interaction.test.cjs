@@ -62,7 +62,7 @@ const {chromium}=require('playwright-core');
     n.clients.set('p2',previous);n.profiles.set('p2',{name:'ISTI_NALOG',sessionIdentity:identity,level:4,heroLevel:2,ranksTotal:1});
     const handlers={};
     const fresh={open:true,packets:[],send(p){this.packets.push(p)},close(){this.open=false;handlers.close?.()},on(k,cb){handlers[k]=cb}};
-    g.setupConnection(fresh);handlers.open();handlers.data({t:'hello',v:106,identity});
+    g.setupConnection(fresh);handlers.open();handlers.data({t:'hello',v:107,identity});
     const reused=n.clients.get('p2')===fresh&&!n.clients.has('p3')&&n.clients.size===1&&previous.open===false;
     g.renderLobby();const button=document.querySelector('#lobbyRoster .ns106KickBtn');
     window.confirm=()=>true;button?.click();
