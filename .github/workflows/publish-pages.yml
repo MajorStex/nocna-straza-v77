@@ -1,4 +1,4 @@
-name: Verify Noćna Straža v103 – Rotfiend Waves 20 & 30
+name: Verify Noćna Straža v104 – Rotfiend Waves 20 & 30
 on:
   push:
     branches: [main]
@@ -35,7 +35,7 @@ jobs:
           test -s public/index.html
           test -s public/firebase-config.js
           test -s public/auth-v82.js
-          grep -q '<title>Night Watch v103' public/index.html
+          grep -q '<title>Night Watch v104' public/index.html
       - name: Install mobile Chromium test driver
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
       - name: Mobile 360/412 screen gameplay, spell HUD and six-player packet test
@@ -54,3 +54,5 @@ jobs:
         run: node tests/v102-join-isolation.test.cjs
       - name: V103 persistent Friend IDs, duplicate contacts and one-tap group invitations on Android
         run: node tests/v103-friends-party.test.cjs
+      - name: V104 gameplay-only mana and magic HUD on pause, resume, and editor (360/412px)
+        run: node tests/v104-pause-spell-hud.test.cjs
