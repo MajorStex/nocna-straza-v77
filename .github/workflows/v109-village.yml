@@ -1,0 +1,24 @@
+name: V109 village mobile preview QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/v109/**'
+      - 'public/v109-village.js'
+      - 'tests/v109-village.test.cjs'
+      - '.github/workflows/v109-village.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  village:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install mobile Chromium driver
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Test V109 360/412/780 screens, Sparta cosmetic, original lobby and upgrades
+        run: node tests/v109-village.test.cjs
