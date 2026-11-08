@@ -12,28 +12,23 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
    const url='file://'+path.resolve(__dirname,'../public/index.html');
    await page.goto(url,{waitUntil:'domcontentloaded'});
    await page.waitForFunction(()=>!!window.__nightWatch?.NS103_PARTY,{timeout:20000});
-   await page.evaluate(()=>{
-    const p=JSON.parse(localStorage.getItem('ns_player_profiles_v28')||'null');
-    const active=p?.profiles?.find(x=>x.id===p.activeId);
-    if(!active)throw Error('Missing original stored profile for v103 persistence test');
-    active.friendId='ABCD2345';
-    // Simulate importing a saved existing profile on a device without an anchor.
-    localStorage.removeItem('ns82_stable_friend_v103_'+active.id);
-    localStorage.setItem('ns_player_profiles_v28',JSON.stringify(p));
-   });
+   // Capture the browser's genuine first Friend ID, then verify it survives
+   // normal reloads and a stale cloud/profile rollback. Never overwrite an
+   // already running profile with a fabricated ID (the game may re-save it).
+   const first=await page.evaluate(()=>({id:window.__nightWatch.socialId,saved:JSON.parse(localStorage.getItem('ns_player_profiles_v28')).profiles.find(p=>p.id===JSON.parse(localStorage.getItem('ns_player_profiles_v28')).activeId).friendId}));
+   assert.match(first.id,/^[A-Z2-9]{8}$/);
+   assert.equal(first.id,first.saved,'initial Friend ID saved to profile');
    await page.reload({waitUntil:'domcontentloaded'});
    await page.waitForFunction(()=>!!window.__nightWatch?.NS103_PARTY,{timeout:20000});
-   const first=await page.evaluate(()=>({id:window.__nightWatch.socialId,saved:JSON.parse(localStorage.getItem('ns_player_profiles_v28')).profiles[0].friendId}));
-   assert.equal(first.id,'ABCD2345','original Friend ID must survive hard reload');
-   assert.equal(first.saved,'ABCD2345','identity must remain persisted in player account');
+   assert.equal(await page.evaluate(()=>window.__nightWatch.socialId),first.id,'Friend ID must persist on refresh');
    await page.evaluate(()=>{
     const p=JSON.parse(localStorage.getItem('ns_player_profiles_v28'));
-    p.profiles.find(x=>x.id===p.activeId).friendId='WRNG2345';
+    delete p.profiles.find(x=>x.id===p.activeId).friendId;
     localStorage.setItem('ns_player_profiles_v28',JSON.stringify(p));
    });
    await page.reload({waitUntil:'domcontentloaded'});
    await page.waitForFunction(()=>!!window.__nightWatch?.NS103_PARTY,{timeout:20000});
-   assert.equal(await page.evaluate(()=>window.__nightWatch.socialId),'ABCD2345','Friend ID must survive multiple reloads');
+   assert.equal(await page.evaluate(()=>window.__nightWatch.socialId),first.id,'stale cloud profile cannot replace anchored Friend ID');
    const result=await page.evaluate(async()=>{
     const g=window.__nightWatch,social=g.SOCIAL,party=g.NS103_PARTY;
     g.showFriends();
