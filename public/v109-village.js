@@ -109,8 +109,22 @@
    const btn=document.createElement('button');btn.textContent='🎙 '+tr(en,sr);btn.onclick=()=>{unlockSound();voiceLine(kind,true)};area.append(btn);
   }
  }
+ function personalKey(){return 'ns109_local_rank_'+String(getActiveAccount()?.id||'default').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80)}
+ function personalStats(){try{const v=JSON.parse(localStorage.getItem(personalKey())||'{}');return {kills:Math.max(0,Number(v.kills)||0),wave:Math.max(0,Number(v.wave)||0)}}catch{return {kills:0,wave:0}}}
+ function recordPersonalMP(packet){
+  if(!packet||!Number.isInteger(packet.round)||!Number.isFinite(packet.kills)||packet.kills<0||packet.kills>1000000)return;
+  const id=String(packet.session||'').slice(0,90)+'_'+packet.round;if(!packet.session)return;
+  const key=personalKey();let old;try{old=JSON.parse(localStorage.getItem(key)||'{}')}catch{old={}}
+  const seen=Array.isArray(old.seen)?old.seen:[];if(seen.includes(id))return;
+  const record={kills:Math.max(0,Number(old.kills)||0)+Math.floor(packet.kills),wave:Math.max(0,Number(old.wave)||0,Math.floor(Number(packet.wave)||0)),seen:[...seen.slice(-149),id]};
+  try{localStorage.setItem(key,JSON.stringify(record))}catch{}
+ }
  function showRankings(force=false){
   panel(tr('GLOBAL RANKINGS','GLOBALNA RANG-LISTA'));
+  const personal=personalStats(),self=document.createElement('p');
+  const solo=typeof meta==='object'&&meta?meta:{};
+  self.textContent=tr('YOUR STORED RECORD (local / cloud, not verified): ','TVOJA SAČUVANA STATISTIKA (lokalno / cloud, nije verifikovana): ')+ownName()+' · '+(Math.max(0,Number(solo.totalKills)||0)+personal.kills)+' '+tr('kills','ubistava')+' · LV '+currentProfileLevel()+' · '+tr('best wave ','najbolji talas ')+Math.max(Number(solo.bestWave)||0,personal.wave);
+  area.append(self);
   const heading=document.createElement('p');heading.textContent=tr('Kills, permanent account level and best wave. Only verified data will count.','Ubistva, trajni nivo profila i najbolji talas. Samo provereni rezultati će se računati.');area.append(heading);
   const display=document.createElement('div');area.append(display);
   const refresh=document.createElement('button');refresh.textContent=tr('↻ REFRESH (once per minute)','↻ OSVEŽI (jednom u minutu)');refresh.onclick=()=>readRankings(display,true);area.append(refresh);
@@ -235,6 +249,10 @@
     const d=Math.hypot(p.x-prev.x,p.y-prev.y),t=d>max?max/d:1;
     prev.x+=((p.x-prev.x)*t);prev.y+=((p.y-prev.y)*t);prev.at=now;
     avatars.set(assigned,{x:prev.x,y:prev.y});limits.set(assigned,prev);
+    if(!opened&&now-lastBroadcast>750){
+     lastBroadcast=now;const peers=[...avatars.entries()].filter(([id])=>getPlayers().some(p=>p.id===id)).slice(0,6).map(([id,a])=>({id,x:Math.round(a.x),y:Math.round(a.y)}));
+     for(const c of NET.clients.values())if(c?.open)try{c.send({t:'ns109State',players:peers})}catch{}
+    }
    }
    return true;
   }
@@ -304,7 +322,7 @@
   originalSettle=settleRun;settleRun=function(){const result=originalSettle.apply(this,arguments);if(result&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(result.kills);return result};
  }
  if(typeof awardMP==='function'){
-  originalAward=awardMP;awardMP=function(packet){const result=originalAward.apply(this,arguments);if(result!==false&&NET.role&&packet&&Number.isFinite(packet.kills)&&!G.debugRun)spartaClaim(packet.kills);return result};
+  originalAward=awardMP;awardMP=function(packet){const result=originalAward.apply(this,arguments);if(result!==false&&NET.role&&packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}return result};
  }
  if(typeof NS91?.onKill==='function'){
   originalOnKill=NS91.onKill;NS91.onKill=function(){const result=originalOnKill.apply(this,arguments);
@@ -319,6 +337,6 @@
  }
  // Lifecycle: detached village only; classic lobby and legacy game engine continue unchanged.
  const heartbeat=setInterval(()=>{if(opened&&!isLobby())closeVillage();if(opened&&isLobby()&&!document.hidden)step(performance.now())},75);
- window.NS109_VILLAGE={open:showVillage,close:closeVillage,onMessage,enter,get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings}};
+ window.NS109_VILLAGE={open:showVillage,close:closeVillage,onMessage,enter,get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP}};
  window.NS109_SPARTA={appearance:decorate,owned:spartaOwned,equipped:spartaEquipped,claim:spartaClaim};
 })();
