@@ -1,4 +1,4 @@
-name: V103 package and deploy existing Cloudflare Pages project
+name: V104 package and deploy existing Cloudflare Pages project
 on:
   push:
     branches: [main]
@@ -16,21 +16,21 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
-      - name: Confirm version V103 is the real site root
+      - name: Confirm version V104 is the real site root
         run: |
-          grep -q 'VERZIJA V103' public/index.html
-          grep -q '<title>Night Watch v103' public/index.html
+          grep -q 'VERZIJA V104' public/index.html
+          grep -q '<title>Night Watch v104' public/index.html
       - name: Prepare ZIP for existing Pages project
         run: |
           cd public
-          zip -q -r ../nocna-straza-V103-Cloudflare-Pages.zip .
+          zip -q -r ../nocna-straza-V104-Cloudflare-Pages.zip .
           cd ..
-          unzip -p nocna-straza-V103-Cloudflare-Pages.zip index.html | grep -q 'VERZIJA V103'
-      - name: Save V103 upload package
+          unzip -p nocna-straza-V104-Cloudflare-Pages.zip index.html | grep -q 'VERZIJA V104'
+      - name: Save V104 upload package
         uses: actions/upload-artifact@v4
         with:
-          name: nocna-straza-V103-Cloudflare-Pages
-          path: nocna-straza-V103-Cloudflare-Pages.zip
+          name: nocna-straza-V104-Cloudflare-Pages
+          path: nocna-straza-V104-Cloudflare-Pages.zip
           retention-days: 30
       - name: Publish to EXISTING nocna-straza-igra.pages.dev project if Cloudflare credentials are present
         run: |
@@ -40,4 +40,4 @@ jobs:
             exit 0
           fi
           npx --yes wrangler@4 pages deploy ./public --project-name nocna-straza-igra --branch main --commit-dirty=true
-          echo 'Deployed V103 to existing nocna-straza-igra Pages project.'
+          echo 'Deployed V104 to existing nocna-straza-igra Pages project.'
