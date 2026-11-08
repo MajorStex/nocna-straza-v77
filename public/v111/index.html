@@ -6637,8 +6637,11 @@ function sendSnapshot(){
   const peerStats=NETLAB.peer(id),pingAge=peerStats.lastPong?performance.now()-peerStats.lastPong:0;
   // An overloaded remote phone gets a smaller snapshot less often.
   // It must not lower healthy peers' snapshot rate or the host game loop.
-  const slow=pingAge>3900||Number(peerStats.rtt)>850;
-  const interval=slow?.28:buffer>9000?.24:buffer>4500?.17:(NET.clients.size>=4?.135:.108);
+  // Jitter/RTT alone is not socket congestion: slowing a clean connection
+  // down to 3Hz made remote players appear frozen when ping spiked.
+  // Only actual queued bytes trigger reduced send rate/interest detail.
+  const slow=buffer>9000;
+  const interval=buffer>9000?.24:buffer>4500?.17:(NET.clients.size>=4?.135:.108);
   if(G.time-(NET.ns67LastSnapshot.get(id)||-100)<interval)continue;
   let focus=G.players.find(p=>p.id===id)||G.players[0];
   if(focus?.dead)focus=G.players.find(p=>p.id===NET.spectateTargets.get(id)&&!p.dead)||G.players.find(p=>!p.dead)||focus;
