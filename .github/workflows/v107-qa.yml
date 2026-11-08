@@ -22,3 +22,16 @@ jobs:
         run: node tests/v107-multiplayer.test.cjs
       - name: Regression - direct Temple entry, troll, key and exit
         run: node tests/v105-temple.test.cjs
+
+  live-two-browser-relay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Chromium automation
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Actual relay multiplayer - join, reload, direct link, shop and hero resumption
+        timeout-minutes: 4
+        run: node tests/v107-live-relay.test.cjs
