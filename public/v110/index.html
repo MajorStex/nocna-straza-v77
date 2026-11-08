@@ -1383,7 +1383,7 @@ function awardMP(packet){
  if(!NS94_ECON.reward(packet,amount))return false;
  NET.lastEarned=amount;
  if(amount>0)levelHeroAfterRun(Math.min(70,amount*2+Math.floor(packet.kills/4)));
- saveMP();renderCoopForge();return amount;
+ saveMP();renderCoopForge();window.NS109_VILLAGE?.onMPAward?.(packet);return amount;
 }
 function buyCoopSkill(id){if(NET.phase==='playing')return false;const s=MP_SKILLS[id],r=mpProgress.ranks[id];if(!s||r>=s.max||mpProgress.coins<mpCost(id,r))return false;
  if(!NS94_ECON.pay(mpCost(id,r)))return false;mpProgress.ranks[id]++;saveMP();renderCoopForge();if($('playerProfilePanel')&&!$('playerProfilePanel').classList.contains('hidden'))renderPlayerProfile();if(NET.role==='guest'&&NET.conn?.open)NET.conn.send({t:'profile',spec:networkHeroStyle(heroStyle),ranks:mpProgress.ranks});
@@ -1394,7 +1394,7 @@ function renderCoopForge(){const balance=$('coopCoinBalance'),holder=$('coopForg
  const r=mpProgress.ranks[id],cost=mpCost(id,r),btn=document.createElement('button');btn.className='baseUpgrade';btn.disabled=r>=s.max||mpProgress.coins<cost||NET.phase==='playing';
  const title=document.createElement('strong'),desc=document.createElement('small');title.textContent=s.icon+' '+s.name+' · '+r+'/'+s.max;desc.textContent=s.effect+' po rangu · '+(r>=s.max?'MAKSIMUM':cost+' ✦ za sledeći rang');btn.append(title,desc);btn.onclick=()=>buyCoopSkill(id);holder.append(btn)
  }}
-function networkHeroStyle(s){const h=s||FACTORY_HERO;return {name:String(h.name||'STRAŽAR').slice(0,24),heroClass:['warrior','ranger','mage','support'].includes(h.heroClass)?h.heroClass:'warrior',skin:h.skin,hair:h.hair,hairstyle:['short','bob','ponytail','long','braids','pixie','mohawk','bun'].includes(h.hairstyle)?h.hairstyle:'short',bodyStyle:['classic','slim','strong'].includes(h.bodyStyle)?h.bodyStyle:'classic',accent:h.accent,gear:h.gear,weapon:MEDIEVAL_WEAPONS[h.weapon]?h.weapon:'sword',visualSize:clamp(Number(h.visualSize)||.79,.7,1.12),wardrobe:{...HERO_WARDROBE,...h.wardrobe},ns69Sku:(s===heroStyle?window.NS69Store?.equippedSku:(typeof h.ns69Sku==='string'?h.ns69Sku:null))||null}}
+function networkHeroStyle(s){const h=s||FACTORY_HERO;return {name:String(h.name||'STRAŽAR').slice(0,24),heroClass:['warrior','ranger','mage','support'].includes(h.heroClass)?h.heroClass:'warrior',skin:h.skin,hair:h.hair,hairstyle:['short','bob','ponytail','long','braids','pixie','mohawk','bun'].includes(h.hairstyle)?h.hairstyle:'short',bodyStyle:['classic','slim','strong'].includes(h.bodyStyle)?h.bodyStyle:'classic',accent:h.accent,gear:h.gear,weapon:MEDIEVAL_WEAPONS[h.weapon]?h.weapon:'sword',visualSize:clamp(Number(h.visualSize)||.79,.7,1.12),wardrobe:{...HERO_WARDROBE,...h.wardrobe},ns69Sku:(s===heroStyle?window.NS69Store?.equippedSku:(typeof h.ns69Sku==='string'?h.ns69Sku:null))||null,ns109Sparta:!!h.ns109Sparta||(s===heroStyle&&!!window.NS109_SPARTA?.equipped?.())}}
 function ns106Identity(){const key='ns106_identity_'+String(getActiveAccount()?.id||'main');let v='';try{v=localStorage.getItem(key)||''}catch{}
  if(!/^[a-f0-9]{48}$/.test(v)){const b=new Uint8Array(24);crypto.getRandomValues(b);v=Array.from(b,n=>n.toString(16).padStart(2,'0')).join('');try{localStorage.setItem(key,v)}catch{}}
  return v;}
@@ -1490,7 +1490,7 @@ function settleRun(reason='dead'){NSX.onEnd();
  meta.bestKills=Math.max(meta.bestKills,run.kills);meta.bestSeconds=Math.max(meta.bestSeconds,run.time);
  if(run.score>meta.bestScore){meta.bestScore=run.score;meta.bestItem={weapon:run.bestItem,kills:run.itemKills,score:run.score}}
  meta.points+=run.gained;meta.totalEarned+=run.gained;
- meta.history.unshift({...run,date:new Date().toISOString().slice(0,10)});meta.history=meta.history.slice(0,30);persistMeta();giveSoloLifetimeRewards(run);
+ meta.history.unshift({...run,date:new Date().toISOString().slice(0,10)});meta.history=meta.history.slice(0,30);persistMeta();giveSoloLifetimeRewards(run);window.NS109_VILLAGE?.onSoloResult?.(run);
  $('runResult').textContent=`${formatDuration(run.time)} · ${run.kills} ubistava · Rezultat ${run.score} · +${run.gained} poena časti${run.qualified?'':' (prekratka partija)'}`;
  return run;
 }
@@ -6111,7 +6111,7 @@ function showLobbyUI(){NS92_DIR.stop();$('ns93SpellDock')?.classList.add('hidden
  $('coopTitle').textContent='ČEKAONICA · READY';$('coopForge').classList.add('hidden');$('closeCoop').classList.add('hidden');
  $('roomCode').textContent=NET.code;sendSocialStatus();
  $('lobbyStartBtn').classList.toggle('hidden',NET.role!=='host');renderCoopForge();
- renderLobby();NS96_INVITES.render();if(!SOCIAL.peer&&!SOCIAL.starting)startSocial();
+ renderLobby();NS96_INVITES.render();if(!SOCIAL.peer&&!SOCIAL.starting)startSocial();queueMicrotask(()=>window.NS109_VILLAGE?.onLobbyUI?.());
 }
 function currentLobbyRoster(){
  if(NET.role==='host'){
@@ -6212,7 +6212,7 @@ function startLobbyMatch(){
  if(NS97_POST.active&&!NET.ns97Results.startAt)return false;
  const roster=currentLobbyRoster();
  if(roster.length<2||(!NET.forceRequest&&!roster.every(p=>p.ready))||roster.slice(1).some(p=>!NET.worldReadyPlayers.get(p.id))){NET.forceRequest=false;netStatus('Nisu svi spremni. Čekamo najmanje 2 igrača.');renderLobby();return false}
- NET.forceRequest=false;NET.lastEarned=null;NS97_POST.clear();NS99_TEAM.reset();NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
+ NET.forceRequest=false;NET.lastEarned=null;NS97_POST.clear();NS99_TEAM.reset();window.NS109_VILLAGE?.close?.();NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
  // Host is authoritative: start the battle only here, never when a room is created.
  startGame({specialMode:selectedMode,difficulty:NSX.opt.difficulty});
  markMultiplayerNames();
@@ -6493,7 +6493,7 @@ function setupConnection(c){
     NET.roster=Array.isArray(data.players)?data.players.filter(p=>/^p[1-6]$/.test(p.id)).map(p=>({id:p.id,ready:!!p.ready,name:safePlayerName(p.name),friendId:FRIEND_CODE_RE.test(String(p.friendId||''))?p.friendId:'',level:clamp(Math.floor(Number(p.level)||1),1,150),ranksTotal:Math.max(0,Math.floor(Number(p.ranksTotal)||0)),heroLevel:clamp(Math.floor(Number(p.heroLevel)||1),1,100),heroName:String(p.heroName||'STRAŽAR').slice(0,24),avatarId:safeAvatarId(p.avatarId),avatarImg:safeAvatarImage(p.avatarImg)})):[];
     renderLobby();return;
    }
-   if(data.t==='start'&&NET.phase==='lobby'&&NET.worldReady){NS97_POST.clear();NET.heroLooks=new Map(Object.entries(data.looks||{}));
+   if(data.t==='start'&&NET.phase==='lobby'&&NET.worldReady){window.NS109_VILLAGE?.close?.();NS97_POST.clear();NET.heroLooks=new Map(Object.entries(data.looks||{}));
     NET.phase='playing';NET.lastEarned=null;NET.round=Number(data.round)||NET.round;NET.sessionToken=typeof data.session==='string'?data.session:null;NET.lastRoundText='';startGame({specialMode:data.specialMode});resize();voiceLine('start',true);if(data.specialMode==='night'){props=props.filter(o=>o.type!=='nightTower').concat((Array.isArray(data.towers)?data.towers:[]).slice(0,3));invalidateNavigation()}safeSend({t:'started'});netStatus('Partija je pokrenuta.');return;
    }
    if(data.t==='start'&&NET.phase==='playing'){safeSend({t:'started'});return}
@@ -7847,6 +7847,8 @@ const NS108_MODAL=(()=>{
  return {refresh,get active(){return activeId},get suspended(){return panels.filter(el=>el.classList.contains('ns108-suspended')).map(el=>el.id)}};
 })();
 window.__NS108_MODAL=NS108_MODAL;
+window.__NS110_BRIDGE={NET,G,NSX,NS91,NS97_POST,NS76CHAT,CoopVoice,renderCoopForge,renderPreRun,
+ currentLobbyRoster,currentProfileLevel,getActiveAccount,coopVoiceUpdatePreference,unlockSound,voiceLine,toast,meta,heroStyle};
 window.__nightWatch={NS103_PARTY,NS95_CAGE,NS95_PROGRESS,NETMIG,NSX,NETLAB,updateHUD,draw,bossPhaseOf,bossTarget,bossSummonWave,bossStartCast,bossResolveCast,updateBossPhases,drawBossTelegraphs,WEAPON_EVOLUTIONS,checkWeaponEvolution,currentEvolution,triggerEvolutionAttack,renderEvolutionGuide,openEvolutionGuide,updateEvolutionHud,sosRequest,sosRegister,sosEligible,sosActive,sosCompassTarget,updateSOSHUD,sosObserveSnapshot,REVIVE_RANGE,REVIVE_SECONDS,REVIVE_MAX,REVIVE_HP_RATIO,REVIVE_INVUL,teamColor,drawTeamTriangle,drawTeamEdgeMarkers,reviveCandidate,setReviveHeld,interruptRevive,updateRevives,updateReviveHUD,miniMap,mapReset,mapReveal,mapDraw,mapMarkers,mapGateUnlocked,mapOpen,mapClose,mapSeen,mapFocus,completeNightRun,finishNetworkRound,startLobbyMatch,sendSnapshot,receiveSnapshot,selectPlayerAccount,performAttack,settleRun,awardMP,levelHeroAfterRun,giveSoloLifetimeRewards,earnMPReward,createArchetype,heroLevelStats,heroFreePoints,getHeroTrack,improveChosenHero,renderPreRun,showPreRun,selectPreHero,buildNightTowers,nightDark,lightAt,towerAttack,get selectedMode(){return selectedMode},get mpProgress(){return mpProgress},portableDiagnostics,exportLocalSave,importLocalSave,SOCIAL,get socialId(){return ensureSocialIdentity()},get socialFriends(){return SOCIAL.db?.friends||{}},startSocial,showFriends,socialConnectTo,socialHandlePacket,acceptSocialAction,joinFriendRoom,sendFriendInvite,requestFriendJoin,sendSocialStatus,renderFriends,mpProgress,get playerAccounts(){return playerAccounts},get activeAccount(){return getActiveAccount()},avatarFace,safeAvatarId,safeAvatarImage,saveCurrentAvatar,renderMPAvatarPreview,profileLevelStats,currentProfileLevel,safePlayerName,renderPlayerProfile,selectPlayerAccount,createPlayerAccount,commitMPName,MP_SKILLS,mpCost,buyCoopSkill,earnMPReward,awardMP,applyCoopBonuses,networkHeroStyle,showQuickChoice,coopXP,applyQuickPower,goBack,renderLobby,broadcastLobby,setMyReady,startLobbyMatch,showLobbyUI,leaveLobby,closeNet,damagePlayer,killMob,meta,calculateRunReward,settleRun,showStats,showBase,buyMetaUpgrade,applyMetaBonuses,openGuildShop,closeGuildShop,buyGuildItem,tryGuildShop,get guildItems(){return GUILD_ITEMS},renderRelicChoices,openRelicPanel,chooseRelic,tryRelicShrine,G,NET,configs,VoiceClips,CoopVoice,coopVoiceSendClip,coopVoicePreparedBlob,coopVoiceReceive,coopVoiceHandleNetwork,coopVoicePlayReceived,coopVoiceUpdatePreference,microphoneDiagnostics,FACTORY_HERO,get activeHeroProfile(){return activeHeroProfile},get heroProfiles(){return heroProfiles},applyHeroProfile,createHeroProfile,deleteActiveHero,MEDIEVAL_WEAPONS,drawMedievalWeapon,drawWardrobeExtras,recordVoice,stopVoiceRecording,checkMicPermission,microphoneDiagnostics,exportVoiceClip,saveVoiceClip,removeVoiceClip,playClip,refreshVoiceUI,WARD_CONTROLS,get props(){return props},get defaultPlayMap(){return defaultPlayMap},get levels(){return levelCollection},get editorLevelId(){return editorLevelId},get heroStyle(){return heroStyle},get settings(){return cfgSettings},get projectiles(){return G.projectiles},updateProjectiles,spawnAmbientCrystal,collectBlueCrystals,drawAmbientCrystals,Music,startMusic,stopMusic,tryLootChests,tryMarkets,showLootChoice,lootOptions,grantTreasure,updateAbilities,spawnRotfiend,spawnEnemy,addMob,selectMobTarget,availableTargets,nextSpawnTarget,TREASURES,separateMobBodies,spawnAcid,setupConnection,addRemotePlayer,sendSnapshot,receiveSnapshot,isSolidProp,turnToward,ensureLootAndHouses,saveCurrentLevel,openLevel,addLevel,deleteLevel,saveCharacter,sfx,voiceLine,command,startGame,spawnBoss,generateMap,update,updateMobs,flowDirection,obstacleInPath,invalidateNavigation,draw,move:movingCircle,worldPoint,showMenu,save:persist,xpRequirement};
 /* v50 — first-use hints appear only when the relevant screen is opened; no modal, no click interception. */
 const NS50MENU=(()=>{
