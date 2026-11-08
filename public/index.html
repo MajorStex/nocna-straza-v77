@@ -3425,7 +3425,13 @@ const NS105_TEMPLE=(()=>{
  function enter(){
   if(temple.active||!temple.key||NET.role||G.mode!=='play'||G.paused||G.caveMode)return false;
   const p=G.players.find(p=>!p.dead);if(!p||!close(p,temple.door,145))return false;
-  saveOverworldState();temple.old={door:{...temple.door}};temple.active=true;temple.core=false;temple.wakes=0;temple.phase='maze';
+  // Temple owns its own isolated overworld snapshot. The older cave helpers
+  // are private to the quest module and must never be called from here.
+  temple.old={door:{...temple.door},w:WORLD.w,h:WORLD.h,props:cloneProps(props),
+   mobs:G.mobs.map(m=>({...m})),drops:G.drops.map(d=>({...d})),effects:G.effects.map(e=>({...e})),
+   projectiles:G.projectiles.map(p=>({...p})),blasts:G.blasts.map(v=>({...v})),blueCrystals:G.blueCrystals.map(v=>({...v})),
+   camera:{...G.camera},waveClock:G.waveClock,spawnClock:G.spawnClock,fog:Array.from(miniMap.explored)};
+  temple.active=true;temple.core=false;temple.wakes=0;temple.phase='maze';
   WORLD.w=TW;WORLD.h=TH;props=createMaze();activePlayMap=props;invalidateNavigation();
   G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.blueCrystals=[];G.caveMode=true;
   G.players.forEach((p,i)=>{p.x=temple.exit.x+i*20;p.y=temple.exit.y+i*15});
@@ -3434,10 +3440,15 @@ const NS105_TEMPLE=(()=>{
  }
  function leave(){
   if(!temple.active||!G.players.some(p=>!p.dead&&close(p,temple.exit,140)))return false;
-  if(!restoreOverworldState())return false;
+  const snapshot=temple.old;if(!snapshot)return false;
+  WORLD.w=snapshot.w;WORLD.h=snapshot.h;props=cloneProps(snapshot.props);activePlayMap=props;invalidateNavigation();
+  G.mobs=snapshot.mobs.map(m=>({...m}));G.drops=snapshot.drops.map(v=>({...v}));
+  G.effects=snapshot.effects.map(v=>({...v}));G.projectiles=snapshot.projectiles.map(v=>({...v}));
+  G.blasts=snapshot.blasts.map(v=>({...v}));G.blueCrystals=snapshot.blueCrystals.map(v=>({...v}));
+  G.waveClock=snapshot.waveClock;G.spawnClock=snapshot.spawnClock;
   G.caveMode=false;temple.active=false;temple.phase='door';
   G.players.forEach((p,i)=>{p.x=temple.old.door.x-40+i*22;p.y=temple.old.door.y+55+i*15});
-  G.camera.x=G.players[0].x;G.camera.y=G.players[0].y;mapReset();sound('gate',temple.door.x,temple.door.y);
+  G.camera.x=G.players[0].x;G.camera.y=G.players[0].y;mapReset();if(snapshot.fog?.length===miniMap.explored.length)miniMap.explored.set(snapshot.fog);sound('gate',temple.door.x,temple.door.y);
   announce(tr('BACK FROM THE SILENT TOMB','NAZAD IZ TIHOG HRAMA'),3);return true;
  }
  function takeDiamond(){
