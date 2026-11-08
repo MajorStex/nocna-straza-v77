@@ -5,7 +5,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8');
 const markers=[
- 'VERZIJA V107','function ns106Identity','sessionIdentity:ns106Identity()',
+ 'VERZIJA V108','function ns106Identity','sessionIdentity:ns106Identity()',
  'function ns106Kick(id)','id="ns106KickGuests"','id="ns106SpellToggle"',
  'ns106Closed','id="ns106WhoUpgrades"','CHOOSES UPGRADE',
  'ns106ReviveSentAt>=230',"t:'reviveHold',held:true",

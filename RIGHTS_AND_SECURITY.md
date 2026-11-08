@@ -21,3 +21,10 @@ The complete HTML/JavaScript bundle runs on the player's device. Its bytes can b
 Secure payment entitlements and scarce currencies in a server-controlled, authenticated database; verify purchases through a payment provider's server-to-server event and issue short-lived signed sessions. Protect the relay with verified account identity, origin allowlists, IP/device rate limits, message size limits and abuse monitoring. Move competitive leaderboard score validation and value-bearing game logic away from the player's browser. Avoid embedding secrets in public JavaScript.
 
 These are defensive design notes. They are not a claim that HTML source cannot be copied.
+
+## V108 copyright and collision fixes
+
+- Official canonical site, copyright in the home screen, OpenGraph ownership metadata and a no-redistribution notice deter uncredited distribution. These are not unbreakable technical copy protection.
+- Host rejects guest profile updates beyond 18,000 JSON characters; existing packet limits and authoritative award logic remain intact.
+- Exclusive game-selection dialog rendering and automatic hiding of competing HUD elements prevent overlapping popups on mobile.
+- WARNING: The source GitHub repo is public; a private development repository would keep unreleased code out of search results. Every deployed HTML/JS build is still extractable, even if obfuscated. Paid entitlements need server-side verification.
