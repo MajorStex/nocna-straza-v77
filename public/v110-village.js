@@ -4,6 +4,11 @@
 (function(){
  'use strict';
  if(window.NS109_VILLAGE)return;
+ // The original game is a private IIFE; consume only its explicit read/write bridge.
+ const {NET,G,NSX,NS91,NS97_POST,NS76CHAT,CoopVoice,renderCoopForge,renderPreRun,
+  currentLobbyRoster,currentProfileLevel,getActiveAccount,coopVoiceUpdatePreference,
+  unlockSound,voiceLine,toast,meta,heroStyle}=window.__NS110_BRIDGE||{};
+ if(!NET||!G||!NS91||!NS97_POST){console.error('Village: game API not ready');return}
  const $=id=>document.getElementById(id);
  const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -333,24 +338,15 @@
  $('ns109Chat').onclick=()=>enter('chat');
  canvas.addEventListener('pointerdown',tap);
  document.addEventListener('keydown',e=>{if(!opened||!canVisit())return;if(e.key==='Escape'&&!pane.classList.contains('ns109Hidden')){e.stopImmediatePropagation();closePane()}else if(e.key==='Escape'){e.stopImmediatePropagation();closeVillage()}},true);
- const homeVillage=document.createElement('button');homeVillage.id='ns110VillageHome';homeVillage.type='button';homeVillage.textContent='🏡 '+tr('EXPLORE VILLAGE · CHILL HUB','ISTRAŽI SELO · CHILL LOBI');homeVillage.onclick=()=>{if(G.mode!=='menu'){toast(tr('Village is available between runs.','Selo je dostupno između partija.'));return}localStorage.setItem('ns109_village_pref','village');showVillage()};$('coopBtn')?.insertAdjacentElement('afterend',homeVillage);
+ const homeVillage=document.createElement('button');homeVillage.id='ns110VillageHome';homeVillage.type='button';homeVillage.textContent='🏡 '+tr('EXPLORE VILLAGE · CHILL HUB','ISTRAŽI SELO · CHILL LOBI');homeVillage.onclick=()=>{if(G.mode!=='menu'){toast(tr('Village is available between runs.','Selo je dostupno između partija.'));return}localStorage.setItem('ns109_village_pref','village');showVillage()};($('ns50MenuPlay')||$('coopBtn'))?.insertAdjacentElement('beforebegin',homeVillage);
  const enterButton=document.createElement('button');enterButton.id='ns109Visit';enterButton.type='button';enterButton.textContent='🏡 '+tr('ENTER VILLAGE','UĐI U SELO');enterButton.onclick=()=>{localStorage.setItem('ns109_village_pref','village');showVillage()};
  $('lobbyArea')?.insertBefore(enterButton,$('roomCode'));
  const postButton=document.createElement('button');postButton.id='ns109PostButton';postButton.type='button';postButton.textContent='🏡 '+tr('VISIT VILLAGE','POSĒTI SELO');postButton.onclick=enterButton.onclick;
  $('ns97Results')?.append(postButton);
- if(typeof showLobbyUI==='function'){
-  originalShowLobby=showLobbyUI;
-  showLobbyUI=function(){const r=originalShowLobby.apply(this,arguments);if(NET.role&&NET.phase==='lobby')scheduleAutoVillage();return r};
- }
- if(typeof startLobbyMatch==='function'){
-  originalStartMatch=startLobbyMatch;startLobbyMatch=function(){closeVillage();return originalStartMatch.apply(this,arguments)};
- }
- if(typeof settleRun==='function'){
-  originalSettle=settleRun;settleRun=function(){const result=originalSettle.apply(this,arguments);if(result&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(result.kills);return result};
- }
- if(typeof awardMP==='function'){
-  originalAward=awardMP;awardMP=function(packet){const result=originalAward.apply(this,arguments);if(result!==false&&NET.role&&packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}return result};
- }
+ // Rematch/lobby hooks run inside the original game scope, not a disconnected wrapper.
+ // Match-start hook is provided by the original engine.
+ // Solo completion hook is provided by the original engine.
+ // Host-attested co-op reward hook is provided by the original engine.
  if(typeof NS91?.onKill==='function'){
   originalOnKill=NS91.onKill;NS91.onKill=function(){const result=originalOnKill.apply(this,arguments);
    if(!G.debugRun&&G.mode==='play'&&(G.runType==='default'||G.runType==='network')&&NET.role!=='guest'){
@@ -358,12 +354,12 @@
    }return result;
   };
  }
- if(typeof networkHeroStyle==='function'){
-  const oldNet=networkHeroStyle;
-  networkHeroStyle=function(style){const src=networkAppearance(style),out=oldNet(src);if(src?.ns109Sparta)out.ns109Sparta=true;return out};
- }
+ // Cosmetic looks are now transported by the original engine's networkHeroStyle.
  // Lifecycle: detached village only; classic lobby and legacy game engine continue unchanged.
- const heartbeat=setInterval(()=>{if(opened&&!canVisit())closeVillage();if(opened&&canVisit()&&!document.hidden)step(performance.now())},75);
- window.NS109_VILLAGE={open:showVillage,close:closeVillage,onMessage,enter,get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP}};
+ const heartbeat=setInterval(()=>{if(opened&&!canVisit())closeVillage();if(opened&&canVisit()&&!document.hidden&&!root.classList.contains('ns109Hidden'))step(performance.now())},75);
+ window.NS109_VILLAGE={open:showVillage,close:closeVillage,onMessage,enter,onLobbyUI:()=>{if(isLobby())scheduleAutoVillage()},
+ onSoloResult:run=>{if(run&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(run.kills)},
+ onMPAward:packet=>{if(packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}},
+ get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP}};
  window.NS109_SPARTA={appearance:decorate,owned:spartaOwned,equipped:spartaEquipped,claim:spartaClaim};
 })();
