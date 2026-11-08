@@ -1,4 +1,4 @@
-name: V106 game syntax, Temple and mobile spell/revive checks
+name: V107 compatibility smoke for earlier multiplayer features
 on:
   push:
     branches: [main]
@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Parse inline JavaScript and verify V106 markers
+      - name: Parse inline JavaScript and verify V107 markers
         run: node tests/v106-multiplayer-ui.test.cjs
       - name: Install Chromium browser driver
         run: npm install --no-save --no-package-lock playwright-core@1.58.2

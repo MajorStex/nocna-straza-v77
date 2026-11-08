@@ -25,7 +25,7 @@ const {chromium}=require('playwright-core');
    assert.equal(initial.hiddenList,true);
    assert.equal(initial.toggleVisible,true);
    await page.waitForFunction(()=>document.getElementById('ns82-auth')?.hidden===true,{timeout:7000});
-   assert.match(initial.version,/V106/);
+   assert.match(initial.version,/V107/);
    await page.locator('#ns106SpellToggle').click({timeout:5000});
    const opened=await page.evaluate(()=>({expanded:document.getElementById('ns106SpellToggle').getAttribute('aria-expanded'),
     hidden:getComputedStyle(document.getElementById('ns93SpellList')).display==='none'}));
@@ -56,7 +56,7 @@ const {chromium}=require('playwright-core');
    assert.equal(heartbeat.at(-1).target,'p1');
    const room=await page.evaluate(()=>{
     const g=window.__nightWatch,n=g.NET,identity='a'.repeat(48);
-    n.role='host';n.phase='lobby';n.localId='p1';n.hostId='p1';n.code='V106TE';
+    n.role='host';n.phase='lobby';n.localId='p1';n.hostId='p1';n.code='V107TE';
     n.clients.clear();n.profiles.clear();n.readyPlayers.clear();n.worldReadyPlayers.clear();n.kickedIdentities.clear();
     const previous={open:true,packets:[],send(p){this.packets.push(p)},close(){this.open=false}};
     n.clients.set('p2',previous);n.profiles.set('p2',{name:'ISTI_NALOG',sessionIdentity:identity,level:4,heroLevel:2,ranksTotal:1});
@@ -74,7 +74,7 @@ const {chromium}=require('playwright-core');
    assert.equal(room.removed,true,'Player must be removed from authoritative roster');
    assert.equal(room.packet,'kicked','Guest must receive kick notification');
    assert.ok(errors.filter(e=>/TypeError|ReferenceError|SyntaxError/.test(e)).length===0,errors.join(' | '));
-   console.log('PASS V106 '+width+'px: collapsed powers, show/hide, nearby fallen teammate, repeated revive hold frames');
+   console.log('PASS V107 '+width+'px: collapsed powers, show/hide, nearby fallen teammate, repeated revive hold frames');
    await ctx.close();
   }
  }finally{await browser.close()}

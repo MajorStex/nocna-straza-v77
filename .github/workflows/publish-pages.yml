@@ -1,12 +1,5 @@
-name: Verify Noćna Straža v105 – Rotfiend Waves 20 & 30
+name: Legacy V105 regression suite (manual historical verification)
 on:
-  push:
-    branches: [main]
-    paths:
-      - "public/**"
-      - "addons/**"
-      - "tests/**"
-      - ".github/workflows/publish-pages.yml"
   workflow_dispatch:
 permissions:
   contents: read
