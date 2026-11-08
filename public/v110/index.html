@@ -6256,13 +6256,13 @@ function retryInitialGuestConnection(reason=''){
  return true;
 }
 function setupConnection(c){
- let assigned=null,presentedIdentity='',rejectReason='',syncTimer=null,worldSend=null,worldReceive=null,welcomeAcknowledged=false,ns107RateAt=performance.now(),ns107PacketCount=0;
+ let assigned=null,presentedIdentity='',rejectReason='',syncTimer=null,worldSend=null,worldReceive=null,guestCanZip=false,worldRetryCount=0,welcomeAcknowledged=false,ns107RateAt=performance.now(),ns107PacketCount=0;
  const safeSend=data=>{if(!c.open)return false;try{c.send(data);return true}catch(err){return false}};
  const sendWelcome=()=>{if(assigned&&NET.role==='host'&&NET.phase==='lobby')safeSend({t:'welcome',id:assigned,code:NET.code,round:NET.round,post:NET.ns97Results||null,v:107,rejoinToken:NETLAB.tokens.get(assigned)?.token})};
  // WebRTC channels can open before both sides have attached data handlers. Explicit
  // request/ack retries prevent a lost initial host packet from trapping a guest.
  const sendWorldPart=()=>{
-  if(!worldSend||worldSend.done||NET.role!=='host'||NET.phase!=='lobby')return;
+  if(!worldSend||worldSend.preparing||!worldSend.parts.length||worldSend.done||NET.role!=='host'||NET.phase!=='lobby')return;
   // When every chunk is ACKed but worldDone was lost, re-send only the final piece,
   // rate-limited, to trigger the guest's idempotent worldDone acknowledgement.
   if(worldSend.index>=worldSend.parts.length){
@@ -6280,13 +6280,24 @@ function setupConnection(c){
  };
  const beginWorldTransfer=()=>{
   if(!assigned||NET.phase!=='lobby')return;
-  if(!worldSend){
+  if(worldSend){sendWorldPart();return}
+  const state={parts:[],index:0,done:false,preparing:true,acked:new Set()};
+  worldSend=state;
+  (async()=>{
    const source=JSON.stringify({props,models:configs,settings:cfgSettings});
-   const chunkSize=6400,parts=[];
-   for(let i=0;i<source.length;i+=chunkSize)parts.push(source.slice(i,i+chunkSize));
-   worldSend={parts,index:0,done:false,acked:new Set()};
-  }
-  sendWorldPart();
+   let wire=source;
+   try{
+    if(guestCanZip&&typeof CompressionStream==='function'){
+     const bytes=new Uint8Array(await new Response(new Blob([source]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+     let bin='';for(let i=0;i<bytes.length;i+=8192)bin+=String.fromCharCode(...bytes.subarray(i,i+8192));
+     const zipped=JSON.stringify({ns110Zip:1,data:btoa(bin)});
+     if(zipped.length<source.length*.85)wire=zipped;
+    }
+   }catch{wire=source} // Older browsers safely use the original JSON transfer.
+   if(worldSend!==state||NET.role!=='host'||NET.phase!=='lobby'||!c.open)return;
+   for(let i=0;i<wire.length;i+=6400)state.parts.push(wire.slice(i,i+6400));
+   state.preparing=false;sendWorldPart();
+  })().catch(()=>{if(worldSend===state){worldSend=null;netStatus('Map transfer failed. Try rejoining.')}});
  };
  const takeover=id=>{if(!/^p[2-6]$/.test(String(id))||NET.role!=='host'||NET.phase!=='lobby')return false;
  const previous=NET.clients.get(id),temp=assigned;
@@ -6300,7 +6311,7 @@ function setupConnection(c){
   if(NET.phase==='playing'&&NET.rejoinToken)safeSend({t:'resumeHello',v:107,token:NET.rejoinToken,identity:ns106Identity(),round:NET.round,code:NET.code});
    else if(NET.phase==='connecting'){
     safeSend({t:'resumeHello',v:107,token:NET.rejoinToken||'',identity:ns106Identity(),round:NET.round,code:NET.code});
-    safeSend({t:'hello',v:107,identity:ns106Identity()});
+    safeSend({t:'hello',v:107,identity:ns106Identity(),worldGzip:typeof DecompressionStream==='function'});
    }
   else if(NET.phase==='lobby'&&!NET.worldReady)safeSend({t:'welcomeAck',id:NET.localId});
  };
@@ -6356,7 +6367,7 @@ function setupConnection(c){
     if(NET.kickedIdentities.has(identity)){safeSend({t:'kicked'});setTimeout(()=>c.close(),400);return}
     if(identity===ns106Identity()){safeSend({t:'alreadyHere'});setTimeout(()=>c.close(),400);return}
     if(presentedIdentity&&presentedIdentity!==identity){safeSend({t:'versionMismatch',required:107});setTimeout(()=>c.close(),400);return}
-    presentedIdentity=identity;
+    presentedIdentity=identity;guestCanZip=data.worldGzip===true;
     if(!assigned){
      const existing=[...NET.profiles].find(([id,p])=>/^p[2-6]$/.test(id)&&p.sessionIdentity===identity&&(NET.clients.has(id)||NETLAB.tokens.has(id)));
      if(existing)takeover(existing[0]);
@@ -6371,6 +6382,7 @@ function setupConnection(c){
    }
    if(assigned&&NET.phase==='lobby'){
         if(data.t==='welcomeAck'&&data.id===assigned){welcomeAcknowledged=true;beginWorldTransfer();return}
+    if(data.t==='worldRetry'){if(++worldRetryCount<=2){worldSend=null;beginWorldTransfer()}return}
     if(data.t==='worldAck'&&worldSend&&Number.isInteger(data.index)){
      if(data.index>=0&&data.index<worldSend.parts.length){
       worldSend.acked.add(data.index);
@@ -6487,16 +6499,29 @@ function setupConnection(c){
     if(!worldReceive||worldReceive.parts.length!==n)worldReceive={parts:Array(n),received:0};
     if(worldReceive.parts[i]===undefined){worldReceive.parts[i]=data.payload;worldReceive.received++}
     safeSend({t:'worldAck',index:i});
-    if(worldReceive.received===n){
-     try{
-      const d=JSON.parse(worldReceive.parts.join(''));
-      NET.hostProps=sanitizeProps(d.props)||[];
-      props=prepareChestLocks(cloneProps(NET.hostProps));activePlayMap=props;
-      for(const type of Object.keys(DEFAULT))Object.assign(configs[type],d.models?.[type]||{});
-      cfgSettings={...cfgSettings,...d.settings};NET.worldReady=true;
-      netStatus('Mapa je učitana. Automatski si SPREMAN — domaćin pokreće igru.');
-      safeSend({t:'worldDone'});NET.localReady=true;safeSend({t:'ready',ready:true});renderLobby();
-     }catch(err){worldReceive=null;netStatus('Prenos mape nije uspeo. Pokušavam ponovo...');safeSend({t:'worldRetry'});}
+    if(worldReceive.received===n&&!worldReceive.loading){
+     const batch=worldReceive;batch.loading=true;
+     // Decode off the message handler, then apply only to the current active connection.
+     (async()=>{
+      try{
+       let d=JSON.parse(batch.parts.join(''));
+       if(d?.ns110Zip===1){
+        if(typeof DecompressionStream!=='function'||typeof d.data!=='string'||d.data.length>300000)throw Error('Unsupported compressed map');
+        const bin=atob(d.data),bytes=Uint8Array.from(bin,ch=>ch.charCodeAt(0));
+        const decoded=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+        if(decoded.length>1800000)throw Error('Map exceeds safety limit');
+        d=JSON.parse(decoded);
+       }
+       if(NET.role!=='guest'||NET.phase!=='lobby'||NET.conn!==c||worldReceive!==batch)return;
+       if(!Array.isArray(d.props)||typeof d.models!=='object'||typeof d.settings!=='object')throw Error('Invalid map');
+       NET.hostProps=sanitizeProps(d.props)||[];
+       props=prepareChestLocks(cloneProps(NET.hostProps));activePlayMap=props;
+       for(const type of Object.keys(DEFAULT))Object.assign(configs[type],d.models?.[type]||{});
+       cfgSettings={...cfgSettings,...d.settings};NET.worldReady=true;
+       netStatus('Mapa je učitana. Automatski si SPREMAN — domaćin pokreće igru.');
+       safeSend({t:'worldDone'});NET.localReady=true;safeSend({t:'ready',ready:true});renderLobby();
+      }catch(err){if(worldReceive===batch){worldReceive=null;netStatus('Prenos mape nije uspeo; pokušavam ponovo...');safeSend({t:'worldRetry'})}}
+     })();
     }
     return;
    }
