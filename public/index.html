@@ -3333,6 +3333,246 @@ const NS92_CHALLENGES=(()=>{
 })();
 window.__NS92_CHALLENGES=NS92_CHALLENGES;
 
+
+/* V105 THE SILENT TOMB — original hand-drawn sci-fi crypt, not copyrighted game assets.
+   This is a solo expedition until the independent team-transition protocol is built. */
+const NS105_TEMPLE=(()=>{
+ const COLS=12,ROWS=8,CELL=108,OX=153,OY=153,TW=1495,TH=1120;
+ const temple={active:false,preview:false,key:false,core:false,door:{x:START.x+285,y:START.y+85},exit:{x:OX,y:OY},
+   diamond:{x:OX+11*CELL,y:OY+7*CELL},decor:[],guards:[],wakes:0,old:null,phase:'none',lastSound:0,nextCry:0};
+ const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
+ const close=(a,b,d)=>Math.hypot(a.x-b.x,a.y-b.y)<d;
+ const visible=(x,y,margin=90)=>{const v=viewSize();return Math.abs(x-G.camera.x)<v.w*.5+margin&&Math.abs(y-G.camera.y)<v.h*.5+margin};
+ let button=null,hint=null;
+ function init(){
+  if(button)return;
+  const style=document.createElement('style');style.textContent=
+  '#ns105Interact{position:fixed;z-index:38;bottom:calc(226px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(91vw,340px);padding:13px 10px;background:#193a3bec;color:#eeffe8;border:1px solid #82cfa7;border-radius:12px;box-shadow:0 4px 20px #0009;font-weight:900;font-size:12px}'+
+  '#ns105Interact.hidden,#ns105Hint.hidden{display:none!important}'+
+  '#ns105Hint{position:fixed;z-index:36;top:calc(62px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(90vw,375px);pointer-events:none;text-align:center;background:#0c2829ec;border:1px solid #568b78;border-radius:9px;padding:7px 11px;color:#daeed8;font-weight:800;font-size:11px;line-height:1.35}';
+  document.head.append(style);
+  button=document.createElement('button');button.id='ns105Interact';button.className='hidden';button.type='button';document.body.append(button);
+  hint=document.createElement('div');hint.id='ns105Hint';hint.className='hidden';document.body.append(hint);
+  button.addEventListener('click',()=>{if(temple.active)leave();else if(temple.key)enter();else toast(tr('The level-10 troll carries a key','Ključ nosi trol na nivou 10'))});
+ }
+ function reset(preview=false){
+  init();Object.assign(temple,{active:false,preview:!!preview,key:false,core:false,decor:[],guards:[],wakes:0,old:null,phase:preview?'keeper':'none'});
+  button.classList.add('hidden');hint.classList.add('hidden');
+ }
+ function doorNearStart(){
+  for(const [dx,dy] of [[275,100],[270,-140],[-260,100],[-210,-200],[170,260],[-175,260]]){
+   const x=START.x+dx,y=START.y+dy;if(canStepClear({r:55},x,y)){temple.door={x,y};break;}
+  }
+ }
+ function startPreview(){
+  if(NET.role)return false;
+  startGame({specialMode:'normal',templePreview:true});
+  G.debugRun=true;G.ns95TestOnly=true;G.runType='templePreview';G.wave=10;G.level=10;
+  G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.blueCrystals=[];
+  const p=G.players[0];p.level=10;p.hp=p.maxHp=Math.max(460,p.maxHp);p.damage=Math.max(80,p.damage);p.invul=2.5;
+  doorNearStart();
+  let troll=null;
+  for(const [dx,dy] of [[125,4],[130,-100],[-130,20],[0,145]]){
+   if(canStepClear({r:27},p.x+dx,p.y+dy)){troll=addMob('troll',p.x+dx,p.y+dy,10);break}
+  }
+  if(!troll)troll=addMob('troll',p.x+135,p.y,10);
+  troll.nsTempleKeeper=true;troll.hp=troll.maxHp=235;troll.speed=Math.min(troll.speed,55);
+  temple.preview=true;temple.phase='keeper';
+  announce(tr('TEMPLE TEST · Defeat troll, collect separate key','TEMPLE TEST · Ubij trola, uzmi poseban ključ'),5);updateHUD();return true;
+ }
+ function dropKey(m){
+  if(!m.nsTempleKeeper||temple.key||G.drops.some(d=>d.type==='templeKey'))return false;
+  G.drops.push({id:'temple-key-'+G.nextId++,x:m.x+20,y:m.y-9,r:14,phase:0,type:'templeKey',amount:1});
+  temple.phase='key';announce(tr('TOMB KEY DROPPED · Original loot unchanged','KLJUČ HRAMA JE ISPAO · Ostali drop je nepromenjen'),4);sound('key',m.x,m.y);return true;
+ }
+ function collectKey(p){temple.key=true;p.ns105TempleKey=true;temple.phase='door';sound('key',p.x,p.y);
+  announce(tr('TOMB KEY FOUND · Approach the glowing gate','NAĐEN KLJUČ · Priđi svetlećoj kapiji'),4)}
+ const randomFactory=seed=>()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/4294967296};
+ function createMaze(){
+  const r=randomFactory(0x105AABB),done=new Set([0]),stack=[0],connections=new Set();
+  while(stack.length){
+   const id=stack[stack.length-1],x=id%COLS,y=Math.floor(id/COLS);
+   const neighbors=[[x+1,y],[x-1,y],[x,y+1],[x,y-1]].filter(([nx,ny])=>nx>=0&&ny>=0&&nx<COLS&&ny<ROWS&&!done.has(ny*COLS+nx));
+   if(!neighbors.length){stack.pop();continue}
+   const [nx,ny]=neighbors[Math.floor(r()*neighbors.length)],to=ny*COLS+nx;
+   connections.add(Math.min(id,to)+':'+Math.max(id,to));done.add(to);stack.push(to);
+  }
+  const walls=[];
+  const wall=(x,y)=>{const p=makeProp('rock',x,y,1.03);p.type='templeWall';p.r=30;walls.push(p)};
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+   const id=y*COLS+x,cx=OX+x*CELL,cy=OY+y*CELL;
+   if(x<COLS-1&&!connections.has(id+':'+(id+1)))for(const d of [-34,0,34])wall(cx+CELL/2,cy+d);
+   if(y<ROWS-1&&!connections.has(id+':'+(id+COLS)))for(const d of [-34,0,34])wall(cx+d,cy+CELL/2);
+  }
+  for(let x=50;x<TW-40;x+=48){wall(x,52);wall(x,TH-53)}
+  for(let y=100;y<TH-60;y+=48){wall(54,y);wall(TW-54,y)}
+  const styles=['obelisk','coffin','androidRuin','circuit','conduit','gateway','crystal','pillar','shards','glyph','pool','engine','cables','watcher'];
+  temple.decor=[];temple.guards=[];
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+   const id=y*COLS+x,cx=OX+x*CELL,cy=OY+y*CELL;
+   if(id!==0&&id!==COLS*ROWS-1)temple.decor.push({x:cx+(r()-.5)*32,y:cy+(r()-.5)*32,kind:styles[id%styles.length],seed:id});
+   if(id>5&&id!==COLS*ROWS-1&&r()<.42)
+    temple.guards.push({x:cx+(r()-.5)*27,y:cy+(r()-.5)*24,variant:id%4,pose:id%4,phase:'sleep',rise:0,wake:Infinity});
+  }
+  for(let n=0;n<styles.length;n++)temple.decor.push({x:OX+((n+1)%COLS)*CELL+15,y:OY+(1+Math.floor(n/COLS))*CELL+20,kind:styles[n],seed:n+200});
+  return walls;
+ }
+ function enter(){
+  if(temple.active||!temple.key||NET.role||G.mode!=='play'||G.paused||G.caveMode)return false;
+  const p=G.players.find(p=>!p.dead);if(!p||!close(p,temple.door,145))return false;
+  saveOverworldState();temple.old={door:{...temple.door}};temple.active=true;temple.core=false;temple.wakes=0;temple.phase='maze';
+  WORLD.w=TW;WORLD.h=TH;props=createMaze();activePlayMap=props;invalidateNavigation();
+  G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.blueCrystals=[];G.caveMode=true;
+  G.players.forEach((p,i)=>{p.x=temple.exit.x+i*20;p.y=temple.exit.y+i*15});
+  G.camera.x=temple.exit.x;G.camera.y=temple.exit.y;mapReset();sound('gate',p.x,p.y);
+  announce(tr('THE SILENT TOMB · Explore the maze and find the diamond','TIHI HRAM · Pronađi dijamant u lavirintu'),5);return true;
+ }
+ function leave(){
+  if(!temple.active||!G.players.some(p=>!p.dead&&close(p,temple.exit,140)))return false;
+  if(!restoreOverworldState())return false;
+  G.caveMode=false;temple.active=false;temple.phase='door';
+  G.players.forEach((p,i)=>{p.x=temple.old.door.x-40+i*22;p.y=temple.old.door.y+55+i*15});
+  G.camera.x=G.players[0].x;G.camera.y=G.players[0].y;mapReset();sound('gate',temple.door.x,temple.door.y);
+  announce(tr('BACK FROM THE SILENT TOMB','NAZAD IZ TIHOG HRAMA'),3);return true;
+ }
+ function takeDiamond(){
+  if(!temple.active||temple.core)return false;
+  temple.core=true;temple.phase='awakening';const r=randomFactory(0x105C0DE);
+  temple.guards.forEach((g,i)=>g.wake=G.time+.25+i*.14+r()*.7);
+  sound('core',temple.diamond.x,temple.diamond.y);
+  announce(tr('THE TOMB AWAKENS · Return to the entrance','GROBNICA SE BUDI · Vrati se do ulaza'),5);return true;
+ }
+ function sound(kind,x,y){
+  if(!cfgSettings.sfx||G.paused||G.mode!=='play')return;
+  const now=performance.now();if(now-temple.lastSound<(kind==='step'?380:kind==='groan'?1100:130))return;
+  const me=G.players.find(p=>!p.dead);if(me&&!close(me,{x,y},650))return;
+  const ac=AudioFX.ctx;if(!ac||ac.state!=='running')return;temple.lastSound=now;
+  try{const osc=ac.createOscillator(),gain=ac.createGain(),filter=ac.createBiquadFilter(),start=ac.currentTime;
+   const hz=kind==='step'?72:kind==='groan'?92:kind==='core'?178:kind==='gate'?132:310,dur=kind==='core'?.75:kind==='groan'?.46:.24;
+   osc.type=kind==='groan'?'sawtooth':'triangle';osc.frequency.setValueAtTime(hz,start);osc.frequency.exponentialRampToValueAtTime(Math.max(35,hz*.53),start+dur);
+   filter.type='lowpass';filter.frequency.value=kind==='groan'?440:850;
+   const vol=(Number(cfgSettings.sfxVolume)||.5)*(kind==='step'?.07:.13);
+   gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(Math.max(.0003,vol),start+.019);gain.gain.exponentialRampToValueAtTime(.0001,start+dur);
+   osc.connect(filter);filter.connect(gain);gain.connect(ac.destination);osc.start(start);osc.stop(start+dur+.01);
+  }catch{}
+ }
+ function tick(dt){
+  if(!button)return;
+  const inGame=G.mode==='play'&&!G.paused&&!['home','coopPanel','pausePanel','editorPanel','gameOver'].some(id=>!$(id)?.classList.contains('hidden'));
+  const me=G.players.find(p=>!p.dead);if(!inGame||!me){button.classList.add('hidden');hint.classList.add('hidden');return}
+  hint.classList.toggle('hidden',!temple.preview&&!temple.active);
+  if(temple.active){
+   if(!temple.core&&close(me,temple.diamond,48))takeDiamond();
+   if(temple.core){
+    let count=0;
+    for(const g of temple.guards){
+     if(g.phase==='sleep'&&G.time>=g.wake&&count<2){g.phase='rising';g.rise=G.time;count++;sound('gate',g.x,g.y)}
+     if(g.phase==='rising'&&G.time-g.rise>=1.05+(g.variant%3)*.25){
+      const m=addMob('skeleton',g.x,g.y,Math.min(G.level,10));
+      m.nsTempleGuardian=true;m.nsTempleVariant=g.variant;m.speed=26+g.variant*3;m.hp=m.maxHp=80+g.variant*15;m.damage=10+g.variant*2;
+      m.nsTempleStepAt=G.time+.6;g.phase='awake';temple.wakes++;
+     }
+    }
+    if(G.time>=temple.nextCry){const near=G.mobs.filter(m=>m.nsTempleGuardian&&!m.dead&&close(m,me,380));
+     if(near.length&&Math.random()<.28){const m=near[(Math.random()*near.length)|0];sound('groan',m.x,m.y)}
+     temple.nextCry=G.time+4+Math.random()*6;
+    }
+    for(const m of G.mobs){if(!m.nsTempleGuardian||m.dead||G.time<(m.nsTempleStepAt||0)||!close(m,me,320))continue;
+     m.nsTempleStepAt=G.time+.6+(m.id%3)*.19;sound('step',m.x,m.y);break;
+    }
+   }
+   const near=close(me,temple.exit,140);button.classList.toggle('hidden',!near);button.textContent=tr('↶ EXIT THE SILENT TOMB','↶ NAPUSTI TIHI HRAM');
+   hint.textContent=temple.core?tr('DIAMOND TAKEN · SENTINELS AWAKEN: ','DIJAMANT UZET · ČUVARI SE BUDE: ')+temple.wakes+'/'+temple.guards.length:
+    tr('EXPLORE THE MACHINE LABYRINTH · FIND THE DIAMOND','ISTRAŽI MAŠINSKI LAVIRINT · NAĐI DIJAMANT');
+  }else{
+   const near=close(me,temple.door,145);button.classList.toggle('hidden',!near);
+   button.textContent=temple.key?tr('⚿ ENTER THE SILENT TOMB','⚿ UĐI U TIHI HRAM'):tr('🔒 SEALED · TROLL KEY REQUIRED','🔒 ZAKLJUČANO · KLJUČ TROLA');
+   if(temple.preview)hint.textContent=temple.key?tr('KEY FOUND · GO TO THE GATE','IMAŠ KLJUČ · PRIĐI KAPIJI'):
+    tr('TEMPLE TEST · DEFEAT THE LEVEL-10 TROLL','TEMPLE TEST · UBIJ TROLA NA NIVOU 10');
+  }
+ }
+ function drawWall(p){
+  const r=p.r||30;ctx.fillStyle='#12212a';ctx.fillRect(-r,-r,r*2,r*2);ctx.fillStyle='#365154';ctx.fillRect(-r+4,-r+4,r*2-8,r*2-8);
+  ctx.fillStyle='#1b3136';ctx.fillRect(-r+8,-r+18,r*2-16,r*2-26);
+  ctx.strokeStyle='#71b399';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-r+9,0);ctx.lineTo(-3,0);ctx.lineTo(3,-5);ctx.lineTo(r-9,-5);ctx.stroke();
+  ctx.fillStyle='#8deac1';ctx.fillRect(-3,-6,6,4);
+ }
+ function drawBackdrop(){
+  if(!temple.active)return;const v=viewSize(),cam=G.camera,step=54,left=cam.x-v.w*.5,top=cam.y-v.h*.5;
+  ctx.fillStyle='#0b1b23';ctx.fillRect(0,0,v.w,v.h);
+  for(let y=Math.floor(top/step);y<Math.ceil((top+v.h)/step);y++)for(let x=Math.floor(left/step);x<Math.ceil((left+v.w)/step);x++){
+   const px=x*step-left,py=y*step-top,n=((x*17+y*29+x*y)%9+9)%9;
+   ctx.fillStyle=n%3===0?'#173039':n%2===0?'#132a31':'#122830';ctx.fillRect(px,py,step+1,step+1);
+   ctx.strokeStyle='#33645955';ctx.lineWidth=1;ctx.strokeRect(px+3,py+3,step-6,step-6);
+   if(n%4===0){ctx.strokeStyle='#337d6a';ctx.beginPath();ctx.moveTo(px+9,py+27);ctx.lineTo(px+27,py+27);ctx.lineTo(px+27,py+45);ctx.stroke()}
+  }
+ }
+ function drawDecorItem(item){
+  ctx.save();ctx.globalAlpha=.95;const k=item.kind;
+  const bar=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x,y,w,h)};
+  const line=(x,y,xx,yy,c='#71c9ab')=>{ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke()};
+  if(k==='obelisk'||k==='pillar'){ctx.rotate(k==='pillar'?.75:0);bar(-12,-28,24,56,'#45585b');bar(-8,-24,16,48,'#263c43');line(0,-18,0,20)}
+  else if(k==='coffin'){bar(-22,-30,44,60,'#4b605f');bar(-17,-24,34,48,'#152e35');line(-10,0,10,0)}
+  else if(k==='androidRuin'){bar(-18,-10,26,15,'#607475');bar(9,7,17,5,'#45585b');bar(-16,14,12,5,'#536869')}
+  else if(k==='circuit'){for(let i=0;i<4;i++)line(-26,-19+i*13,22,-19+i*13,'#397c70')}
+  else if(k==='conduit'){bar(-28,-12,56,24,'#2e4549');for(let i=0;i<6;i++)bar(-25+i*9,-10,4,20,'#6fa58e')}
+  else if(k==='gateway'){bar(-28,-30,10,58,'#526b6d');bar(18,-30,10,58,'#526b6d');bar(-28,-30,56,9,'#4b6868');line(-18,-14,18,-14)}
+  else if(k==='crystal'||k==='shards'){for(let i=0;i<(k==='crystal'?1:4);i++){const x=k==='crystal'?0:i*12-20,y=(i%2)*11-7;ctx.fillStyle='#80edbd';ctx.beginPath();ctx.moveTo(x,y-17);ctx.lineTo(x+8,y);ctx.lineTo(x,y+15);ctx.lineTo(x-8,y);ctx.fill()}}
+  else if(k==='glyph'){bar(-19,-24,38,48,'#516365');for(let i=0;i<4;i++)line(-13,-15+i*9,8+i%3,-15+i*9)}
+  else if(k==='pool'){ctx.fillStyle='#165b51';ctx.beginPath();ctx.ellipse(0,0,29,15,0,0,TAU);ctx.fill();ctx.strokeStyle='#8dcea9';ctx.stroke()}
+  else if(k==='engine'){ctx.strokeStyle='#6b9d88';for(let j=0;j<3;j++){ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,8+j*7,j*.8,j*.8+2.7);ctx.stroke()}}
+  else if(k==='cables'){for(let i=0;i<4;i++){ctx.strokeStyle='#698d7e';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-24+i*14,-24);ctx.quadraticCurveTo(-19+i*14,6,-24+i*14,25);ctx.stroke()}}
+  else if(k==='watcher'){ctx.fillStyle='#4c6567';ctx.beginPath();ctx.ellipse(0,0,25,16,0,0,TAU);ctx.fill();ctx.fillStyle='#82e7b8';ctx.beginPath();ctx.ellipse(0,0,12,5,0,0,TAU);ctx.fill()}
+  ctx.restore();
+ }
+ function drawGuardian(g){
+  const variant=g.nsTempleVariant??g.variant??0,awake=!!g.nsTempleGuardian,rise=g.phase==='rising'?Math.min(1,(G.time-g.rise)/1.3):0;
+  ctx.save();ctx.rotate(awake?0:g.phase==='sleep'?-Math.PI*.5:-Math.PI*.5*(1-rise));
+  ctx.globalAlpha*=g.phase==='sleep'?.55:1;
+  const sway=awake?Math.sin(g.frame*1.7+variant)*5:0;
+  const limb=(x,y,xx,yy,c,w)=>{ctx.strokeStyle='#15232c';ctx.lineWidth=w+3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();ctx.strokeStyle=c;ctx.lineWidth=w;ctx.stroke()};
+  const c=['#819b93','#899d9b','#a4a58b','#8ba4a8'][variant];
+  limb(-9,3,-10-sway,24,c,6);limb(9,3,10+sway,24,c,6);
+  limb(-14,-20,-19+sway,-2,c,5);limb(14,-20,18-sway,0,c,5);
+  ctx.fillStyle='#3f575b';ctx.fillRect(-13,-26,26,31);ctx.fillStyle=c;ctx.fillRect(-10,-25,20,24);
+  ctx.fillStyle='#203940';ctx.fillRect(-6,-21,12,15);ctx.fillStyle=c;ctx.fillRect(-9,-43,18,14);
+  ctx.fillStyle=awake?'#8cf5c2':'#285a49';ctx.fillRect(-7,-36,5,2);ctx.fillRect(2,-36,5,2);
+  if(variant===1){ctx.fillStyle='#2a3f46';ctx.fillRect(-15,-27,10,6)}
+  if(variant===2)limb(18,-3,27,-24,'#8ac3a9',3);
+  if(variant===3){ctx.strokeStyle='#89c2aa';ctx.lineWidth=2;ctx.strokeRect(-13,-27,26,32)}
+  if(awake&&g.attackT>0){ctx.strokeStyle='#81f5c3';ctx.lineWidth=2;ctx.beginPath();ctx.arc(9,-10,21,-1,.8);ctx.stroke()}
+  ctx.restore();
+ }
+ function drawScene(){
+  if(G.mode!=='play')return;
+  if(!temple.active){
+   const gate=temple.door;if(!visible(gate.x,gate.y,180))return;
+   const p=screenPoint(gate.x,gate.y);ctx.save();ctx.translate(p.x,p.y);
+   ctx.fillStyle='#3a5251';ctx.fillRect(-48,-63,96,118);ctx.fillStyle='#0b2228';ctx.fillRect(-33,-47,66,95);
+   ctx.strokeStyle=temple.key?'#9aefb8':'#608777';ctx.lineWidth=4;ctx.strokeRect(-33,-47,66,95);
+   ctx.fillStyle=temple.key?'#8effba':'#46765e';ctx.shadowColor='#62e0a6';ctx.shadowBlur=14;ctx.fillRect(-6,-17,12,32);ctx.shadowBlur=0;
+   ctx.textAlign='center';ctx.font='bold 12px system-ui';ctx.fillStyle='#ecf3de';ctx.fillText(tr('THE SILENT TOMB','TIHI HRAM'),0,-74);ctx.restore();return;
+  }
+  for(const d of temple.decor){if(!visible(d.x,d.y,70))continue;const p=screenPoint(d.x,d.y);ctx.save();ctx.translate(p.x,p.y);drawDecorItem(d);ctx.restore()}
+  if(!temple.core&&visible(temple.diamond.x,temple.diamond.y,120)){
+   const p=screenPoint(temple.diamond.x,temple.diamond.y);ctx.save();ctx.translate(p.x,p.y);
+   ctx.shadowColor='#8bffd0';ctx.shadowBlur=17+9*Math.sin(G.time*2);
+   ctx.fillStyle='#76f4b9';ctx.beginPath();ctx.moveTo(0,-45);ctx.lineTo(23,-4);ctx.lineTo(0,37);ctx.lineTo(-23,-4);ctx.closePath();ctx.fill();
+   ctx.strokeStyle='#efffe4';ctx.lineWidth=2;ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#f8fff0';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText(tr('TOMB DIAMOND','DIJAMANT HRAMA'),0,-56);ctx.restore();
+  }
+  for(const g of temple.guards){if(g.phase==='awake'||!visible(g.x,g.y,65))continue;const p=screenPoint(g.x,g.y);ctx.save();ctx.translate(p.x,p.y);drawGuardian(g);ctx.restore()}
+  if(visible(temple.exit.x,temple.exit.y,120)){const p=screenPoint(temple.exit.x,temple.exit.y);ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle='#9ad3b3';ctx.lineWidth=3;ctx.strokeRect(-32,-31,64,62);ctx.fillStyle='#f6f2d6';ctx.textAlign='center';ctx.font='bold 12px sans-serif';ctx.fillText(tr('EXIT','IZLAZ'),0,-42);ctx.restore()}
+ }
+ const state=()=>({active:temple.active,preview:temple.preview,key:temple.key,core:temple.core,phase:temple.phase,
+  door:{...temple.door},exit:{...temple.exit},diamond:{...temple.diamond},
+  sleepers:temple.guards.filter(g=>g.phase==='sleep').length,rising:temple.guards.filter(g=>g.phase==='rising').length,
+  awake:temple.wakes,total:temple.guards.length,
+  decorTypes:[...new Set(temple.decor.map(d=>d.kind))],decorCount:temple.decor.length,
+  wallCount:temple.active?props.filter(p=>p.type==='templeWall').length:0});
+ return{init,reset,startPreview,dropKey,collectKey,enter,leave,takeDiamond,tick,drawWall,drawBackdrop,drawScene,drawGuardian,state};
+})();
+window.__NS105_TEMPLE=NS105_TEMPLE;
+
 function killMob(m,killer=null){if(m.dead)return;if(m.type==='boss'||m.type==='rotfiend')m.bossCast=null;sfx(m.type==='boss'?'boss':'kill');if(G.kills>0&&G.kills%35===0)coopVoiceCueOrLocal(killer,'kill');m.dead=true;m.deathT=.39;G.kills++;NSX.onKill(m,killer);NS91.onKill(m);NS92_CHALLENGES.onKill(m);NSX.onCaveSpecialKill(m,killer);if(killer)killer.runKills=(killer.runKills||0)+1;if(killer){const w=killer.weapon||'sword';G.weaponKills[w]=(G.weaponKills[w]||0)+1}if(G.kills%18===0)addKeyDrop(m.x,m.y);for(let j=0;j<(m.type==='boss'?14:m.type==='troll'?4:m.type==='brute'?4:2);j++){addDrop(m.x+(rnd()-.5)*24,m.y+(rnd()-.5)*24,m.type==='boss'?20:8)}for(let i=0;i<7;i++)effect('puff',m.x+(rnd()-.5)*20,m.y+(rnd()-.5)*20);if((G.runType==='default'||NET.role==='host')&&rnd()<(G.specialMode==='night'?.07:.023+(G.relicDropBonus||0)))addShardDrop(m.x,m.y);if(m.type==='troll'&&!G.caveMode){if(rnd()<.11)spawnWorldWeapon(m.x,m.y,TROLL_WEAPON_POOL[Math.floor(rnd()*TROLL_WEAPON_POOL.length)]);}
  else if(G.wave>=3&&m.type!=='boss'&&!G.caveMode&&(m.type==='elephant'?rnd()<.24:rnd()<.014))spawnWorldWeapon(m.x,m.y);if(killer?.perks.leech){killer.perkKills=(killer.perkKills||0)+1;if(killer.perkKills%7===0)killer.hp=Math.min(killer.maxHp,killer.hp+3)}if(G.relicChoice==='putnik'&&killer&&G.kills%20===0){killer.hp=Math.min(killer.maxHp,killer.hp+10);effect('buff',killer.x,killer.y)}if(m.type==='rotfiend'){G.bossKills=(G.bossKills||0)+1;sfx('rotfiend');addDrop(m.x,m.y,15);if(rnd()<.8)addKeyDrop(m.x+12,m.y-8);voiceLine('boss')}if(m.type==='boss'){G.bossKills=(G.bossKills||0)+1;G.bossId=0;addKeyDrop(m.x,m.y);spawnWorldWeapon(m.x+18,m.y+10);announce('BOSS POBEĐEN · KLJUČ + XP',3);sfx('level');voiceLine('victory')}}
 function effect(type,x,y,value){const life=type==='ns93Magic'?.78:type==='hit'?.6:type==='puff'?.55:type==='loot'?.9:type==='acid'?.45:type==='crumb'?.55:type==='heal'?.7:type==='slash'?.29:type==='bloodVow'?1.05:type==='harvestVow'?1.15:type==='wayfarerVow'?.95:type==='evoUnlock'?1.25:type==='evoMoon'?.47:type==='evoStorm'?.48:type==='evoEmber'?.55:type==='evoPhantom'?.48:type==='bossQuake'?.72:type==='bossBeam'?.66:.3;G.effects.push({id:++G.fxSeq,type,x,y,value,t:0,life,vx:(rnd()-.5)*45,vy:(rnd()-.5)*50});if(G.effects.length>NSX.effectsCap())G.effects.shift()}
