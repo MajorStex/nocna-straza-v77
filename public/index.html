@@ -3353,6 +3353,7 @@ const NS105_TEMPLE=(()=>{
   const style=document.createElement('style');style.textContent=
   '#ns105Interact{position:fixed;z-index:38;bottom:calc(226px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(91vw,340px);padding:13px 10px;background:#193a3bec;color:#eeffe8;border:1px solid #82cfa7;border-radius:12px;box-shadow:0 4px 20px #0009;font-weight:900;font-size:12px}'+
   '#ns105Interact.hidden,#ns105Hint.hidden{display:none!important}'+
+  'body:has(#pausePanel:not(.hidden)) #ns105Interact,body:has(#pausePanel:not(.hidden)) #ns105Hint,body:has(#editorPanel:not(.hidden)) #ns105Interact,body:has(#editorPanel:not(.hidden)) #ns105Hint,body:has(#gameOver:not(.hidden)) #ns105Interact,body:has(#gameOver:not(.hidden)) #ns105Hint,body:has(#home:not(.hidden)) #ns105Interact,body:has(#home:not(.hidden)) #ns105Hint{display:none!important}'+
   '#ns105Hint{position:fixed;z-index:36;top:calc(62px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(90vw,375px);pointer-events:none;text-align:center;background:#0c2829ec;border:1px solid #568b78;border-radius:9px;padding:7px 11px;color:#daeed8;font-weight:800;font-size:11px;line-height:1.35}';
   document.head.append(style);
   button=document.createElement('button');button.id='ns105Interact';button.className='hidden';button.type='button';document.body.append(button);
