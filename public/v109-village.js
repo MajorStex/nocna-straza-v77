@@ -11,9 +11,10 @@
   {id:'shop',x:184,y:164,w:150,h:114,label:'SHOP',sr:'PRODAVNICA',roof:'#8d5651',wall:'#c0a481',icon:'🛒'},
   {id:'guardian',x:454,y:156,w:226,h:126,label:'GUARDIAN BASE',sr:'TRAJNA UNAPREĐENJA',roof:'#525b78',wall:'#ada9a0',icon:'✦'},
   {id:'armory',x:755,y:167,w:155,h:119,label:'ARMORY',sr:'ORUŽARNICA',roof:'#72594a',wall:'#c0ac87',icon:'⚒'},
-  {id:'hall',x:194,y:393,w:174,h:106,label:'HALL OF FAME',sr:'DOSTIGNUĆA',roof:'#605a7d',wall:'#aaa8b8',icon:'🏆'},
-  {id:'chat',x:493,y:391,w:174,h:110,label:'TAVERN / CHAT',sr:'KRČMA / ČET',roof:'#967255',wall:'#d0b385',icon:'💬'},
-  {id:'ready',x:770,y:398,w:135,h:105,label:'READY GATE',sr:'KAPIJA STARTA',roof:'#386d61',wall:'#b8ac84',icon:'✓'}
+  {id:'academy',x:107,y:391,w:156,h:106,label:'HERO ACADEMY',sr:'AKADEMIJA',roof:'#485b70',wall:'#b7b6a6',icon:'⚔'},
+  {id:'hall',x:338,y:393,w:174,h:106,label:'HALL OF FAME',sr:'DOSTIGNUĆA',roof:'#605a7d',wall:'#aaa8b8',icon:'🏆'},
+  {id:'chat',x:563,y:391,w:174,h:110,label:'TAVERN / CHAT',sr:'KRČMA / ČET',roof:'#967255',wall:'#d0b385',icon:'💬'},
+  {id:'ready',x:790,y:398,w:135,h:105,label:'READY GATE',sr:'KAPIJA STARTA',roof:'#386d61',wall:'#b8ac84',icon:'✓'}
  ];
  const avatars=new Map(),limits=new Map(),emotes=new Map(),NPCS=Array.from({length:4},(_,i)=>({x:50+i*250,y:280+i%2*185}));
  let opened=false,focused=null,focusNode=null,returnPlace=null,walkTo=null,thenEnter=null,lastSent=0,frameAt=0,lastBroadcast=0,lastLeaderboard=0,lastLeaderRequest=0,leaderCache=null,leaderBusy=false;
@@ -81,7 +82,8 @@
  function enter(id){
   if(!opened||!isLobby())return;thenEnter=null;
   if(id==='shop'){openOutside('nsShopPanel','nsOpenShop','nsShopClose');return}
-  if(id==='armory'){openOutside('nsArmoryPanel','nsOpenArmory','nsArmoryClose');return}
+  if(id==='armory'){openOutside('nsArmoryPanel','nsArmoryBtn','nsArmoryClose');return}
+  if(id==='academy'){renderPreRun();putExisting('preHeroUpgrades',tr('HERO ACADEMY · PERSONAL UPGRADES','AKADEMIJA HEROJA · LIČNA UNAPREĐENJA'));return}
   if(id==='guardian'){renderCoopForge();putExisting('coopForge',tr('GUARDIAN BASE · PERMANENT UPGRADES','BAZA STRAŽE · TRAJNE NADOGRADNJE'));return}
   if(id==='chat'){putExisting('ns76Chat',tr('VILLAGE TAVERN · CHAT','SEOSKA KRČMA · ČET'));return}
   if(id==='hall'){showAchievements();return}
@@ -209,8 +211,8 @@
   }
   background();const tt=performance.now();sheep(tt);
   buildings.forEach(house);
-  g.fillStyle='#467d55';g.beginPath();g.arc(770,465,37,0,7);g.fill();
-  g.strokeStyle='#c5c38b';g.lineWidth=5;g.stroke();g.font='bold 13px system-ui';g.textAlign='center';g.fillStyle='#f5e5a4';g.fillText('READY',770,475);
+  g.fillStyle='#467d55';g.beginPath();g.arc(790,465,37,0,7);g.fill();
+  g.strokeStyle='#c5c38b';g.lineWidth=5;g.stroke();g.font='bold 13px system-ui';g.textAlign='center';g.fillStyle='#f5e5a4';g.fillText('READY',790,475);
   for(const p of getPlayers()){if(p.id===NET.localId)continue;const a=avatars.get(p.id)||{x:460+Number(p.id?.slice(1)||2)*27,y:279};avatar(p.id,a.x,a.y,String(p.name||'GUARDIAN').slice(0,14),p.ready,false)}
   const me=getPlayers().find(p=>p.id===NET.localId);avatar(NET.localId,my.x,my.y,ownName(),!!me?.ready||NET.ns97Results?.votes?.[NET.localId]==='yes',spartaEquipped());
   if(opened&&!pane.classList.contains('ns109Hidden')&&focused==='leaderboard')return;
@@ -249,7 +251,7 @@
   const p=ctxPoint(e);if(p.x<0||p.y<0||p.x>960||p.y>540)return;
   const b=buildings.find(x=>Math.abs(p.x-x.x)<x.w/2+25&&Math.abs(p.y-x.y)<x.h/2+30);
   if(b){thenEnter=b.id;walkTo=ground(b.x,b.y+Math.max(55,b.h/2+20));}
-  else if(Math.hypot(p.x-770,p.y-465)<44){thenEnter='ready';walkTo=ground(770,455);}
+  else if(Math.hypot(p.x-790,p.y-465)<44){thenEnter='ready';walkTo=ground(790,455);}
   else{thenEnter=null;walkTo=ground(p.x,p.y)}
  }
  function showVillage(){
@@ -313,12 +315,10 @@
  }
  if(typeof networkHeroStyle==='function'){
   const oldNet=networkHeroStyle;
-  networkHeroStyle=function(style){return oldNet(networkAppearance(style))};
+  networkHeroStyle=function(style){const src=networkAppearance(style),out=oldNet(src);if(src?.ns109Sparta)out.ns109Sparta=true;return out};
  }
  // Lifecycle: detached village only; classic lobby and legacy game engine continue unchanged.
- const heartbeat=setInterval(()=>{if(opened){if(!isLobby())closeVillage()}},1100);
- function loop(t){if(opened&&isLobby()&&!document.hidden)step(t);requestAnimationFrame(loop)}
- requestAnimationFrame(loop);
+ const heartbeat=setInterval(()=>{if(opened&&!isLobby())closeVillage();if(opened&&isLobby()&&!document.hidden)step(performance.now())},75);
  window.NS109_VILLAGE={open:showVillage,close:closeVillage,onMessage,enter,get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings}};
  window.NS109_SPARTA={appearance:decorate,owned:spartaOwned,equipped:spartaEquipped,claim:spartaClaim};
 })();
