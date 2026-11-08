@@ -1,4 +1,4 @@
-name: Verify public V102 Worker and legacy Pages URL
+name: Verify public V103 Worker and legacy Pages URL
 on:
   push:
     branches: [main]
@@ -22,18 +22,18 @@ jobs:
           ]
           for url in urls:
             try:
-              req=urllib.request.Request(url,headers={'User-Agent':'NightWatch-V102-live-verification/1.0', 'Cache-Control':'no-cache'})
+              req=urllib.request.Request(url,headers={'User-Agent':'NightWatch-V103-live-verification/1.0', 'Cache-Control':'no-cache'})
               with urllib.request.urlopen(req, timeout=20) as response:
                 data=response.read(1200000).decode('utf-8','replace')
                 title = data.split('<title>',1)[-1].split('</title>',1)[0] if '<title>' in data else 'none'
-                print('URL:',url,'HTTP:',response.status,'TITLE:',title,'MENU_V102:', 'VERZIJA V102' in data,'V74:', 'v74' in data[:8000],flush=True)
+                print('URL:',url,'HTTP:',response.status,'TITLE:',title,'MENU_V103:', 'VERZIJA V103' in data,'V74:', 'v74' in data[:8000],flush=True)
             except Exception as ex:
               print('URL:',url,'ERROR:',str(ex),flush=True)
           import json
           for subpath in ('/api/lobbies', '/api/lobbies/K7P3RX', '/api/lobbies/ZZZZZZ'):
             url='https://nocna-straza-relay.stefanstevic1996.workers.dev'+subpath
             try:
-              with urllib.request.urlopen(urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'NightWatch-V102-probe'}),timeout=20) as response:
+              with urllib.request.urlopen(urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'NightWatch-V103-probe'}),timeout=20) as response:
                 body=response.read(5000).decode('utf-8','replace')
                 print('RELAY_PATH:',subpath,'STATUS:',response.status,'BODY:',body[:850],flush=True)
             except urllib.error.HTTPError as ex:
