@@ -1,0 +1,43 @@
+name: V102 package and deploy existing Cloudflare Pages project
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - '.github/workflows/cloudflare-existing-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm version V102 is the real site root
+        run: |
+          grep -q 'VERZIJA V102' public/index.html
+          grep -q '<title>Night Watch v102' public/index.html
+      - name: Prepare ZIP for existing Pages project
+        run: |
+          cd public
+          zip -q -r ../nocna-straza-V102-Cloudflare-Pages.zip .
+          cd ..
+          unzip -p nocna-straza-V102-Cloudflare-Pages.zip index.html | grep -q 'VERZIJA V102'
+      - name: Save V102 upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nocna-straza-V102-Cloudflare-Pages
+          path: nocna-straza-V102-Cloudflare-Pages.zip
+          retention-days: 30
+      - name: Publish to EXISTING nocna-straza-igra.pages.dev project if Cloudflare credentials are present
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::Cloudflare credentials are not present in THIS GitHub repository; existing nocna-straza-igra.pages.dev cannot be updated by GitHub push alone."
+            echo "::notice::Use the generated ZIP artifact and Cloudflare Workers & Pages > nocna-straza-igra > Deployments > Create deployment > Production."
+            exit 0
+          fi
+          npx --yes wrangler@4 pages deploy ./public --project-name nocna-straza-igra --branch main --commit-dirty=true
+          echo 'Deployed V102 to existing nocna-straza-igra Pages project.'
