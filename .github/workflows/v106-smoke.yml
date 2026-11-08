@@ -1,10 +1,12 @@
-name: V106 game syntax and multiplayer feature smoke
+name: V106 game syntax, Temple and mobile spell/revive checks
 on:
   push:
     branches: [main]
     paths:
       - 'public/index.html'
       - 'tests/v106-multiplayer-ui.test.cjs'
+      - 'tests/v106-mobile-interaction.test.cjs'
+      - 'tests/v105-temple.test.cjs'
       - '.github/workflows/v106-smoke.yml'
   workflow_dispatch:
 permissions:
@@ -14,5 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check JavaScript parsing and V106 features
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Parse inline JavaScript and verify V106 markers
         run: node tests/v106-multiplayer-ui.test.cjs
+      - name: Install Chromium browser driver
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Full Temple end-to-end on two mobile screen sizes
+        run: node tests/v105-temple.test.cjs
+      - name: Collapsible spell HUD, upgrade label and revive heartbeat in mobile browser
+        run: node tests/v106-mobile-interaction.test.cjs
