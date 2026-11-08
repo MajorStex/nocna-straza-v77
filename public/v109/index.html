@@ -7760,6 +7760,7 @@ function applyCaveVisuals(){return !!(progress.cave?.active||G.caveMode);}
   });
   const timed=NS92_CHALLENGES.list().map(a=>({title:(a.id==='daily'?'☀ ':'☾ ')+lang(a.en,a.sr),desc:lang(a.enDesc,a.srDesc)+' · '+(a.owned?'✓':a.progress+'/'+a.goal)+' · '+a.reward+' · '+a.ends,locked:!a.owned}));
   const entries=which==='bestiary'?Object.entries(categories).map(([id,name])=>({title:name,desc:permanent.bestiary[id]?.kills?`${permanent.bestiary[id].kills} ${lang('defeated','poraženo')}`:lang('Not discovered','Nije otkriveno'),locked:!permanent.bestiary[id]})):[...timed,...legacy,...fresh];
+  if(which!=='bestiary'&&window.NS109_SPARTA){const owned=window.NS109_SPARTA.owned();entries.push({title:'🏆 SPARTA',desc:lang('300 personal kills in one qualifying run · gold armor, cosmetic only','300 ličnih ubistava u jednoj pravoj partiji · zlatni oklop, samo izgled')+(owned?' · ✓':' · 0/1'),locked:!owned})}
   for(const item of entries){const row=document.createElement('div');row.className='nsListRow';row.textContent=`${item.locked?'◇':'✦'} ${item.title} · ${item.desc}`;list.append(row)}
   root.classList.remove('hidden');$('home').classList.add('hidden');}
  const paidCatalog=[{sku:'cosmetic_shadow_skin',en:'Shadow Guardian skin',sr:'Senovita koža Stražara',price:'2.99'},{sku:'cosmetic_winter_blade',en:'Winter blade appearance',sr:'Zimski izgled mača',price:'3.99'},{sku:'cosmetic_blue_flame',en:'Blue flame effects',sr:'Plavi vatreni efekti',price:'4.99'}];
