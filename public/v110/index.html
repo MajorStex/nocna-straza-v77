@@ -6258,7 +6258,7 @@ function retryInitialGuestConnection(reason=''){
 function setupConnection(c){
  let assigned=null,presentedIdentity='',rejectReason='',syncTimer=null,worldSend=null,worldReceive=null,welcomeAcknowledged=false,ns107RateAt=performance.now(),ns107PacketCount=0;
  const safeSend=data=>{if(!c.open)return false;try{c.send(data);return true}catch(err){return false}};
- const sendWelcome=()=>{if(assigned&&NET.role==='host'&&NET.phase==='lobby')safeSend({t:'welcome',id:assigned,code:NET.code,v:107,rejoinToken:NETLAB.tokens.get(assigned)?.token})};
+ const sendWelcome=()=>{if(assigned&&NET.role==='host'&&NET.phase==='lobby')safeSend({t:'welcome',id:assigned,code:NET.code,round:NET.round,post:NET.ns97Results||null,v:107,rejoinToken:NETLAB.tokens.get(assigned)?.token})};
  // WebRTC channels can open before both sides have attached data handlers. Explicit
  // request/ack retries prevent a lost initial host packet from trapping a guest.
  const sendWorldPart=()=>{
@@ -6471,9 +6471,11 @@ function setupConnection(c){
    if(data.t==='welcome'){
     if(data.v!==107){NET.joinRetryCount=4;netStatus('RAZLIČITE VERZIJE: oba telefona moraju otvoriti Noćnu Stražu V108.');$('retryJoinBtn').classList.remove('hidden');return;}
     if((NET.phase!=='connecting'&&NET.phase!=='lobby')||!/^p[2-6]$/.test(data.id))return;
-    if(NET.phase==='lobby'&&data.id!==NET.localId){NET.worldReady=false;NET.localReady=false;worldReceive=null;NET.localId=data.id;NET.rejoinToken=typeof data.rejoinToken==='string'?data.rejoinToken:'';NET.roster=[];netStatus('Existing player slot restored.')}
+    if(NET.phase==='lobby'&&data.id!==NET.localId){if(Number.isInteger(data.round)&&data.round>=NET.round)NET.round=data.round;NET.worldReady=false;NET.localReady=false;worldReceive=null;NET.localId=data.id;NET.rejoinToken=typeof data.rejoinToken==='string'?data.rejoinToken:'';NET.roster=[];netStatus('Existing player slot restored.')}
     if(NET.phase==='connecting'){
+     NET.round=Number.isInteger(data.round)&&data.round>=0?data.round:NET.round;
      NET.localId=data.id;NET.rejoinToken=typeof data.rejoinToken==='string'?data.rejoinToken:'';NET.code=data.code||NET.code;NET.phase='lobby';NET.localReady=false;NET.worldReady=false;
+     if(data.post)NS97_POST.receive(data.post);
      showLobbyUI();$('retrySyncBtn').classList.add('hidden');
      netStatus('Igrač '+data.id.slice(1)+' · čekaonica je spremna; učitavam mapu...');
     }
@@ -6499,7 +6501,9 @@ function setupConnection(c){
     return;
    }
    if(data.t==='worldPart'&&NET.phase==='lobby'&&NET.worldReady){safeSend({t:'worldAck',index:data.index});safeSend({t:'worldDone'});return}
-   if(data.t==='lobby'&&NET.phase==='lobby'){NS76CHAT.history(data.chat);if(data.post)NS97_POST.receive(data.post);
+   if(data.t==='lobby'&&NET.phase==='lobby'){
+    if(Number.isInteger(data.round)&&data.round>=NET.round)NET.round=data.round;
+    NS76CHAT.history(data.chat);if(data.post)NS97_POST.receive(data.post);
     NET.hostId=/^p[1-6]$/.test(data.hostId)?data.hostId:'p1';NET.code=data.code||NET.code;if(['normal','night','rush'].includes(data.specialMode))selectedMode=data.specialMode;
     NET.roster=Array.isArray(data.players)?data.players.filter(p=>/^p[1-6]$/.test(p.id)).map(p=>({id:p.id,ready:!!p.ready,name:safePlayerName(p.name),friendId:FRIEND_CODE_RE.test(String(p.friendId||''))?p.friendId:'',level:clamp(Math.floor(Number(p.level)||1),1,150),ranksTotal:Math.max(0,Math.floor(Number(p.ranksTotal)||0)),heroLevel:clamp(Math.floor(Number(p.heroLevel)||1),1,100),heroName:String(p.heroName||'STRAŽAR').slice(0,24),avatarId:safeAvatarId(p.avatarId),avatarImg:safeAvatarImage(p.avatarImg)})):[];
     renderLobby();return;
