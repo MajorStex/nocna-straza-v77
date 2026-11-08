@@ -24,8 +24,9 @@ const {chromium}=require('playwright-core');
    assert.equal(initial.closed,true);
    assert.equal(initial.hiddenList,true);
    assert.equal(initial.toggleVisible,true);
+   await page.waitForFunction(()=>document.getElementById('ns82-auth')?.hidden===true,{timeout:7000});
    assert.match(initial.version,/V106/);
-   await page.locator('#ns106SpellToggle').click();
+   await page.locator('#ns106SpellToggle').click({timeout:5000});
    const opened=await page.evaluate(()=>({expanded:document.getElementById('ns106SpellToggle').getAttribute('aria-expanded'),
     hidden:getComputedStyle(document.getElementById('ns93SpellList')).display==='none'}));
    assert.equal(opened.expanded,'true');assert.equal(opened.hidden,false);

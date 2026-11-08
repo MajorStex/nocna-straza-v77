@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'public/index.html'
+      - 'public/auth-v82.js'
       - 'tests/v106-multiplayer-ui.test.cjs'
       - 'tests/v106-mobile-interaction.test.cjs'
       - 'tests/v105-temple.test.cjs'
