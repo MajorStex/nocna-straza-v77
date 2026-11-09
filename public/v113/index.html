@@ -3996,7 +3996,7 @@ function bossResolveCast(m){
   const ally=G.ns95Cage?.ally;
   if(ally&&ally.hp>0&&Math.hypot(ally.x-c.x,ally.y-c.y)<=c.radius+4){
    ally.hp=Math.max(0,ally.hp-(10+5*c.phase));effect('hit',ally.x,ally.y);
-   if(ally.hp===0){effect('shock',ally.x,ally.y);announce('ALLY DEFEATED',2.5)}
+   if(ally.hp===0){effect('shock',ally.x,ally.y);announce(lang('ALLY DEFEATED','SAVEZNIK JE POGINUO'),2.5)}
   }
   effect('bossQuake',c.x,c.y,{radius:c.radius,phase:c.phase});
   sfx('stomp');
@@ -4010,7 +4010,7 @@ function bossResolveCast(m){
    const dx=ally.x-c.x,dy=ally.y-c.y,along=dx*ux+dy*uy,across=Math.abs(-dx*uy+dy*ux);
    if(along>=0&&along<=c.length&&across<=c.width+5){
     ally.hp=Math.max(0,ally.hp-(12+5*c.phase));effect('hit',ally.x,ally.y);
-    if(ally.hp===0){effect('shock',ally.x,ally.y);announce('ALLY DEFEATED',2.5)}
+    if(ally.hp===0){effect('shock',ally.x,ally.y);announce(lang('ALLY DEFEATED','SAVEZNIK JE POGINUO'),2.5)}
    }
   }
   effect('bossBeam',c.x,c.y,{angle:c.angle,length:c.length,width:c.width,phase:c.phase});
