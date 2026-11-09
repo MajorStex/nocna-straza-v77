@@ -1,0 +1,19 @@
+name: V118 live Village mobile browser verification
+on:
+  push:
+    branches: [main]
+    paths: ['tests/v118-live-browser.test.cjs','.github/workflows/v118-live.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v118-live-browser.test.cjs
