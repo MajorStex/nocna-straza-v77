@@ -1,0 +1,19 @@
+name: V116 live browser smoke - Village and cave
+on:
+  push:
+    branches: [main]
+    paths: ['tests/v116-live-routes.test.cjs', '.github/workflows/v116-live.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v116-live-routes.test.cjs
