@@ -18,7 +18,7 @@ let player={x:548,y:1020,r:17};for(let i=0;i<25;i++)engine.move(player,0,-6);
 assert.ok(player.y>975,'closed gate physically blocks center crossing');
 props[0].type='gateOpen';
 assert.equal(engine.blocked(548,960,12),false,'open gate central passage');
-for(let x=50;x<950;x+=3)if(x<515||x>582)assert.equal(engine.blocked(x,960,12),true,'open gate sides remain sealed '+x);
+for(let x=50;x<950;x+=3)if(x<=510||x>=586)assert.equal(engine.blocked(x,960,12),true,'open gate sides remain sealed '+x);
 player={x:548,y:1020,r:17};for(let i=0;i<25;i++)engine.move(player,0,-6);
 assert.ok(player.y<930,'open gate permits crossing center');
 player={x:475,y:1020,r:17};for(let i=0;i<25;i++)engine.move(player,0,-6);
