@@ -4814,7 +4814,7 @@ if(NET.role==='guest'){
  const perfNow=performance.now();perf.frames++;
  if(perfNow-perf.from>=1200){perf.fps=Math.max(1,Math.min(120,Math.round(perf.frames*1000/(perfNow-perf.from))));perf.frames=0;perf.from=perfNow;}
  if(NET.phase==='playing'&&NET.conn?.open&&!document.hidden&&perfNow-perf.sent>=1700&&Number(NET.conn.bufferSize||0)<12000){
-  perf.sent=perfNow;try{NET.conn.send({t:'ns112NetHealth',fps:perf.fps})}catch{}
+  perf.sent=perfNow;try{const snapStats=NS79STATS.status();NET.conn.send({t:'ns112NetHealth',fps:perf.fps,hz:snapStats.hz,jitterMs:snapStats.jitterMs})}catch{}
  }
  const mine=G.players.find(p=>p.id===NET.localId),inp=mine&&!mine.dead&&!G.quickChoice&&!G.guildPending&&!G.lootPending&&!G.marketPending?getLocalInput():{x:0,y:0,dash:false};
  // Optimistic local movement removes the 130-ms stop/start of the remote hero.
@@ -6409,7 +6409,7 @@ function setupConnection(c){
   // V112: low-frequency guest FPS feedback; cosmetic budget only, gameplay remains host-authoritative.
   if(data.t==='ns112NetHealth'){
    if(NET.role==='host'&&assigned&&NET.phase==='playing'&&Number.isFinite(data.fps)){
-    (NET.ns112GuestPerf||(NET.ns112GuestPerf=new Map())).set(assigned,{fps:clamp(Math.round(data.fps),1,120),at:performance.now()});
+    (NET.ns112GuestPerf||(NET.ns112GuestPerf=new Map())).set(assigned,{fps:clamp(Math.round(data.fps),1,120),hz:Number.isFinite(data.hz)?clamp(data.hz,0,60):null,jitterMs:Number.isFinite(data.jitterMs)?clamp(data.jitterMs,0,3000):null,at:performance.now()});
    }
    return;
   }
@@ -6656,9 +6656,11 @@ function sendSnapshot(){
   // Only actual queued bytes trigger reduced send rate/interest detail.
   const slow=buffer>9000;
   const report=NET.ns112GuestPerf?.get(id);
-  const lowFps=!!(report&&performance.now()-report.at<4500&&report.fps<28);
+  const liveReport=report&&performance.now()-report.at<4500?report:null;
+  const lowFps=!!(liveReport&&liveReport.fps<28);
+  const jittering=!!(liveReport&&liveReport.jitterMs>185);
   // A weak guest gets lighter visual state without lowering its update rate or other peers' detail.
-  const light=slow||lowFps;
+  const light=slow||lowFps||jittering;
   const interval=buffer>9000?.24:buffer>4500?.17:(NET.clients.size>=4?.135:.108);
   if(G.time-(NET.ns67LastSnapshot.get(id)||-100)<interval)continue;
   let focus=G.players.find(p=>p.id===id)||G.players[0];
@@ -6753,7 +6755,7 @@ const NS79STATS={count:0,last:0,hz:0,periodMs:0,jitterMs:0,dropped:0,frames:0,
  status(){return{hz:this.hz,periodMs:Math.round(this.periodMs),jitterMs:Math.round(this.jitterMs),dropped:this.dropped}}};
 window.__NS79STATS=NS79STATS;
 // V112: read-only diagnostics for tests on real mobile devices.
-window.__NS112_MP_DIAG=()=>({role:NET.role,phase:NET.phase,round:NET.round,fps:NET.ns112Perf?.fps??null,hostPingMs:NET.role==='guest'?NETLAB.peer('host').rtt:null,hostBufferBytes:Number(NET.conn?.bufferSize||0),snapshot:NET.role==='guest'?NS79STATS.status():{...NET.snapshotStats},guestReports:NET.role==='host'?[...(NET.ns112GuestPerf||new Map())].map(([id,v])=>({id,fps:v.fps,ageMs:Math.round(performance.now()-v.at)})):[]});
+window.__NS112_MP_DIAG=()=>({role:NET.role,phase:NET.phase,round:NET.round,fps:NET.ns112Perf?.fps??null,hostPingMs:NET.role==='guest'?NETLAB.peer('host').rtt:null,hostBufferBytes:Number(NET.conn?.bufferSize||0),snapshot:NET.role==='guest'?NS79STATS.status():{...NET.snapshotStats},guestReports:NET.role==='host'?[...(NET.ns112GuestPerf||new Map())].map(([id,v])=>({id,fps:v.fps,hz:v.hz,jitterMs:v.jitterMs,ageMs:Math.round(performance.now()-v.at)})):[]});
 
 function receiveSnapshot(d){
  if(NET.role!=='guest'||NET.phase!=='playing'||!NET.localId||!Array.isArray(d.p))return;
