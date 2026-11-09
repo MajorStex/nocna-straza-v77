@@ -14,9 +14,9 @@ const base='https://nocna-straza-v77.stefanstevic1996.workers.dev';
    const initial=await page.evaluate(()=>{
     const a=window.NS109_VILLAGE.test,b=a.buildings.find(x=>x.id==='hall');
     const goal={x:b.x,y:b.y+b.h/2+26};
-    return {title:document.title,authentic:window.__VILLAGE_PREVIEW_STATUS.authenticHero,goal,route:a.route(goal.x,goal.y)?.length||0,start:a.position,started:a.go(goal.x,goal.y)};
+    return {title:document.title,release:document.getElementById('ns102MenuVersion')?.textContent||'',authentic:window.__VILLAGE_PREVIEW_STATUS.authenticHero,goal,route:a.route(goal.x,goal.y)?.length||0,start:a.position,started:a.go(goal.x,goal.y)};
    });
-   assert.ok(initial.title.includes('v118')&&initial.authentic&&initial.route>3&&initial.started,'Live site must include V118 Village navigation '+JSON.stringify(initial));
+   assert.ok(initial.release.includes('V118')&&initial.authentic&&initial.route>3&&initial.started,'Live site must include V118 Village navigation '+JSON.stringify(initial));
    await page.waitForTimeout(4400);
    const after=await page.evaluate(()=>{const a=window.NS109_VILLAGE.test,p=a.position;return {p,blocked:a.blocked(p.x,p.y),debug:a.debug}});
    assert.ok(!after.blocked&&Math.hypot(after.p.x-initial.goal.x,after.p.y-initial.goal.y)<16,
