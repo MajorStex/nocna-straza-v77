@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Noćna Straža V115 — Village / Selo · Safe Visual Preview</title>
+<meta name="theme-color" content="#182e28">
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#122822;color:#f4e8c6;font-family:system-ui,sans-serif}
+#fallback{position:fixed;inset:0;display:grid;place-items:center;padding:20px;text-align:center;background:#182e28;z-index:1}
+#return{position:fixed;right:10px;bottom:calc(62px + env(safe-area-inset-bottom));z-index:121;padding:8px 11px;border-radius:8px;background:#173a34e8;color:#e7e2bf;border:1px solid #9dc6a6;font:700 12px system-ui;text-decoration:none}
+#tag{position:fixed;left:10px;bottom:calc(64px + env(safe-area-inset-bottom));z-index:121;background:#223c34df;border:1px solid #9bab89;padding:5px 9px;font-size:10px;border-radius:8px;pointer-events:none;max-width:48vw}
+</style></head>
+<body>
+<div id="fallback"><main><h2>🏡 Village preview</h2><p>Loading the actual village map and four sheep…</p></main></div>
+<script>
+window.__gameLanguage={value:new URLSearchParams(location.search).get('lang')==='sr'?'sr':'en'};
+const previewNET={role:'',phase:'',localId:'p1',round:0,clients:new Map(),ns97Results:null};
+const previewG={mode:'menu',runType:'default',debugRun:true};
+window.__NS110_BRIDGE={
+ NET:previewNET,G:previewG,NSX:{},NS91:{},NS97_POST:{active:false,vote:()=>false},NS76CHAT:{},CoopVoice:{share:false},
+ renderCoopForge:()=>{},renderPreRun:()=>{},
+ currentLobbyRoster:()=>[{id:'p1',name:window.__gameLanguage.value==='sr'?'Stražar':'Guardian',ready:false}],
+ currentProfileLevel:()=>1,getActiveAccount:()=>({id:'village-preview',name:window.__gameLanguage.value==='sr'?'Stražar':'Guardian'}),
+ coopVoiceUpdatePreference:()=>{},unlockSound:()=>{},voiceLine:()=>{},toast:()=>{},
+ meta:{},heroStyle:{}
+};
+</script>
+<script src="../v115-village.js?v=115"></script>
+<script>
+let villageOk=false;try{villageOk=window.NS109_VILLAGE?.open()===true}catch(e){console.error('Village preview initialization failed',e)}
+window.__VILLAGE_PREVIEW_STATUS={open:villageOk,buildings:window.NS109_VILLAGE?.test?.buildings?.length||0,sheep:window.NS109_VILLAGE?.test?.sheepCount||0};
+if(villageOk)document.getElementById('fallback').remove();
+else document.getElementById('fallback').querySelector('p').textContent='Village failed to initialize; see browser console.';
+</script>
+<a id="return" href="../v115/">↩ FULL GAME</a>
+<div id="tag">V115 · 7 buildings · 4 sheep · isolated map test</div>
+</body></html>
