@@ -397,6 +397,6 @@
  window.NS109_VILLAGE={open:showVillage,close:closeVillage,onMessage,enter,onLobbyUI:()=>{if(isLobby())scheduleAutoVillage()},
  onSoloResult:run=>{if(run&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(run.kills)},
  onMPAward:packet=>{if(packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}},
- get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get scene(){return root},go:(x,y)=>{if(!opened)return false;walkTo=ground(x,y);return true}}};
+ get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},go:(x,y)=>{if(!opened)return false;walkTo=ground(x,y);return true}}};
  window.NS109_SPARTA={appearance:decorate,owned:spartaOwned,equipped:spartaEquipped,claim:spartaClaim};
 })();
