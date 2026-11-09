@@ -31,5 +31,6 @@ assert.equal(G.ns95Cage.ally,null,'dead ally removed from run state');
 assert.equal(G.players.length,1,'ally does not count as multiplayer player');
 assert.ok(html.includes('function bossTarget(m){const a=G.ns95Cage?.ally'),'boss also prioritizes ally');
 assert.ok(html.includes('ally.hp=Math.max(0,ally.hp-(10+5*c.phase))'),'boss quake can damage ally');
+assert.ok(html.includes('ally.hp=Math.max(0,ally.hp-(12+5*c.phase))'),'boss beam can damage ally');
 assert.ok(html.includes('if(victim&&!(G.ns95Cage?.ally?.hp>0'),'worm does not pursue old player spit');
 console.log('V113 rescue companion: 12 checks OK; JavaScript syntax OK');
