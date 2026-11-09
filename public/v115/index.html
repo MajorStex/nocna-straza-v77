@@ -7646,6 +7646,28 @@ function caveThiefTick(dt){const c=progress.cave;if(!c?.active||!authority())ret
   movingCircle(m,Math.cos(ang)*m.speed*dt*.82,Math.sin(ang)*m.speed*dt*.82);
  }
 }
+
+function startCaveTest(){
+ if(NET.role||G.mode!=='menu')return false;
+ startGame({specialMode:'normal'});
+ G.debugRun=true;G.ns95TestOnly=true;progress.caveTestMode=true;
+ progress.hasRope=true;
+ const p=G.players[0],entrance={id:'ns115-secret-preview',x:p.x,y:p.y};
+ if(!enterCaveEvent(entrance)){progress.caveTestMode=false;return false}
+ G.mobs=[];G.projectiles=[];G.drops=[];
+ p.x=510;p.y=584;G.camera.x=p.x;G.camera.y=p.y;
+ toast(lang('Cave TEST: break the marked crate and walk EAST to the glowing relic. No permanent rewards.','TEST PEĆINE: razbij označenu kutiju i kreni ISTOČNO do svetleće relikvije. Bez trajnih nagrada.'));
+ return true;
+}
+function initCaveTest(){
+ if(new URLSearchParams(location.search).get('cave-test')!=='1')return;
+ const home=$x('home');if(!home||$x('ns115CavePreview'))return;
+ const btn=document.createElement('button');btn.id='ns115CavePreview';btn.type='button';btn.className='primary';
+ btn.style.cssText='display:block;width:100%;min-height:53px;margin:10px 0;border:2px solid #89cde4;background:#2b5867;color:#e3f5ff';
+ btn.textContent=lang('🧪 TEST SECRET CAVE · NO REWARDS','🧪 TEST TAJNE PEĆINE · BEZ NAGRADA');
+ btn.onclick=startCaveTest;home.insertBefore(btn,home.firstChild);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initCaveTest,{once:true});else initCaveTest();
 let lastDripAt=0;
 function caveDripTick(){if(!progress.cave?.active||!cfgSettings.sfx||G.mode!=='play')return;
  if(G.time-lastDripAt<7.5)return;lastDripAt=G.time;
@@ -8048,7 +8070,7 @@ function applyCaveVisuals(){return !!(progress.cave?.active||G.caveMode);}
  function onCrystal(){if(authority()&&progress.mission?.type==='collect'&&!progress.mission.completed){progress.mission.progress++;if(progress.mission.progress>=progress.mission.target)completeMission();}}
  const achievementList=[{id:'firstblood',title:lang('First Blood','Prva krv'),desc:lang('Defeat your first enemy','Pobedi prvog neprijatelja'),points:1},{id:'slayer',title:lang('Horde Breaker','Razbijač hordi'),desc:lang('Defeat 60 enemies in one run','Pobedi 60 neprijatelja u partiji'),points:3},{id:'bossHunter',title:lang('Boss Hunter','Lovac na bossove'),desc:lang('Defeat a boss','Pobedi bossa'),points:3},{id:'wave5',title:lang('Survivor','Preživeli'),desc:lang('Reach wave 5','Stigni do 5. talasa'),points:2},{id:'mission',title:lang('Field Agent','Terenski agent'),desc:lang('Finish a field mission','Završi misiju'),points:3}];
  function unlock(id){if(permanent.achievements.includes(id)||G.debugRun||NET.role==='guest'||G.runType!=='default')return false;permanent.achievements.push(id);write(KEY,permanent);const a=achievementList.find(a=>a.id===id);if(a){meta.points+=a.points;meta.totalEarned+=a.points;persistMeta();toast(lang(`🏆 Achievement: ${a.title} · +${a.points} Honor`,`🏆 Dostignuće: ${a.title} · +${a.points} časti`));}return true;}
- function tick(dt){if(G.mode!=='play'||G.paused)return;if(!eligible())return;
+ function tick(dt){if(G.mode!=='play'||G.paused)return;if(!eligible()&&!progress.caveTestMode)return;
   if(progress.cave?.active){caveDripTick();if(authority())caveTick();if(NET.role===''){if(G.time-progress.lastAuto>=20){progress.lastAuto=G.time;autoSave();}}updateHud();return;}
   if(NET.role!=='guest'){
    sideQuestTick(dt);explorationTick(dt);
@@ -8142,7 +8164,7 @@ function applyCaveVisuals(){return !!(progress.cave?.active||G.caveMode);}
   $x('nsOpenShop').addEventListener('click',openShop);$x('nsShopClose').addEventListener('click',()=>closeModal('nsShopPanel'));$x('ns64PaypalPreviewClose').addEventListener('click',()=>{$x('ns64PaypalPreview').classList.add('hidden')});
   syncDifficultyUI();updateResumeButton();
  }
- return {opt,progress,permanent,shopItems,paidCatalog,achievementList,onCaveSpecialKill,applyLegendaryHit,caveDripTick,caveSpiderTick,drawCaveAmbient,drawCaveMarkers,legendaryWeapon,spawnCaveSpecials,receiveCaveBonusClaims,openArmory,renderArmoryPanel,renderArmorySummary,reloadArmory,grantAchievementGear,grantWeeklyCommonGear,salvageDuplicates,unequipAll,equipmentBonuses,equippedWeapon,applyProfileEquipment,applyArmoryToPlayer,collectGearDrop,tryDamageDestructibles,damageDestructible,enterCaveEvent,exitCave,caveTick,caveStatePack,generateCaveProps,saveOverworldState,restoreOverworldState,drawCaveExit,applyCaveVisuals,receiveCaveLootClaim,get armory(){return armory},get rarityDefs(){return rarityDefs},get setDefs(){return setDefs},get world(){return WORLD},questTypes,questSpecs,exploreKinds,exploreDefs,rareRelics,reputation,repRank,adjustReputation,updateRepSummary,bountyTick,openRareChoice,chooseRare,completeRareBattle,closeRareChoice,spawnExploreEvent,spawnExploreGuards,explorationTick,grantExploreReward,exploreBossDefeated,drawExploreEvent,updateExploreBeacon,startNextSideQuest,completeSideQuest,sideQuestTick,drawQuestObjects,start,onKill,onCrystal,onDamage,onEnd,onMenu,tick,updateHud,reportFPS,effectsCap,pixelRatio,setDifficulty,setRole,setQuality,applyDifficulty,applyRole,snapshot,onGuestSnapshot,extract,completeMission,triggerEvent,buyWithHonor,renderShop,openShop,autoSave,clearSave,getSave,resume,updateResumeButton,showList,tutorialSteps,finishTutorial,bind};
+ return {opt,progress,permanent,shopItems,paidCatalog,achievementList,onCaveSpecialKill,applyLegendaryHit,caveDripTick,caveSpiderTick,drawCaveAmbient,drawCaveMarkers,legendaryWeapon,spawnCaveSpecials,receiveCaveBonusClaims,openArmory,renderArmoryPanel,renderArmorySummary,reloadArmory,grantAchievementGear,grantWeeklyCommonGear,salvageDuplicates,unequipAll,equipmentBonuses,equippedWeapon,applyProfileEquipment,applyArmoryToPlayer,collectGearDrop,tryDamageDestructibles,damageDestructible,enterCaveEvent,exitCave,caveTick,caveStatePack,generateCaveProps,startCaveTest,saveOverworldState,restoreOverworldState,drawCaveExit,applyCaveVisuals,receiveCaveLootClaim,get armory(){return armory},get rarityDefs(){return rarityDefs},get setDefs(){return setDefs},get world(){return WORLD},questTypes,questSpecs,exploreKinds,exploreDefs,rareRelics,reputation,repRank,adjustReputation,updateRepSummary,bountyTick,openRareChoice,chooseRare,completeRareBattle,closeRareChoice,spawnExploreEvent,spawnExploreGuards,explorationTick,grantExploreReward,exploreBossDefeated,drawExploreEvent,updateExploreBeacon,startNextSideQuest,completeSideQuest,sideQuestTick,drawQuestObjects,start,onKill,onCrystal,onDamage,onEnd,onMenu,tick,updateHud,reportFPS,effectsCap,pixelRatio,setDifficulty,setRole,setQuality,applyDifficulty,applyRole,snapshot,onGuestSnapshot,extract,completeMission,triggerEvent,buyWithHonor,renderShop,openShop,autoSave,clearSave,getSave,resume,updateResumeButton,showList,tutorialSteps,finishTutorial,bind};
 })();
 const progress=NSX.progress;const lang=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
 NSX.bind();NETLAB.bind();NS95_CAGE.initTestUI();
