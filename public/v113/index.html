@@ -3957,7 +3957,7 @@ function separateMobBodies(){
 // guests receive presentation state through snapshots and never run this AI.
 const BOSS_TYPES=new Set(['boss','rotfiend']);
 function bossPhaseOf(m){if(!m||!Number.isFinite(m.maxHp)||m.maxHp<=0)return 1;const r=m.hp/m.maxHp;return r<=.30?3:r<=.65?2:1}
-function bossTarget(m){const live=G.players.filter(p=>!p.dead);if(!live.length)return null;return live.reduce((best,p)=>!best||Math.hypot(p.x-m.x,p.y-m.y)<Math.hypot(best.x-m.x,best.y-m.y)?p:best,null)}
+function bossTarget(m){const a=G.ns95Cage?.ally;if(a&&a.hp>0&&Math.hypot(a.x-m.x,a.y-m.y)<=520)return a;const live=G.players.filter(p=>!p.dead);if(!live.length)return null;return live.reduce((best,p)=>!best||Math.hypot(p.x-m.x,p.y-m.y)<Math.hypot(best.x-m.x,best.y-m.y)?p:best,null)}
 function bossSummonWave(m,phase){
  // Summon once on entering each new phase: no endless summon farming.
  const bit=1<<phase;if((m.bossPhaseSummons||0)&bit)return;
@@ -3993,12 +3993,25 @@ function bossResolveCast(m){
  const c=m.bossCast;if(!c||m.dead)return false;
  if(c.kind==='quake'){
   for(const p of G.players){if(p.dead)continue;if(Math.hypot(p.x-c.x,p.y-c.y)<=c.radius+p.r*.25)damagePlayer(p,10+5*c.phase,m)}
+  const ally=G.ns95Cage?.ally;
+  if(ally&&ally.hp>0&&Math.hypot(ally.x-c.x,ally.y-c.y)<=c.radius+4){
+   ally.hp=Math.max(0,ally.hp-(10+5*c.phase));effect('hit',ally.x,ally.y);
+   if(ally.hp===0){effect('shock',ally.x,ally.y);announce('ALLY DEFEATED',2.5)}
+  }
   effect('bossQuake',c.x,c.y,{radius:c.radius,phase:c.phase});
   sfx('stomp');
  }else{
   const ux=Math.cos(c.angle),uy=Math.sin(c.angle);
   for(const p of G.players){if(p.dead)continue;const dx=p.x-c.x,dy=p.y-c.y,along=dx*ux+dy*uy,across=Math.abs(-dx*uy+dy*ux);
    if(along>=0&&along<=c.length&&across<=c.width+p.r*.35)damagePlayer(p,12+5*c.phase,m)
+  }
+  const ally=G.ns95Cage?.ally;
+  if(ally&&ally.hp>0){
+   const dx=ally.x-c.x,dy=ally.y-c.y,along=dx*ux+dy*uy,across=Math.abs(-dx*uy+dy*ux);
+   if(along>=0&&along<=c.length&&across<=c.width+5){
+    ally.hp=Math.max(0,ally.hp-(12+5*c.phase));effect('hit',ally.x,ally.y);
+    if(ally.hp===0){effect('shock',ally.x,ally.y);announce('ALLY DEFEATED',2.5)}
+   }
   }
   effect('bossBeam',c.x,c.y,{angle:c.angle,length:c.length,width:c.width,phase:c.phase});
   sfx('shock');
@@ -4058,7 +4071,7 @@ function updateMobs(dt){buildMobGrid();NS95_CAGE.beginMobTick();
   const frostActive=G.players.some(p=>p.perks.frost&&G.time<p.freezeUntil);
   for(const m of G.mobs){
     m.frame+=dt*(m.type==='rotfiend'?3:m.type==='boss'?4:m.type==='troll'?5:m.type==='goblin'?10:7);
-    m.flash=Math.max(0,m.flash-dt);m.attackT=Math.max(0,m.attackT-dt);m.attackCD=Math.max(0,m.attackCD-dt);if(m.type==='worm'&&m.spitWindup>0){m.spitWindup-=dt;if(m.spitWindup<=0&&!m.dead){let victim=alive.find(p=>p.id===m.targetId)||alive.slice().sort((a,b)=>(a.x-m.x)**2+(a.y-m.y)**2-(b.x-m.x)**2-(b.y-m.y)**2)[0];if(victim)spawnAcid(m,victim)}}
+    m.flash=Math.max(0,m.flash-dt);m.attackT=Math.max(0,m.attackT-dt);m.attackCD=Math.max(0,m.attackCD-dt);if(m.type==='worm'&&m.spitWindup>0){m.spitWindup-=dt;if(m.spitWindup<=0&&!m.dead){let victim=alive.find(p=>p.id===m.targetId)||alive.slice().sort((a,b)=>(a.x-m.x)**2+(a.y-m.y)**2-(b.x-m.x)**2-(b.y-m.y)**2)[0];if(victim&&!(G.ns95Cage?.ally?.hp>0&&Math.hypot(m.x-G.ns95Cage.ally.x,m.y-G.ns95Cage.ally.y)<520))spawnAcid(m,victim)}}
     if(m.dead){m.deathT-=dt;continue}
     if(m.type==='troll'&&m.nsTrollHitAt){
       if(G.time<m.nsTrollHitAt)continue;
