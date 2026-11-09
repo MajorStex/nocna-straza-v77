@@ -3,7 +3,7 @@
      No commercial copying or redistribution without the rights holder's permission.
      Browser JavaScript can be inspected; true paid entitlements require independent server validation. -->
 
-<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><meta name="copyright" content="© 2026 Noćna Straža · All rights reserved"><meta name="author" content="Noćna Straža / Night Watch"><meta property="og:site_name" content="Noćna Straža — zvanična igra"><meta property="og:url" content="https://majorstex.github.io/nocna-straza-v108/"><link rel="canonical" href="https://majorstex.github.io/nocna-straza-v108/"><title>Night Watch v108 — Rotfiend Waves 20 and 30 (Night Watch v99 gameplay)</title><style>
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><meta name="copyright" content="© 2026 Noćna Straža · All rights reserved"><meta name="author" content="Noćna Straža / Night Watch"><meta property="og:site_name" content="Noćna Straža — zvanična igra"><meta property="og:url" content="https://nocna-straza-igra.pages.dev/"><link rel="canonical" href="https://nocna-straza-igra.pages.dev/"><title>Night Watch v114 Armored Goblin and Gate Fix — Rotfiend Waves 20 and 30 (Night Watch v99 gameplay)</title><style>
 :root{--bg:#0e171d;--surface:#17232a;--card:#1d2c33;--line:#52605888;--sage:#a7d3ae;--gold:#e9c17d;--ink:#f1eddf;--muted:#aab7b8;--red:#bf5550}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;touch-action:none}button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--ink);background:#26363c;border:1px solid #60706d71;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:800;letter-spacing:.035em}button:active{transform:scale(.98)}button:hover{border-color:#c1c9a0}button.primary{background:linear-gradient(135deg,#d2a665,#f0cf91);color:#202c29;border:0;box-shadow:0 5px 24px #0006}button:disabled{opacity:.5}input,select,textarea{color:#eee9df;background:#101b22;border:1px solid #536660;border-radius:9px;padding:9px;min-width:0}input[type=color]{height:38px;padding:3px;width:58px}input[type=range]{padding:0;accent-color:var(--gold);flex:1}input[type=checkbox]{accent-color:var(--gold);width:19px;height:19px}#app,#gameCanvas{width:100%;height:100%;position:absolute;inset:0}#gameCanvas{display:block;touch-action:none;background:#28332f}.veil{pointer-events:none;position:absolute;inset:0;background:linear-gradient(90deg,#0a1014a8,transparent 75%);opacity:.45}.hidden{display:none!important}.kicker{color:var(--gold);font-size:10px;font-weight:900;letter-spacing:.18em}.panel{position:absolute;z-index:5}.home{top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 34px));background:linear-gradient(160deg,#18272bed,#0d161ce9);border:1px solid #80918c59;border-radius:23px;padding:27px 29px 22px;text-align:center;box-shadow:0 30px 100px #000a;backdrop-filter:blur(12px)}.logoGlyph{font-size:39px;color:var(--gold);margin:10px 0 0}.home h1{font-family:Georgia,'Times New Roman',serif;line-height:.9;letter-spacing:.07em;font-size:clamp(42px,9vw,63px);margin:8px auto 16px;text-shadow:0 5px 20px #0009}.home h1 em{font-style:normal;color:var(--gold)}.tagline{color:#bac5be;font-size:14px;line-height:1.55;max-width:320px;margin:0 auto 19px}.homeButtons{display:grid;gap:9px}.homeButtons button{min-height:47px}.smallMuted{color:#8ba09b;font-size:11px;margin:17px auto 0}.hud{position:absolute;z-index:3;top:0;left:0;right:0;padding:max(12px,env(safe-area-inset-top)) 14px 8px;pointer-events:none;background:linear-gradient(#0b1118d6,#0b111800)}.hudTop{display:flex;align-items:start;gap:10px}.stats{width:54%;max-width:300px;display:grid;gap:6px}.bar{position:relative;overflow:hidden;background:#142024c9;border:2px solid #8c958259;border-radius:5px;height:21px;box-shadow:0 2px 10px #0005}.bar>div{position:absolute;inset:0 auto 0 0;width:100%;transition:width .16s linear}.bar span{position:absolute;inset:0;display:grid;place-items:center;font-size:10px;font-weight:900;text-shadow:1px 1px 2px #000}.hpbar>div{background:linear-gradient(90deg,#922e35,#d06b59)}.xpbar>div{background:linear-gradient(90deg,#378ba0,#9bd5cd)}.miniStats{margin:auto;display:grid;gap:3px;text-align:right;font-size:12px;color:#e5d2a8;font-weight:900}.iconBtn{pointer-events:auto;padding:8px 12px;font-size:19px;background:#202c34df}.bossHud{margin:15px auto 0;width:min(480px,92%)}.bossHead{display:flex;justify-content:space-between;font-family:Georgia,serif;font-size:12px;color:#f0b6a4;font-weight:bold;text-shadow:0 2px 3px #000}.bossbar{height:15px;margin-top:4px;border-color:#853f40}.bossbar>div{background:linear-gradient(90deg,#8a1e39,#f07564)}.notice{text-align:center;font-family:Georgia,serif;letter-spacing:.1em;color:var(--gold);font-weight:bold;margin-top:12px;text-shadow:1px 2px 3px #000}.controls{position:absolute;bottom:max(19px,env(safe-area-inset-bottom));left:0;right:0;height:130px;z-index:3;pointer-events:none}.joyBase{position:absolute;bottom:0;left:24px;width:120px;height:120px;border-radius:50%;border:2px solid #b2b4a64d;background:#13232c65;pointer-events:auto;touch-action:none;box-shadow:inset 0 0 26px #0006}.joyBase:before{content:'✣';position:absolute;inset:0;display:grid;place-items:center;font-size:44px;color:#9fc7b340}.joyKnob{position:absolute;width:56px;height:56px;left:30px;top:30px;border-radius:50%;background:radial-gradient(circle at 32% 25%,#829d93,#46645f);border:2px solid #a0bbb1a3;box-shadow:0 4px 14px #000a;transform:translate(0,0)}.actionArea{position:absolute;bottom:0;right:23px;display:flex;align-items:end;gap:12px;pointer-events:auto}.attackBtn,.dashBtn{display:grid;place-items:center;align-content:center;gap:1px;touch-action:none;border-radius:50%;box-shadow:0 3px 18px #0009}.attackBtn{width:91px;height:91px;background:radial-gradient(circle at 35% 25%,#e3b478,#975b44);border:2px solid #e7d2a3;color:#141b20;font-size:31px}.dashBtn{height:64px;width:64px;background:#283f46c9;border-color:#8baeb1;font-size:26px}.actionArea small{font-size:8px;letter-spacing:.06em}.modal{position:absolute;inset:0;z-index:10;background:#061117cb;display:grid;place-items:center;padding:14px;backdrop-filter:blur(7px)}.modalBox{width:min(420px,100%);max-height:calc(100vh - 30px);overflow-y:auto;background:linear-gradient(145deg,#1a2b31,#101d25);border:1px solid #7b8a825c;border-radius:19px;padding:24px;box-shadow:0 20px 80px #000c;text-align:center;display:grid;gap:12px}.modalBox h2{font-family:Georgia,serif;font-size:29px;margin:0}.modalBox p{font-size:14px;line-height:1.45;color:#b6c6c1;margin:0}.settingRow{display:flex;align-items:center;justify-content:space-between;text-align:left;font-size:13px;gap:10px}.upgradeCards{display:grid;gap:8px}.upgradeCards button{display:grid;gap:5px;text-align:left}.upgradeCards button span{font-weight:400;font-size:11px;color:#a9b7b4}.roomCode{padding:14px;border:1px dashed var(--gold);font-size:30px;font-weight:900;letter-spacing:.23em;color:var(--gold);user-select:all}.separator{color:#8ba09b;text-transform:uppercase;font-size:12px}.joinRow{display:flex;gap:6px}.joinRow input{width:100%;text-transform:uppercase;letter-spacing:.12em}.netStatus{font-size:12px;color:#a9c2b9;line-height:1.45;text-align:left;background:#122028;padding:10px;border-radius:8px}.toast{pointer-events:none;position:absolute;z-index:30;left:50%;bottom:145px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 30px);padding:11px 17px;border-radius:12px;border:1px solid #a0b19b5e;background:#15272cef;font-weight:700;font-size:12px;box-shadow:0 10px 30px #0009}.editor{position:absolute;z-index:7;right:0;top:0;bottom:0;width:min(375px,100%);display:flex;flex-direction:column;background:#111e25f5;border-left:1px solid #7c8b7e66;box-shadow:-14px 0 44px #0008}.editorHeader{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 15px 12px}.editorHeader strong{font-family:Georgia,serif;font-size:20px}.subtleBtn{padding:8px 10px;font-size:11px}.tabs{display:flex;gap:4px;padding:0 13px 12px;border-bottom:1px solid #82948730}.tabs button{flex:1;padding:10px 4px;font-size:11px;background:transparent}.tabs button.active,.toolGrid button.active{color:var(--gold);border-color:var(--gold);background:#3b3d2f9c}.editBody{padding:14px;overflow:auto;flex:1}.editHelp{margin:0 0 13px;line-height:1.5;color:#b4c5bf;font-size:12px}.toolGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.toolActions{display:flex;gap:7px;margin-top:10px}.toolActions button{flex:1;font-size:10px;padding:11px 7px}.editTab label{margin:10px 0;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:12px;color:#cad4c8}.editTab label input[type=number],.editTab label select{width:46%}.previewLine{font-size:11px;color:#bbd0bc;line-height:1.7;border-top:1px solid #4e645360;padding-top:12px;margin-top:13px}.editTab textarea{width:100%;line-height:1.5;resize:vertical;touch-action:auto}.editTab .primary{width:100%;margin-top:8px}.cmdResult{font-size:12px;border:1px solid #4e6f5f;background:#1b3330;padding:11px;border-radius:8px;line-height:1.5;margin-top:11px}.examples{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}.examples div{width:100%;font-size:11px;color:#a2b5ae}.examples button{font-size:10px;padding:7px 9px}.editFooter{padding:12px;border-top:1px solid #82948733;display:grid;gap:7px}.editFooter .toolActions{margin:0}.editFooter>.primary{padding:13px}.editFooter>button:last-child{background:#4b2933;border-color:#86525b}.editor:not(.hidden)~.controls{display:none}.editor .editFooter button{font-size:12px}
 @media (max-width:760px){.editor{top:auto;bottom:0;left:0;right:0;width:100%;height:min(58vh,510px);border-left:0;border-top:1px solid #7c8b7e66;border-radius:18px 18px 0 0}.editorHeader{padding-top:12px}.home{padding:20px 23px}.home h1{font-size:48px}.homeButtons button{min-height:44px}.hud{padding-top:max(12px,env(safe-area-inset-top))}.joyBase{left:19px;bottom:8px;width:104px;height:104px}.joyKnob{left:23px;top:23px}.actionArea{right:17px;bottom:6px}.controls{height:117px}.editor .editBody{padding-top:10px}}
 @media (max-height:680px){.home{padding:12px 20px}.home h1{font-size:38px;margin:0 0 8px}.home .logoGlyph{display:none}.home .tagline{font-size:12px;margin-bottom:10px}.homeButtons button{min-height:38px;padding:8px}.smallMuted{display:none}.controls{transform:scale(.83);transform-origin:bottom center}}
@@ -682,6 +682,85 @@ body:has(#ns99PausePanel:not(.hidden)) :is(#ns99PauseBanner,#ns93SpellDock,#ns95
  #nsNetLabDock.withSOS{top:calc(264px + env(safe-area-inset-top))!important}
  #ns95SpellPicker{max-height:min(25dvh,152px)!important;bottom:calc(215px + env(safe-area-inset-bottom))!important}
 }
+
+/* V110: mobile HUD organized by zones, preserving existing interactive controls. */
+#ns110VillageHome{width:100%;border-color:#bad0a4;background:#24493f;color:#fff0bd}
+@media(max-width:760px){
+ #app:has(> #hud:not(.hidden)) > #ns84BackButton{display:none!important}
+ .hudTop .stats{max-width:min(216px,56vw)!important;width:56%!important}
+ .hudTop .miniStats{max-width:min(128px,34vw)!important;min-width:0!important}
+ .mapDock{top:calc(142px + env(safe-area-inset-top))!important;right:8px!important;width:86px!important;z-index:9!important}
+ .mapToggle{min-height:92px!important;grid-template-rows:74px 10px!important;padding:3px!important}
+ .mapToggle canvas{width:72px!important;height:72px!important}.mapToggle span{font-size:7px!important}
+ .nsMissionHUD{top:calc(131px + env(safe-area-inset-top))!important;left:9px!important;max-width:44vw!important;font-size:9px!important}
+ #ns93SpellDock{top:calc(207px + env(safe-area-inset-top))!important;bottom:auto!important;left:9px!important;right:auto!important;max-width:39vw!important;justify-items:start!important;z-index:12!important}
+ #ns93SpellList{max-width:53px!important}.ns93Mana{min-width:94px!important;text-align:left!important}.ns93ManaTrack{width:97px!important}
+ #ns106SpellToggle{width:42px!important;height:42px!important;min-height:42px!important}
+ .ns93Spell{width:48px!important;min-width:48px!important;height:48px!important;min-height:48px!important}
+ #ns95SpellSwap{left:55px!important;width:44px!important;min-width:44px!important}
+ #ns95SpellPicker{position:fixed!important;top:calc(216px + env(safe-area-inset-top))!important;bottom:auto!important;left:42vw!important;width:50vw!important;max-height:35dvh!important}
+ #nsExtractionBtn{top:calc(252px + env(safe-area-inset-top))!important;right:9px!important;max-width:94px!important;padding:8px 9px!important}
+ #ns99PauseOpen{top:calc(309px + env(safe-area-inset-top))!important;right:9px!important;max-width:99px!important}
+ #nsNetLabDock,#nsNetLabDock.withSOS{top:calc(355px + env(safe-area-inset-top))!important;right:9px!important;max-width:99px!important}
+ .actionArea{left:14px!important;bottom:calc(145px + env(safe-area-inset-bottom))!important;right:auto!important}
+ .dashBtn{width:61px!important;height:61px!important}
+ #nsQuickLoot{max-width:45vw!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+@media(max-width:760px) and (max-height:690px){
+ .nsMissionHUD{top:calc(113px + env(safe-area-inset-top))!important}
+ .mapDock{top:calc(118px + env(safe-area-inset-top))!important}
+ #ns93SpellDock{top:calc(178px + env(safe-area-inset-top))!important}
+ #nsExtractionBtn{top:calc(226px + env(safe-area-inset-top))!important}
+ #ns99PauseOpen{top:calc(284px + env(safe-area-inset-top))!important}
+ #nsNetLabDock,#nsNetLabDock.withSOS{top:calc(327px + env(safe-area-inset-top))!important}
+}
+
+/* V114 mobile-first gameplay HUD: smaller surfaces, no overlay piling.
+   Keep interactive controls reachable and preserve the newer multiplayer UI. */
+@media(max-width:760px){
+ .hud{padding:calc(7px + env(safe-area-inset-top)) 8px 3px!important;background:linear-gradient(#0b151bc4,#0b151b00)!important}
+ .hudTop{gap:5px!important}
+ .hudTop .stats{width:55%!important;max-width:214px!important;gap:3px!important}
+ .bar{height:17px!important;border-width:1px!important;border-radius:5px!important;box-shadow:none!important}
+ .bar span{font-size:9px!important}
+ .hudTop .miniStats{font-size:10px!important;max-width:35vw!important;line-height:1.17!important}
+ .abilityHud{gap:3px!important;margin:3px auto 0!important;max-width:72vw!important;justify-content:center!important}
+ .abilityHud span{font-size:12px!important;padding:1px 3px!important;border-radius:5px!important;box-shadow:none!important}
+ .bossHud{margin:5px auto 0!important;max-width:73vw!important}
+ .bossPhaseTip{font-size:9px!important}
+ .notice{margin-top:4px!important;font-size:11px!important}
+ .vowHudButton,.evoHudButton{transform:scale(.85);transform-origin:top left;box-shadow:none!important}
+ .mapDock{top:calc(94px + env(safe-area-inset-top))!important;right:6px!important;width:71px!important;z-index:9!important}
+ .mapToggle{min-height:74px!important;grid-template-rows:59px 9px!important;padding:2px!important;border-radius:12px!important}
+ .mapToggle canvas{height:58px!important;width:58px!important}
+ .mapToggle span{font-size:7px!important}
+ .nsMissionHUD{top:calc(93px + env(safe-area-inset-top))!important;left:7px!important;max-width:min(46vw,184px)!important;font-size:8px!important;padding:5px 7px!important;line-height:1.3!important;max-height:52px;overflow:hidden}
+ #ns93SpellDock{top:auto!important;right:auto!important;left:84px!important;bottom:calc(116px + env(safe-area-inset-bottom))!important;max-width:124px!important;justify-items:start!important}
+ #ns93SpellList{max-width:52px!important}
+ #ns106SpellToggle{width:39px!important;height:39px!important;min-width:39px!important;min-height:39px!important;font-size:21px!important}
+ .ns93Spell{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important}
+ #ns95SpellSwap{left:49px!important;min-width:40px!important;width:40px!important;height:40px!important}
+ .ns93Mana{font-size:9px!important;min-width:93px!important}.ns93ManaTrack{height:4px!important;width:93px!important}
+ #ns95SpellPicker{top:auto!important;bottom:calc(185px + env(safe-area-inset-bottom))!important;left:86px!important;width:min(210px,57vw)!important;max-height:29dvh!important}
+ .actionArea{left:9px!important;right:auto!important;bottom:calc(113px + env(safe-area-inset-bottom))!important}
+ .dashBtn{width:52px!important;height:52px!important;font-size:22px!important}
+ #nsExtractionBtn{top:calc(190px + env(safe-area-inset-top))!important;right:7px!important;max-width:76px!important;padding:5px 6px!important;font-size:10px!important;min-height:34px!important}
+ #ns99PauseOpen{top:calc(231px + env(safe-area-inset-top))!important;right:7px!important;max-width:76px!important;min-height:32px!important;padding:5px 7px!important;font-size:10px!important}
+ #nsNetLabDock,#nsNetLabDock.withSOS{top:calc(269px + env(safe-area-inset-top))!important;right:7px!important;max-width:76px!important;min-height:29px!important;padding:4px 5px!important}
+ #nsSwapWeapon{right:8px!important;bottom:calc(175px + env(safe-area-inset-bottom))!important;min-width:69px!important;max-width:78px!important;min-height:36px!important;padding:5px!important;font-size:9px!important}
+ .cornerPause{right:8px!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;height:51px!important;min-width:51px!important;border-radius:13px!important;font-size:21px!important;box-shadow:0 2px 9px #0007!important}
+ .cornerPause small{font-size:8px!important}
+ .heroSubtitle{font-size:10px!important;padding:5px 8px!important;max-width:68vw!important}
+}
+@media(max-width:760px) and (max-height:690px){
+ .mapDock{top:calc(88px + env(safe-area-inset-top))!important}
+ .nsMissionHUD{top:calc(86px + env(safe-area-inset-top))!important}
+ #ns93SpellDock{bottom:calc(100px + env(safe-area-inset-bottom))!important}
+ .actionArea{bottom:calc(103px + env(safe-area-inset-bottom))!important}
+ #nsExtractionBtn{top:calc(178px + env(safe-area-inset-top))!important}
+ #ns99PauseOpen{top:calc(220px + env(safe-area-inset-top))!important}
+ #nsNetLabDock,#nsNetLabDock.withSOS{top:calc(256px + env(safe-area-inset-top))!important}
+}
 </style></head>
 .netExplain{font-size:11px;line-height:1.5;color:#adcbc1;margin:9px 0}.netTurn{margin-top:7px;border:1px solid #688a8177;border-radius:11px;padding:10px;background:#15292c}.netTurn summary{font-size:12px;color:#f0cb8c;font-weight:700}.netTurn input{width:100%;margin-top:7px}.netTurn button{margin-top:8px;width:100%}
 #retryJoinBtn{width:100%;margin-top:8px;background:#36504b;color:#f4dcb0}
@@ -786,7 +865,7 @@ body:has(#ns99PausePanel:not(.hidden)) :is(#ns99PauseBanner,#ns93SpellDock,#ns95
  <button type="button" id="ns99LeaveGame" style="display:block;width:100%;margin-top:9px">↩ LEAVE MATCH / NAPUSTI PARTIJU</button>
 </section>
 <button aria-label="Pauza i meni" class="cornerPause hidden" id="pauseBtn" title="Otvori pauzu / meni">☰<small>MENI</small></button>
-<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL • v107</div><div id="ns102MenuVersion" class="ns102Version">NOĆNA STRAŽA · VERZIJA V108</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
+<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL • v107</div><div id="ns102MenuVersion" class="ns102Version">NOĆNA STRAŽA · VERZIJA V114 · CLEAN HUD</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
  <div class="ns50MenuGroups" id="ns50MenuGroups">
   <details class="ns50MenuGroup" id="ns50MenuPlay" open><summary><span class="ns50GroupIcon">▶</span><span class="ns50GroupWords"><strong data-ns50-en="PLAY" data-ns50-sr="IGRAJ">PLAY</strong><small data-ns50-en="Solo, campaign, co-op" data-ns50-sr="Solo, kampanja, co-op">Solo, campaign, co-op</small></span><span class="ns50Chevron">⌄</span></summary><div class="ns50GroupBody">
    <button class="primary ns50MainPlay" id="startBtn">⚔ ZAPOČNI IGRU</button>
@@ -824,7 +903,7 @@ body:has(#ns99PausePanel:not(.hidden)) :is(#ns99PauseBanner,#ns93SpellDock,#ns95
  <div id="evoRecipeGrid" class="evoRecipeGrid"></div><button id="evoGuideClose" type="button">CLOSE</button>
  </div></section>
 <section class="modal hidden" id="playerProfilePanel"><div class="modalBox panelWide playerProfileBox"><button class="navBack" id="playerProfileBack">← NAZAD</button><button type="button" id="ns82-profile-button" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-profile-status"></small><div class="kicker">MOJ STRAŽAR · TRAJNO NAPREDOVANJE</div><h2>PROFIL IGRAČA</h2><p>Svaki profil ima svoje poene, nivo i unapređenja. Kada je cloud nalog povezan, napredak se čuva i na mreži. Nivo profila razlikuje se od nivoa u toku borbe.</p><label class="playerProfileLabel">IZABERI PROFIL<select id="playerProfileSelect"></select></label><div class="profileNewRow"><button id="newPlayerProfile">＋ NOVI PROFIL</button><button id="savePlayerProfile">SAČUVAJ IME</button></div><label class="playerProfileLabel">IME IGRAČA<input autocomplete="off" id="playerProfileName" maxlength="20" placeholder="STRAŽAR"/></label><div class="ns72-avatar-picker" id="ns72AvatarPicker"><div class="ns72-avatar-title">🖼 IKONICA PROFILA / PROFILE ICON</div><div class="ns72-avatar-current"><span class="ns72AvatarFace" id="ns72AvatarPreview" aria-label="Tvoja ikonica">🛡️</span><span>Izaberi gotovu ikonicu ili dodaj svoju fotografiju. Videće je drugi igrači u čekaonici.</span></div><div class="ns72-avatar-presets" id="ns72AvatarPresets" role="group" aria-label="Izaberi ikonicu"></div><div class="ns72-avatar-import"><button type="button" id="ns72UploadAvatar">📷 DODAJ SVOJU SLIKU</button><button type="button" id="ns72RemoveAvatar">↶ VRATI GOTOVU</button><input type="file" id="ns72AvatarFile" accept="image/png,image/jpeg,image/webp" hidden /></div><div class="ns72-avatar-note" id="ns72AvatarNote">Slika se automatski smanjuje radi brže igre. Čuva se u ovom browseru; saigrači vide samo malu ikonicu.</div></div><label class="playerProfileLabel">HEROJ IZ GARDEROBERA<select id="playerProfileHero"></select></label><div class="profileLevelCard"><div class="profileLevelTop"><span id="playerProfileHeadline">STRAŽAR</span><strong id="playerProfileLevel">NIVO 1</strong></div><div class="profileProgressTrack"><div id="playerProfileProgressFill"></div></div><div class="profileProgressText" id="playerProfileProgressText">0 / 30 XP do sledećeg trajnog nivoa</div><div class="profileSummary" id="playerProfileSummary">0 nadogradnji</div></div><div class="honorBalance" id="playerProfileBalance">0 ✦ POENA ČASTI</div><div class="profileSkills" id="playerProfileSkills"></div><div class="localSaveBox"><b>💾 SAČUVAJ PODATKE IZ HTML FAJLA</b><small>Čuvaj ID prijatelja, profil, rekorde i napredak. Ako isti HTML ponovo preuzmeš u drugi folder, uvezi rezervnu kopiju.</small><div class="localSaveButtons"><button id="exportLocalSaveBtn" type="button">↓ SAČUVAJ PROFILE</button><button id="importLocalSaveBtn" type="button">↑ VRATI PROFILE</button><input accept=".json,application/json" hidden="" id="importLocalSaveFile" type="file"/></div></div><p class="profileInfo">Inspirisano postepenim unapređivanjem lika u survival igrama. Ovde je moguće igrati neograničeno i nema kupovina stvarnim novcem.</p></div></section>
-<section class="modal hidden" id="pausePanel"><div class="modalBox"><button aria-label="Nazad na prethodni ekran" class="navBack" data-nav-back="" type="button">← NAZAD</button><div class="kicker">PAUZA</div><div class="ns102Version">NOĆNA STRAŽA · VERZIJA V108</div><h2>Pauzirano</h2><button class="primary" id="resumeBtn">NASTAVI</button><button type="button" id="ns66SendVoiceTest" style="width:100%;margin-top:7px">🎙 POŠALJI PROBNU REPLIKU SAIGRAČIMA</button><small id="ns66InGameVoiceStatus" style="color:#c8d6c7"></small><button id="editDuringBtn">OTVORI EDITOR</button><button id="testBackEditor">↩ NAZAD U EDITOR (ZA TEST)</button><button id="mainMenuBtn">GLAVNI MENI</button></div></section>
+<section class="modal hidden" id="pausePanel"><div class="modalBox"><button aria-label="Nazad na prethodni ekran" class="navBack" data-nav-back="" type="button">← NAZAD</button><div class="kicker">PAUZA</div><div class="ns102Version">NOĆNA STRAŽA · VERZIJA V114 · CLEAN HUD</div><h2>Pauzirano</h2><button class="primary" id="resumeBtn">NASTAVI</button><button type="button" id="ns66SendVoiceTest" style="width:100%;margin-top:7px">🎙 POŠALJI PROBNU REPLIKU SAIGRAČIMA</button><small id="ns66InGameVoiceStatus" style="color:#c8d6c7"></small><button id="editDuringBtn">OTVORI EDITOR</button><button id="testBackEditor">↩ NAZAD U EDITOR (ZA TEST)</button><button id="mainMenuBtn">GLAVNI MENI</button></div></section>
 <section class="modal hidden" id="gameOver"><div class="modalBox"><button aria-label="Nazad na prethodni ekran" class="navBack" data-nav-back="" type="button">← NAZAD</button><div class="kicker">KRAJ BORBE</div><h2>STRAŽAR JE PAO</h2><p id="endStats"></p><div class="runResult" id="runResult"></div><div class="hintPanel gameOverHint" id="overHintPanel"><div class="hintCard"><b id="overHintTitle">UPGRADE BEFORE RETRY</b><small id="overHintText">Open Hero Upgrades or Guardian Base before trying again so new players do not miss progression.</small></div><div class="hintActions"><button id="overRunUpgradesBtn">⚔ HERO UPGRADES</button><button id="overBaseBtn">✦ GUARDIAN BASE</button></div></div><button id="overStatsBtn">📊 DETALJNA STATISTIKA</button><button class="primary" id="retryBtn">PROBAJ PONOVO</button><button id="goHomeBtn">GLAVNI MENI</button></div></section>
 <section class="modal hidden" id="quickChoicePanel"><div class="modalBox"><div class="kicker">BRZA ODLUKA · IGRA SE NASTAVLJA</div><h2 id="quickChoiceTitle">NOVI NIVO</h2><p>Izaberi svoju moć za <strong id="quickChoiceClock">7</strong> sekundi. Ako ne odabereš, dobijaš prvu.</p><div class="upgradeCards" id="quickChoiceItems"></div></div></section><section class="modal hidden" id="chestPanel"><div class="modalBox chestModal"><p class="coopCountdown hidden">⏱ JOŠ 7 SEKUNDI</p><div class="kicker">PRONAĐEN SANDUK</div><h2>IZABERI JEDNU NAGRADU</h2><p>Jedan od tri predmeta ostaje tvom heroju. Ostala dva nestaju.</p><div class="chestCards" id="chestCards"></div></div></section>
 <section class="modal hidden" id="upgradePanel"><div class="modalBox"><div class="kicker" id="levelHeading">NOVI NIVO</div><h2>IZABERI MOĆ</h2><p>Ojačaj svog heroja pre sledećeg naleta.</p><div class="upgradeCards" id="upgradeCards"></div></div></section><section class="modal hidden" id="marketPanel"><div class="modalBox"><p class="coopCountdown hidden">⏱ JOŠ 7 SEKUNDI</p><button aria-label="Nazad na prethodni ekran" class="navBack" data-nav-back="" type="button">← NAZAD</button><div class="kicker">BURGER BAR MARKET</div><h2>TRGUJ XP ZA HP</h2><p id="marketInfo">Sočan burger leči heroja. Troši samo XP iz trenutnog nivoa i nikad ne spušta nivo.</p><div class="upgradeCards"><button class="primary" id="buyBurgerBtn"><b>BURGER +28 HP</b><span>Košta 55 XP iz trenutne XP trake.</span></button><button id="closeMarketBtn">NASTAVI DALJE</button></div></div></section>
@@ -847,7 +926,7 @@ body:has(#ns99PausePanel:not(.hidden)) :is(#ns99PauseBanner,#ns93SpellDock,#ns95
 <p class="friendFineprint">HTML test: drugi igrač mora biti online. Chat, prijatelji i identitet čuvaju se lokalno; nema naloga ni bezbedne provere identiteta. Za javnu igru potreban je serverski servis.</p>
 </div></section>
 <div aria-live="assertive" class="friendActionAlert hidden" id="friendActionAlert" role="alertdialog"><strong id="friendActionTitle">Zahtev</strong><p id="friendActionText"></p><div><button class="primary" id="acceptFriendAction">PRIHVATI</button><button id="rejectFriendAction">ODBIJ</button></div></div>
-<section class="modal hidden" id="coopPanel"><div class="modalBox lobbyBox"><button aria-label="Nazad na prethodni ekran" class="navBack" data-nav-back="" type="button">← NAZAD</button><div class="kicker">ONLINE • CO-OP DO 6 IGRAČA</div><div class="ns102Version">NOĆNA STRAŽA · VERZIJA V108</div><h2 id="coopTitle">IGRAJTE ZAJEDNO</h2><div id="coopSetup"><p>🎮 Online je već podešen. Jedan igrač napravi sobu, a drugi samo upiše šestoznakovni kod i pritisne PRIDRUŽI SE. Nema dodatnog podešavanja.</p><label class="lobbyNameLabel">IME ZA MULTIPLAYER (NEOBAVEZNO)<input autocomplete="nickname" id="mpNameInput" maxlength="20" placeholder="STRAŽAR"><small>Ako ostaviš prazno, koristi se STRAŽAR.</small></input></label><div class="ns72-mp-preview" id="ns72MpAvatarPreview"><span class="ns72AvatarFace">🛡️</span><span>Moja ikonica iz profila · prikazuje se u sobi</span></div><div class="mpProfileSummary" id="mpProfileSummary">TRAJNI NIVO 1 · BEZ NADOGRADNJI</div><div class="ns66LobbyVoice" style="padding:9px 10px;margin:8px 0;background:#102129;border:1px solid #6a8c8b75;border-radius:11px;text-align:left;font-size:12px"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ns66ShareVoiceLobby" checked="checked" style="width:20px;height:20px;flex-shrink:0"/><span>🎙 PUSTI SAIGRAČIMA MOJE SNIMLJENE REPLIKE</span></label><small style="color:#b8c7c2;display:block;margin-top:5px">Samo prethodno snimljeni glas, uz tvoju dozvolu. Drugi će ga čuti i kada su daleko, samo tiše.</small><button type="button" id="ns66AudioTest" style="margin-top:6px;width:100%">🔊 PROVERI GLAS I ZVUK</button><small id="ns66VoiceTip" style="display:block;margin-top:5px;color:#d5caa5"></small></div><div class="ns92Settings"><strong data-ns92-en="CREATE GAME SETTINGS" data-ns92-sr="PODEŠAVANJA SOBE">CREATE GAME SETTINGS</strong><label><span data-ns92-en="Room name" data-ns92-sr="Naziv sobe">Room name</span><input id="ns92Name" maxlength="28" value="Night Watch" autocomplete="off"></label><div class="ns92Flex"><label><span data-ns92-en="Max players" data-ns92-sr="Maks. igrača">Max players</span><select id="ns92Max"><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></label><label class="ns92Toggle"><input type="checkbox" id="ns92Public" checked><span data-ns92-en="Public lobby" data-ns92-sr="Javna soba">Public lobby</span></label></div><label class="ns92Toggle"><input id="ns92Locked" type="checkbox"><span data-ns92-en="Lock with a password" data-ns92-sr="Zaključaj šifrom">Lock with a password</span></label><label id="ns92CreatePassRow" class="hidden"><span data-ns92-en="Password (4–32 characters)" data-ns92-sr="Šifra (4–32 znaka)">Password (4–32 characters)</span><input type="password" id="ns92CreatePass" maxlength="32" autocomplete="new-password" placeholder="••••••••"></label></div><button class="primary" id="hostBtn">NAPRAVI SOBU</button><div class="separator">ili</div><div class="joinRow"><input autocomplete="off" id="joinCode" maxlength="6" placeholder="KOD (6 ZNAKOVA)"><button id="joinBtn">PRIDRUŽI SE</button></input></div><label class="ns92JoinPass"><span data-ns92-en="Password (only if locked)" data-ns92-sr="Šifra (samo ako je zaključano)">Password (only if locked)</span><input type="password" id="ns92JoinPass" maxlength="32" autocomplete="off" placeholder="Optional / Neobavezno"></label><div class="ns92Browser"><div class="ns92Top"><b data-ns92-en="PUBLIC GAMES · JOIN" data-ns92-sr="JAVNE SOBE · PRIDRUŽI SE">PUBLIC GAMES · JOIN</b><button type="button" id="ns92Refresh">↻ REFRESH</button></div><label class="ns92Toggle"><input id="ns92HideFull" type="checkbox" checked><span data-ns92-en="Hide full / playing" data-ns92-sr="Sakrij pune / započete">Hide full / playing</span></label><div id="ns92Rooms" class="ns92Rooms" aria-live="polite"></div><small id="ns92Status" class="ns92Status"></small></div><button type="button" class="hidden" id="retryJoinBtn">↻ PONOVI POVEZIVANJE / RETRY</button><p class="netExplain">🌐 Automatski online server je već podešen za oba telefona. Samo koristite istu v104 HTML igru.</p><div id="ns61RelayBlock" class="ns61RelayBlock hidden">
+<section class="modal hidden" id="coopPanel"><div class="modalBox lobbyBox"><button aria-label="Nazad na prethodni ekran" class="navBack" data-nav-back="" type="button">← NAZAD</button><div class="kicker">ONLINE • CO-OP DO 6 IGRAČA</div><div class="ns102Version">NOĆNA STRAŽA · VERZIJA V114 · CLEAN HUD</div><h2 id="coopTitle">IGRAJTE ZAJEDNO</h2><div id="coopSetup"><p>🎮 Online je već podešen. Jedan igrač napravi sobu, a drugi samo upiše šestoznakovni kod i pritisne PRIDRUŽI SE. Nema dodatnog podešavanja.</p><label class="lobbyNameLabel">IME ZA MULTIPLAYER (NEOBAVEZNO)<input autocomplete="nickname" id="mpNameInput" maxlength="20" placeholder="STRAŽAR"><small>Ako ostaviš prazno, koristi se STRAŽAR.</small></input></label><div class="ns72-mp-preview" id="ns72MpAvatarPreview"><span class="ns72AvatarFace">🛡️</span><span>Moja ikonica iz profila · prikazuje se u sobi</span></div><div class="mpProfileSummary" id="mpProfileSummary">TRAJNI NIVO 1 · BEZ NADOGRADNJI</div><div class="ns66LobbyVoice" style="padding:9px 10px;margin:8px 0;background:#102129;border:1px solid #6a8c8b75;border-radius:11px;text-align:left;font-size:12px"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ns66ShareVoiceLobby" checked="checked" style="width:20px;height:20px;flex-shrink:0"/><span>🎙 PUSTI SAIGRAČIMA MOJE SNIMLJENE REPLIKE</span></label><small style="color:#b8c7c2;display:block;margin-top:5px">Samo prethodno snimljeni glas, uz tvoju dozvolu. Drugi će ga čuti i kada su daleko, samo tiše.</small><button type="button" id="ns66AudioTest" style="margin-top:6px;width:100%">🔊 PROVERI GLAS I ZVUK</button><small id="ns66VoiceTip" style="display:block;margin-top:5px;color:#d5caa5"></small></div><div class="ns92Settings"><strong data-ns92-en="CREATE GAME SETTINGS" data-ns92-sr="PODEŠAVANJA SOBE">CREATE GAME SETTINGS</strong><label><span data-ns92-en="Room name" data-ns92-sr="Naziv sobe">Room name</span><input id="ns92Name" maxlength="28" value="Night Watch" autocomplete="off"></label><div class="ns92Flex"><label><span data-ns92-en="Max players" data-ns92-sr="Maks. igrača">Max players</span><select id="ns92Max"><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></label><label class="ns92Toggle"><input type="checkbox" id="ns92Public" checked><span data-ns92-en="Public lobby" data-ns92-sr="Javna soba">Public lobby</span></label></div><label class="ns92Toggle"><input id="ns92Locked" type="checkbox"><span data-ns92-en="Lock with a password" data-ns92-sr="Zaključaj šifrom">Lock with a password</span></label><label id="ns92CreatePassRow" class="hidden"><span data-ns92-en="Password (4–32 characters)" data-ns92-sr="Šifra (4–32 znaka)">Password (4–32 characters)</span><input type="password" id="ns92CreatePass" maxlength="32" autocomplete="new-password" placeholder="••••••••"></label></div><button class="primary" id="hostBtn">NAPRAVI SOBU</button><div class="separator">ili</div><div class="joinRow"><input autocomplete="off" id="joinCode" maxlength="6" placeholder="KOD (6 ZNAKOVA)"><button id="joinBtn">PRIDRUŽI SE</button></input></div><label class="ns92JoinPass"><span data-ns92-en="Password (only if locked)" data-ns92-sr="Šifra (samo ako je zaključano)">Password (only if locked)</span><input type="password" id="ns92JoinPass" maxlength="32" autocomplete="off" placeholder="Optional / Neobavezno"></label><div class="ns92Browser"><div class="ns92Top"><b data-ns92-en="PUBLIC GAMES · JOIN" data-ns92-sr="JAVNE SOBE · PRIDRUŽI SE">PUBLIC GAMES · JOIN</b><button type="button" id="ns92Refresh">↻ REFRESH</button></div><label class="ns92Toggle"><input id="ns92HideFull" type="checkbox" checked><span data-ns92-en="Hide full / playing" data-ns92-sr="Sakrij pune / započete">Hide full / playing</span></label><div id="ns92Rooms" class="ns92Rooms" aria-live="polite"></div><small id="ns92Status" class="ns92Status"></small></div><button type="button" class="hidden" id="retryJoinBtn">↻ PONOVI POVEZIVANJE / RETRY</button><p class="netExplain">🌐 Automatski online server je već podešen za oba telefona. Samo koristite istu v104 HTML igru.</p><div id="ns61RelayBlock" class="ns61RelayBlock hidden">
  <strong>🌐 CO-OP PREKO 4G/5G · RELAY</strong>
  <p>Direktan WebRTC često ne radi preko 5G. WebSocket relay prenosi igru kroz server, bez ICE timeout-a. Server mora jednom da se postavi (Cloudflare projekat je priložen uz v61).</p>
  <label>ZAJEDNIČKA RELAY ADRESA (oba telefona)
@@ -1040,7 +1119,7 @@ const WORLD={w:4200,h:4200}, TAU=Math.PI*2;
 const START={x:WORLD.w/2,y:WORLD.h/2}, VIEW_SCALE=.9;
 const COLORS={blue:'#77cbe9',plava:'#77cbe9',crvena:'#d47778',red:'#d47778',zelena:'#8dd5a4',green:'#8dd5a4',ljubicasta:'#bca0e9',ljubičasta:'#bca0e9',zuta:'#e8c575',žuta:'#e8c575',bela:'#ebe4d4',white:'#ebe4d4',crna:'#555967',black:'#555967',narandzasta:'#e9a572',narandžasta:'#e9a572'};
 const MARKET_TRADE={xp:55,hp:28};
-const DEFAULT={hero:{color:'#90d1b6',size:1,hp:120,speed:161,weapon:'sword',anim:'march'},crawler:{color:'#262c39',size:1,hp:48,speed:78,weapon:'claw',anim:'crawl'},skeleton:{color:'#8e303d',size:1,hp:67,speed:65,weapon:'claw',anim:'march'},goblin:{color:'#6ea84b',size:.94,hp:52,speed:96,weapon:'spear',anim:'scurry'},troll:{color:'#83ae91',size:1.04,hp:132,speed:69,weapon:'club',anim:'stomp'},brute:{color:'#636976',size:1.17,hp:155,speed:49,weapon:'claw',anim:'stomp'},worm:{color:'#638a67',size:1.05,hp:81,speed:42,weapon:'acid',anim:'slither'},elephant:{color:'#74838c',size:1.45,hp:240,speed:34,weapon:'tusk',anim:'stomp'},rotfiend:{color:'#829b4a',size:1.28,hp:620,speed:31,weapon:'claw',anim:'stomp'},boss:{color:'#55516c',size:1.75,hp:450,speed:53,weapon:'claw',anim:'stomp'}};
+const DEFAULT={hero:{color:'#90d1b6',size:1,hp:120,speed:161,weapon:'sword',anim:'march'},crawler:{color:'#262c39',size:1,hp:48,speed:78,weapon:'claw',anim:'crawl'},skeleton:{color:'#8e303d',size:1,hp:67,speed:65,weapon:'claw',anim:'march'},goblin:{color:'#6ea84b',size:.94,hp:52,speed:96,weapon:'spear',anim:'scurry'},troll:{color:'#83ae91',size:1.04,hp:132,speed:69,weapon:'club',anim:'stomp'},brute:{color:'#636976',size:1.17,hp:155,speed:49,weapon:'claw',anim:'stomp'},worm:{color:'#638a67',size:1.05,hp:81,speed:42,weapon:'acid',anim:'slither'},elephant:{color:'#99546d',size:1.45,hp:240,speed:34,weapon:'spear',anim:'scurry'},rotfiend:{color:'#829b4a',size:1.28,hp:620,speed:31,weapon:'claw',anim:'stomp'},boss:{color:'#55516c',size:1.75,hp:450,speed:53,weapon:'claw',anim:'stomp'}};
 let configs=JSON.parse(JSON.stringify(DEFAULT)), props=[], cfgSettings={autoAttack:true,vibrate:true,waveDuration:27,xpPace:'slow',sfx:true,voice:true,sfxVolume:.52,music:true,musicVolume:.18};
 const XP_BASE={normal:100,slow:160,verySlow:240};
 function xpRequirement(level,pace=cfgSettings.xpPace){let xp=XP_BASE[pace]||XP_BASE.slow;for(let i=1;i<level;i++)xp=Math.round(xp*1.12+18);return xp;}
@@ -1104,7 +1183,14 @@ const NETLAB=(()=>{
  function clear(){stats.clear();pending.clear();tokens.clear();counter=0;lastPaint=0;lastRequest=0;lastRetry=0;retryCount=0;reconnecting=false;NET.rejoinToken='';options.delay=0;options.loss=0;const d=document.getElementById('nsNetDelay'),l=document.getElementById('nsNetLoss');if(d)d.value='0';if(l)l.value='0';document.getElementById('nsNetLabDock')?.classList.add('hidden');document.getElementById('nsNetLabPanel')?.classList.add('hidden')}
  function emit(c,data){if(!c?.open)return false;try{c.send(data);return true}catch{return false}}
  // Simulate gameplay transport impairment only, never auth/handshake/payment messages.
- function gameSend(c,data,id='host'){if(!c?.open)return false;const st=peer(id);if(options.loss>0&&Math.random()*100<options.loss){st.dropped++;return false}const go=()=>{if(!c.open||!NET.role)return;try{if(c.send(data)===false)st.dropped++;else st.sent++}catch{st.dropped++}};if(options.delay>0)setTimeout(go,options.delay);else go();return true}
+ function gameSend(c,data,id='host'){
+  if(!c?.open)return false;
+  const st=peer(id);
+  if(options.loss>0&&Math.random()*100<options.loss){st.dropped++;return false}
+  const go=()=>{if(!c.open||!NET.role)return false;try{if(c.send(data)===false){st.dropped++;return false}st.sent++;return true}catch{st.dropped++;return false}};
+  if(options.delay>0){setTimeout(go,options.delay);return true}
+  return go();
+ }
  function ping(c,id){if(!c?.open)return false;const seq=++counter;pending.set(id+':'+seq,t());if(pending.size>250)pending.clear();peer(id).probeSent++;return emit(c,{t:'netPing',id:seq})}
  function handle(data,c,id){if(data.t==='netPing'&&Number.isInteger(data.id)&&data.id>0){emit(c,{t:'netPong',id:data.id});return true}if(data.t==='netPong'&&Number.isInteger(data.id)){const key=id+':'+data.id,sent=pending.get(key);if(sent!==undefined){pending.delete(key);const p=peer(id);const elapsed=t()-sent;p.rtt=p.rtt===null?elapsed:p.rtt*.65+elapsed*.35;p.lastPong=t();p.received++}return true}return false}
  function snapshotReceived(){const p=peer('host');p.lastSnap=t();p.received++}
@@ -1351,7 +1437,7 @@ function awardMP(packet){
  if(!NS94_ECON.reward(packet,amount))return false;
  NET.lastEarned=amount;
  if(amount>0)levelHeroAfterRun(Math.min(70,amount*2+Math.floor(packet.kills/4)));
- saveMP();renderCoopForge();return amount;
+ saveMP();renderCoopForge();window.NS109_VILLAGE?.onMPAward?.(packet);return amount;
 }
 function buyCoopSkill(id){if(NET.phase==='playing')return false;const s=MP_SKILLS[id],r=mpProgress.ranks[id];if(!s||r>=s.max||mpProgress.coins<mpCost(id,r))return false;
  if(!NS94_ECON.pay(mpCost(id,r)))return false;mpProgress.ranks[id]++;saveMP();renderCoopForge();if($('playerProfilePanel')&&!$('playerProfilePanel').classList.contains('hidden'))renderPlayerProfile();if(NET.role==='guest'&&NET.conn?.open)NET.conn.send({t:'profile',spec:networkHeroStyle(heroStyle),ranks:mpProgress.ranks});
@@ -1362,7 +1448,7 @@ function renderCoopForge(){const balance=$('coopCoinBalance'),holder=$('coopForg
  const r=mpProgress.ranks[id],cost=mpCost(id,r),btn=document.createElement('button');btn.className='baseUpgrade';btn.disabled=r>=s.max||mpProgress.coins<cost||NET.phase==='playing';
  const title=document.createElement('strong'),desc=document.createElement('small');title.textContent=s.icon+' '+s.name+' · '+r+'/'+s.max;desc.textContent=s.effect+' po rangu · '+(r>=s.max?'MAKSIMUM':cost+' ✦ za sledeći rang');btn.append(title,desc);btn.onclick=()=>buyCoopSkill(id);holder.append(btn)
  }}
-function networkHeroStyle(s){const h=s||FACTORY_HERO;return {name:String(h.name||'STRAŽAR').slice(0,24),heroClass:['warrior','ranger','mage','support'].includes(h.heroClass)?h.heroClass:'warrior',skin:h.skin,hair:h.hair,hairstyle:['short','bob','ponytail','long','braids','pixie','mohawk','bun'].includes(h.hairstyle)?h.hairstyle:'short',bodyStyle:['classic','slim','strong'].includes(h.bodyStyle)?h.bodyStyle:'classic',accent:h.accent,gear:h.gear,weapon:MEDIEVAL_WEAPONS[h.weapon]?h.weapon:'sword',visualSize:clamp(Number(h.visualSize)||.79,.7,1.12),wardrobe:{...HERO_WARDROBE,...h.wardrobe},ns69Sku:(s===heroStyle?window.NS69Store?.equippedSku:(typeof h.ns69Sku==='string'?h.ns69Sku:null))||null}}
+function networkHeroStyle(s){const h=s||FACTORY_HERO;return {name:String(h.name||'STRAŽAR').slice(0,24),heroClass:['warrior','ranger','mage','support'].includes(h.heroClass)?h.heroClass:'warrior',skin:h.skin,hair:h.hair,hairstyle:['short','bob','ponytail','long','braids','pixie','mohawk','bun'].includes(h.hairstyle)?h.hairstyle:'short',bodyStyle:['classic','slim','strong'].includes(h.bodyStyle)?h.bodyStyle:'classic',accent:h.accent,gear:h.gear,weapon:MEDIEVAL_WEAPONS[h.weapon]?h.weapon:'sword',visualSize:clamp(Number(h.visualSize)||.79,.7,1.12),wardrobe:{...HERO_WARDROBE,...h.wardrobe},ns69Sku:(s===heroStyle?window.NS69Store?.equippedSku:(typeof h.ns69Sku==='string'?h.ns69Sku:null))||null,ns109Sparta:!!h.ns109Sparta||(s===heroStyle&&!!window.NS109_SPARTA?.equipped?.())}}
 function ns106Identity(){const key='ns106_identity_'+String(getActiveAccount()?.id||'main');let v='';try{v=localStorage.getItem(key)||''}catch{}
  if(!/^[a-f0-9]{48}$/.test(v)){const b=new Uint8Array(24);crypto.getRandomValues(b);v=Array.from(b,n=>n.toString(16).padStart(2,'0')).join('');try{localStorage.setItem(key,v)}catch{}}
  return v;}
@@ -1458,7 +1544,7 @@ function settleRun(reason='dead'){NSX.onEnd();
  meta.bestKills=Math.max(meta.bestKills,run.kills);meta.bestSeconds=Math.max(meta.bestSeconds,run.time);
  if(run.score>meta.bestScore){meta.bestScore=run.score;meta.bestItem={weapon:run.bestItem,kills:run.itemKills,score:run.score}}
  meta.points+=run.gained;meta.totalEarned+=run.gained;
- meta.history.unshift({...run,date:new Date().toISOString().slice(0,10)});meta.history=meta.history.slice(0,30);persistMeta();giveSoloLifetimeRewards(run);
+ meta.history.unshift({...run,date:new Date().toISOString().slice(0,10)});meta.history=meta.history.slice(0,30);persistMeta();giveSoloLifetimeRewards(run);window.NS109_VILLAGE?.onSoloResult?.(run);
  $('runResult').textContent=`${formatDuration(run.time)} · ${run.kills} ubistava · Rezultat ${run.score} · +${run.gained} poena časti${run.qualified?'':' (prekratka partija)'}`;
  return run;
 }
@@ -1729,7 +1815,12 @@ function ensureLootAndHouses(existing,houseCount=6,chestCount=5){
 }
 
 function ensureClassicCornerGate(target){
- if(!Array.isArray(target)||target.some(o=>o.zone==='cornerGateZone'))return target;
+ if(!Array.isArray(target))return target;
+ if(target.some(o=>o.zone==='cornerGateZone')){
+  const gate=target.find(o=>o.zone==='cornerGateZone'&&(o.type==='gate'||o.type==='gateOpen'));
+  if(gate&&!target.some(o=>o.ns110GateSeal)){for(const dx of [-83,83])target.push({type:'fence',x:gate.x+dx,y:gate.y,r:37,orientation:'h',zone:'cornerGateZone',ns110GateSeal:true,seed:110,opened:false,used:false});invalidateNavigation()}
+  return target;
+ }
  const zone='cornerGateZone',wall=960,gateX=548,edgePad=40,step=66;
  // Reserved gameplay space in the north-west corner; seal it edge-to-edge so enemies cannot walk around the barricade.
  for(let i=target.length-1;i>=0;i--){
@@ -1744,7 +1835,8 @@ function ensureClassicCornerGate(target){
  place('rock',wall,wall,38,{zone});
  place('rock',wall,-edgePad,30,{zone});
  place('rock',-edgePad,wall,30,{zone});
- // The closed gate fully seals the opening; the open gate is non-solid.
+ // Cover both side gaps. These stay solid when the center door opens.
+ for(const dx of [-83,83])place('fence',gateX+dx,wall,37,{orientation:'h',ns110GateSeal:true});
  place('gate',gateX,wall,70,{orientation:'h'});
  place('obelisk',310,310,30);
  place('torch',450,850,12);place('torch',700,850,12);place('torch',430,905,12);place('torch',665,905,12);
@@ -1928,7 +2020,7 @@ function coopVoiceWire(){
  const manual=$('ns66SendVoiceTest');if(manual)manual.onclick=()=>{unlockSound();const note=$('ns66InGameVoiceStatus');if(!CoopVoice.share){if(note)note.textContent='Uključi deljenje snimaka u Multiplayer meniju.';return;}const kind=VoiceClips.clips.has('start')?'start':VOICE_EVENTS.find(k=>CV63_KINDS.has(k)&&VoiceClips.clips.has(k));if(!kind){if(note)note.textContent='Prvo snimi repliku u Editoru heroja (dovoljna je Moja replika).';return;}void coopVoiceSendClip(kind).then(ok=>{if(note)note.textContent=ok?'Replika je poslata mrežom; proveri sa saigračem da li je čuje.':'Slanje nije uspelo — proveri internet i dozvolu deljenja.';});};
  coopVoiceSyncControls();
 }
-function coopVoiceAvailable(){return NET.phase==='playing'&&G.mode==='play'&&(NET.role==='host'||NET.role==='guest')}
+function coopVoiceAvailable(){return ((NET.phase==='playing'&&G.mode==='play')||(NET.phase==='lobby'&&(!!window.NS109_VILLAGE?.opened||NET.role==='host')))&&(NET.role==='host'||NET.role==='guest')}
 function coopVoiceSend(packet){
  if(!coopVoiceAvailable())return false;
  if(NET.role==='guest'){
@@ -2589,7 +2681,7 @@ const NS95_CAGE=(()=>{
     .sort((a,b)=>(a.x-c.x)**2+(a.y-c.y)**2-((b.x-c.x)**2+(b.y-c.y)**2))[0];
   if(!rescuer||Math.hypot(rescuer.x-c.x,rescuer.y-c.y)>210)return false;
   c.freed=true;c.guards=0;c.ally={
-   x:c.x+8,y:c.y+26,hp:64,maxHp:64,until:now()+110,
+   x:c.x+8,y:c.y+26,hp:64,maxHp:64,until:now()+120,
    attackAt:now()+1.3,frame:0,owner:rescuer.id,phase:0
   };
   if(!c.rewarded){
@@ -2608,41 +2700,65 @@ const NS95_CAGE=(()=>{
   const c=current();
   if(!c||NET.role==='guest'||G.mode!=='play'||G.caveMode)return;
   stepped+=dt;
-  if(stepped<.09)return;const h=Math.min(stepped,.2);stepped=0;
+  if(stepped<.09)return;
+  const h=Math.min(stepped,.2);stepped=0;
   if(!c.freed){c.guards=guardCount(c);if(!c.guards)free(c);return}
   const a=c.ally;if(!a)return;
-  if(now()>a.until||a.hp<=0){c.ally=null;return}
-  a.frame=(a.frame||0)+h*6;a.phase=(a.phase||0)+h;
-  const p=G.players.find(p=>p.id===a.owner&&!p.dead)||G.players.find(p=>!p.dead);
+  if(a.hp<=0){c.ally=null;return}
+  // Rescued ally now survives until killed or the run ends, not just 110 seconds.
+  a.until=now()+120;a.frame=(a.frame||0)+h*6;a.phase=(a.phase||0)+h;
+  const p=G.players.find(x=>x.id===a.owner&&!x.dead)||G.players.find(x=>!x.dead);
   if(!p)return;
   const dx=p.x-a.x,dy=p.y-a.y,d=Math.max(1,Math.hypot(dx,dy));
   if(d>640){a.x=p.x-35;a.y=p.y+38}
-  else if(d>95){
-   const speed=d>270?207:115;
-   const pseudo={x:a.x,y:a.y,r:13};
-   movingCircle(pseudo,dx/d*speed*h,dy/d*speed*h);a.x=pseudo.x;a.y=pseudo.y;
+  let enemy=null,best=120*120;
+  for(const m of G.mobs){if(m.dead||m.ns95Guard)continue;
+   const x=m.x-a.x,y=m.y-a.y,ds=x*x+y*y;
+   if(ds<best){enemy=m;best=ds}
+  }
+  const goal=enemy&&Math.hypot(p.x-a.x,p.y-a.y)<175?enemy:p;
+  const gx=goal.x-a.x,gy=goal.y-a.y,gd=Math.max(1,Math.hypot(gx,gy));
+  const stop=goal===p?95:Math.max(42,(goal.r||15)+25);
+  if(gd>stop){
+   const speed=goal===p?(gd>270?207:115):105,pseudo={x:a.x,y:a.y,r:13};
+   movingCircle(pseudo,gx/gd*speed*h,gy/gd*speed*h);a.x=pseudo.x;a.y=pseudo.y;
   }
   if(now()>=a.attackAt){
-   a.attackAt=now()+2.35;
-   const nearest=G.mobs.find(m=>!m.dead&&!m.ns95Guard&&Math.hypot(m.x-a.x,m.y-a.y)<54);
-   if(nearest){nearest.hp-=3;nearest.flash=.1;if(nearest.hp<=0)killMob(nearest,p)}
+   let victim=null,distSq=72*72;
+   for(const m of G.mobs){if(m.dead||m.ns95Guard)continue;
+    const x=m.x-a.x,y=m.y-a.y,d2=x*x+y*y;
+    if(d2<distSq&&!obstacleInPath(a.x,a.y,m.x,m.y,6)){distSq=d2;victim=m}
+   }
+   if(victim){
+    a.attackAt=now()+1.35;victim.hp=Math.max(0,victim.hp-8);victim.flash=.16;
+    effect('hit',victim.x,victim.y);sfx('hit');
+    if(victim.hp<=0)killMob(victim,p);
+   }
   }
  }
  function beginMobTick(){const c=current();if(c)c.attractors=0}
  function decoyStep(m,dt){
-  const c=current(),a=c?.ally;
-  if(!a||G.caveMode||m.ns95Guard||m.dead||m.id%5!==0||!['goblin','crawler','skeleton'].includes(m.type)||c.attractors>=2)return false;
-  if(now()>=a.until||a.hp<=0)return false;
-  const d=Math.hypot(m.x-a.x,m.y-a.y);
-  if(d>160)return false;
-  c.attractors++;
-  m.angle=Math.atan2(a.y-m.y,a.x-m.x);
-  if(d>m.r+15){
-   const step=Math.min(m.speed,100)*dt;
-   movingCircle(m,(a.x-m.x)/Math.max(1,d)*step,(a.y-m.y)/Math.max(1,d)*step);
-  }else if(m.attackCD<=0){
-   m.attackCD=1.6;m.attackT=.25;
-   a.hp=Math.max(0,a.hp-7);
+  const a=current()?.ally;
+  if(!a||G.caveMode||NET.role==='guest'||m.ns95Guard||m.dead||a.hp<=0)return false;
+  const x=a.x-m.x,y=a.y-m.y,dist=Math.max(1,Math.hypot(x,y));
+  // All nearby hostile types prioritize this target. No 1-in-5 lottery or 2-enemy cap.
+  if(dist>520)return false;
+  const range=m.type==='worm'?155:m.r+13+(m.type==='boss'||m.type==='rotfiend'?65:m.type==='troll'?54:37);
+  m.angle=Math.atan2(y,x);m.targetId='ns95-ally';
+  if(dist>range){
+   let vx=x/dist,vy=y/dist;
+   if(obstacleInPath(m.x,m.y,a.x,a.y,m.r*.7+8)){
+    const nav=flowDirection(m,{x:a.x,y:a.y,id:'ns95-ally'});
+    if(nav){vx=nav.x;vy=nav.y}
+   }
+   movingCircle(m,vx*Math.min(1,dt)*m.speed,vy*Math.min(1,dt)*m.speed);
+  }else if(m.attackCD<=0&&!obstacleInPath(m.x,m.y,a.x,a.y,Math.min(12,m.r*.46))){
+   m.attackCD=m.type==='worm'?2.2:m.type==='boss'?1.35:m.type==='rotfiend'?1.8:m.type==='troll'?1.95:1.32;
+   m.attackT=.4;
+   const dealt=Math.max(2,Math.min(20,Math.round(Number(m.damage)||8)));
+   a.hp=Math.max(0,a.hp-dealt);a.flash=.18;
+   effect('hit',a.x,a.y);
+   if(a.hp===0){effect('shock',a.x,a.y);announce(tr('ALLY DEFEATED','SAVEZNIK JE POGINUO'),2.5)}
   }
   return true;
  }
@@ -2734,7 +2850,7 @@ const NS95_CAGE=(()=>{
   }
   ctx.restore();
   const a=c.ally;
-  if(!a||a.hp<=0||now()>a.until)return;
+  if(!a||a.hp<=0)return;
   const q=screenPoint(a.x,a.y);
   if(q.x<-35||q.y<-70||q.x>v.w+35||q.y>v.h+55)return;
   ctx.save();ctx.translate(q.x,q.y);
@@ -3003,7 +3119,7 @@ function drawAmbientCrystals(){const vw=viewSize().w,vh=viewSize().h;for(const c
  ctx.fillStyle='#60d3ff';ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(11,-2);ctx.lineTo(0,13);ctx.lineTo(-11,-2);ctx.closePath();ctx.fill();
  ctx.fillStyle='#d5f6ff';ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(0,8);ctx.lineTo(-9,-2);ctx.closePath();ctx.fill();ctx.restore();
 }}
-function startGame(opts={}){NS105_TEMPLE.reset(!!opts.templePreview);NS99_TEAM.reset();NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(cloneProps(NET.hostProps))));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap)))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();G.ns100RotfiendWaves=new Set();G.ns100RotfiendRetryAt=0;progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
+function startGame(opts={}){NS105_TEMPLE.reset(!!opts.templePreview);NS99_TEAM.reset();NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(cloneProps(NET.hostProps))));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap)))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';ns111PreloadWorld();G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();G.ns100RotfiendWaves=new Set();G.ns100RotfiendRetryAt=0;progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns111MetaAt=-100;NET.ns111MetaCache=null;NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
 NS105_TEMPLE.placeDoor();mapReset();NSX.start(opts);NS95_CAGE.reset();$('pauseBtn').classList.remove('hidden');$('home').classList.add('hidden');$('editorPanel').classList.add('hidden');$('pausePanel').classList.add('hidden');$('gameOver').classList.add('hidden');$('coopPanel').classList.add('hidden');$('settingsPanel').classList.add('hidden');$('hud').classList.remove('hidden');$('controls').classList.remove('hidden');$('veil').classList.add('hidden');$('spectatorPanel').classList.add('hidden');resetFloatingJoystick();updateHUD();updateNightHUD();announce(opts.bossTest?'BOSS TEST · NIVO 10':G.runType==='campaign'?`KAMPANJA · ${findLevel(G.stageId).name}`:'TALAS 1 · PREŽIVI',2);sfx('wave');voiceLine('preview',true)}
 function addRemotePlayer(id){
  if(G.players.some(p=>p.id===id))return;
@@ -3075,9 +3191,23 @@ function resize(){width=window.innerWidth;height=window.innerHeight;dpr=window._
  if(NS77PERF.guestActive)dpr=Math.min(dpr,NS77PERF.guestCap);
  else if(NS77PERF.hostActive)dpr=Math.min(dpr,NS77PERF.hostCap);
  canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);canvas.style.width=width+'px';canvas.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}window.addEventListener('resize',resize);resize();
+// V114: continuous collision along the classic corner enclosure.
+// Circle-only prop collisions left diagonal seams between gate and fence.
+function ns114CornerGateBlocked(x,y,r=0){
+ if(G.mode!=='play'||x<20||y<20||x>1040||y>1040)return false;
+ const yWall=960,edge=35,clearance=18+Math.max(0,Number(r)||0);
+ const hBand=Math.abs(y-yWall)<clearance&&x>=edge&&x<=yWall+clearance;
+ const vBand=Math.abs(x-yWall)<clearance&&y>=edge&&y<=yWall+clearance;
+ if(!hBand&&!vBand)return false;
+ const gate=props.find(p=>p.zone==='cornerGateZone'&&(p.type==='gate'||p.type==='gateOpen'));
+ if(!gate)return false;
+ if(vBand)return true;
+ // The only valid opening after unlocking is the central door.
+ return !(gate.type==='gateOpen'&&Math.abs(x-gate.x)<Math.max(0,50-r));
+}
 function movingCircle(e,dx,dy){const nr=e.r*.72;
  const candidates=ns77SolidCandidates(e.x,e.y,e.x+dx,e.y+dy,nr*1.05);
- function blocked(x,y){if(x<nr+35||y<nr+35||x>WORLD.w-nr-35||y>WORLD.h-nr-35)return true;
+ function blocked(x,y){if(x<nr+35||y<nr+35||x>WORLD.w-nr-35||y>WORLD.h-nr-35||ns114CornerGateBlocked(x,y,nr))return true;
   if(candidates){for(const i of candidates){const p=props[i];if(!isSolidProp(p.type))continue;let rr=(p.r*.83+nr)*(p.type==='pond'?1.05:1);if((p.x-x)**2+(p.y-y)**2<rr*rr)return true}}
   else for(const p of props){if(!isSolidProp(p.type))continue;let rr=(p.r*.83+nr)*(p.type==='pond'?1.05:1);if((p.x-x)**2+(p.y-y)**2<rr*rr)return true}
   return false;
@@ -3762,6 +3892,12 @@ function buildNavField(target,radius){
      if(dx*dx+dy*dy<clearance*clearance)blocked[x+y*NAV_W]=1;
    }
   }
+  // The navigation field must use the same sealed segments as movement.
+  for(let y=0;y<NAV_H;y++)for(let x=0;x<NAV_W;x++){
+   const wx=(x+.5)*NAV_CELL,wy=(y+.5)*NAV_CELL;
+   if(wx<30||wy<30||wx>1030||wy>1030)continue;
+   if(ns114CornerGateBlocked(wx,wy,radius*.72+8))blocked[x+y*NAV_W]=1;
+  }
   const queue=new Int32Array(cells),ti=navIndex(target.x,target.y);
   let tail=0,head=0,source=ti;
   // A larger enemy sometimes cannot stand exactly at the player's grid cell.
@@ -3837,7 +3973,7 @@ function obstacleInPath(x,y,tx,ty,margin){
 }
 function canStepClear(e,x,y){
   const r=e.r*.72;
-  if(x<r+35||y<r+35||x>WORLD.w-r-35||y>WORLD.h-r-35)return false;
+  if(x<r+35||y<r+35||x>WORLD.w-r-35||y>WORLD.h-r-35||ns114CornerGateBlocked(x,y,r))return false;
   const nearby=ns77SolidCandidates(x,y,x,y,r);
   const blocked=i=>{const p=props[i];if(!isSolidProp(p.type))return false;
    const rr=p.r*.83+r;return (p.x-x)**2+(p.y-y)**2<rr*rr};
@@ -3888,7 +4024,7 @@ function separateMobBodies(){
 // guests receive presentation state through snapshots and never run this AI.
 const BOSS_TYPES=new Set(['boss','rotfiend']);
 function bossPhaseOf(m){if(!m||!Number.isFinite(m.maxHp)||m.maxHp<=0)return 1;const r=m.hp/m.maxHp;return r<=.30?3:r<=.65?2:1}
-function bossTarget(m){const live=G.players.filter(p=>!p.dead);if(!live.length)return null;return live.reduce((best,p)=>!best||Math.hypot(p.x-m.x,p.y-m.y)<Math.hypot(best.x-m.x,best.y-m.y)?p:best,null)}
+function bossTarget(m){const a=G.ns95Cage?.ally;if(a&&a.hp>0&&Math.hypot(a.x-m.x,a.y-m.y)<=520)return a;const live=G.players.filter(p=>!p.dead);if(!live.length)return null;return live.reduce((best,p)=>!best||Math.hypot(p.x-m.x,p.y-m.y)<Math.hypot(best.x-m.x,best.y-m.y)?p:best,null)}
 function bossSummonWave(m,phase){
  // Summon once on entering each new phase: no endless summon farming.
  const bit=1<<phase;if((m.bossPhaseSummons||0)&bit)return;
@@ -3924,12 +4060,25 @@ function bossResolveCast(m){
  const c=m.bossCast;if(!c||m.dead)return false;
  if(c.kind==='quake'){
   for(const p of G.players){if(p.dead)continue;if(Math.hypot(p.x-c.x,p.y-c.y)<=c.radius+p.r*.25)damagePlayer(p,10+5*c.phase,m)}
+  const ally=G.ns95Cage?.ally;
+  if(ally&&ally.hp>0&&Math.hypot(ally.x-c.x,ally.y-c.y)<=c.radius+4){
+   ally.hp=Math.max(0,ally.hp-(10+5*c.phase));effect('hit',ally.x,ally.y);
+   if(ally.hp===0){effect('shock',ally.x,ally.y);announce(lang('ALLY DEFEATED','SAVEZNIK JE POGINUO'),2.5)}
+  }
   effect('bossQuake',c.x,c.y,{radius:c.radius,phase:c.phase});
   sfx('stomp');
  }else{
   const ux=Math.cos(c.angle),uy=Math.sin(c.angle);
   for(const p of G.players){if(p.dead)continue;const dx=p.x-c.x,dy=p.y-c.y,along=dx*ux+dy*uy,across=Math.abs(-dx*uy+dy*ux);
    if(along>=0&&along<=c.length&&across<=c.width+p.r*.35)damagePlayer(p,12+5*c.phase,m)
+  }
+  const ally=G.ns95Cage?.ally;
+  if(ally&&ally.hp>0){
+   const dx=ally.x-c.x,dy=ally.y-c.y,along=dx*ux+dy*uy,across=Math.abs(-dx*uy+dy*ux);
+   if(along>=0&&along<=c.length&&across<=c.width+5){
+    ally.hp=Math.max(0,ally.hp-(12+5*c.phase));effect('hit',ally.x,ally.y);
+    if(ally.hp===0){effect('shock',ally.x,ally.y);announce(lang('ALLY DEFEATED','SAVEZNIK JE POGINUO'),2.5)}
+   }
   }
   effect('bossBeam',c.x,c.y,{angle:c.angle,length:c.length,width:c.width,phase:c.phase});
   sfx('shock');
@@ -3989,7 +4138,7 @@ function updateMobs(dt){buildMobGrid();NS95_CAGE.beginMobTick();
   const frostActive=G.players.some(p=>p.perks.frost&&G.time<p.freezeUntil);
   for(const m of G.mobs){
     m.frame+=dt*(m.type==='rotfiend'?3:m.type==='boss'?4:m.type==='troll'?5:m.type==='goblin'?10:7);
-    m.flash=Math.max(0,m.flash-dt);m.attackT=Math.max(0,m.attackT-dt);m.attackCD=Math.max(0,m.attackCD-dt);if(m.type==='worm'&&m.spitWindup>0){m.spitWindup-=dt;if(m.spitWindup<=0&&!m.dead){let victim=alive.find(p=>p.id===m.targetId)||alive.slice().sort((a,b)=>(a.x-m.x)**2+(a.y-m.y)**2-(b.x-m.x)**2-(b.y-m.y)**2)[0];if(victim)spawnAcid(m,victim)}}
+    m.flash=Math.max(0,m.flash-dt);m.attackT=Math.max(0,m.attackT-dt);m.attackCD=Math.max(0,m.attackCD-dt);if(m.type==='worm'&&m.spitWindup>0){m.spitWindup-=dt;if(m.spitWindup<=0&&!m.dead){let victim=alive.find(p=>p.id===m.targetId)||alive.slice().sort((a,b)=>(a.x-m.x)**2+(a.y-m.y)**2-(b.x-m.x)**2-(b.y-m.y)**2)[0];if(victim&&!(G.ns95Cage?.ally?.hp>0&&Math.hypot(m.x-G.ns95Cage.ally.x,m.y-G.ns95Cage.ally.y)<520))spawnAcid(m,victim)}}
     if(m.dead){m.deathT-=dt;continue}
     if(m.type==='troll'&&m.nsTrollHitAt){
       if(G.time<m.nsTrollHitAt)continue;
@@ -4764,6 +4913,13 @@ function upgradeLevel(){G.level++;for(const hero of G.players)checkWeaponEvoluti
 const opts=[{name:'KOVANI MAČ',desc:'+23% štete',fn:()=>G.players.forEach(p=>p.damage=Math.round(p.damage*1.23))},{name:'SRCE STRAŽARA',desc:'+30 HP i odmah izlečenje',fn:()=>G.players.forEach(p=>{p.maxHp+=30;p.hp=Math.min(p.maxHp,p.hp+46)})},{name:'BRZI KORACI',desc:'+10% kretanja i udaraca',fn:()=>G.players.forEach(p=>{p.speed*=1.10;p.attackRate=Math.max(.26,p.attackRate*.91)})}];if((G.players[0]?.ns95RunManaRanks||0)<4)opts.push({name:'BISTRINA UMA',desc:'+8 MP i +0.12 MP/s do kraja partije',fn:()=>G.players.forEach(p=>NS95_PROGRESS.boost(p))});$('upgradeCards').innerHTML='';for(let up of opts){let btn=document.createElement('button');let top=document.createElement('b');top.textContent=up.name;let low=document.createElement('span');low.textContent=up.desc;btn.append(top,low);btn.onclick=()=>{up.fn();G.paused=false;$('upgradePanel').classList.add('hidden');$('controls').classList.remove('hidden');announce('NIVO '+G.level+' · NADOGRADNJA',2)};$('upgradeCards').append(btn)}}
 function update(dt){if((G.mode!=='play'||G.paused)&&floatingStick.pointerId!==null)resetFloatingJoystick();if(G.mode==='menu'){if($('nightHud'))$('nightHud').classList.add('hidden');G.players[0].frame+=dt*2;G.camera.x=START.x+Math.sin(performance.now()/15000)*120;G.camera.y=START.y+Math.cos(performance.now()/11000)*80;return}if(G.mode==='editor'){G.players[0].frame+=dt*3;return}if(G.mode!=='play'||G.paused||NS99_TEAM.frozen())return;G.time+=dt;if(!G.ns95TestOnly)NSX.tick(dt);NS93_MAGIC.tick(dt);NS95_CAGE.tick(dt);if(!G.caveMode)G.waveClock+=dt;G.waveNoticeT=Math.max(0,G.waveNoticeT-dt);
 if(NET.role==='guest'){
+ // V112: sample rendered FPS in existing game loop; no new timer or per-frame packet.
+ const perf=NET.ns112Perf||(NET.ns112Perf={from:performance.now(),frames:0,fps:60,sent:0});
+ const perfNow=performance.now();perf.frames++;
+ if(perfNow-perf.from>=1200){perf.fps=Math.max(1,Math.min(120,Math.round(perf.frames*1000/(perfNow-perf.from))));perf.frames=0;perf.from=perfNow;}
+ if(NET.phase==='playing'&&NET.conn?.open&&!document.hidden&&perfNow-perf.sent>=1700&&Number(NET.conn.bufferSize||0)<12000){
+  perf.sent=perfNow;try{const snapStats=NS79STATS.status();NET.conn.send({t:'ns112NetHealth',fps:perf.fps,hz:snapStats.hz,jitterMs:snapStats.jitterMs})}catch{}
+ }
  const mine=G.players.find(p=>p.id===NET.localId),inp=mine&&!mine.dead&&!G.quickChoice&&!G.guildPending&&!G.lootPending&&!G.marketPending?getLocalInput():{x:0,y:0,dash:false};
  // Optimistic local movement removes the 130-ms stop/start of the remote hero.
  if(mine&&!mine.dead&&!(G.lootPending||G.marketPending)){
@@ -4971,6 +5127,19 @@ function drawFlower(p){const r=p.r*.4;ctx.strokeStyle='#607457';ctx.lineWidth=2;
 function drawTool(p){ctx.save();ctx.rotate((p.seed%11-5)*.15);ctx.strokeStyle='#806c50';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-13,15);ctx.lineTo(12,-15);ctx.stroke();ctx.strokeStyle='#929a91';ctx.lineWidth=5;if(p.type==='pickaxe'){ctx.beginPath();ctx.moveTo(-4,-23);ctx.quadraticCurveTo(13,-32,28,-16);ctx.stroke()}else{ctx.fillStyle='#7d8982';ctx.beginPath();ctx.moveTo(8,-15);ctx.lineTo(16,-24);ctx.lineTo(25,-18);ctx.lineTo(17,-8);ctx.closePath();ctx.fill()}ctx.restore()}
 function drawFence(p){const r=p.r,vertical=p.orientation==='v';ctx.save();if(vertical)ctx.rotate(Math.PI/2);ellipse(0,r*.46,r*1.08,r*.23,'#10120f55');ctx.fillStyle='#5a4332';ctx.strokeStyle='#a88a67';ctx.lineWidth=2;for(const sx of [-.75,-.25,.25,.75]){ctx.fillRect(r*sx-4,-r*.9,8,r*1.8);ctx.strokeRect(r*sx-4,-r*.9,8,r*1.8)}ctx.fillStyle='#725840';ctx.fillRect(-r*.96,-r*.27,r*1.92,7);ctx.fillRect(-r*.96,r*.13,r*1.92,7);ctx.strokeRect(-r*.96,-r*.27,r*1.92,7);ctx.strokeRect(-r*.96,r*.13,r*1.92,7);ctx.restore()}
 function drawGate(p){const r=p.r,open=p.type==='gateOpen';ctx.save();if(p.orientation==='v')ctx.rotate(Math.PI/2);ellipse(0,r*.5,r*1.18,r*.26,'#11130f66');ctx.fillStyle='#4d382a';ctx.fillRect(-r*.86,-r*.96,8,r*1.9);ctx.fillRect(r*.78,-r*.96,8,r*1.9);ctx.strokeStyle='#a98c67';ctx.lineWidth=2;ctx.strokeRect(-r*.86,-r*.96,8,r*1.9);ctx.strokeRect(r*.78,-r*.96,8,r*1.9);if(!open){for(const sx of [-.48,-.16,.16,.48]){ctx.fillStyle='#6b5138';ctx.fillRect(r*sx-4,-r*.86,8,r*1.72);ctx.strokeRect(r*sx-4,-r*.86,8,r*1.72)}ctx.fillStyle='#785a41';ctx.fillRect(-r*.68,-r*.28,r*1.36,8);ctx.fillRect(-r*.68,r*.18,r*1.36,8);ctx.strokeRect(-r*.68,-r*.28,r*1.36,8);ctx.strokeRect(-r*.68,r*.18,r*1.36,8);ctx.fillStyle='#d8bc7c';ctx.fillRect(r*.38,-3,7,7);}else{ctx.save();ctx.translate(r*.96,0);ctx.rotate(.88);ctx.fillStyle='#6b5138';ctx.fillRect(-r*.56,-r*.82,12,r*1.64);ctx.fillRect(-r*.62,-r*.26,r*1.08,8);ctx.fillRect(-r*.62,r*.18,r*1.08,8);ctx.strokeStyle='#b69872';ctx.strokeRect(-r*.56,-r*.82,12,r*1.64);ctx.strokeRect(-r*.62,-r*.26,r*1.08,8);ctx.strokeRect(-r*.62,r*.18,r*1.08,8);ctx.restore();ctx.save();ctx.translate(-r*.82,0);ctx.rotate(-.12);ctx.fillStyle='#74573f';ctx.fillRect(-r*.08,-r*.84,10,r*1.68);ctx.fillRect(-r*.08,-r*.26,r*.54,8);ctx.fillRect(-r*.08,r*.18,r*.54,8);ctx.strokeStyle='#a98c67';ctx.strokeRect(-r*.08,-r*.84,10,r*1.68);ctx.strokeRect(-r*.08,-r*.26,r*.54,8);ctx.strokeRect(-r*.08,r*.18,r*.54,8);ctx.restore();ctx.shadowColor='#d8bf7e';ctx.shadowBlur=12;ctx.fillStyle='#d8bf7e';ctx.beginPath();ctx.arc(0,-r*.62,3,0,TAU);ctx.fill();ctx.shadowBlur=0;}
+// Visually bridge the gateposts into both permanent fence sides, even when open.
+ if(p.orientation==='h'&&p.zone==='cornerGateZone'){
+  ctx.lineWidth=7;ctx.strokeStyle='#6a5038';ctx.beginPath();
+  for(const side of [-1,1]){
+   ctx.moveTo(side*r*.83,-r*.22);ctx.lineTo(side*(r+43),-r*.22);
+   ctx.moveTo(side*r*.83,r*.20);ctx.lineTo(side*(r+43),r*.20);
+  }
+  ctx.stroke();ctx.lineWidth=1.3;ctx.strokeStyle='#c29a65';ctx.beginPath();
+  for(const side of [-1,1]){
+   ctx.moveTo(side*r*.83,-r*.26);ctx.lineTo(side*(r+43),-r*.26);
+  }
+  ctx.stroke();
+ }
 ctx.restore()}
 function drawObelisk(p){const r=p.r;ctx.save();ellipse(0,r*.56,r*.95,r*.28,'#12120f66');ctx.fillStyle='#4b3b4f';ctx.beginPath();ctx.moveTo(-r*.44,r*.72);ctx.lineTo(-r*.2,-r*.7);ctx.lineTo(r*.22,-r*.88);ctx.lineTo(r*.48,r*.72);ctx.closePath();ctx.fill();ctx.strokeStyle='#bda0db';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#2b2030';ctx.fillRect(-r*.1,-r*.18,r*.2,r*.72);ctx.shadowColor='#b68cff';ctx.shadowBlur=p.used?0:16;ctx.strokeStyle=p.used?'#7c6a91':'#dbc3ff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-r*.58);ctx.lineTo(-r*.12,-r*.2);ctx.lineTo(0,-r*.04);ctx.lineTo(r*.14,.22);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#5e4f69';ctx.fillRect(-r*.55,r*.7,r*1.1,8);ctx.restore()}
 
@@ -4985,8 +5154,41 @@ function drawGuild(p){const r=p.r;ctx.save();ellipse(7,r*.6,r*1.14,r*.52,'#0c101
  ctx.shadowColor='#dca55b';ctx.shadowBlur=14;ellipse(-r*.78,r*.15,4,7,'#ffe19a');ellipse(r*.78,r*.15,4,7,'#ffe19a');ctx.shadowBlur=0;
  ctx.fillStyle=G.guildUnlocked?'#9fe1a6':'#ebc981';ctx.font='bold '+Math.max(10,Math.floor(r*.21))+'px sans-serif';ctx.fillText(G.guildUnlocked?'OTKLJUČANO':'🔑 1 KLJUČ',0,r*1.04);ctx.restore()}
 
+// V111: visual preloading/spatial culling includes ALL props, not only solid
+// collision objects. Camera bounds are deliberately identical to the old loop.
+const NS111_DRAW_CELL=192;
+let ns111DrawIndex=null,ns111DrawBuilds=0,ns111Culled=0;
+function ns111VisualProps(v,cam){
+ if(G.mode==='editor'||!Array.isArray(props))return props;
+ let idx=ns111DrawIndex;
+ if(!idx||idx.source!==props||idx.length!==props.length||idx.generation!==ns77PropGeneration){
+  const grid=new Map();
+  for(let i=0;i<props.length;i++){const p=props[i];if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))continue;
+   const key=Math.floor(p.x/NS111_DRAW_CELL)+':'+Math.floor(p.y/NS111_DRAW_CELL);
+   let cell=grid.get(key);if(!cell){cell=[];grid.set(key,cell)}cell.push(i);
+  }
+  idx={source:props,length:props.length,generation:ns77PropGeneration,grid};
+  ns111DrawIndex=idx;ns111DrawBuilds++;
+ }
+ const left=Math.floor((cam.x-v.w*.5-160)/NS111_DRAW_CELL);
+ const right=Math.floor((cam.x+v.w*.5+160)/NS111_DRAW_CELL);
+ const top=Math.floor((cam.y-v.h*.5-160)/NS111_DRAW_CELL);
+ const bottom=Math.floor((cam.y+v.h*.5+160)/NS111_DRAW_CELL);
+ const ids=[];
+ for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
+  const cell=idx.grid.get(x+':'+y);if(cell)ids.push(...cell);
+ }
+ ids.sort((a,b)=>a-b);ns111Culled+=Math.max(0,props.length-ids.length);
+ return ids.map(i=>props[i]);
+}
+function ns111PreloadWorld(){
+ // No extra downloads: prebuild render buckets for the already loaded map.
+ const cam=G?.camera||START;
+ ns111VisualProps(viewSize(),cam);
+}
+window.__NS111_PERF={get builds(){return ns111DrawBuilds},get culled(){return ns111Culled},get propCount(){return props.length}};
 function drawWorldProps(){const v=viewSize(),cam=G.mode==='editor'?G.pan:G.camera,ox=v.w*.5-cam.x,oy=v.h*.5-cam.y;
- for(const p of props){const x=p.x+ox,y=p.y+oy;
+ for(const p of ns111VisualProps(v,cam)){const x=p.x+ox,y=p.y+oy;
   if(x<-160||y<-160||x>v.w+160||y>v.h+160)continue;
   ctx.save();ctx.translate(x,y);let a={...p,x:0,y:0};if(p.type==='rock')drawRock(a);else if(p.type==='tree')drawTree(a);else if(p.type==='house')drawHouse(a);else if(p.type==='caveEntrance')drawCaveEntrance(a);else if(p.type==='chest')drawChest(a);else if(p.type==='bush')drawBush(a);else if(p.type==='ruin')drawRuin(a);else if(p.type==='pond')drawPond(a);else if(p.type==='cart')drawCart(a);else if(p.type==='torch')drawTorch(a);else if(p.type==='market')drawMarket(a);else if(p.type==='guild')drawGuild(a);else if(p.type==='nightTower')drawNightTower(a);else if(p.type==='crate')drawCrate(a);else if(p.type==='barrel')drawBarrel(a);else if(p.type==='shed')drawShed(a);else if(p.type==='bin')drawBin(a);else if(p.type==='dumpster')drawDumpster(a);else if(p.type==='wreck')drawWreck(a);else if(p.type==='haystack'||p.type==='bale')drawHay(a);else if(p.type==='tractor')drawTractor(a);else if(p.type==='flower')drawFlower(a);else if(p.type==='shovel'||p.type==='pickaxe')drawTool(a);else if(p.type==='fence')drawFence(a);else if(p.type==='gate'||p.type==='gateOpen')drawGate(a);else if(p.type==='obelisk')drawObelisk(a);else if(p.type==='templeWall')NS105_TEMPLE.drawWall(a);else drawCrystal(a);ctx.restore()}}
 function colorMix(c,a){const raw=c.replace('#','');if(raw.length!==6)return c;let R=parseInt(raw.slice(0,2),16),V=parseInt(raw.slice(2,4),16),B=parseInt(raw.slice(4,6),16);R=clamp(Math.round(R+a),0,255);V=clamp(Math.round(V+a),0,255);B=clamp(Math.round(B+a),0,255);return '#'+[R,V,B].map(v=>v.toString(16).padStart(2,'0')).join('')}
@@ -5060,7 +5262,7 @@ function drawFemMech(e,model){
   if(boss||e.hp<e.maxHp){ctx.save();ctx.translate(e.x,e.y);const r=e.r;ctx.fillStyle='#131923';ctx.fillRect(-r,-r*2.65,r*2,5);ctx.fillStyle=boss?'#e76aa1':'#c4a5b0';ctx.fillRect(-r,-r*2.65,r*2*clamp(e.hp/Math.max(1,e.maxHp),0,1),5);ctx.restore()}
 }
 function drawGoblin(e,model){
-  const green=model.color||'#6ea84b', dark=colorMix(green,-38), light=colorMix(green,24), ear='#98c463', skin=colorMix(green,10);
+  const green=model.color||'#6ea84b', dark=colorMix(green,-38), light=colorMix(green,24), ear=model.earColor||'#98c463', skin=colorMix(green,10);
   const t=e.frame||0, step=Math.sin(t*1.7)*4.8, a=e.attackT||0, stab=a>0?Math.sin((1-a/.36)*Math.PI):0, alive=e.dead?clamp(e.deathT/.39,0,1):1;
   ctx.save();ctx.globalAlpha*=alive;ctx.translate(e.x,e.y);ctx.rotate((e.angle||0)+Math.PI/2+(e.dead?(1-alive)*.7:0));
   ellipse(0,10,e.r*.88,e.r*.33,'#050b09b8');
@@ -5222,7 +5424,7 @@ function drawHeroHairStyle(c,style,color,back=false){
 }
 
 function drawUprightHero(e){
- const heroLook=window.NS69Store?.appearance(e.look||heroStyle)||(e.look||heroStyle);const unit=(e.r||17)/17,side=e.visualSide===-1?-1:1,ward=heroLook.wardrobe||HERO_WARDROBE,hit=(e.flash||0)>0;
+ const heroLook=window.NS109_SPARTA?.appearance(window.NS69Store?.appearance(e.look||heroStyle)||(e.look||heroStyle),e)||(window.NS69Store?.appearance(e.look||heroStyle)||(e.look||heroStyle));const unit=(e.r||17)/17,side=e.visualSide===-1?-1:1,ward=heroLook.wardrobe||HERO_WARDROBE,hit=(e.flash||0)>0;
  const t=e.frame||0,walk=e.walking?1:0,step=Math.sin(t*1.65)*walk;
  const slash=e.attackT>0?Math.sin(Math.PI*clamp(1-e.attackT/.30,0,1)):0;
  const bob=Math.abs(step)*1.3;
@@ -5287,8 +5489,35 @@ function drawUprightHero(e){
 }
 function drawCrystalSpider(e){const phase=e.frame||0;ctx.save();ctx.translate(e.x,e.y);ctx.rotate((e.angle||0)+Math.PI/2);ctx.globalAlpha*=e.dead?Math.max(0,e.deathT/.39):1;ctx.strokeStyle='#6f5a94';ctx.lineWidth=5;ctx.lineCap='round';for(const side of [-1,1])for(let i=0;i<4;i++){const a=i*.42+.3,xx=side*(8+i*4),yy=(i-1.5)*9;ctx.beginPath();ctx.moveTo(side*8,0);ctx.lineTo(xx+side*14,yy+Math.sin(phase+i)*3);ctx.lineTo(xx+side*22,yy+7);ctx.stroke();}ellipse(0,1,20,16,e.flash?'#f6ffff':'#3c315d');ellipse(0,-11,13,12,'#655296');ctx.shadowColor='#9ce9f4';ctx.shadowBlur=14;for(const x of [-5,5])ellipse(x,-17,3,4,'#b1f8ef');ellipse(0,4,7,5,'#82d2d7');ctx.restore();}
 function drawTreasureGoblin(e){drawGoblin(e,configs.goblin);ctx.save();ctx.shadowColor='#ebc76a';ctx.shadowBlur=12;ctx.fillStyle='#dbb95c';ctx.beginPath();ctx.arc(e.x,e.y-40,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#533a1d';ctx.fillRect(e.x-4,e.y-42,8,4);ctx.restore();}
-function drawWarElephant(e){const r=e.r||26;ctx.save();ctx.translate(e.x,e.y);ctx.globalAlpha*=e.dead?Math.max(0,e.deathT/.39):1;ellipse(0,r*.72,r*1.15,r*.44,'#0b121699');const t=e.frame||0,b=Math.sin(t*1.3)*1.4;ctx.translate(0,b);ellipse(0,-2,r*1.05,r*.82,e.flash?'#a9b7bf':'#6d7b84');ellipse(0,-2,r*.72,r*.54,'#7f8f99');ellipse(-r*.78,-2,r*.22,r*.38,'#93a2ab');ellipse(r*.78,-2,r*.22,r*.38,'#93a2ab');for(const s of [-1,1]){ctx.strokeStyle='#5c6870';ctx.lineWidth=10;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(s*r*.42,r*.18);ctx.lineTo(s*r*.4,r*.98);ctx.stroke();ctx.strokeStyle='#74838c';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(s*r*.42,r*.18);ctx.lineTo(s*r*.4,r*.95);ctx.stroke();}
-ctx.strokeStyle='#7b858c';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(0,r*.04);ctx.quadraticCurveTo(2,r*.48,-3,r*.82);ctx.stroke();ctx.strokeStyle='#e9dfbb';ctx.lineWidth=3;for(const s of [-1,1]){ctx.beginPath();ctx.moveTo(s*r*.44,-r*.05);ctx.quadraticCurveTo(s*r*.72,r*.07,s*r*.83,r*.26);ctx.stroke();}ellipse(-r*.2,-r*.16,2.4,3.1,'#132028');ellipse(r*.2,-r*.16,2.4,3.1,'#132028');ctx.restore();}
+// V114: Legacy "elephant" type remains for save/network compatibility.
+// The visual is now the ordinary goblin walk/attack/death animation, recolored
+// as a burgundy armored goblin with a steel horned helm and shoulder plates.
+const NS114_ELITE_GOBLIN={color:'#99546d',earColor:'#b7839e'};
+function drawArmoredGoblin(e){
+ drawGoblin(e,NS114_ELITE_GOBLIN);
+ const life=e.dead?clamp((e.deathT||0)/.39,0,1):1;
+ ctx.save();ctx.globalAlpha*=life;ctx.translate(e.x,e.y);
+ ctx.rotate((e.angle||0)+Math.PI/2+(e.dead?(1-life)*.7:0));
+ ctx.scale(e.r/14,e.r/14);
+ ctx.fillStyle='#4b5360';
+ for(const side of [-1,1]){
+  ctx.beginPath();ctx.moveTo(side*7,-9);ctx.lineTo(side*14,-7);ctx.lineTo(side*12,0);
+  ctx.lineTo(side*8,-1);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#c4b08b';ctx.lineWidth=1;ctx.stroke();
+ }
+ ellipse(0,-24,10,6,e.flash>0?'#c7d5d9':'#505d69');
+ ctx.fillStyle='#35404b';ctx.fillRect(-10,-24,20,4);
+ ctx.strokeStyle='#c5a976';ctx.lineWidth=1.4;ctx.beginPath();
+ ctx.moveTo(-9,-27);ctx.quadraticCurveTo(0,-34,9,-27);ctx.stroke();
+ // Small asymmetrical iron horns, unlike the regular green goblin.
+ ctx.fillStyle='#aab3b6';
+ for(const side of [-1,1]){
+  ctx.beginPath();ctx.moveTo(side*7,-29);ctx.lineTo(side*13,-39);
+  ctx.lineTo(side*11,-29);ctx.closePath();ctx.fill();
+ }
+ ctx.fillStyle='#c9a86e';ctx.fillRect(-1,-33,2,11);
+ ctx.restore();
+}
 // v89: lightweight vector troll matching existing goblin silhouettes.
 function drawTroll(e,model){
  const r=e.r||22,t=e.frame||0,life=e.dead?clamp((e.deathT||0)/.39,0,1):1;
@@ -5321,7 +5550,7 @@ function drawTroll(e,model){
  ctx.strokeStyle='#867a68';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-4,-39);ctx.lineTo(2,-31);ctx.stroke();ctx.restore();
  ctx.restore();
 }
-function drawFigure(e,isHero){if(e.nsCaveSpider){drawCrystalSpider(e);return;}if(isHero){drawUprightHero(e);return;}const model=isHero?configs.hero:configs[e.type]||configs.crawler;if(!isHero){if(e.type==='goblin'){if(e.nsCaveThief)drawTreasureGoblin(e);else drawGoblin(e,model);return;}if(e.type==='troll'){drawTroll(e,model);return;}if(e.type==='worm'){drawWorm(e,model);return;}if(e.type==='rotfiend'){drawRotfiend(e,model);return;}if(e.type==='elephant'){drawWarElephant(e);return;}drawFemMech(e,model);return;}const r=e.r;const w=isHero?1.0:r/15;const t=e.frame||0,walking=isHero?e.walking:true;let stride=Math.sin(t*1.4)*(walking?6:1),attack=e.attackT||0;const col=model.color;const dead=e.dead;let deathAlpha=dead?clamp(e.deathT/.39,0,1):1;ctx.save();ctx.globalAlpha=deathAlpha;ctx.translate(e.x,e.y);ctx.rotate((isHero?(e.bodyFacing??e.facing):e.facing??e.angle??0)+Math.PI/2);if(isHero)ctx.scale(.94,1.16);let bounce=(model.anim==='stomp'?Math.abs(Math.sin(t))*2.4:model.anim==='crawl'?Math.sin(t*2)*1.8:model.anim==='bounce'?Math.abs(Math.sin(t*1.6))*4:model.anim==='shiver'?Math.sin(t*17)*1.7:Math.sin(t)*1.0);ellipse(0,r*.60,r*1.04,r*.53,'#070e14a8');ctx.translate(0,bounce);const f=col;const isBoss=e.type==='boss',crawler=e.type==='crawler',sk=e.type==='skeleton',br=e.type==='brute';
+function drawFigure(e,isHero){if(e.nsCaveSpider){drawCrystalSpider(e);return;}if(isHero){drawUprightHero(e);return;}const model=isHero?configs.hero:configs[e.type]||configs.crawler;if(!isHero){if(e.type==='goblin'){if(e.nsCaveThief)drawTreasureGoblin(e);else drawGoblin(e,model);return;}if(e.type==='troll'){drawTroll(e,model);return;}if(e.type==='worm'){drawWorm(e,model);return;}if(e.type==='rotfiend'){drawRotfiend(e,model);return;}if(e.type==='elephant'){drawArmoredGoblin(e);return;}drawFemMech(e,model);return;}const r=e.r;const w=isHero?1.0:r/15;const t=e.frame||0,walking=isHero?e.walking:true;let stride=Math.sin(t*1.4)*(walking?6:1),attack=e.attackT||0;const col=model.color;const dead=e.dead;let deathAlpha=dead?clamp(e.deathT/.39,0,1):1;ctx.save();ctx.globalAlpha=deathAlpha;ctx.translate(e.x,e.y);ctx.rotate((isHero?(e.bodyFacing??e.facing):e.facing??e.angle??0)+Math.PI/2);if(isHero)ctx.scale(.94,1.16);let bounce=(model.anim==='stomp'?Math.abs(Math.sin(t))*2.4:model.anim==='crawl'?Math.sin(t*2)*1.8:model.anim==='bounce'?Math.abs(Math.sin(t*1.6))*4:model.anim==='shiver'?Math.sin(t*17)*1.7:Math.sin(t)*1.0);ellipse(0,r*.60,r*1.04,r*.53,'#070e14a8');ctx.translate(0,bounce);const f=col;const isBoss=e.type==='boss',crawler=e.type==='crawler',sk=e.type==='skeleton',br=e.type==='brute';
 ctx.save();ctx.scale(w,w);if(isBoss){ctx.shadowColor='#c33873';ctx.shadowBlur=23}
 // Animated feet, boots, arms, torso in top-down view
 let legSpread=isBoss?13:8;limbs(-legSpread/2,4,-legSpread/2-2+stride,21,crawler?'#65436a':'#333b43',6);limbs(legSpread/2,4,legSpread/2+2-stride,21,crawler?'#684375':'#343e46',6);
@@ -5526,12 +5755,23 @@ function mapClose(){if(miniMap.pausedByMap){G.paused=false;miniMap.pausedByMap=f
 function mapOpen(){if(G.mode!=='play')return;if(!NET.role&&!G.paused){G.paused=true;miniMap.pausedByMap=true;}miniMap.largeOpen=true;mapRefreshText();$('mapOverlay').classList.remove('hidden');mapDraw($('mapLarge'),true);}
 function mapTick(ts){if(G.mode!=='play'){if(!$('mapDock').classList.contains('hidden'))mapHide();return;}
  if($('mapDock').classList.contains('hidden'))$('mapDock').classList.remove('hidden');
- if(ts-miniMap.lastPaint<(NET.role==='guest'?245:165))return;miniMap.lastPaint=ts;mapReveal();if(miniMap.lastLocale!==window.__gameLanguage?.value){miniMap.lastLocale=window.__gameLanguage?.value;mapRefreshText();}mapDraw($('mapSmall'),false);updateSOSHUD();if(miniMap.largeOpen)mapDraw($('mapLarge'),true);
+ if(ts-miniMap.lastPaint<(NET.role==='guest'?450:240))return;miniMap.lastPaint=ts;mapReveal();if(miniMap.lastLocale!==window.__gameLanguage?.value){miniMap.lastLocale=window.__gameLanguage?.value;mapRefreshText();}mapDraw($('mapSmall'),false);updateSOSHUD();if(miniMap.largeOpen)mapDraw($('mapLarge'),true);
 }
 $('mapToggle').addEventListener('click',mapOpen);$('mapClose').addEventListener('click',mapClose);
 $('mapOverlay').addEventListener('click',e=>{if(e.target===$('mapOverlay'))mapClose()});
 
-function loop(ts){NSX.reportFPS(ts);NS94_FX.observe(ts);let dt=clamp((ts-lastTs)/1000,.001,.035);lastTs=ts;update(dt);NS89_PICK.tick();NS77PERF.tick();const ns76DrawStart=performance.now();draw();NS77PERF.sample(performance.now()-ns76DrawStart);mapTick(ts);NETLAB.tick(ts);NETMIG.tick();requestAnimationFrame(loop)}
+let ns111LastDraw=0;
+function loop(ts){
+ NSX.reportFPS(ts);NS94_FX.observe(ts);
+ let dt=clamp((ts-lastTs)/1000,.001,.035);lastTs=ts;
+ update(dt);NS89_PICK.tick();NS77PERF.tick();
+ // On 90/120Hz phones keep simulation/input responsive but cap heavy Canvas draw
+ // at ~60 FPS. rAF still controls the update loop.
+ if(ts-ns111LastDraw>=15||G.mode==='menu'&&ts-ns111LastDraw>=20){
+  ns111LastDraw=ts;const drawStart=performance.now();draw();NS77PERF.sample(performance.now()-drawStart);
+ }
+ mapTick(ts);NETLAB.tick(ts);NETMIG.tick();requestAnimationFrame(loop);
+}
 // Free-position analog joystick. It appears exactly where the player touches
 // the gameplay canvas; the attack/dash buttons have their own pointer targets.
 const floatingStick={pointerId:null,startX:0,startY:0,radius:47,deadZone:7};
@@ -6073,7 +6313,7 @@ function showLobbyUI(){NS92_DIR.stop();$('ns93SpellDock')?.classList.add('hidden
  $('coopTitle').textContent='ČEKAONICA · READY';$('coopForge').classList.add('hidden');$('closeCoop').classList.add('hidden');
  $('roomCode').textContent=NET.code;sendSocialStatus();
  $('lobbyStartBtn').classList.toggle('hidden',NET.role!=='host');renderCoopForge();
- renderLobby();NS96_INVITES.render();if(!SOCIAL.peer&&!SOCIAL.starting)startSocial();
+ renderLobby();NS96_INVITES.render();if(!SOCIAL.peer&&!SOCIAL.starting)startSocial();queueMicrotask(()=>window.NS109_VILLAGE?.onLobbyUI?.());
 }
 function currentLobbyRoster(){
  if(NET.role==='host'){
@@ -6174,7 +6414,7 @@ function startLobbyMatch(){
  if(NS97_POST.active&&!NET.ns97Results.startAt)return false;
  const roster=currentLobbyRoster();
  if(roster.length<2||(!NET.forceRequest&&!roster.every(p=>p.ready))||roster.slice(1).some(p=>!NET.worldReadyPlayers.get(p.id))){NET.forceRequest=false;netStatus('Nisu svi spremni. Čekamo najmanje 2 igrača.');renderLobby();return false}
- NET.forceRequest=false;NET.lastEarned=null;NS97_POST.clear();NS99_TEAM.reset();NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
+ NET.forceRequest=false;NET.lastEarned=null;NS97_POST.clear();NS99_TEAM.reset();window.NS109_VILLAGE?.close?.();NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
  // Host is authoritative: start the battle only here, never when a room is created.
  startGame({specialMode:selectedMode,difficulty:NSX.opt.difficulty});
  markMultiplayerNames();
@@ -6218,27 +6458,48 @@ function retryInitialGuestConnection(reason=''){
  return true;
 }
 function setupConnection(c){
- let assigned=null,presentedIdentity='',rejectReason='',syncTimer=null,worldSend=null,worldReceive=null,welcomeAcknowledged=false,ns107RateAt=performance.now(),ns107PacketCount=0;
+ let assigned=null,presentedIdentity='',rejectReason='',syncTimer=null,worldSend=null,worldReceive=null,guestCanZip=false,worldRetryCount=0,welcomeAcknowledged=false,ns107RateAt=performance.now(),ns107PacketCount=0;
  const safeSend=data=>{if(!c.open)return false;try{c.send(data);return true}catch(err){return false}};
- const sendWelcome=()=>{if(assigned&&NET.role==='host'&&NET.phase==='lobby')safeSend({t:'welcome',id:assigned,code:NET.code,v:107,rejoinToken:NETLAB.tokens.get(assigned)?.token})};
+ const sendWelcome=()=>{if(assigned&&NET.role==='host'&&NET.phase==='lobby')safeSend({t:'welcome',id:assigned,code:NET.code,round:NET.round,post:NET.ns97Results||null,v:107,rejoinToken:NETLAB.tokens.get(assigned)?.token})};
  // WebRTC channels can open before both sides have attached data handlers. Explicit
  // request/ack retries prevent a lost initial host packet from trapping a guest.
  const sendWorldPart=()=>{
-  if(!worldSend||worldSend.done||NET.role!=='host'||NET.phase!=='lobby')return;
-  const i=Math.min(worldSend.index,worldSend.parts.length-1);
-  // Even after the final chunk is ACKed, resend that chunk until worldDone arrives.
-  // This recovers from a lost worldDone packet on real mobile networks.
-  safeSend({t:'worldPart',index:i,count:worldSend.parts.length,payload:worldSend.parts[i]});
+  if(!worldSend||worldSend.preparing||!worldSend.parts.length||worldSend.done||NET.role!=='host'||NET.phase!=='lobby')return;
+  // When every chunk is ACKed but worldDone was lost, re-send only the final piece,
+  // rate-limited, to trigger the guest's idempotent worldDone acknowledgement.
+  if(worldSend.index>=worldSend.parts.length){
+   const now=performance.now();
+   if(now-(worldSend.lastFinalRetry||0)>1150){
+    worldSend.lastFinalRetry=now;
+    const i=worldSend.parts.length-1;
+    safeSend({t:'worldPart',index:i,count:worldSend.parts.length,payload:worldSend.parts[i]});
+   }
+   return;
+  }
+  // Four in-flight chunks; ACK of any order moves the window. Missing pieces are retried.
+  for(let i=worldSend.index;i<Math.min(worldSend.parts.length,worldSend.index+4);i++)
+   if(!worldSend.acked.has(i))safeSend({t:'worldPart',index:i,count:worldSend.parts.length,payload:worldSend.parts[i]});
  };
  const beginWorldTransfer=()=>{
   if(!assigned||NET.phase!=='lobby')return;
-  if(!worldSend){
+  if(worldSend){sendWorldPart();return}
+  const state={parts:[],index:0,done:false,preparing:true,acked:new Set()};
+  worldSend=state;
+  (async()=>{
    const source=JSON.stringify({props,models:configs,settings:cfgSettings});
-   const chunkSize=6400,parts=[];
-   for(let i=0;i<source.length;i+=chunkSize)parts.push(source.slice(i,i+chunkSize));
-   worldSend={parts,index:0,done:false};
-  }
-  sendWorldPart();
+   let wire=source;
+   try{
+    if(guestCanZip&&typeof CompressionStream==='function'){
+     const bytes=new Uint8Array(await new Response(new Blob([source]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+     let bin='';for(let i=0;i<bytes.length;i+=8192)bin+=String.fromCharCode(...bytes.subarray(i,i+8192));
+     const zipped=JSON.stringify({ns110Zip:1,data:btoa(bin)});
+     if(zipped.length<source.length*.85)wire=zipped;
+    }
+   }catch{wire=source} // Older browsers safely use the original JSON transfer.
+   if(worldSend!==state||NET.role!=='host'||NET.phase!=='lobby'||!c.open)return;
+   for(let i=0;i<wire.length;i+=6400)state.parts.push(wire.slice(i,i+6400));
+   state.preparing=false;sendWorldPart();
+  })().catch(()=>{if(worldSend===state){worldSend=null;netStatus('Map transfer failed. Try rejoining.')}});
  };
  const takeover=id=>{if(!/^p[2-6]$/.test(String(id))||NET.role!=='host'||NET.phase!=='lobby')return false;
  const previous=NET.clients.get(id),temp=assigned;
@@ -6252,7 +6513,7 @@ function setupConnection(c){
   if(NET.phase==='playing'&&NET.rejoinToken)safeSend({t:'resumeHello',v:107,token:NET.rejoinToken,identity:ns106Identity(),round:NET.round,code:NET.code});
    else if(NET.phase==='connecting'){
     safeSend({t:'resumeHello',v:107,token:NET.rejoinToken||'',identity:ns106Identity(),round:NET.round,code:NET.code});
-    safeSend({t:'hello',v:107,identity:ns106Identity()});
+    safeSend({t:'hello',v:107,identity:ns106Identity(),worldGzip:typeof DecompressionStream==='function'});
    }
   else if(NET.phase==='lobby'&&!NET.worldReady)safeSend({t:'welcomeAck',id:NET.localId});
  };
@@ -6289,6 +6550,14 @@ function setupConnection(c){
    if(!assigned&&!['hello','resumeHello','netPing','netPong'].includes(data.t))return;
   }
   if(NETLAB.handle(data,c,NET.role==='host'?(assigned||'pending'):'host'))return;
+  // V112: low-frequency guest FPS feedback; cosmetic budget only, gameplay remains host-authoritative.
+  if(data.t==='ns112NetHealth'){
+   if(NET.role==='host'&&assigned&&NET.phase==='playing'&&Number.isFinite(data.fps)){
+    (NET.ns112GuestPerf||(NET.ns112GuestPerf=new Map())).set(assigned,{fps:clamp(Math.round(data.fps),1,120),hz:Number.isFinite(data.hz)?clamp(data.hz,0,60):null,jitterMs:Number.isFinite(data.jitterMs)?clamp(data.jitterMs,0,3000):null,at:performance.now()});
+   }
+   return;
+  }
+  if(window.NS109_VILLAGE?.onMessage?.(data,assigned))return;
   if(NET.role==='host'&&assigned&&NET.phase==='playing'){
    if(data.t==='ns99VoteRequest'){NS99_TEAM.request(data.kind,assigned);return}
    if(data.t==='ns99Vote'){NS99_TEAM.castVote(data.kind,assigned,data.choice,data.round);return}
@@ -6307,7 +6576,7 @@ function setupConnection(c){
     if(NET.kickedIdentities.has(identity)){safeSend({t:'kicked'});setTimeout(()=>c.close(),400);return}
     if(identity===ns106Identity()){safeSend({t:'alreadyHere'});setTimeout(()=>c.close(),400);return}
     if(presentedIdentity&&presentedIdentity!==identity){safeSend({t:'versionMismatch',required:107});setTimeout(()=>c.close(),400);return}
-    presentedIdentity=identity;
+    presentedIdentity=identity;guestCanZip=data.worldGzip===true;
     if(!assigned){
      const existing=[...NET.profiles].find(([id,p])=>/^p[2-6]$/.test(id)&&p.sessionIdentity===identity&&(NET.clients.has(id)||NETLAB.tokens.has(id)));
      if(existing)takeover(existing[0]);
@@ -6322,8 +6591,13 @@ function setupConnection(c){
    }
    if(assigned&&NET.phase==='lobby'){
         if(data.t==='welcomeAck'&&data.id===assigned){welcomeAcknowledged=true;beginWorldTransfer();return}
+    if(data.t==='worldRetry'){if(++worldRetryCount<=2){worldSend=null;beginWorldTransfer()}return}
     if(data.t==='worldAck'&&worldSend&&Number.isInteger(data.index)){
-     if(data.index===worldSend.index){worldSend.index++;if(worldSend.index<worldSend.parts.length)sendWorldPart()}
+     if(data.index>=0&&data.index<worldSend.parts.length){
+      worldSend.acked.add(data.index);
+      while(worldSend.acked.has(worldSend.index))worldSend.index++;
+      if(worldSend.index<worldSend.parts.length)sendWorldPart();
+     }
      return;
     }
     if(data.t==='worldDone'&&worldSend){
@@ -6418,9 +6692,11 @@ function setupConnection(c){
    if(data.t==='welcome'){
     if(data.v!==107){NET.joinRetryCount=4;netStatus('RAZLIČITE VERZIJE: oba telefona moraju otvoriti Noćnu Stražu V108.');$('retryJoinBtn').classList.remove('hidden');return;}
     if((NET.phase!=='connecting'&&NET.phase!=='lobby')||!/^p[2-6]$/.test(data.id))return;
-    if(NET.phase==='lobby'&&data.id!==NET.localId){NET.worldReady=false;NET.localReady=false;worldReceive=null;NET.localId=data.id;NET.rejoinToken=typeof data.rejoinToken==='string'?data.rejoinToken:'';NET.roster=[];netStatus('Existing player slot restored.')}
+    if(NET.phase==='lobby'&&data.id!==NET.localId){if(Number.isInteger(data.round)&&data.round>=NET.round)NET.round=data.round;NET.worldReady=false;NET.localReady=false;worldReceive=null;NET.localId=data.id;NET.rejoinToken=typeof data.rejoinToken==='string'?data.rejoinToken:'';NET.roster=[];netStatus('Existing player slot restored.')}
     if(NET.phase==='connecting'){
+     NET.round=Number.isInteger(data.round)&&data.round>=0?data.round:NET.round;
      NET.localId=data.id;NET.rejoinToken=typeof data.rejoinToken==='string'?data.rejoinToken:'';NET.code=data.code||NET.code;NET.phase='lobby';NET.localReady=false;NET.worldReady=false;
+     if(data.post)NS97_POST.receive(data.post);
      showLobbyUI();$('retrySyncBtn').classList.add('hidden');
      netStatus('Igrač '+data.id.slice(1)+' · čekaonica je spremna; učitavam mapu...');
     }
@@ -6432,26 +6708,41 @@ function setupConnection(c){
     if(!worldReceive||worldReceive.parts.length!==n)worldReceive={parts:Array(n),received:0};
     if(worldReceive.parts[i]===undefined){worldReceive.parts[i]=data.payload;worldReceive.received++}
     safeSend({t:'worldAck',index:i});
-    if(worldReceive.received===n){
-     try{
-      const d=JSON.parse(worldReceive.parts.join(''));
-      NET.hostProps=sanitizeProps(d.props)||[];
-      props=prepareChestLocks(cloneProps(NET.hostProps));activePlayMap=props;
-      for(const type of Object.keys(DEFAULT))Object.assign(configs[type],d.models?.[type]||{});
-      cfgSettings={...cfgSettings,...d.settings};NET.worldReady=true;
-      netStatus('Mapa je učitana. Automatski si SPREMAN — domaćin pokreće igru.');
-      safeSend({t:'worldDone'});NET.localReady=true;safeSend({t:'ready',ready:true});renderLobby();
-     }catch(err){worldReceive=null;netStatus('Prenos mape nije uspeo. Pokušavam ponovo...');safeSend({t:'worldRetry'});}
+    if(worldReceive.received===n&&!worldReceive.loading){
+     const batch=worldReceive;batch.loading=true;
+     // Decode off the message handler, then apply only to the current active connection.
+     (async()=>{
+      try{
+       let d=JSON.parse(batch.parts.join(''));
+       if(d?.ns110Zip===1){
+        if(typeof DecompressionStream!=='function'||typeof d.data!=='string'||d.data.length>300000)throw Error('Unsupported compressed map');
+        const bin=atob(d.data),bytes=Uint8Array.from(bin,ch=>ch.charCodeAt(0));
+        const decoded=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+        if(decoded.length>1800000)throw Error('Map exceeds safety limit');
+        d=JSON.parse(decoded);
+       }
+       if(NET.role!=='guest'||NET.phase!=='lobby'||NET.conn!==c||worldReceive!==batch)return;
+       if(!Array.isArray(d.props)||typeof d.models!=='object'||typeof d.settings!=='object')throw Error('Invalid map');
+       NET.hostProps=sanitizeProps(d.props)||[];
+       props=prepareChestLocks(cloneProps(NET.hostProps));activePlayMap=props;
+       for(const type of Object.keys(DEFAULT))Object.assign(configs[type],d.models?.[type]||{});
+       cfgSettings={...cfgSettings,...d.settings};ns111PreloadWorld();NET.worldReady=true;
+       netStatus('Mapa je učitana. Automatski si SPREMAN — domaćin pokreće igru.');
+       safeSend({t:'worldDone'});NET.localReady=true;safeSend({t:'ready',ready:true});renderLobby();
+      }catch(err){if(worldReceive===batch){worldReceive=null;netStatus('Prenos mape nije uspeo; pokušavam ponovo...');safeSend({t:'worldRetry'})}}
+     })();
     }
     return;
    }
    if(data.t==='worldPart'&&NET.phase==='lobby'&&NET.worldReady){safeSend({t:'worldAck',index:data.index});safeSend({t:'worldDone'});return}
-   if(data.t==='lobby'&&NET.phase==='lobby'){NS76CHAT.history(data.chat);if(data.post)NS97_POST.receive(data.post);
+   if(data.t==='lobby'&&NET.phase==='lobby'){
+    if(Number.isInteger(data.round)&&data.round>=NET.round)NET.round=data.round;
+    NS76CHAT.history(data.chat);if(data.post)NS97_POST.receive(data.post);
     NET.hostId=/^p[1-6]$/.test(data.hostId)?data.hostId:'p1';NET.code=data.code||NET.code;if(['normal','night','rush'].includes(data.specialMode))selectedMode=data.specialMode;
     NET.roster=Array.isArray(data.players)?data.players.filter(p=>/^p[1-6]$/.test(p.id)).map(p=>({id:p.id,ready:!!p.ready,name:safePlayerName(p.name),friendId:FRIEND_CODE_RE.test(String(p.friendId||''))?p.friendId:'',level:clamp(Math.floor(Number(p.level)||1),1,150),ranksTotal:Math.max(0,Math.floor(Number(p.ranksTotal)||0)),heroLevel:clamp(Math.floor(Number(p.heroLevel)||1),1,100),heroName:String(p.heroName||'STRAŽAR').slice(0,24),avatarId:safeAvatarId(p.avatarId),avatarImg:safeAvatarImage(p.avatarImg)})):[];
     renderLobby();return;
    }
-   if(data.t==='start'&&NET.phase==='lobby'&&NET.worldReady){NS97_POST.clear();NET.heroLooks=new Map(Object.entries(data.looks||{}));
+   if(data.t==='start'&&NET.phase==='lobby'&&NET.worldReady){window.NS109_VILLAGE?.close?.();NS97_POST.clear();NET.heroLooks=new Map(Object.entries(data.looks||{}));
     NET.phase='playing';NET.lastEarned=null;NET.round=Number(data.round)||NET.round;NET.sessionToken=typeof data.session==='string'?data.session:null;NET.lastRoundText='';startGame({specialMode:data.specialMode});resize();voiceLine('start',true);if(data.specialMode==='night'){props=props.filter(o=>o.type!=='nightTower').concat((Array.isArray(data.towers)?data.towers:[]).slice(0,3));invalidateNavigation()}safeSend({t:'started'});netStatus('Partija je pokrenuta.');return;
    }
    if(data.t==='start'&&NET.phase==='playing'){safeSend({t:'started'});return}
@@ -6504,14 +6795,23 @@ function sendSnapshot(){
   const peerStats=NETLAB.peer(id),pingAge=peerStats.lastPong?performance.now()-peerStats.lastPong:0;
   // An overloaded remote phone gets a smaller snapshot less often.
   // It must not lower healthy peers' snapshot rate or the host game loop.
-  const slow=pingAge>3900||Number(peerStats.rtt)>850;
-  const interval=slow?.31:buffer>9000?.23:buffer>4500?.145:(NET.clients.size>=4?.100:.083);
+  // Jitter/RTT alone is not socket congestion: slowing a clean connection
+  // down to 3Hz made remote players appear frozen when ping spiked.
+  // Only actual queued bytes trigger reduced send rate/interest detail.
+  const slow=buffer>9000;
+  const report=NET.ns112GuestPerf?.get(id);
+  const liveReport=report&&performance.now()-report.at<4500?report:null;
+  const lowFps=!!(liveReport&&liveReport.fps<28);
+  const jittering=!!(liveReport&&liveReport.jitterMs>185);
+  // A weak guest gets lighter visual state without lowering its update rate or other peers' detail.
+  const light=slow||lowFps||jittering;
+  const interval=buffer>9000?.24:buffer>4500?.17:(NET.clients.size>=4?.135:.108);
   if(G.time-(NET.ns67LastSnapshot.get(id)||-100)<interval)continue;
   let focus=G.players.find(p=>p.id===id)||G.players[0];
   if(focus?.dead)focus=G.players.find(p=>p.id===NET.spectateTargets.get(id)&&!p.dead)||G.players.find(p=>!p.dead)||focus;
   if(!focus)continue;
   NET.ns67LastSnapshot.set(id,G.time);
-  ready.push({id,c,focus,slow});
+  ready.push({id,c,focus,slow,light});
  }
  if(!ready.length)return;
  const migrationMeta=NETMIG.hostRoster();NETMIG.sendBackup(migrationMeta);
@@ -6519,29 +6819,38 @@ function sendSnapshot(){
  const shared={ns99:NS99_TEAM.state(),mig:migrationMeta,a91:NS91.getMask(),c92:NS92_CHALLENGES.snapshot(),c95:NS95_CAGE.snapshot(),
    nx:(G.caveMode||ready.some(({id})=>((NET.ns80PeerSeq.get(id)||0)+1)%3===1))?NSX.snapshot():undefined,
    specialMode:G.specialMode,
-   towers:props.filter(o=>o.type==='nightTower').map(o=>[o.seed,Math.round(o.hp),o.destroyed?1:0]),
    w:G.wave,l:G.level,xp:G.xp,xpn:G.xpNeed,k:G.kills,time:G.time,b:G.bossId,
    p:G.players.map(p=>[p.id,p.x,p.y,p.r,p.hp,p.maxHp,p.speed,p.weapon,p.damage,p.range,p.attackRate,p.attackT,p.attackCD,p.dashCD,p.frame,p.walking,p.visualSide,p.facing,p.headFacing,p.bodyFacing,p.flash,p.dead?1:0,p.deathT,p.shieldUntil,p.freezeUntil,p.crystals,p.keys,p.perks||{},p.perkTimers||{},p.visualScale,p.xp,p.level,p.xpNeed,p.reviveCount||0,p.sosUsed?1:0,p.sosAt||0,p.evolutions||{},p.evolutionCooldown||{},p.nsRole||'guardian',p.nsLegendaryWeapon||null,p.secondaryWeapon||null,p.nsCombatClass||'warrior',multiplayerDisplayName(p.id),Math.round((p.ns93Mana||0)*10)/10,p.ns93MaxMana||64,p.ns93ManaRegen||2.5,p.ns93Cooldown||{}]),
-   rv:Object.entries(G.reviveActive||{}).map(([s,a])=>[s,a.target,Math.round(a.progress*100)/100]),
+   rv:Object.entries(G.reviveActive||{}).map(([s,a])=>[s,a.target,Math.round(a.progress*100)/100])};
+ // V111: static-world diffs are NOT 10Hz motion. Cache them separately;
+ // new/rejoining clients receive them in their first snapshot, too.
+ if(!NET.ns111MetaCache||G.time-(NET.ns111MetaAt??-100)>=.32){
+  NET.ns111MetaAt=G.time;
+  NET.ns111MetaCache={
+   towers:props.filter(o=>o.type==='nightTower').map(o=>[o.seed,Math.round(o.hp),o.destroyed?1:0]),
    cr:props.filter(x=>x.type==='crystal').map(x=>x.seed),
    bd:(G.ns75BrokenIds||[]).slice(0,NS75_BARREL_COUNT),
    bh:props.filter(x=>x.ns75OverworldBarrel&&x.hp<x.maxHp).map(x=>[x.id,x.hp]),
-   ch:props.map((p,i)=>p.type==='chest'&&p.opened?i:-1).filter(i=>i>=0)};
- for(const {id,c,focus,slow} of ready){
+   ch:props.map((p,i)=>p.type==='chest'&&p.opened?i:-1).filter(i=>i>=0)
+  };
+ }
+ for(const {id,c,focus,slow,light} of ready){
   if(!c.open||Number(c.bufferSize||0)>16000)continue;
   const near=(p,rad)=>Math.abs(p.x-focus.x)<rad&&Math.abs(p.y-focus.y)<rad;
-  const mobs=G.mobs.filter(m=>!m.dead&&near(m,700)).sort((a,b)=>{
+  const mobs=G.mobs.filter(m=>!m.dead&&near(m,690)).sort((a,b)=>{
    const important=m=>(m.type==='boss'||m.nsCaveSpider||m.nsExploreBoss?-250000:m.type==='troll'?-40000:0);
    return (a.x-focus.x)**2+(a.y-focus.y)**2+important(a)-((b.x-focus.x)**2+(b.y-focus.y)**2+important(b));
-  }).slice(0,slow?16:32).map(m=>[m.id,m.type,Math.round(m.x*10)/10,Math.round(m.y*10)/10,m.r,m.hp,m.maxHp,m.angle,m.frame,m.flash,m.attackT,m.deathT,m.dead?1:0,m.spitWindup,m.bossPhase||1,m.bossCast?{...m.bossCast}:null,!!m.nsExploreBoss,m.nsExploreTag||0,!!m.nsCaveSpider,!!m.nsCaveThief,m.nsThiefUntil||0,!!m.ns95Guard]);
-  const fx=G.effects.filter(e=>e.id&&e.t<.4&&near(e,720)).slice(-(slow?5:9)).map(e=>({id:e.id,type:e.type,x:e.x,y:e.y,value:e.value,life:e.life}));
+  }).slice(0,slow?14:light?20:26).map(m=>[m.id,m.type,Math.round(m.x*10)/10,Math.round(m.y*10)/10,m.r,m.hp,m.maxHp,m.angle,m.frame,m.flash,m.attackT,m.deathT,m.dead?1:0,m.spitWindup,m.bossPhase||1,m.bossCast?{...m.bossCast}:null,!!m.nsExploreBoss,m.nsExploreTag||0,!!m.nsCaveSpider,!!m.nsCaveThief,m.nsThiefUntil||0,!!m.ns95Guard]);
+  const fx=G.effects.filter(e=>e.id&&e.t<.4&&near(e,710)).slice(-(slow?4:light?5:7)).map(e=>({id:e.id,type:e.type,x:e.x,y:e.y,value:e.value,life:e.life}));
   const peerSeq=(NET.ns80PeerSeq.get(id)||0)+1;NET.ns80PeerSeq.set(id,peerSeq);
+  const detailed=(peerSeq===1||peerSeq%3===0);
   const snap={t:'snapshot',seq:peerSeq,round:NET.round,...shared,
+    ...(detailed?NET.ns111MetaCache:{}),
     nx:(G.caveMode||peerSeq%3===1)?shared.nx:undefined,
-    m:mobs,fx,d:G.drops.filter(d=>near(d,700)).slice(0,slow?10:22).map(d=>({...d})),
-    pr:G.projectiles.filter(v=>near(v,740)).slice(0,slow?8:18).map(v=>({...v})),
-    bs:G.blasts.filter(v=>near(v,740)).slice(0,slow?5:10).map(v=>({...v})),
-    bc:G.blueCrystals.filter(v=>near(v,700)).slice(0,slow?10:22).map(v=>({...v}))};
+    m:mobs,fx,d:G.drops.filter(d=>near(d,690)).slice(0,slow?8:16).map(d=>({...d})),
+    pr:G.projectiles.filter(v=>near(v,700)).slice(0,slow?7:13).map(v=>({...v})),
+    bs:G.blasts.filter(v=>near(v,700)).slice(0,slow?4:8).map(v=>({...v})),
+    bc:G.blueCrystals.filter(v=>near(v,690)).slice(0,slow?8:16).map(v=>({...v}))};
   if(NETLAB.gameSend(c,snap,id)){
    NET.snapshotStats.packets++;
    // JSON.stringify also happens inside the relay adapter; sample byte size to avoid double work every frame.
@@ -6589,13 +6898,15 @@ const NS79STATS={count:0,last:0,hz:0,periodMs:0,jitterMs:0,dropped:0,frames:0,
  receive(seq,now,period){this.count++;this.periodMs=this.periodMs?this.periodMs*.8+period*200:period*1000;const deviation=Math.abs(period*1000-this.periodMs);this.jitterMs=this.jitterMs*.85+deviation*.15;if(this.last){const sample=now-this.last;if(sample>=1000){this.hz=Math.round(this.count*10000/sample)/10;this.count=0;this.last=now}}else this.last=now;},
  status(){return{hz:this.hz,periodMs:Math.round(this.periodMs),jitterMs:Math.round(this.jitterMs),dropped:this.dropped}}};
 window.__NS79STATS=NS79STATS;
+// V112: read-only diagnostics for tests on real mobile devices.
+window.__NS112_MP_DIAG=()=>({role:NET.role,phase:NET.phase,round:NET.round,fps:NET.ns112Perf?.fps??null,hostPingMs:NET.role==='guest'?NETLAB.peer('host').rtt:null,hostBufferBytes:Number(NET.conn?.bufferSize||0),snapshot:NET.role==='guest'?NS79STATS.status():{...NET.snapshotStats},guestReports:NET.role==='host'?[...(NET.ns112GuestPerf||new Map())].map(([id,v])=>({id,fps:v.fps,hz:v.hz,jitterMs:v.jitterMs,ageMs:Math.round(performance.now()-v.at)})):[]});
 
 function receiveSnapshot(d){
  if(NET.role!=='guest'||NET.phase!=='playing'||!NET.localId||!Array.isArray(d.p))return;
  if(Number.isInteger(d.round)&&d.round!==NET.round)return;
  if(Number.isInteger(d.seq)&&d.seq<=NET.lastSnapSeq)return;
  if(Number.isInteger(d.seq)){if(NET.lastSnapSeq>0&&d.seq>NET.lastSnapSeq+1)NS79STATS.dropped+=d.seq-NET.lastSnapSeq-1;NET.lastSnapSeq=d.seq;}const snapshotNow=performance.now(),snapshotInterval=(snapshotNow-(NET.lastReceiveAt||snapshotNow-150))/1000;NET.lastReceiveAt=snapshotNow;const hostStep=Number.isFinite(d.time)&&Number.isFinite(NET.ns80LastHostTime)?d.time-NET.ns80LastHostTime:snapshotInterval;NET.ns80LastHostTime=Number(d.time)||null;NS79STATS.receive(d.seq,snapshotNow,snapshotInterval);NETLAB.snapshotReceived();NETMIG.observe(d.mig);if(d.ns99)NS99_TEAM.receive(d.ns99);
- if(d.nx)NSX.onGuestSnapshot(d.nx);NS91.receiveMask(d.a91);NS92_CHALLENGES.receive(d.c92);NS95_CAGE.receive(d.c95);G.wave=d.w;if(d.specialMode)G.specialMode=d.specialMode;G.time=Math.max(G.time,d.time||0);if(Array.isArray(d.towers))for(const st of d.towers){const tower=props.find(o=>o.type==='nightTower'&&o.seed===st[0]);if(tower){tower.hp=st[1];tower.destroyed=!!st[2]}}G.nightTowersDestroyed=props.filter(o=>o.type==='nightTower'&&o.destroyed).length;G.level=d.l;G.xp=d.xp;G.xpNeed=d.xpn;G.kills=d.k;G.bossId=d.b;
+ if(d.nx)NSX.onGuestSnapshot(d.nx);NS91.receiveMask(d.a91);NS92_CHALLENGES.receive(d.c92);NS95_CAGE.receive(d.c95);G.wave=d.w;if(d.specialMode)G.specialMode=d.specialMode;G.time=Math.max(G.time,d.time||0);if(Array.isArray(d.towers)){for(const st of d.towers){const tower=props.find(o=>o.type==='nightTower'&&o.seed===st[0]);if(tower){tower.hp=st[1];tower.destroyed=!!st[2]}}G.nightTowersDestroyed=props.filter(o=>o.type==='nightTower'&&o.destroyed).length;}G.level=d.l;G.xp=d.xp;G.xpNeed=d.xpn;G.kills=d.k;G.bossId=d.b;
  // Do not overwrite the render position: blend it toward the authoritative state.
  G.players=reconcilePositions(G.players,d.p.map(p=>Array.isArray(p)?{id:p[0],x:p[1],y:p[2],r:p[3],hp:p[4],maxHp:p[5],speed:p[6],weapon:p[7],damage:p[8],range:p[9],attackRate:p[10],attackT:p[11],attackCD:p[12],dashCD:p[13],frame:p[14],walking:!!p[15],visualSide:p[16],facing:p[17],headFacing:p[18],bodyFacing:p[19],flash:p[20],dead:!!p[21],deathT:p[22],shieldUntil:p[23],freezeUntil:p[24],crystals:p[25],keys:p[26],perks:p[27],perkTimers:p[28],visualScale:p[29],xp:p[30],level:p[31],xpNeed:p[32],reviveCount:p[33]||0,sosUsed:!!p[34],sosAt:Number(p[35])||0,evolutions:p[36]||{},evolutionCooldown:p[37]||{},nsRole:p[38]||'guardian',nsLegendaryWeapon:p[39]||null,secondaryWeapon:MEDIEVAL_WEAPONS[p[40]]?p[40]:null,nsCombatClass:['warrior','ranger','mage','support'].includes(p[41])?p[41]:'warrior',mpName:safePlayerName(p[42]||multiplayerDisplayName(p[0])),ns93Mana:Number(p[43])||0,ns93MaxMana:Number(p[44])||64,ns93ManaRegen:Number(p[45])||2.5,ns93Cooldown:p[46]||{},look:NET.heroLooks.get(p[0])||networkHeroStyle(FACTORY_HERO)}:p),hostStep);G.mobs=reconcilePositions(G.mobs,(d.m||[]).map(m=>Array.isArray(m)?{id:m[0],type:m[1],x:m[2],y:m[3],r:m[4],hp:m[5],maxHp:m[6],angle:m[7],frame:m[8],flash:m[9],attackT:m[10],deathT:m[11],dead:!!m[12],spitWindup:m[13],bossPhase:m[14]||1,bossCast:m[15]||null,nsExploreBoss:!!m[16],nsExploreTag:m[17]||0,nsCaveSpider:!!m[18],nsCaveThief:!!m[19],nsThiefUntil:m[20]||0,ns95Guard:!!m[21]}:m),hostStep);
  const own=G.players.find(p=>p.id===NET.localId);
@@ -6638,8 +6949,8 @@ $('lobbyStartBtn').onclick=startLobbyMatch;
 $('ns62ShareRoomCode').onclick=async()=>{
  const code=String(NET.code||$('roomCode').textContent||'').trim().toUpperCase();
  if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('Prvo napravi sobu.');return;}
- const link='https://majorstex.github.io/nocna-straza-v108/?join='+encodeURIComponent(code);
-  const message='Noćna Straža V108 🎮\nKod sobe: '+code+'\nOtvori ovaj link za automatsko povezivanje: '+link;
+ const link='https://nocna-straza-igra.pages.dev/?join='+encodeURIComponent(code);
+  const message='Noćna Straža V114 🎮\nKod sobe: '+code+'\nOtvori ovaj link za automatsko povezivanje: '+link;
  try{if(navigator.share){await navigator.share({title:'Noćna Straža — poziv u multiplayer',text:'Kod sobe: '+code,url:link});return;}}catch(err){if(err?.name==='AbortError')return}
  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(link);toast('Link za ulazak je kopiran. Pošalji ga drugaru.');return;}}catch{}
  window.prompt('Kopiraj ovaj link i pošalji drugaru:',link);
@@ -7759,6 +8070,7 @@ function applyCaveVisuals(){return !!(progress.cave?.active||G.caveMode);}
   });
   const timed=NS92_CHALLENGES.list().map(a=>({title:(a.id==='daily'?'☀ ':'☾ ')+lang(a.en,a.sr),desc:lang(a.enDesc,a.srDesc)+' · '+(a.owned?'✓':a.progress+'/'+a.goal)+' · '+a.reward+' · '+a.ends,locked:!a.owned}));
   const entries=which==='bestiary'?Object.entries(categories).map(([id,name])=>({title:name,desc:permanent.bestiary[id]?.kills?`${permanent.bestiary[id].kills} ${lang('defeated','poraženo')}`:lang('Not discovered','Nije otkriveno'),locked:!permanent.bestiary[id]})):[...timed,...legacy,...fresh];
+  if(which!=='bestiary'&&window.NS109_SPARTA){const owned=window.NS109_SPARTA.owned();entries.push({title:'🏆 SPARTA',desc:lang('300 personal kills in one qualifying run · gold armor, cosmetic only','300 ličnih ubistava u jednoj pravoj partiji · zlatni oklop, samo izgled')+(owned?' · ✓':' · 0/1'),locked:!owned})}
   for(const item of entries){const row=document.createElement('div');row.className='nsListRow';row.textContent=`${item.locked?'◇':'✦'} ${item.title} · ${item.desc}`;list.append(row)}
   root.classList.remove('hidden');$('home').classList.add('hidden');}
  const paidCatalog=[{sku:'cosmetic_shadow_skin',en:'Shadow Guardian skin',sr:'Senovita koža Stražara',price:'2.99'},{sku:'cosmetic_winter_blade',en:'Winter blade appearance',sr:'Zimski izgled mača',price:'3.99'},{sku:'cosmetic_blue_flame',en:'Blue flame effects',sr:'Plavi vatreni efekti',price:'4.99'}];
@@ -7804,6 +8116,8 @@ const NS108_MODAL=(()=>{
  return {refresh,get active(){return activeId},get suspended(){return panels.filter(el=>el.classList.contains('ns108-suspended')).map(el=>el.id)}};
 })();
 window.__NS108_MODAL=NS108_MODAL;
+window.__NS110_BRIDGE={NET,G,NSX,NS91,NS97_POST,NS76CHAT,CoopVoice,renderCoopForge,renderPreRun,
+ currentLobbyRoster,currentProfileLevel,getActiveAccount,coopVoiceUpdatePreference,unlockSound,voiceLine,toast,meta,heroStyle};
 window.__nightWatch={NS103_PARTY,NS95_CAGE,NS95_PROGRESS,NETMIG,NSX,NETLAB,updateHUD,draw,bossPhaseOf,bossTarget,bossSummonWave,bossStartCast,bossResolveCast,updateBossPhases,drawBossTelegraphs,WEAPON_EVOLUTIONS,checkWeaponEvolution,currentEvolution,triggerEvolutionAttack,renderEvolutionGuide,openEvolutionGuide,updateEvolutionHud,sosRequest,sosRegister,sosEligible,sosActive,sosCompassTarget,updateSOSHUD,sosObserveSnapshot,REVIVE_RANGE,REVIVE_SECONDS,REVIVE_MAX,REVIVE_HP_RATIO,REVIVE_INVUL,teamColor,drawTeamTriangle,drawTeamEdgeMarkers,reviveCandidate,setReviveHeld,interruptRevive,updateRevives,updateReviveHUD,miniMap,mapReset,mapReveal,mapDraw,mapMarkers,mapGateUnlocked,mapOpen,mapClose,mapSeen,mapFocus,completeNightRun,finishNetworkRound,startLobbyMatch,sendSnapshot,receiveSnapshot,selectPlayerAccount,performAttack,settleRun,awardMP,levelHeroAfterRun,giveSoloLifetimeRewards,earnMPReward,createArchetype,heroLevelStats,heroFreePoints,getHeroTrack,improveChosenHero,renderPreRun,showPreRun,selectPreHero,buildNightTowers,nightDark,lightAt,towerAttack,get selectedMode(){return selectedMode},get mpProgress(){return mpProgress},portableDiagnostics,exportLocalSave,importLocalSave,SOCIAL,get socialId(){return ensureSocialIdentity()},get socialFriends(){return SOCIAL.db?.friends||{}},startSocial,showFriends,socialConnectTo,socialHandlePacket,acceptSocialAction,joinFriendRoom,sendFriendInvite,requestFriendJoin,sendSocialStatus,renderFriends,mpProgress,get playerAccounts(){return playerAccounts},get activeAccount(){return getActiveAccount()},avatarFace,safeAvatarId,safeAvatarImage,saveCurrentAvatar,renderMPAvatarPreview,profileLevelStats,currentProfileLevel,safePlayerName,renderPlayerProfile,selectPlayerAccount,createPlayerAccount,commitMPName,MP_SKILLS,mpCost,buyCoopSkill,earnMPReward,awardMP,applyCoopBonuses,networkHeroStyle,showQuickChoice,coopXP,applyQuickPower,goBack,renderLobby,broadcastLobby,setMyReady,startLobbyMatch,showLobbyUI,leaveLobby,closeNet,damagePlayer,killMob,meta,calculateRunReward,settleRun,showStats,showBase,buyMetaUpgrade,applyMetaBonuses,openGuildShop,closeGuildShop,buyGuildItem,tryGuildShop,get guildItems(){return GUILD_ITEMS},renderRelicChoices,openRelicPanel,chooseRelic,tryRelicShrine,G,NET,configs,VoiceClips,CoopVoice,coopVoiceSendClip,coopVoicePreparedBlob,coopVoiceReceive,coopVoiceHandleNetwork,coopVoicePlayReceived,coopVoiceUpdatePreference,microphoneDiagnostics,FACTORY_HERO,get activeHeroProfile(){return activeHeroProfile},get heroProfiles(){return heroProfiles},applyHeroProfile,createHeroProfile,deleteActiveHero,MEDIEVAL_WEAPONS,drawMedievalWeapon,drawWardrobeExtras,recordVoice,stopVoiceRecording,checkMicPermission,microphoneDiagnostics,exportVoiceClip,saveVoiceClip,removeVoiceClip,playClip,refreshVoiceUI,WARD_CONTROLS,get props(){return props},get defaultPlayMap(){return defaultPlayMap},get levels(){return levelCollection},get editorLevelId(){return editorLevelId},get heroStyle(){return heroStyle},get settings(){return cfgSettings},get projectiles(){return G.projectiles},updateProjectiles,spawnAmbientCrystal,collectBlueCrystals,drawAmbientCrystals,Music,startMusic,stopMusic,tryLootChests,tryMarkets,showLootChoice,lootOptions,grantTreasure,updateAbilities,spawnRotfiend,spawnEnemy,addMob,selectMobTarget,availableTargets,nextSpawnTarget,TREASURES,separateMobBodies,spawnAcid,setupConnection,addRemotePlayer,sendSnapshot,receiveSnapshot,isSolidProp,turnToward,ensureLootAndHouses,saveCurrentLevel,openLevel,addLevel,deleteLevel,saveCharacter,sfx,voiceLine,command,startGame,spawnBoss,generateMap,update,updateMobs,flowDirection,obstacleInPath,invalidateNavigation,draw,move:movingCircle,worldPoint,showMenu,save:persist,xpRequirement};
 /* v50 — first-use hints appear only when the relevant screen is opened; no modal, no click interception. */
 const NS50MENU=(()=>{
@@ -8106,5 +8420,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   <div class="ns82-footer"><button id="ns82-guest" type="button" class="ns82-muted" data-ns82-en="PLAY LOCALLY AS GUEST" data-ns82-sr="IGRAJ LOKALNO KAO GOST">PLAY LOCALLY AS GUEST</button><button id="ns82-close" type="button" class="ns82-muted" data-ns82-en="CLOSE" data-ns82-sr="ZATVORI">CLOSE</button></div>
  </section>
 </div>
-<script src="./firebase-config.js?v=92"></script><script type="module" src="./auth-v82.js?v=92"></script>
+<script src="./firebase-config.js?v=92"></script><script src="./v111-village.js?v=111"></script><script type="module" src="./auth-v82.js?v=92"></script>
 </body></html>
