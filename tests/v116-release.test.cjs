@@ -16,7 +16,7 @@ assert.ok(game.includes("elephant:{color:'#99546d',size:1.16"),'armored goblin i
 assert.ok(game.includes('function caveSecretRewardTick(){'),'secret room physical reward shipped');
 assert.ok(game.includes('function startCaveTest(){'),'direct safe cave test shipped');
 assert.ok(game.includes('get(\'cave-test\')'),'Cave test query recognized');
-assert.ok(game.includes('/* V117: calm, legible game canvas'),'compact mobile HUD present');
+assert.ok(game.includes('/* V116: calm, legible game canvas'),'compact mobile HUD present');
 assert.ok(snapshot.includes('function generateCaveProps(seed=1){'),'V115 snapshot remains intact');
 assert.ok(village.includes('get sheepCount(){return NPCS.length}'),'sheep available');
 assert.ok(village.includes('function showVillage(){'),'village open bridge');
