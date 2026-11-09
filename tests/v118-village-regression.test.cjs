@@ -2,12 +2,13 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const read=p=>fs.readFileSync(path.resolve(__dirname,'../',p),'utf8');
 const game=read('public/index.html'),village=read('public/v115-village.js');
-for(const needle of ['const villageVisible=window.NS109_VILLAGE?.opened','!villageVisible&&(ts-ns111LastDraw','VERZIJA V118','v115-village.js?v=118'])assert.ok(game.includes(needle),needle);
+for(const needle of ['const villageVisible=window.NS109_VILLAGE?.opened','if(villageVisible){','VERZIJA V119','v115-village.js?v=118'])assert.ok(game.includes(needle),needle);
 for(const needle of ['function findVillagePath(','function blockedVillage(','function updateVillageTravel(','function villageStaticLayer(','function villageFrame(now)','const layer=villageStaticLayer()','smoothAvatars.get(p.id)'])assert.ok(village.includes(needle),needle);
 assert.ok(!village.includes('const heartbeat=setInterval('),'Old 75ms Village render interval removed');
 for(const m of game.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))if(!/\bsrc=/.test(m[1]))new Function(m[2]);
 new Function(village);
-console.log('V118 static check PASS');
+assert.ok(village.includes('VILLAGE_TARGET_MS=1000/60')&&village.includes('frame:villageFrame')&&!village.includes('villageFrameId=requestAnimationFrame('),'Village shares rAF and targets 60');
+console.log('V119 static check PASS');
 (async()=>{
  const {chromium}=require('playwright-core');
  const browser=await chromium.launch({headless:true,executablePath:['/usr/bin/google-chrome','/usr/bin/chromium'].find(fs.existsSync),args:['--no-sandbox','--allow-file-access-from-files','--disable-dev-shm-usage']});
@@ -43,7 +44,7 @@ console.log('V118 static check PASS');
    assert.ok(current.stats.frames>=25,'Village animation should run smoothly '+JSON.stringify(current));
    assert.equal(current.stats.staticBuilds,1,'Background must be cached '+JSON.stringify(current));
    assert.equal(errors.length,0,'Runtime errors: '+errors.join(' | '));
-   console.log('V118 MOBILE PASS',width,JSON.stringify({x:last.x,y:last.y,frames:current.stats.frames,cache:current.stats.staticBuilds,paths:current.stats.paths}));
+   console.log('V119 MOBILE PASS',width,JSON.stringify({x:last.x,y:last.y,frames:current.stats.frames,cache:current.stats.staticBuilds,paths:current.stats.paths}));
    await page.close();
   }
  }finally{await browser.close()}

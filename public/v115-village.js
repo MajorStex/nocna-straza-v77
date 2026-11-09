@@ -25,8 +25,19 @@
  let opened=false,soloPreview=false,focused=null,focusNode=null,returnPlace=null,walkTo=null,thenEnter=null,lastSent=0,frameAt=0,lastBroadcast=0,lastLeaderboard=0,lastLeaderRequest=0,leaderCache=null,leaderBusy=false;
  let originalShowLobby=null,originalStartMatch=null,originalSettle=null,originalAward=null,originalOnKill=null,musicCtx=null,musicTimer=null,musicOn=false;
  // V118 profiling is local-only: no network packets or account writes.
- let villageFrameId=0,lastVillagePaint=0,sceneLayer=null,sceneLayerLang='';let route=[],routeIndex=0;
- const PERF={frames:0,staticBuilds:0,blockedMoves:0,paths:0};
+ let villageLastTick=0,villageFrameCredit=0,sceneLayer=null,sceneLayerLang='';let route=[],routeIndex=0;
+ // One shared rAF with the game's update loop; avoid a second timer and frame pacing drift.
+ const VILLAGE_TARGET_MS=1000/60;
+ let fpsStart=0,fpsFrames=0,drawMsSum=0,drawMsMax=0,lastStatsAt=0;
+ const PERF={frames:0,staticBuilds:0,blockedMoves:0,paths:0,fps:0,averageDrawMs:0,maxDrawMs:0,targetFps:60};
+ const SHOW_PERF=new URLSearchParams(location.search).has('village-fps');
+ let fpsBadge=null;
+ if(SHOW_PERF){
+  fpsBadge=document.createElement('div');fpsBadge.id='ns119Fps';
+  fpsBadge.setAttribute('role','status');
+  fpsBadge.style.cssText='position:absolute;z-index:5;right:9px;top:6px;min-width:78px;padding:4px 7px;border-radius:8px;border:1px solid #739b87;background:#071d20db;color:#d0f8d8;font:700 11px monospace;pointer-events:none;text-align:right';
+  fpsBadge.textContent='FPS --';
+ }
  const stick={id:null,x:0,y:0,vx:0,vy:0,drag:false},keys=Object.create(null);let stepFrame=0,side=1,walking=false,dodgeUntil=0,dodgeReady=0;
  const my={x:492,y:285};
  const root=document.createElement('section');root.id='ns109Village';root.className='ns109Hidden';root.setAttribute('aria-label','Village lobby');
@@ -69,7 +80,7 @@
   'body.ns109External #nsShopPanel:not(.hidden),body.ns109External #nsArmoryPanel:not(.hidden),body.ns109External #nsGuidePanel:not(.hidden){z-index:150!important}',
   '@media(max-width:560px){#ns109Top{gap:5px}#ns109Info{display:none}#ns109Bottom{gap:4px}#ns109Bottom button{min-height:35px;padding:6px}}'
  ].join('');
- document.head.append(css);document.body.append(root);
+ document.head.append(css);document.body.append(root);if(fpsBadge)root.append(fpsBadge);
  const canvas=$('ns109Scene');let g=canvas.getContext('2d',{alpha:false});const pane=$('ns109Pane'),area=$('ns109PaneContent');
  const destinations=document.createElement('select');destinations.id='ns109Destinations';destinations.setAttribute('aria-label','Choose a village building');
  const first=document.createElement('option');first.value='';first.textContent=tr('🏠 HOUSES','🏠 KUĆICE');destinations.append(first);
@@ -413,6 +424,7 @@
   if(!opened||!canVisit()){if(opened)closeVillage();return}
   if(document.hidden)return;
   const dt=clamp((time-frameAt)/1000,0,.14);frameAt=time;
+  const roster=getPlayers();
   const oldX=my.x,oldY=my.y;
   const keyX=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0);
   const keyY=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
@@ -439,7 +451,7 @@
   g.setTransform(ratio*screen.scale,0,0,ratio*screen.scale,ratio*screen.ox,ratio*screen.oy);
   const layer=villageStaticLayer();if(layer)g.drawImage(layer,0,0);else{background();buildings.forEach(house)}
   const tt=time;sheep(tt);PERF.frames++;
-  for(const p of getPlayers()){
+  for(const p of roster){
    if(p.id===NET.localId)continue;
    const dest=avatars.get(p.id)||{x:460+Number(p.id?.slice(1)||2)*27,y:279};
    let a=smoothAvatars.get(p.id);
@@ -448,7 +460,7 @@
    const moving=Math.hypot(a.x-dest.x,a.y-dest.y)>1;
    avatar(p.id,a.x,a.y,String(p.name||'GUARDIAN').slice(0,14),p.ready,false,{walking:moving||!!dest.walking,frame:time/145,side:dest.side||1});
   }
-  const me=getPlayers().find(p=>p.id===NET.localId);avatar(NET.localId,my.x,my.y,ownName(),!!me?.ready||NET.ns97Results?.votes?.[NET.localId]==='yes',spartaEquipped(),{walking,frame:stepFrame,side});
+  const me=roster.find(p=>p.id===NET.localId);avatar(NET.localId,my.x,my.y,ownName(),!!me?.ready||NET.ns97Results?.votes?.[NET.localId]==='yes',spartaEquipped(),{walking,frame:stepFrame,side});
   if(opened&&!pane.classList.contains('ns109Hidden')&&focused==='leaderboard')return;
  }
  function onMessage(data,assigned){
@@ -497,12 +509,13 @@
   soloPreview=!isLobby();
   if(!soloPreview){$('coopPanel')?.classList.remove('hidden');$('lobbyArea')?.classList.remove('hidden')}
   opened=true;walkTo=null;thenEnter=null;route=[];resetStick();stepFrame=0;walking=false;closePane();my.x=490;my.y=284;
-  frameAt=performance.now();root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
-  if(!villageFrameId)villageFrameId=requestAnimationFrame(villageFrame);
+  frameAt=performance.now();villageLastTick=0;villageFrameCredit=VILLAGE_TARGET_MS;
+  fpsStart=0;fpsFrames=0;drawMsSum=0;drawMsMax=0;PERF.fps=0;
+  root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
   $('ns109Hint').textContent=tr('Drag to walk · tap a house · DODGE to dash','Prevuci prstom za hodanje · dodirni kućicu · IZBEGNI za sprint');
   return true;
  }
- function closeVillage(){const wasSolo=soloPreview;resetStick();opened=false;soloPreview=false;walkTo=null;route=[];thenEnter=null;closePane();root.classList.add('ns109Hidden');smoothAvatars.clear();avatars.clear();limits.clear();stopMusic();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
+ function closeVillage(){const wasSolo=soloPreview;resetStick();opened=false;villageLastTick=0;villageFrameCredit=0;soloPreview=false;walkTo=null;route=[];thenEnter=null;closePane();root.classList.add('ns109Hidden');smoothAvatars.clear();avatars.clear();limits.clear();stopMusic();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
  function playMusic(){
   if(musicOn){stopMusic();return}
   try{
@@ -548,17 +561,37 @@
  }
  // Cosmetic looks are now transported by the original engine's networkHeroStyle.
  // Lifecycle: detached village only; classic lobby and legacy game engine continue unchanged.
- // V118: rAF pacing at ~30fps rather than a choppy 75ms interval.
+ // V119: share the main game's rAF clock and target 60 displayed frames/second.
+ // Fractional credit yields ~60 at 90/120Hz instead of skipping down to 45/30.
  function villageFrame(now){
-  villageFrameId=0;
   if(!opened)return;
   if(!canVisit()){closeVillage();return}
-  if(!document.hidden&&!root.classList.contains('ns109Hidden')&&now-lastVillagePaint>=30){
-   lastVillagePaint=now;step(now);
-  }else if(document.hidden){frameAt=now}
-  if(opened)villageFrameId=requestAnimationFrame(villageFrame);
+  if(document.hidden||root.classList.contains('ns109Hidden')){
+   villageLastTick=0;villageFrameCredit=0;frameAt=now;return;
+  }
+  if(!villageLastTick){
+   villageLastTick=now;villageFrameCredit=VILLAGE_TARGET_MS;
+  }else{
+   villageFrameCredit=Math.min(VILLAGE_TARGET_MS*2,villageFrameCredit+Math.max(0,Math.min(70,now-villageLastTick)));
+   villageLastTick=now;
+  }
+  if(villageFrameCredit+0.35<VILLAGE_TARGET_MS)return;
+  villageFrameCredit=Math.max(0,villageFrameCredit-VILLAGE_TARGET_MS);
+  const started=performance.now();
+  step(now);
+  const spent=performance.now()-started;
+  fpsFrames++;drawMsSum+=spent;drawMsMax=Math.max(drawMsMax,spent);
+  if(!fpsStart)fpsStart=now;
+  if(now-fpsStart>=1050){
+   const duration=now-fpsStart;
+   PERF.fps=Math.round(fpsFrames*1000/duration);
+   PERF.averageDrawMs=Math.round(drawMsSum/fpsFrames*100)/100;
+   PERF.maxDrawMs=Math.round(drawMsMax*100)/100;
+   fpsFrames=0;drawMsSum=0;drawMsMax=0;fpsStart=now;
+   if(fpsBadge)fpsBadge.textContent=PERF.fps+' FPS · '+PERF.averageDrawMs.toFixed(1)+'ms';
+  }
  }
- window.NS109_VILLAGE={open:showVillage,close:closeVillage,onMessage,enter,onLobbyUI:()=>{if(isLobby())scheduleAutoVillage()},
+ window.NS109_VILLAGE={open:showVillage,close:closeVillage,frame:villageFrame,onMessage,enter,onLobbyUI:()=>{if(isLobby())scheduleAutoVillage()},
  onSoloResult:run=>{if(run&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(run.kills)},
  onMPAward:packet=>{if(packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}},
  get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my}}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y)}};
