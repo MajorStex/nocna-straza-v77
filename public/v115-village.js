@@ -304,10 +304,10 @@
  }
  // V118: physics shared by joystick, dash and tap-to-walk.
  const COLLISION_PAD=12;
- function blockedVillage(x,y){
+ function blockedVillage(x,y,margin=0){
   if(x<29||x>931||y<62||y>505)return true;
-  return buildings.some(b=>x>b.x-b.w/2-COLLISION_PAD&&x<b.x+b.w/2+COLLISION_PAD&&
-   y>b.y-b.h/2-COLLISION_PAD&&y<b.y+b.h/2+COLLISION_PAD);
+  return buildings.some(b=>x>b.x-b.w/2-COLLISION_PAD-margin&&x<b.x+b.w/2+COLLISION_PAD+margin&&
+   y>b.y-b.h/2-COLLISION_PAD-margin&&y<b.y+b.h/2+COLLISION_PAD+margin);
  }
  function moveVillage(dx,dy){
   // Sweep in short segments, so dropped frames cannot tunnel through houses.
@@ -325,7 +325,8 @@
  const tile=(x,y)=>({x:Math.max(0,Math.min(PATH_COLS-1,Math.round(x/PATH_CELL))),
                     y:Math.max(0,Math.min(PATH_ROWS-1,Math.round(y/PATH_CELL)))});
  const pathIdx=(x,y)=>y*PATH_COLS+x;
- const validTile=(x,y)=>!blockedVillage(x*PATH_CELL,y*PATH_CELL);
+ // Navigation uses extra clearance so floating-point edge contact cannot trap the hero.
+ const validTile=(x,y)=>!blockedVillage(x*PATH_CELL,y*PATH_CELL,5);
  function findVillagePath(from,to){
   PERF.paths++;
   const start=tile(from.x,from.y),end=tile(to.x,to.y);
