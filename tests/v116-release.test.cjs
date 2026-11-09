@@ -6,7 +6,7 @@ const game=read('public/index.html'),snapshot=read('public/v115/index.html');
 const village=read('public/v115-village.js'),preview=read('public/village-test/index.html');
 assert.match(game,/VERZIJA V119 · VILLAGE 60 FPS/,'main site is current');
 assert.match(game,/<title>Night Watch v119/,'new browser title');
-assert.match(game,/src="\.\/v115-village\.js\?v=118"/,'correct live-root village asset');
+assert.match(game,/src="\.\/v115-village\.js\?v=119"/,'correct live-root village asset');
 assert.match(game,/src="\.\/firebase-config\.js\?v=92"/,'correct root Firebase asset');
 assert.match(game,/src="\.\/auth-v82\.js\?v=92"/,'correct root auth asset');
 assert.ok(!game.includes('nocna-straza-igra.pages.dev/v115/v114/'),'canonical stays on root');

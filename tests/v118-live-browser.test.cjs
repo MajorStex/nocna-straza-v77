@@ -8,7 +8,7 @@ const base='https://nocna-straza-v77.stefanstevic1996.workers.dev';
   for(const width of [360,412]){
    const page=await browser.newPage({viewport:{width,height:844},isMobile:true,hasTouch:true});
    const errors=[];page.on('pageerror',e=>errors.push(String(e)));
-   const response=await page.goto(base+'/?village-test=1&v=118',{waitUntil:'domcontentloaded',timeout:30000});
+   const response=await page.goto(base+'/?village-test=1&v=119',{waitUntil:'domcontentloaded',timeout:30000});
    assert.equal(response.status(),200,'Live page HTTP 200');
    await page.waitForFunction(()=>window.__VILLAGE_PREVIEW_STATUS?.open===true,{timeout:16000});
    const initial=await page.evaluate(()=>{
@@ -18,12 +18,13 @@ const base='https://nocna-straza-v77.stefanstevic1996.workers.dev';
    });
    assert.ok(initial.release.includes('V119')&&initial.authentic&&initial.route>3&&initial.started,'Live site must include V119 Village navigation '+JSON.stringify(initial));
    await page.waitForTimeout(4400);
-   const after=await page.evaluate(()=>{const a=window.NS109_VILLAGE.test,p=a.position;return {p,blocked:a.blocked(p.x,p.y),debug:a.debug}});
+   const after=await page.evaluate(()=>{const a=window.NS109_VILLAGE.test,p=a.position;return {p,blocked:a.blocked(p.x,p.y),debug:a.debug,fpsBadge:document.getElementById('ns119Fps')?.textContent||''}});
    assert.ok(!after.blocked&&Math.hypot(after.p.x-initial.goal.x,after.p.y-initial.goal.y)<16,
     'Live Village player should arrive without sticking '+JSON.stringify({initial,after}));
    assert.equal(after.debug.staticBuilds,1,'Live background cached');
+   assert.ok(after.debug.fps>=48&&after.fpsBadge.includes('FPS'),'Live Village must reach approximately 60 FPS '+JSON.stringify({width,fps:after.debug.fps,overlay:after.fpsBadge}));
    assert.equal(errors.length,0,'Live browser errors '+errors.join(' | '));
-   console.log('LIVE V119 PASS',width,JSON.stringify({title:initial.title,x:after.p.x,y:after.p.y,frames:after.debug.frames}));
+   console.log('LIVE V119 PASS',width,JSON.stringify({title:initial.title,x:after.p.x,y:after.p.y,frames:after.debug.frames,fps:after.debug.fps}));
    await page.close();
   }
  }finally{await browser.close()}

@@ -32,7 +32,7 @@ assert.ok(html.includes('function drawArmoredGoblin(e)'),'helmeted goblin render
 assert.ok(html.includes('V114 mobile-first gameplay HUD'),'compact mobile HUD styles');
 assert.ok(html.includes('ns114CornerGateBlocked(wx,wy,radius*.72+8)'),'enemy navigation uses same gate solidity');
 assert.ok(live.includes('VERZIJA V119'),'main game entrypoint is V117');
-assert.ok(live.includes('./v115-village.js?v=118'),'main app uses updated Village with root relative assets');
+assert.ok(live.includes('./v115-village.js?v=119'),'main app uses updated Village with root relative assets');
 for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))
  if(!/\bsrc=/.test(m[1]))new Function(m[2]);
 console.log('V114 PASS: gate lock/open/side seams, goblin graphics, mobile HUD, root entrypoint, JS syntax');

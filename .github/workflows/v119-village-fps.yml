@@ -2,7 +2,7 @@ name: V119 Village 60 FPS with one shared render loop
 on:
   push:
     branches: [main]
-    paths: ['public/index.html','public/v115-village.js','tests/v119-village-60fps.test.cjs','.github/workflows/v119-village-fps.yml']
+    paths: ['public/index.html','public/v115-village.js','tests/v119-village-60fps.test.cjs','tests/v118-village-regression.test.cjs','tests/v116-release.test.cjs','tests/v114-gate-hud-goblin.test.cjs','.github/workflows/v119-village-fps.yml']
   workflow_dispatch:
 permissions:
   contents: read
