@@ -8,7 +8,7 @@ const base='https://nocna-straza-v77.stefanstevic1996.workers.dev';
   for(const width of [360,412]){
    const page=await browser.newPage({viewport:{width,height:844},isMobile:true,hasTouch:true});
    const errors=[];page.on('pageerror',e=>errors.push(String(e)));
-   const response=await page.goto(base+'/?village-test=1&v=119',{waitUntil:'domcontentloaded',timeout:30000});
+   const response=await page.goto(base+'/?village-test=1&village-fps=1&v=119',{waitUntil:'domcontentloaded',timeout:30000});
    assert.equal(response.status(),200,'Live page HTTP 200');
    await page.waitForFunction(()=>window.__VILLAGE_PREVIEW_STATUS?.open===true,{timeout:16000});
    const initial=await page.evaluate(()=>{
