@@ -2,7 +2,7 @@ name: V118 live Village mobile browser verification
 on:
   push:
     branches: [main]
-    paths: ['tests/v118-live-browser.test.cjs','.github/workflows/v118-live.yml']
+    paths: ['public/index.html','tests/v118-live-browser.test.cjs','.github/workflows/v118-live.yml']
   workflow_dispatch:
 permissions:
   contents: read
