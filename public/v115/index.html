@@ -7650,7 +7650,7 @@ function caveThiefTick(dt){const c=progress.cave;if(!c?.active||!authority())ret
 function startCaveTest(){
  if(NET.role||G.mode!=='menu')return false;
  startGame({specialMode:'normal'});
- G.debugRun=true;G.ns95TestOnly=true;progress.caveTestMode=true;
+ G.debugRun=true;G.ns95TestOnly=false;progress.caveTestMode=true;
  progress.hasRope=true;
  const p=G.players[0],entrance={id:'ns115-secret-preview',x:p.x,y:p.y};
  if(!enterCaveEvent(entrance)){progress.caveTestMode=false;return false}
