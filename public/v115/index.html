@@ -7583,6 +7583,48 @@ function onCaveSpecialKill(m,killer){const c=progress.cave;if(!c?.active||!autho
  if(m.nsCaveSpider&&!c.spiderKilled){c.spiderKilled=true;caveRewardOnce('spider','earth_axe',seeded(c.seed+339)>.85?'legendary':'epic');for(const p of G.players.filter(x=>!x.dead)){p.runShards=(p.runShards||0)+2;if(NET.role==='host')coopXP(p,125);}if(NET.role==='')G.xp+=125;toast(lang('Crystal spider defeated! Epic loot!','Kristalni pauk pobeđen! Epski plen!'));}
  if(m.nsCaveThief&&!c.thiefKilled&&!c.thiefEscaped){c.thiefKilled=true;caveRewardOnce('thief','storm_blade',seeded(c.seed+225)>.92?'legendary':'rare');for(const p of G.players.filter(x=>!x.dead)){p.keys=(p.keys||0)+1;if(NET.role==='host')coopXP(p,85);}if(NET.role==='')G.xp+=85;toast(lang('Treasure thief caught!','Uhvaćen goblin kradljivac!'));}
 }
+function caveSecretRewardTick(){
+ const c=progress.cave;
+ if(!c?.active||!c.secretFound||c.secretClaimed||!authority())return;
+ if(!G.players.some(p=>ns98CaveParticipant(p)&&Math.hypot(p.x-1120,p.y-564)<46))return;
+ c.secretClaimed=true; // authoritative, idempotent, persisted on host and guests.
+ if(!progress.caveTestMode){
+  caveRewardOnce('secret','frost_edge',seeded(c.seed+77)>.90?'legendary':'rare');
+  const living=G.players.filter(p=>!p.dead);
+  for(const p of living){
+   p.runShards=(p.runShards||0)+1;
+   p.hp=Math.min(p.maxHp,p.hp+Math.max(10,Math.round(p.maxHp*.15)));
+   if(NET.role==='host')coopXP(p,55);
+  }
+  if(NET.role==='')G.xp+=55;
+ }
+ effect('loot',1120,564);effect('shock',1120,564);sfx('unlock');
+ toast(progress.caveTestMode?lang('TEST: Frost relic found. No account rewards.','TEST: Ledena relikvija pronađena. Nema trajnih nagrada.'):
+ lang('Ancient frost relic! +55 XP, 1 shard and healing.','Drevna ledena relikvija! +55 XP, 1 fragment i lečenje.'));
+}
+function drawCaveSecret(){
+ const c=progress.cave;if(!c?.active||G.mode!=='play')return;
+ const v=viewSize();
+ if(!c.secretFound){
+  const p=screenPoint(916,565);
+  if(p.x>=-55&&p.y>=-55&&p.x<=v.w+55&&p.y<=v.h+55){
+   ctx.save();ctx.translate(p.x,p.y);ctx.globalAlpha=.78;
+   ctx.strokeStyle='#b7d5e5';ctx.lineWidth=2.4;ctx.beginPath();
+   ctx.moveTo(-20,-25);ctx.lineTo(1,-7);ctx.lineTo(-10,11);ctx.lineTo(17,21);ctx.stroke();
+   ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#d2e8e6';
+   ctx.fillText(lang('SEALED','ZAPEČAĆENO'),0,-34);ctx.restore();
+  }return;
+ }
+ if(c.secretClaimed)return;
+ const p=screenPoint(1120,564);if(p.x<-65||p.y<-65||p.x>v.w+65||p.y>v.h+65)return;
+ ctx.save();ctx.translate(p.x,p.y);ctx.shadowColor='#71cfff';ctx.shadowBlur=19;
+ const pulse=1+Math.sin(G.time*3.5)*.10;ctx.scale(pulse,pulse);
+ ctx.fillStyle='#193c4999';ctx.beginPath();ctx.ellipse(0,15,29,11,0,0,TAU);ctx.fill();
+ ctx.fillStyle='#b7ebff';ctx.beginPath();ctx.moveTo(0,-27);ctx.lineTo(15,-6);ctx.lineTo(8,14);ctx.lineTo(-8,14);ctx.lineTo(-15,-6);ctx.closePath();ctx.fill();
+ ctx.fillStyle='#3a9dcf';ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(7,-3);ctx.lineTo(1,8);ctx.lineTo(-6,-3);ctx.closePath();ctx.fill();
+ ctx.shadowBlur=0;ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillStyle='#d5f5ff';
+ ctx.fillText(lang('FROST RELIC','LEDENA RELIKVIJA'),0,-39);ctx.restore();
+}
 function caveSafeRoomTick(){const c=progress.cave;if(!c?.active||c.restUsed||!authority())return;
  if(G.players.some(p=>!p.dead&&Math.hypot(p.x-128,p.y-558)<76)){
   c.restUsed=true;for(const p of G.players.filter(q=>!q.dead))p.hp=Math.min(p.maxHp,p.hp+Math.round(p.maxHp*.18));
@@ -7615,7 +7657,7 @@ function caveDripTick(){if(!progress.cave?.active||!cfgSettings.sfx||G.mode!=='p
 }
 function drawCaveAmbient(){if(!progress.cave?.active||G.mode!=='play')return;const v=viewSize();ctx.save();
  // Torch aura, cave water drops and three glowing mushroom clusters: no full-screen overlay or HUD box.
- for(const [wx,wy] of [[176,174],[698,171],[844,691],[499,690]]){
+ for(const [wx,wy] of [[176,174],[698,171],[844,691],[499,690],[1076,480],[1192,632]]){
   const p=screenPoint(wx,wy);if(p.x<-90||p.y<-90||p.x>v.w+90||p.y>v.h+90)continue;
   const flicker=16+Math.sin(G.time*4+wx)*3;const light=ctx.createRadialGradient(p.x,p.y,3,p.x,p.y,75+flicker);
   light.addColorStop(0,'#f2bd5250');light.addColorStop(1,'#d68d0000');ctx.fillStyle=light;ctx.fillRect(p.x-110,p.y-110,220,220);
@@ -7628,7 +7670,7 @@ function drawCaveAmbient(){if(!progress.cave?.active||G.mode!=='play')return;con
  ctx.restore();}
 function drawCaveMarkers(){if(!progress.cave?.active||G.mode!=='play')return;const drawAt=(x,y,fill,label)=>{const p=screenPoint(x,y),v=viewSize();if(p.x<0||p.y<0||p.x>v.w||p.y>v.h)return;ctx.save();ctx.fillStyle=fill;ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(p.x,p.y,29,0,Math.PI*2);ctx.fill();ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(label,p.x,p.y+3);ctx.restore();};
  drawAt(128,558,'#276459',lang('REST','ODMOR'));
- if(!progress.cave.secretFound)drawAt(566,555,'#454367','?');
+ if(!progress.cave.secretFound)drawAt(540,554,'#454367','?');drawCaveSecret();
 }
 function applyLegendaryHit(p,target){if(!p?.nsLegendaryWeapon||!target||target.dead||NET.role==='guest')return;
  p.nsLegendaryHits=(p.nsLegendaryHits||0)+1;if(p.nsLegendaryHits%5!==0)return;
@@ -7636,7 +7678,7 @@ function applyLegendaryHit(p,target){if(!p?.nsLegendaryWeapon||!target||target.d
  for(const m of others){const dmg=template==='storm_blade'?24:template==='earth_axe'?31:21;m.hp-=dmg;m.flash=.24;effect(template==='frost_edge'?'aura':'shock',m.x,m.y);if(template==='frost_edge')m.speed*=.92;if(m.hp<=0)killMob(m,p);}
  effect('shock',target.x,target.y);sfx(template==='earth_axe'?'stomp':'shield');
 }
-function caveTick(){if(!progress.cave?.active||G.mode!=='play')return;caveSafeRoomTick();caveThiefTick(1/30);caveSpiderTick();const exit={x:852,y:718,r:48};for(const p of G.players){if(!ns98CaveParticipant(p))continue;if(Math.hypot(p.x-exit.x,p.y-exit.y)<exit.r){if(NET.role==='host'&&!G.players.filter(ns98CaveParticipant).every(q=>Math.hypot(q.x-exit.x,q.y-exit.y)<90)){if(G.time-(progress.caveExitHintAt??-999)>4){progress.caveExitHintAt=G.time;toast(lang('Gather the team at the cave exit.','Okupi tim kod izlaza iz pećine.'));}return;}exitCave(true);break;}}
+function caveTick(){if(!progress.cave?.active||G.mode!=='play')return;caveSecretRewardTick();caveSafeRoomTick();caveThiefTick(1/30);caveSpiderTick();const exit={x:852,y:718,r:48};for(const p of G.players){if(!ns98CaveParticipant(p))continue;if(Math.hypot(p.x-exit.x,p.y-exit.y)<exit.r){if(NET.role==='host'&&!G.players.filter(ns98CaveParticipant).every(q=>Math.hypot(q.x-exit.x,q.y-exit.y)<90)){if(G.time-(progress.caveExitHintAt??-999)>4){progress.caveExitHintAt=G.time;toast(lang('Gather the team at the cave exit.','Okupi tim kod izlaza iz pećine.'));}return;}exitCave(true);break;}}
 }
 function drawCaveExit(){if(!progress.cave?.active||G.mode!=='play')return;const p=screenPoint(852,718),v=viewSize();if(p.x<-60||p.y<-60||p.x>v.w+60||p.y>v.h+60)return;ctx.save();ctx.translate(p.x,p.y);ctx.shadowColor='#77d8ff';ctx.shadowBlur=18;ctx.strokeStyle='#9ae8ff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,0,34,22,0,0,TAU);ctx.stroke();ctx.fillStyle='#7fdff8aa';ctx.fillRect(-10,-24,20,40);ctx.fillStyle='#d8edf4';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText(lang('EXIT','IZLAZ'),0,-36);ctx.restore();}
 function applyCaveVisuals(){return !!(progress.cave?.active||G.caveMode);}
