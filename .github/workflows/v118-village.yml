@@ -1,0 +1,26 @@
+name: V118 Village performance collision and navigation
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/index.html'
+      - 'public/v115-village.js'
+      - 'tests/v118-village-regression.test.cjs'
+      - '.github/workflows/v118-village.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  village-performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v118-village-regression.test.cjs
+      - run: node tests/v117-village-avatar.test.cjs
+      - run: node tests/v116-release.test.cjs
+      - run: node tests/v114-gate-hud-goblin.test.cjs
