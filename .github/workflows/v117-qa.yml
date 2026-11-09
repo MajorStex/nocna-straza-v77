@@ -1,0 +1,21 @@
+name: V117 selected hero and touch controls in Village
+on:
+  push:
+    branches: [main]
+    paths: ['public/index.html','public/v115-village.js','public/village-test/**','tests/v117-village-avatar.test.cjs','.github/workflows/v117-qa.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v117-village-avatar.test.cjs
+      - run: node tests/v116-release.test.cjs
+      - run: node tests/v114-gate-hud-goblin.test.cjs

@@ -7,7 +7,7 @@
  // The original game is a private IIFE; consume only its explicit read/write bridge.
  const {NET,G,NSX,NS91,NS97_POST,NS76CHAT,CoopVoice,renderCoopForge,renderPreRun,
   currentLobbyRoster,currentProfileLevel,getActiveAccount,coopVoiceUpdatePreference,
-  unlockSound,voiceLine,toast,meta,heroStyle}=window.__NS110_BRIDGE||{};
+  unlockSound,voiceLine,toast,meta,heroStyle,drawVillageHero,getVillageHeroLook}=window.__NS110_BRIDGE||{};
  if(!NET||!G||!NS91||!NS97_POST){console.error('Village: game API not ready');return}
  const $=id=>document.getElementById(id);
  const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
@@ -24,12 +24,13 @@
  const avatars=new Map(),limits=new Map(),emotes=new Map(),NPCS=Array.from({length:4},(_,i)=>({x:50+i*250,y:280+i%2*185}));
  let opened=false,soloPreview=false,focused=null,focusNode=null,returnPlace=null,walkTo=null,thenEnter=null,lastSent=0,frameAt=0,lastBroadcast=0,lastLeaderboard=0,lastLeaderRequest=0,leaderCache=null,leaderBusy=false;
  let originalShowLobby=null,originalStartMatch=null,originalSettle=null,originalAward=null,originalOnKill=null,musicCtx=null,musicTimer=null,musicOn=false;
+ const stick={id:null,x:0,y:0,vx:0,vy:0,drag:false},keys=Object.create(null);let stepFrame=0,side=1,walking=false,dodgeUntil=0,dodgeReady=0;
  const my={x:492,y:285};
  const root=document.createElement('section');root.id='ns109Village';root.className='ns109Hidden';root.setAttribute('aria-label','Village lobby');
  root.innerHTML=
   '<div id="ns109Top"><strong>🏡 NIGHT WATCH · VILLAGE</strong><span id="ns109Info">No enemies · No timer · No pauses</span>'+
   '<button id="ns109Sound" type="button">♫</button><button id="ns109Classic" type="button">☷ CLASSIC LOBBY</button></div>'+
-  '<div id="ns109Stage"><canvas id="ns109Scene" width="960" height="540" aria-label="Village with interactive buildings"></canvas>'+
+  '<div id="ns109Stage"><canvas id="ns109Scene" width="960" height="540" aria-label="Village with interactive buildings"></canvas><div id="ns117Stick" class="ns109Hidden" aria-hidden="true"><span id="ns117Knob"></span></div><button id="ns117Dodge" type="button" aria-label="Dodge / Izbegni">↝<small>DODGE</small></button>'+
   '<div id="ns109Hint">Tap the ground to move, or a house to walk there. Enter the green gate when ready.</div></div>'+
   '<div id="ns109Bottom"><button id="ns109Results" type="button">🏆 RESULTS</button>'+
   '<button id="ns109Global" type="button">🌍 GLOBAL RANKINGS</button>'+
@@ -46,7 +47,12 @@
   '#ns109Destinations{max-width:125px;min-height:36px;font-size:11px;padding:5px;background:#233c3c;color:#f5d9a1}',
   '#ns109Info{font-size:10px;color:#a9c1b2}',
   '#ns109Stage{flex:1;min-height:0;position:relative;overflow:hidden;background:#1c3932}',
-  '#ns109Scene{width:100%;height:100%;display:block;touch-action:manipulation}',
+  '#ns109Scene{width:100%;height:100%;display:block;touch-action:none}',
+  '#ns117Stick{position:absolute;z-index:4;pointer-events:none;width:112px;height:112px;border-radius:50%;border:2px solid #bddbcb98;background:radial-gradient(circle,#a7cab02b,#122a3699);box-shadow:0 4px 20px #020e1699;transform:translate(-50%,-50%)}',
+  '#ns117Knob{position:absolute;width:48px;height:48px;left:30px;top:30px;border-radius:50%;border:2px solid #d0e8da98;background:linear-gradient(130deg,#8caf9b,#355f62);box-shadow:0 4px 8px #0018}',
+  '#ns117Dodge{position:absolute;z-index:4;left:12px;bottom:58px;width:76px;height:76px;display:grid;place-content:center;border-radius:50%!important;border:2px solid #b7d9d0;background:#21474bde;color:#f6f0d7;font-size:22px!important;touch-action:manipulation}',
+  '#ns117Dodge small{font-size:9px;letter-spacing:.04em}',
+  '#ns117Dodge:disabled{opacity:.5;filter:grayscale(.7)}',
   '#ns109Hint{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);text-align:center;max-width:96%;padding:5px 11px;border:1px solid #d3c18b64;border-radius:12px;background:#122522c8;font-size:clamp(9px,2.6vw,12px);pointer-events:none}',
   '#ns109Bottom{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;padding:8px 6px calc(9px + env(safe-area-inset-bottom));background:#172b2a}',
   '#ns109Pane{position:absolute;inset:0;z-index:2;display:grid;place-items:center;padding:14px;background:#061016b5}',
@@ -257,32 +263,84 @@
    g.fillStyle='#332e28';g.fillRect(24,-6,2.4,2.4);g.restore();
   }
  }
- function avatar(id,x,y,name,ready,sparta){
-  g.save();g.translate(x,y);g.textAlign='center';g.font='bold 12px system-ui';g.strokeStyle='#0b191d';g.lineWidth=3;g.strokeText(name,-0,-36);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,0,-36);
+ function avatar(id,x,y,name,ready,sparta,animation={}){
+  if(typeof drawVillageHero==='function'){
+   const look=typeof getVillageHeroLook==='function'?getVillageHeroLook(id):heroStyle;
+   drawVillageHero(g,x,y,{id,look,frame:animation.frame||0,walking:!!animation.walking,visualSide:animation.side||1});
+   g.save();g.textAlign='center';g.font='bold 12px system-ui';g.lineWidth=3;g.strokeStyle='#0b191d';
+   g.strokeText(name,x,y-74);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,x,y-74);
+   if(ready){g.font='bold 14px system-ui';g.fillStyle='#c2ffc5';g.fillText('✓',x+27,y-60)}
+   const emote=emotes.get(id);if(emote&&Date.now()<emote.until){g.font='22px system-ui';g.fillText(emote.text,x+30,y-75)}
+   g.restore();return;
+  }
+  g.save();g.translate(x,y);g.textAlign='center';g.font='bold 12px system-ui';g.strokeStyle='#0b191d';g.lineWidth=3;g.strokeText(name,0,-36);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,0,-36);
   g.fillStyle='#061a21a1';g.beginPath();g.ellipse(0,15,15,5,0,0,7);g.fill();
   g.fillStyle=sparta?'#d8ac4f':id===NET.localId?'#8abfba':'#9ba8cc';g.fillRect(-11,-18,22,29);
   g.fillStyle='#e3b58e';g.beginPath();g.arc(0,-24,9,0,7);g.fill();
   g.fillStyle=sparta?'#f7d778':'#304a4d';g.fillRect(-10,-34,20,6);
   g.fillStyle='#303c3d';g.fillRect(-11,10,8,15);g.fillRect(3,10,8,15);
   if(ready){g.font='bold 18px system-ui';g.fillStyle='#c2ffc5';g.fillText('✓',18,-22)}
-  const emote=emotes.get(id);if(emote&&Date.now()<emote.until){g.fillStyle='#fff4ce';g.font='22px system-ui';g.fillText(emote.text,0,-58)}
   g.restore();
  }
+ function blockedVillage(x,y){return buildings.some(b=>x>b.x-b.w/2-9&&x<b.x+b.w/2+9&&y>b.y-b.h/2-8&&y<b.y+b.h/2+14)}
+ function moveVillage(dx,dy){const x=clamp(my.x+dx,29,931),y=clamp(my.y+dy,62,505);
+  if(!blockedVillage(x,my.y))my.x=x;
+  if(!blockedVillage(my.x,y))my.y=y;
+ }
+ function resetStick(){stick.id=null;stick.vx=0;stick.vy=0;stick.drag=false;$('ns117Stick').classList.add('ns109Hidden');$('ns117Knob').style.transform='translate(0,0)'}
+ function moveStick(e){
+  if(e.pointerId!==stick.id)return;
+  const dx=e.clientX-stick.x,dy=e.clientY-stick.y,d=Math.hypot(dx,dy);
+  if(d>11)stick.drag=true;if(!stick.drag)return;
+  const power=clamp((d-11)/57,0,1);stick.vx=d?dx/d*power:0;stick.vy=d?dy/d*power:0;
+  $('ns117Knob').style.transform='translate('+clamp(dx,-28,28)+'px,'+clamp(dy,-28,28)+'px)';
+ }
+ canvas.addEventListener('pointerdown',e=>{
+  if(!opened||!canVisit()||!pane.classList.contains('ns109Hidden')||stick.id!==null)return;
+  if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();
+  stick.id=e.pointerId;stick.x=e.clientX;stick.y=e.clientY;stick.drag=false;
+  const b=$('ns109Stage').getBoundingClientRect(),el=$('ns117Stick');
+  el.style.left=(e.clientX-b.left)+'px';el.style.top=(e.clientY-b.top)+'px';el.classList.remove('ns109Hidden');
+  try{canvas.setPointerCapture(e.pointerId)}catch{}
+ });
+ canvas.addEventListener('pointermove',e=>{if(e.pointerId===stick.id){e.preventDefault();moveStick(e)}});
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,e=>{
+  if(e.pointerId!==stick.id)return;
+  const tapOnly=type==='pointerup'&&!stick.drag;resetStick();if(tapOnly)tap(e);
+ });
+ for(const kind of ['keydown','keyup'])window.addEventListener(kind,e=>{
+  if(!opened||/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||''))return;
+  const k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=kind==='keydown';
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','a','s','d'].includes(k))e.preventDefault();
+ });
+ window.addEventListener('blur',()=>{for(const k of Object.keys(keys))delete keys[k];resetStick()});
+ $('ns117Dodge').onclick=()=>{const now=performance.now();if(!opened||now<dodgeReady)return;dodgeUntil=now+260;dodgeReady=now+2800};
  function step(time){
   if(!opened||!canVisit()){if(opened)closeVillage();return}
   if(document.hidden)return;
   const dt=clamp((time-frameAt)/1000,0,.14);frameAt=time;
-  if(walkTo){
+  const oldX=my.x,oldY=my.y;
+  const keyX=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0);
+  const keyY=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
+  const vx=stick.vx+keyX,vy=stick.vy+keyY,magnitude=Math.hypot(vx,vy);
+  if(magnitude>.05){
+   walkTo=null;thenEnter=null;
+   const speed=150*(time<dodgeUntil?2.25:1)*dt;
+   moveVillage(vx/Math.max(1,magnitude)*speed,vy/Math.max(1,magnitude)*speed);
+  }else if(walkTo){
    const dx=walkTo.x-my.x,dy=walkTo.y-my.y,d=Math.hypot(dx,dy);
    if(d<4){my.x=walkTo.x;my.y=walkTo.y;walkTo=null;if(thenEnter){const id=thenEnter;thenEnter=null;enter(id)}}
    else{const t=Math.min(d,150*dt);my.x+=dx/d*t;my.y+=dy/d*t}
   }
+  walking=Math.hypot(my.x-oldX,my.y-oldY)>.15;
+  if(walking){stepFrame+=dt*8;if(my.x<oldX-.1)side=-1;if(my.x>oldX+.1)side=1}
+  $('ns117Dodge').disabled=time<dodgeReady;
   if(NET.phase==='lobby'&&NET.role==='guest'&&NET.conn?.open&&time-lastSent>450){
    lastSent=time;try{NET.conn.send({t:'ns109Move',x:Math.round(my.x),y:Math.round(my.y)})}catch{}
   }
   if(NET.role==='host'&&time-lastBroadcast>750){
    lastBroadcast=time;const players=[...avatars.entries()].filter(([id])=>getPlayers().some(p=>p.id===id)).slice(0,6).map(([id,a])=>({id,x:Math.round(a.x),y:Math.round(a.y)}));
-   players.push({id:NET.localId,x:Math.round(my.x),y:Math.round(my.y)});
+   players.push({id:NET.localId,x:Math.round(my.x),y:Math.round(my.y),walking,side});
    const packet={t:'ns109State',players};for(const c of NET.clients.values())if(c?.open)try{c.send(packet)}catch{}
   }
   const screen=view(),ratio=Math.min(2,window.devicePixelRatio||1),w=Math.max(1,Math.round(screen.rect.width*ratio)),h=Math.max(1,Math.round(screen.rect.height*ratio));
@@ -293,8 +351,8 @@
   buildings.forEach(house);
   g.fillStyle='#467d55';g.beginPath();g.arc(790,465,37,0,7);g.fill();
   g.strokeStyle='#c5c38b';g.lineWidth=5;g.stroke();g.font='bold 13px system-ui';g.textAlign='center';g.fillStyle='#f5e5a4';g.fillText('READY',790,475);
-  for(const p of getPlayers()){if(p.id===NET.localId)continue;const a=avatars.get(p.id)||{x:460+Number(p.id?.slice(1)||2)*27,y:279};avatar(p.id,a.x,a.y,String(p.name||'GUARDIAN').slice(0,14),p.ready,false)}
-  const me=getPlayers().find(p=>p.id===NET.localId);avatar(NET.localId,my.x,my.y,ownName(),!!me?.ready||NET.ns97Results?.votes?.[NET.localId]==='yes',spartaEquipped());
+  for(const p of getPlayers()){if(p.id===NET.localId)continue;const a=avatars.get(p.id)||{x:460+Number(p.id?.slice(1)||2)*27,y:279};avatar(p.id,a.x,a.y,String(p.name||'GUARDIAN').slice(0,14),p.ready,false,{walking:!!a.walking,frame:time/145,side:a.side||1})}
+  const me=getPlayers().find(p=>p.id===NET.localId);avatar(NET.localId,my.x,my.y,ownName(),!!me?.ready||NET.ns97Results?.votes?.[NET.localId]==='yes',spartaEquipped(),{walking,frame:stepFrame,side});
   if(opened&&!pane.classList.contains('ns109Hidden')&&focused==='leaderboard')return;
  }
  function onMessage(data,assigned){
@@ -314,7 +372,7 @@
     const p=ground(data.x,data.y);const dt=clamp((now-prev.at)/1000,.16,1.5),max=155*dt+16;
     const d=Math.hypot(p.x-prev.x,p.y-prev.y),t=d>max?max/d:1;
     prev.x+=((p.x-prev.x)*t);prev.y+=((p.y-prev.y)*t);prev.at=now;
-    avatars.set(assigned,{x:prev.x,y:prev.y});limits.set(assigned,prev);
+    avatars.set(assigned,{x:prev.x,y:prev.y,walking:d>2,side:p.x<prev.x?-1:1});limits.set(assigned,prev);
     if(!opened&&now-lastBroadcast>750){
      lastBroadcast=now;const peers=[...avatars.entries()].filter(([id])=>getPlayers().some(p=>p.id===id)).slice(0,6).map(([id,a])=>({id,x:Math.round(a.x),y:Math.round(a.y)}));
      for(const c of NET.clients.values())if(c?.open)try{c.send({t:'ns109State',players:peers})}catch{}
@@ -324,7 +382,7 @@
   }
   if(data.t==='ns109State'){
    if(!Array.isArray(data.players)||data.players.length>8)return true;
-   for(const p of data.players)if(/^p[1-6]$/.test(String(p?.id||''))&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.id!==NET.localId)avatars.set(p.id,ground(p.x,p.y));
+   for(const p of data.players)if(/^p[1-6]$/.test(String(p?.id||''))&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.id!==NET.localId)avatars.set(p.id,{...ground(p.x,p.y),walking:!!p.walking,side:p.side===-1?-1:1});
    return true;
   }
   if(data.t==='ns109Emote'&&/^p[1-6]$/.test(String(data.id||''))&&['👋','⚔','🍻'].includes(data.emote))emotes.set(data.id,{text:data.emote,until:Date.now()+2500});
@@ -342,12 +400,12 @@
   if(!canVisit()){toast(tr('Open the village from the main menu or multiplayer lobby.','Otvori selo iz glavnog menija ili multiplayer lobija.'));return false;}
   soloPreview=!isLobby();
   if(!soloPreview){$('coopPanel')?.classList.remove('hidden');$('lobbyArea')?.classList.remove('hidden')}
-  opened=true;walkTo=null;thenEnter=null;closePane();my.x=490;my.y=284;
+  opened=true;walkTo=null;thenEnter=null;resetStick();stepFrame=0;walking=false;closePane();my.x=490;my.y=284;
   frameAt=performance.now();root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
-  $('ns109Hint').textContent=tr('Tap a house to walk there, or tap ground to move. No one is paused.','Dodirni kućicu da priđeš ili zemlju da se krećeš. Niko nije pauziran.');
+  $('ns109Hint').textContent=tr('Drag to walk · tap a house · DODGE to dash','Prevuci prstom za hodanje · dodirni kućicu · IZBEGNI za sprint');
   return true;
  }
- function closeVillage(){const wasSolo=soloPreview;opened=false;soloPreview=false;walkTo=null;thenEnter=null;closePane();root.classList.add('ns109Hidden');stopMusic();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
+ function closeVillage(){const wasSolo=soloPreview;resetStick();opened=false;soloPreview=false;walkTo=null;thenEnter=null;closePane();root.classList.add('ns109Hidden');stopMusic();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
  function playMusic(){
   if(musicOn){stopMusic();return}
   try{
@@ -373,7 +431,7 @@
  $('ns109Sparta').onclick=showSparta;
  $('ns109Voices').onclick=showVoice;
  $('ns109Chat').onclick=()=>enter('chat');
- canvas.addEventListener('pointerdown',tap);
+ // V117 pointer handlers above distinguish tap-to-enter from drag-to-move.
  document.addEventListener('keydown',e=>{if(!opened||!canVisit())return;if(e.key==='Escape'&&!pane.classList.contains('ns109Hidden')){e.stopImmediatePropagation();closePane()}else if(e.key==='Escape'){e.stopImmediatePropagation();closeVillage()}},true);
  const homeVillage=document.createElement('button');homeVillage.id='ns110VillageHome';homeVillage.type='button';homeVillage.textContent='🏡 '+tr('EXPLORE VILLAGE · CHILL HUB','ISTRAŽI SELO · CHILL LOBI');homeVillage.onclick=()=>{if(G.mode!=='menu'){toast(tr('Village is available between runs.','Selo je dostupno između partija.'));return}localStorage.setItem('ns109_village_pref','village');showVillage()};($('ns50MenuPlay')||$('coopBtn'))?.insertAdjacentElement('beforebegin',homeVillage);
  const enterButton=document.createElement('button');enterButton.id='ns109Visit';enterButton.type='button';enterButton.textContent='🏡 '+tr('ENTER VILLAGE','UĐI U SELO');enterButton.onclick=()=>{localStorage.setItem('ns109_village_pref','village');showVillage()};
@@ -399,4 +457,18 @@
  onMPAward:packet=>{if(packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}},
  get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},go:(x,y)=>{if(!opened)return false;walkTo=ground(x,y);return true}}};
  window.NS109_SPARTA={appearance:decorate,owned:spartaOwned,equipped:spartaEquipped,claim:spartaClaim};
+ // Real engine preview: preserve the current selected character and input.
+ if(new URLSearchParams(location.search).get('village-test')==='1'){
+  const launch=()=>{
+   const ok=showVillage();
+   window.__VILLAGE_PREVIEW_STATUS={open:ok,buildings:buildings.length,sheep:NPCS.length,authenticHero:typeof drawVillageHero==='function'};
+   if(ok&&!$('return')){
+    const link=document.createElement('a');link.id='return';link.href='./';link.textContent=tr('← FULL GAME','← IGRA');
+    link.style.cssText='position:absolute;z-index:3;right:9px;bottom:calc(78px + env(safe-area-inset-bottom));padding:8px;border-radius:9px;background:#123832;border:1px solid #9fc3ad;color:#f6e4b8;text-decoration:none;font:bold 11px system-ui';
+    root.append(link);
+   }
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',launch,{once:true});else launch();
+ }
+
 })();
