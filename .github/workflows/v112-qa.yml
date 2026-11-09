@@ -1,0 +1,29 @@
+name: V112 adaptive guest performance and multiplayer regression tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/v112/**'
+      - 'public/v111-village.js'
+      - 'tests/v112-*.test.cjs'
+      - '.github/workflows/v112-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install browser and multiplayer test dependencies
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2 ws@8
+      - name: Village and phone UI regressions
+        run: node tests/v112-village.test.cjs
+      - name: Two browsers, relay, match replay and reconnect
+        run: node tests/v112-relay-e2e.test.cjs
+      - name: Six browsers, packet loss, rematch, reconnect and performance feedback
+        run: node tests/v112-six-players.test.cjs
