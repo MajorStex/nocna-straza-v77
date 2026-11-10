@@ -31,7 +31,14 @@ const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=123&mp-stres
    const n=window.__NS110_BRIDGE.NET,b=document.getElementById('lobbyReadyBtn');
    return n.phase==='lobby'&&n.worldReady&&b&&!b.disabled;
   },null,{timeout:40000})));
-  await Promise.all(guests.map(g=>g.evaluate(()=>document.getElementById('lobbyReadyBtn').click())));
+  const preReady=await Promise.all(guests.map(g=>g.evaluate(()=>{
+   const n=window.__NS110_BRIDGE.NET;return {id:n.localId,ready:n.localReady,worldReady:n.worldReady};
+  })));
+  console.log('V123 GUEST SYNC COMPLETE',JSON.stringify(preReady));
+  await Promise.all(guests.map(g=>g.evaluate(()=>{
+    const n=window.__NS110_BRIDGE.NET;
+    if(!n.localReady)document.getElementById('lobbyReadyBtn').click();
+  })));
   await host.waitForFunction(()=>{
    const b=window.__NS110_BRIDGE,n=b.NET;
    return b.currentLobbyRoster().length===4&&b.currentLobbyRoster().every(p=>p.ready)&&
