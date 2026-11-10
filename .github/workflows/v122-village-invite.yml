@@ -2,7 +2,7 @@ name: V122 Village invite house and online room transitions
 on:
   push:
     branches: [main]
-    paths: ['public/index.html','public/v115-village.js','tests/v122-village-invite.test.cjs','.github/workflows/v122-village-invite.yml']
+    paths: ['public/index.html','public/v115-village.js','tests/v122-village-invite.test.cjs','tests/v116-release.test.cjs','tests/v110-village-rematch.test.cjs','tests/v114-village.test.cjs','.github/workflows/v122-village-invite.yml']
   workflow_dispatch:
 permissions:
   contents: read
