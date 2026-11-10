@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'public/**'
+      - 'tests/v128-multiplayer-performance.test.cjs'
       - '.github/workflows/cloudflare-existing-pages.yml'
   workflow_dispatch:
 permissions:
@@ -20,12 +21,14 @@ jobs:
         run: |
           grep -q 'VERZIJA V128' public/index.html
           grep -q '<title>Night Watch v128' public/index.html
+      - name: Verify multiplayer performance and preloading regressions
+        run: node tests/v128-multiplayer-performance.test.cjs
       - name: Prepare ZIP for existing Pages project
         run: |
           cd public
           zip -q -r ../nocna-straza-V128-Cloudflare-Pages.zip .
           cd ..
-          unzip -p nocna-straza-V128-Cloudflare-Pages.zip index.html | grep -q 'VERZIJA V128'
+          unzip -p nocna-straza-V128-Cloudflare-Pages.zip index.html | grep -F 'VERZIJA V128' > /dev/null
       - name: Save V128 upload package
         uses: actions/upload-artifact@v4
         with:
