@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const game=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const village=fs.readFileSync(path.join(__dirname,'../public/v115-village.js'),'utf8');
-for(const item of ['V125 · DESKTOP CONTROLS','NS103_PARTY,NS96_INVITES,SOCIAL','expectJoin?.(code)','document.body.append(alert)','alert.style.zIndex=\'180\''])assert.ok(game.includes(item),'Missing game integration '+item);
+for(const item of ['V126 · GATE SPAWN FIX','NS103_PARTY,NS96_INVITES,SOCIAL','expectJoin?.(code)','document.body.append(alert)','alert.style.zIndex=\'180\''])assert.ok(game.includes(item),'Missing game integration '+item);
 for(const item of ["{id:'invite'","function showInviteHouse()","function startVillageInvites(","function onVillageLobbyReady()","expectJoin:expectVillageJoin","onLobbyUI:onVillageLobbyReady","NS96_INVITES?.invite(id)","NS103_PARTY.start(online)","'ns122Start'"])assert.ok(village.includes(item),'Missing village integration '+item);
 for(const s of game.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))if(!/\bsrc=/.test(s[1]))new Function(s[2]);
 new Function(village);console.log('V124 syntax and reuse of existing room protocol PASS');
