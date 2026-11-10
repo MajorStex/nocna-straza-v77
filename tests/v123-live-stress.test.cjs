@@ -24,7 +24,13 @@ const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=123&mp-stres
    await guest.evaluate(code=>{document.getElementById('coopBtn').click();document.getElementById('joinCode').value=code;document.getElementById('joinBtn').click()},room);
    await guest.waitForFunction(code=>{const n=window.__NS110_BRIDGE.NET;return n.phase==='lobby'&&n.role==='guest'&&n.code===code},room,{timeout:35000});
   }));
-  await host.waitForFunction(()=>window.__NS110_BRIDGE.currentLobbyRoster().length===4,{timeout:25000});
+  await host.waitForFunction(()=>window.__NS110_BRIDGE.currentLobbyRoster().length===4,null,{timeout:30000});
+  // The lobby appears before world transfer finishes. Never click a disabled
+  // Ready button: doing so races map synchronization and creates false failures.
+  await Promise.all(guests.map(g=>g.waitForFunction(()=>{
+   const n=window.__NS110_BRIDGE.NET,b=document.getElementById('lobbyReadyBtn');
+   return n.phase==='lobby'&&n.worldReady&&b&&!b.disabled;
+  },null,{timeout:40000})));
   await Promise.all(guests.map(g=>g.evaluate(()=>document.getElementById('lobbyReadyBtn').click())));
   await host.waitForFunction(()=>{
    const b=window.__NS110_BRIDGE,n=b.NET;
