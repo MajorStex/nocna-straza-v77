@@ -1,0 +1,5 @@
+# V130: keep installed homescreen shortcuts on the SAME URL while always revalidating the release.
+/
+  Cache-Control: no-cache, max-age=0, must-revalidate
+/index.html
+  Cache-Control: no-cache, max-age=0, must-revalidate
