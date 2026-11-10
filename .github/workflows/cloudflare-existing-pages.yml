@@ -1,4 +1,4 @@
-name: V127 package and deploy existing Cloudflare Pages project
+name: V128 package and deploy existing Cloudflare Pages project
 on:
   push:
     branches: [main]
@@ -18,19 +18,19 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check that the live root points at the current release
         run: |
-          grep -q 'VERZIJA V127' public/index.html
-          grep -q '<title>Night Watch v127' public/index.html
+          grep -q 'VERZIJA V128' public/index.html
+          grep -q '<title>Night Watch v128' public/index.html
       - name: Prepare ZIP for existing Pages project
         run: |
           cd public
-          zip -q -r ../nocna-straza-V127-Cloudflare-Pages.zip .
+          zip -q -r ../nocna-straza-V128-Cloudflare-Pages.zip .
           cd ..
-          unzip -p nocna-straza-V127-Cloudflare-Pages.zip index.html | grep -q 'VERZIJA V127'
-      - name: Save V127 upload package
+          unzip -p nocna-straza-V128-Cloudflare-Pages.zip index.html | grep -q 'VERZIJA V128'
+      - name: Save V128 upload package
         uses: actions/upload-artifact@v4
         with:
-          name: nocna-straza-V127-Cloudflare-Pages
-          path: nocna-straza-V127-Cloudflare-Pages.zip
+          name: nocna-straza-V128-Cloudflare-Pages
+          path: nocna-straza-V128-Cloudflare-Pages.zip
           retention-days: 30
       - name: Publish to EXISTING nocna-straza-igra.pages.dev project if Cloudflare credentials are present
         run: |
@@ -39,8 +39,8 @@ jobs:
             echo "::notice::Use the generated ZIP artifact and Cloudflare Workers & Pages > nocna-straza-igra > Deployments > Create deployment > Production."
             exit 0
           fi
-          echo 'Deploy V127 to existing Cloudflare Worker and Pages project'
+          echo 'Deploy V128 to existing Cloudflare Worker and Pages project'
           npx --yes wrangler@4 deploy --config wrangler.jsonc
           echo 'Deploy same files to existing Cloudflare Pages project'
           npx --yes wrangler@4 pages deploy ./public --project-name nocna-straza-igra --branch main --commit-dirty=true
-          echo 'Deployed V127 to existing nocna-straza-igra Pages project.'
+          echo 'Deployed V128 to existing nocna-straza-igra Pages project.'
