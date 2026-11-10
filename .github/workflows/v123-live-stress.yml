@@ -1,0 +1,19 @@
+name: V123 real four player relay AI and FPS stress
+on:
+  push:
+    branches: [main]
+    paths: ['tests/v123-live-stress.test.cjs','.github/workflows/v123-live-stress.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  four-player-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v123-live-stress.test.cjs

@@ -3,10 +3,10 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const game=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const village=fs.readFileSync(path.join(__dirname,'../public/v115-village.js'),'utf8');
-for(const item of ['V122 · INVITE HOUSE','NS103_PARTY,NS96_INVITES,SOCIAL','expectJoin?.(code)','document.body.append(alert)','alert.style.zIndex=\'180\''])assert.ok(game.includes(item),'Missing game integration '+item);
+for(const item of ['V123 · PERFORMANCE QA','NS103_PARTY,NS96_INVITES,SOCIAL','expectJoin?.(code)','document.body.append(alert)','alert.style.zIndex=\'180\''])assert.ok(game.includes(item),'Missing game integration '+item);
 for(const item of ["{id:'invite'","function showInviteHouse()","function startVillageInvites(","function onVillageLobbyReady()","expectJoin:expectVillageJoin","onLobbyUI:onVillageLobbyReady","NS96_INVITES?.invite(id)","NS103_PARTY.start(online)","'ns122Start'"])assert.ok(village.includes(item),'Missing village integration '+item);
 for(const s of game.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))if(!/\bsrc=/.test(s[1]))new Function(s[2]);
-new Function(village);console.log('V122 syntax and reuse of existing room protocol PASS');
+new Function(village);console.log('V123 syntax and reuse of existing room protocol PASS');
 (async()=>{
  const bin=['/usr/bin/google-chrome','/usr/bin/chromium'].find(fs.existsSync);
  const browser=await chromium.launch({headless:true,executablePath:bin,args:['--no-sandbox','--allow-file-access-from-files','--disable-dev-shm-usage']});
@@ -75,7 +75,7 @@ new Function(village);console.log('V122 syntax and reuse of existing room protoc
   });
   assert.ok(dupe.nodes===1&&dupe.same&&dupe.opened&&dupe.room===first.room,'Duplicate acceptance must not create another lobby '+JSON.stringify(dupe));
   assert.equal(errors.length,0,'JS exceptions '+errors.join(' | '));
-  console.log('V122 TWO-BROWSER INVITE STATE PASS',JSON.stringify({host:first,repeat:second,guest:accepted,dupe}));
+  console.log('V123 TWO-BROWSER INVITE STATE PASS',JSON.stringify({host:first,repeat:second,guest:accepted,dupe}));
   await guest.close();await host.close();
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
