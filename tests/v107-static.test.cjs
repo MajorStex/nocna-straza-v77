@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const rights=fs.readFileSync(path.join(__dirname,'../RIGHTS_AND_SECURITY.md'),'utf8');
-for(const term of ['VERZIJA V108','ns107WaitOverlay','function beginShop(id,kind,seconds=7)','function finishShop(id,kind)',
+for(const term of ['VERZIJA V123','ns107WaitOverlay','function beginShop(id,kind,seconds=7)','function finishShop(id,kind)',
  'ns107RateAt','NS107_LINK_JOIN','?join=','t:\'shopDone\'','tokenId||found?.[0]',
  'ns106Identity()','NETLAB.markDisconnect(assigned)','sessionIdentity','shop?{id:shop.id','required:107'])
  assert.ok(html.includes(term),'Required marker '+term);
