@@ -4210,7 +4210,11 @@ function ns90TrollCanHit(m,victim){
  if(Math.abs(Math.atan2(Math.sin(diff),Math.cos(diff)))>1.1)return false;
  return !obstacleInPath(m.x,m.y,victim.x,victim.y,Math.min(12,m.r*.46));
 }
-function updateMobs(dt){buildMobGrid();NS95_CAGE.beginMobTick();
+function updateMobs(dt){
+ // Recover safely from any early Rotfiend inherited from stale saves/host migration.
+ // Authoritative simulation only; never award kills, loot or XP for a rejected mob.
+ if(G.wave<20&&G.mobs.some(m=>m.type==='rotfiend'))G.mobs=G.mobs.filter(m=>m.type!=='rotfiend');
+ buildMobGrid();NS95_CAGE.beginMobTick();
   const alive=availableTargets(),loads=new Map(alive.map(p=>[p.id,0]));
   const frostActive=G.players.some(p=>p.perks.frost&&G.time<p.freezeUntil);
   for(const m of G.mobs){
