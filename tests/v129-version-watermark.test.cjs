@@ -2,8 +2,9 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
-assert.match(html,/<title>Night Watch v129\b/,'release is v129');
-assert.match(html,/VERZIJA V129 · BUILD WATERMARK/,'menu version agrees');
+const build=html.match(/<title>Night Watch v(\d+)\b/)?.[1];
+assert.ok(build,'title carries build version');
+assert.ok(html.includes('VERZIJA V'+build+' ·'),'menu version agrees');
 assert.equal((html.match(/id="ns129VersionBadge"/g)||[]).length,1,'exactly one HUD badge');
 assert.match(html,/#ns129VersionBadge\{[\s\S]*?pointer-events:none/,'the watermark never steals touches');
 assert.match(html,/#app:has\(> #hud:not\(\.hidden\)\)[\s\S]*?> #ns129VersionBadge\{display:block\}/,'visible while playing');
@@ -19,9 +20,9 @@ const run=(title,menu)=>{
   const value=new Function('document','$',snippet+';return NS129_BUILD')({title},$);
   return {value,text:badge.textContent};
 };
-assert.deepEqual(run('Night Watch v129','VERZIJA V129'),{value:'129',text:'v129'});
-assert.deepEqual(run('Night Watch v130','VERZIJA V129'),{value:'130',text:'v130'},'future releases update automatically from title');
+assert.deepEqual(run('Night Watch v'+build,'VERZIJA V'+build),{value:build,text:'v'+build});
+assert.deepEqual(run('Night Watch v999','VERZIJA V'+build),{value:'999',text:'v999'},'future releases update automatically from title');
 assert.deepEqual(run('Other game title','VERZIJA V131'),{value:'131',text:'v131'},'banner is fallback');
 const scripts=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)].filter(x=>!/\bsrc=/.test(x[1]));
 for(const m of scripts)new Function(m[2]);
-console.log('PASS V129: unobtrusive and nonblocking version badge, Village visibility, dynamic build number, 4-script syntax');
+console.log('PASS v'+build+': unobtrusive version badge, Village visibility, dynamic build number, inline script syntax');
