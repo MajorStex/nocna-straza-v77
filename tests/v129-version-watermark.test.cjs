@@ -1,0 +1,27 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
+assert.match(html,/<title>Night Watch v129\b/,'release is v129');
+assert.match(html,/VERZIJA V129 · BUILD WATERMARK/,'menu version agrees');
+assert.equal((html.match(/id="ns129VersionBadge"/g)||[]).length,1,'exactly one HUD badge');
+assert.match(html,/#ns129VersionBadge\{[\s\S]*?pointer-events:none/,'the watermark never steals touches');
+assert.match(html,/#app:has\(> #hud:not\(\.hidden\)\)[\s\S]*?> #ns129VersionBadge\{display:block\}/,'visible while playing');
+assert.match(html,/body:has\(#ns109Village:not\(\.ns109Hidden\)\) #ns129VersionBadge\{display:block/,'visible over Village');
+assert.match(html,/bottom:calc\(6px \+ env\(safe-area-inset-bottom,0px\)\)/,'safe area support');
+assert.match(html,/background:rgba\(12,22,25,.86\);color:#b8c9c2/,'legible muted colors');
+const begin=html.indexOf('const NS129_BUILD='),end=html.indexOf('const canvas=',begin);
+assert.ok(begin>0&&end>begin,'build label initialized once');
+const snippet=html.slice(begin,end);
+const run=(title,menu)=>{
+  const badge={textContent:''};
+  const $=id=>id==='ns129VersionBadge'?badge:id==='ns102MenuVersion'?{textContent:menu}:null;
+  const value=new Function('document','$',snippet+';return NS129_BUILD')({title},$);
+  return {value,text:badge.textContent};
+};
+assert.deepEqual(run('Night Watch v129','VERZIJA V129'),{value:'129',text:'v129'});
+assert.deepEqual(run('Night Watch v130','VERZIJA V129'),{value:'130',text:'v130'},'future releases update automatically from title');
+assert.deepEqual(run('Other game title','VERZIJA V131'),{value:'131',text:'v131'},'banner is fallback');
+const scripts=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)].filter(x=>!/\bsrc=/.test(x[1]));
+for(const m of scripts)new Function(m[2]);
+console.log('PASS V129: unobtrusive and nonblocking version badge, Village visibility, dynamic build number, 4-script syntax');
