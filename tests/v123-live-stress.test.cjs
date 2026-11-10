@@ -39,7 +39,7 @@ const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=123&mp-stres
   // WebSockets or fake FPS; guest snapshots pass through the live relay.
   const spawned=await host.evaluate(()=>{
    const w=window.__nightWatch,p=w.G.players[0];
-   for(const q of w.G.players){q.maxHp=5000;q.hp=5000}
+   for(const q of w.G.players){q.maxHp=5000;q.hp=5000;q.attackCD=99999}
    for(let i=0;i<57;i++){
     const angle=i*Math.PI*2/57,radius=220+(i%4)*63;
     w.addMob(['goblin','crawler','skeleton','brute','worm'][i%5],
@@ -59,7 +59,7 @@ const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=123&mp-stres
   const diag=await Promise.all(pages.map(p=>p.evaluate(()=>{
    const w=window.__nightWatch,n=window.__NS110_BRIDGE.NET;
    return {phase:n.phase,room:n.code,mode:w.G.mode,time:w.G.time,
-      mobs:w.G.mobs.length,players:w.G.players.length,
+      mobs:w.G.mobs.length,players:w.G.players.length,paused:w.G.paused,teamFrozen:window.__NS99_TEAM?.frozen?.()||false,
       diagnostics:window.__NS112_MP_DIAG(),render:window.__NS77PERF.status(),
       frame:window.__NS94_FX.stats(),cpu:window.__NS123_PERF(),
       heap:performance.memory?.usedJSHeapSize||0};
@@ -79,7 +79,7 @@ const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=123&mp-stres
     room,baseline:before,mobs:spawned.count,players:diag.map((d,i)=>({
        id:i,phase:d.phase,fps:d.diagnostics.fps,renderMs:d.render.drawMs,quality:d.frame.tier,
        snapshot:d.diagnostics.snapshot,netBuffer:d.diagnostics.hostBufferBytes,
-       mobs:d.mobs,grid:d.cpu,heapMB:Math.round(d.heap/1048576)
+       mobs:d.mobs,time:Math.round(d.time*10)/10,paused:d.paused,frozen:d.teamFrozen,grid:d.cpu,heapMB:Math.round(d.heap/1048576)
     })),errors
   }));
   // A missing guest should never crash the host or break remaining clients.
