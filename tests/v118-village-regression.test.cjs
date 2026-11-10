@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const read=p=>fs.readFileSync(path.resolve(__dirname,'../',p),'utf8');
 const game=read('public/index.html'),village=read('public/v115-village.js');
-for(const needle of ['const villageVisible=window.NS109_VILLAGE?.opened','if(villageVisible){','VERZIJA V122','v115-village.js?v=121'])assert.ok(game.includes(needle),needle);
+for(const needle of ['const villageVisible=window.NS109_VILLAGE?.opened','if(villageVisible){','VERZIJA V122','v115-village.js?v=122'])assert.ok(game.includes(needle),needle);
 for(const needle of ['function findVillagePath(','function blockedVillage(','function updateVillageTravel(','function villageStaticLayer(','function villageFrame(now)','const layer=villageStaticLayer()','smoothAvatars.get(p.id)'])assert.ok(village.includes(needle),needle);
 assert.ok(!village.includes('const heartbeat=setInterval('),'Old 75ms Village render interval removed');
 for(const m of game.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))if(!/\bsrc=/.test(m[1]))new Function(m[2]);
