@@ -31,7 +31,7 @@ assert.ok(html.includes("elephant:{color:'#99546d'"),'armored burgundy palette')
 assert.ok(html.includes('function drawArmoredGoblin(e)'),'helmeted goblin renderer');
 assert.ok(html.includes('V114 mobile-first gameplay HUD'),'compact mobile HUD styles');
 assert.ok(html.includes('ns114CornerGateBlocked(wx,wy,radius*.72+8)'),'enemy navigation uses same gate solidity');
-assert.ok(live.includes('VERZIJA V121'),'main game entrypoint is V117');
+assert.ok(live.includes('VERZIJA V122'),'main game entrypoint is V117');
 assert.ok(live.includes('./v115-village.js?v=121'),'main app uses updated Village with root relative assets');
 for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))
  if(!/\bsrc=/.test(m[1]))new Function(m[2]);

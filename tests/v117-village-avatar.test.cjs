@@ -18,7 +18,7 @@ new Function(village);console.log('V117 static syntax and integration PASS');
    await page.goto('file://'+path.resolve(__dirname,'../public/index.html')+'?village-test=1',{waitUntil:'domcontentloaded'});
    await page.waitForFunction(()=>Boolean(window.__VILLAGE_PREVIEW_STATUS),{timeout:12000});
    const status=await page.evaluate(()=>window.__VILLAGE_PREVIEW_STATUS);
-   assert.ok(status.open&&status.authenticHero&&status.buildings===7&&status.sheep===4,'Real engine Village opened '+JSON.stringify(status));
+   assert.ok(status.open&&status.authenticHero&&status.buildings===8&&status.sheep===4,'Real engine Village opened '+JSON.stringify(status));
    const result=await page.evaluate(()=>{
     const bridge=window.__NS110_BRIDGE,api=window.NS109_VILLAGE,scene=document.querySelector('#ns109Scene'),b=scene.getBoundingClientRect();
     const canvas=document.createElement('canvas');canvas.width=110;canvas.height=135;const ctx=canvas.getContext('2d');

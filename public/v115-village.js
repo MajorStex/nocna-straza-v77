@@ -7,7 +7,8 @@
  // The original game is a private IIFE; consume only its explicit read/write bridge.
  const {NET,G,NSX,NS91,NS97_POST,NS76CHAT,CoopVoice,renderCoopForge,renderPreRun,
   currentLobbyRoster,currentProfileLevel,getActiveAccount,coopVoiceUpdatePreference,
-  unlockSound,voiceLine,toast,meta,heroStyle,drawVillageHero,getVillageHeroLook}=window.__NS110_BRIDGE||{};
+  unlockSound,voiceLine,toast,meta,heroStyle,drawVillageHero,getVillageHeroLook,
+ NS103_PARTY,NS96_INVITES,SOCIAL,startSocial,socialCheckFriends,showFriends,ensureSocialIdentity,safePlayerName,sendSocialStatus,NS92_DIR}=window.__NS110_BRIDGE||{};
  if(!NET||!G||!NS91||!NS97_POST){console.error('Village: game API not ready');return}
  const $=id=>document.getElementById(id);
  const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
@@ -15,7 +16,8 @@
  const buildings=[
   {id:'shop',x:184,y:164,w:150,h:114,label:'SHOP',sr:'PRODAVNICA',roof:'#8d5651',wall:'#c0a481',icon:'🛒'},
   {id:'guardian',x:454,y:156,w:226,h:126,label:'GUARDIAN BASE',sr:'TRAJNA UNAPREĐENJA',roof:'#525b78',wall:'#ada9a0',icon:'✦'},
-  {id:'armory',x:755,y:167,w:155,h:119,label:'ARMORY',sr:'ORUŽARNICA',roof:'#72594a',wall:'#c0ac87',icon:'⚒'},
+  {id:'armory',x:679,y:167,w:130,h:119,label:'ARMORY',sr:'ORUŽARNICA',roof:'#72594a',wall:'#c0ac87',icon:'⚒'},
+  {id:'invite',x:851,y:167,w:136,h:110,label:'INVITE HALL',sr:'KUĆA POZIVA',roof:'#456a70',wall:'#b9c4ad',icon:'✉'},
   {id:'academy',x:107,y:391,w:156,h:106,label:'HERO ACADEMY',sr:'AKADEMIJA',roof:'#485b70',wall:'#b7b6a6',icon:'⚔'},
   {id:'hall',x:338,y:393,w:174,h:106,label:'HALL OF FAME',sr:'DOSTIGNUĆA',roof:'#605a7d',wall:'#aaa8b8',icon:'🏆'},
   {id:'chat',x:563,y:391,w:174,h:110,label:'TAVERN / CHAT',sr:'KRČMA / ČET',roof:'#967255',wall:'#d0b385',icon:'💬'},
@@ -26,7 +28,7 @@
  let originalShowLobby=null,originalStartMatch=null,originalSettle=null,originalAward=null,originalOnKill=null,musicCtx=null,musicTimer=null,musicOn=false;
  // V118 profiling is local-only: no network packets or account writes.
  let villageLastTick=0,villageFrameCredit=0,sceneLayer=null,sceneLayerLang='';let route=[],routeIndex=0,doorLatch=null,doorLabel='';
- const houseLayers=new Map();let lastDepthOrder=[];
+ const houseLayers=new Map();let lastDepthOrder=[];let pendingAutoRoom='',pendingAutoUntil=0,lastInviteUiAt=0;
  // One shared rAF with the game's update loop; avoid a second timer and frame pacing drift.
  const VILLAGE_TARGET_MS=1000/60;
  let fpsStart=0,fpsFrames=0,drawMsSum=0,drawMsMax=0,lastStatsAt=0;
@@ -79,6 +81,14 @@
   '#ns109PaneContent .ns76Chat{margin:0!important;max-height:54dvh;overflow:auto}',
   '#ns109PaneContent .coopForge{display:block!important;margin:0!important}',
   '#ns109PaneContent .coopForge button{white-space:normal;width:100%}',
+  '.ns122Actions{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0}',
+  '.ns122Actions button{flex:1;min-width:110px;white-space:normal!important}',
+  '.ns122Friends{max-height:40dvh;overflow-y:auto;display:grid;gap:7px;margin:10px 0;overscroll-behavior:contain}',
+  '.ns122Friend{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:9px;border:1px solid #78968165;border-radius:10px;background:#1a3533}',
+  '.ns122Friend span{flex:1;min-width:0;overflow-wrap:anywhere}',
+  '.ns122Friend button{min-width:83px;white-space:normal!important}',
+  '#ns122Presence{font-weight:700;color:#c8e9d8}',
+  '#ns122InviteAll{width:100%;white-space:normal!important}',
   'body.ns109External #nsShopPanel:not(.hidden),body.ns109External #nsArmoryPanel:not(.hidden),body.ns109External #nsGuidePanel:not(.hidden){z-index:150!important}',
   '@media(max-width:560px){#ns109Top{gap:5px}#ns109Info{display:none}#ns109Bottom{gap:4px}#ns109Bottom button{min-height:35px;padding:6px}}'
  ].join('');
@@ -131,6 +141,7 @@
    putExisting('ns76Chat',tr('VILLAGE TAVERN · CHAT','SEOSKA KRČMA · ČET'));return
   }
   if(id==='hall'){showAchievements();return}
+  if(id==='invite'){showInviteHouse();return}
   if(id==='ready'){
    if(soloPreview){closeVillage();$('coopBtn')?.click();return}
    if(NS97_POST.active){if(!NET.ns97Results?.votes?.[NET.localId])NS97_POST.vote('yes');else NS97_POST.vote('no')}
@@ -138,6 +149,140 @@
    else $('lobbyReadyBtn')?.click();
    $('ns109Hint').textContent=NET.localReady||NET.ns97Results?.votes?.[NET.localId]==='yes'?tr('Ready! Waiting for others.','Spreman! Čekamo ostale.'):tr('Not ready.','Nisi spreman.');return;
   }
+ }
+
+ function inviteRosterText(){
+  if(!isLobby())return tr('SOLO VILLAGE · Room starts when you invite an online friend','SOLO SELO · Online soba se pokreće kada pozoveš prijatelja');
+  const roster=getPlayers();
+  return tr('ONLINE ROOM ','ONLINE SOBA ')+NET.code+' · '+roster.length+'/'+NS92_DIR.maxPlayers()+
+   tr(' PLAYERS',' IGRAČA')+' · '+roster.map(p=>safePlayerName(p.name)).join(', ');
+ }
+ function inviteRoomLink(){
+  const room=String(NET.code||'');
+  return /^[A-HJ-NP-Z2-9]{6}$/.test(room)&&isLobby()?
+   location.origin+location.pathname+'?join='+encodeURIComponent(room):'';
+ }
+ async function copyVillageText(value){
+  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(value);toast(tr('Copied','Kopirano'));return}}
+  catch{}
+  // Clipboard is blocked on some embedded Android browsers; show the value so
+  // the player can still pass the code without creating a second room.
+  toast(value);
+ }
+ function startVillageInvites(ids){
+  const online=[...new Set(ids)].filter(id=>SOCIAL?.db?.friends?.[id]&&SOCIAL.conns.get(id)?.open).slice(0,5);
+  if(!online.length){toast(tr('No online friends selected','Nema izabranih online prijatelja'));return false}
+  if(NET.phase==='lobby'&&NET.role){
+   if(getPlayers().length>=NS92_DIR.maxPlayers()){toast(tr('Room is full','Soba je puna'));return false}
+   let sent=0;for(const id of online)if(NS96_INVITES?.invite(id))sent++;
+   if(sent){lastInviteUiAt=0;showInviteHouse()}return sent>0;
+  }
+  if(NET.role||NET.phase!=='idle'){
+   toast(tr('Connecting to a room already.','Već se povezuješ sa sobom.'));return false;
+  }
+  if(pendingAutoRoom==='HOST'&&Date.now()<pendingAutoUntil){
+   toast(tr('Online room creation is already in progress','Pravljenje online sobe je već u toku'));return false;
+  }
+  if(!NS103_PARTY?.start){toast(tr('Online invitations unavailable','Online pozivi nisu dostupni'));return false}
+  // Reuse the existing host/relay creation exactly once. Auto-return to Village
+  // only AFTER the original lobby is confirmed online.
+  pendingAutoRoom='HOST';pendingAutoUntil=Date.now()+45000;
+  const started=NS103_PARTY.start(online);
+  if(!started){pendingAutoRoom='';pendingAutoUntil=0;return false}
+  closePane();
+  toast(tr('Creating online room and sending invitations…','Pravim online sobu i šaljem pozive…'));
+  return true;
+ }
+ function showInviteHouse(){
+  panel(tr('INVITATION HALL · ONLINE PARTY','KUĆA POZIVA · ONLINE DRUŠTVO'));
+  focused='invite';
+  const headline=document.createElement('p');headline.id='ns122Presence';headline.textContent=inviteRosterText();
+  area.append(headline);
+  const intro=document.createElement('p');intro.textContent=tr(
+   'Invite up to five online friends. Accepting joins THIS room, then opens Village. Start the match with the normal Ready/Start controls.',
+   'Pozovi do pet online prijatelja. Prihvatanjem ulaze u ISTU sobu i Village. Partija se pokreće preko postojećih Ready/Start komandi.');
+  area.append(intro);
+  const actions=document.createElement('div');actions.className='ns122Actions';
+  const refresh=document.createElement('button');refresh.type='button';refresh.textContent=tr('↻ REFRESH','↻ OSVEŽI');
+  refresh.onclick=()=>{if(SOCIAL?.connected)socialCheckFriends?.();else startSocial?.();showInviteHouse()};
+  actions.append(refresh);
+  const friendBtn=document.createElement('button');friendBtn.type='button';friendBtn.textContent=tr('＋ ADD FRIEND','＋ DODAJ PRIJATELJA');
+  friendBtn.onclick=()=>{closeVillage();showFriends?.()};actions.append(friendBtn);
+  if(isLobby()){
+   const code=document.createElement('button');code.type='button';code.id='ns122RoomCode';
+   code.textContent=tr('COPY ROOM CODE: ','KOPIRAJ KOD SOBE: ')+NET.code;
+   code.onclick=()=>copyVillageText(NET.code);actions.append(code);
+   const share=document.createElement('button');share.type='button';share.id='ns122ShareLink';
+   share.textContent=tr('COPY JOIN LINK','KOPIRAJ LINK ZA ULAZ');
+   share.onclick=()=>copyVillageText(inviteRoomLink());actions.append(share);
+  }
+  area.append(actions);
+  const ids=Object.keys(SOCIAL?.db?.friends||{}).sort((a,b)=>(!!SOCIAL.conns.get(b)?.open)-(!!SOCIAL.conns.get(a)?.open)||
+   String(SOCIAL.db.friends[a].name).localeCompare(String(SOCIAL.db.friends[b].name)));
+  const list=document.createElement('div');list.id='ns122Friends';list.className='ns122Friends';
+  const inRoom=new Set(getPlayers().map(p=>p.friendId));
+  const full=isLobby()&&getPlayers().length>=NS92_DIR.maxPlayers();
+  let onlineCount=0;const selected=[];
+  for(const id of ids){
+   const f=SOCIAL.db.friends[id],online=!!SOCIAL.conns.get(id)?.open,joined=inRoom.has(id);
+   if(online&&!joined)onlineCount++;
+   const row=document.createElement('div');row.className='ns122Friend';
+   const text=document.createElement('span');text.textContent=safePlayerName(f.name)+(joined?tr(' · ✓ HERE',' · ✓ OVDE'):online?' · ● ONLINE':' · ○ OFFLINE');
+   const btn=document.createElement('button');btn.type='button';btn.dataset.friendId=id;
+   btn.disabled=!online||joined||full||(!isLobby()&&NET.phase!=='idle');
+   btn.textContent=joined?tr('IN ROOM','U SOBI'):!online?'OFFLINE':full?tr('FULL','PUNO'):tr('INVITE','POZOVI');
+   btn.onclick=()=>startVillageInvites([id]);row.append(text,btn);list.append(row);
+   if(online&&!joined)selected.push(id);
+  }
+  if(!ids.length){
+   const hint=document.createElement('p');hint.textContent=tr('No friends yet. Add them by their in-game Friend ID.',
+    'Još nema prijatelja. Dodaj ih preko ID-a prijatelja iz igre.');list.append(hint);
+  }
+  area.append(list);
+  if(onlineCount>1){
+   const all=document.createElement('button');all.id='ns122InviteAll';all.type='button';
+   all.textContent=tr('✉ INVITE ONLINE FRIENDS','✉ POZOVI ONLINE PRIJATELJE')+' ('+Math.min(5,selected.length)+')';
+   all.disabled=full;all.onclick=()=>startVillageInvites(selected.slice(0,5));area.append(all);
+  }
+  if(isLobby()){
+   const controls=document.createElement('div');controls.className='ns122Actions';
+   const ready=document.createElement('button');ready.id='ns122Ready';ready.type='button';
+   ready.textContent=tr('✓ READY / UNREADY','✓ SPREMAN / NISAM SPREMAN');
+   ready.onclick=()=>{$('lobbyReadyBtn')?.click();headline.textContent=inviteRosterText()};controls.append(ready);
+   if(NET.role==='host'){
+    const start=document.createElement('button');start.id='ns122Start';start.type='button';
+    start.textContent=tr('▶ START MATCH','▶ POKRENI PARTIJU');
+    start.onclick=()=>{
+     if(!getPlayers().length||getPlayers().length<2){toast(tr('At least two players needed','Potrebna su bar dva igrača'));return}
+     // Original start handler enforces READY, world loading and host authority.
+     $('lobbyStartBtn')?.click();
+    };
+    controls.append(start);
+   }
+   area.append(controls);
+  }else if(NET.phase==='idle'){
+   const guide=document.createElement('small');guide.textContent=tr('An online room is created only when you send an invite. No duplicate server is opened.',
+    'Online soba se kreira tek kad pošalješ poziv. Ne pravi se dupli server.');
+   area.append(guide);
+  }
+  lastInviteUiAt=performance.now();
+  if(!SOCIAL?.peer&&!SOCIAL?.starting)startSocial?.();
+ }
+ function onVillageLobbyReady(){
+  const expected=pendingAutoRoom;
+  if(expected&&Date.now()>pendingAutoUntil){pendingAutoRoom='';pendingAutoUntil=0}
+  if(pendingAutoRoom&&isLobby()&&(pendingAutoRoom==='HOST'?NET.role==='host':NET.code===pendingAutoRoom)){
+   pendingAutoRoom='';pendingAutoUntil=0;
+   if(!opened)showVillage();
+   else if(root.classList.contains('ns109Hidden'))root.classList.remove('ns109Hidden');
+   toast(tr('Connected! Welcome to the online Village.','Povezano! Dobro došli u online selo.'));
+   return;
+  }
+  scheduleAutoVillage();
+ }
+ function expectVillageJoin(room){
+  if(!/^[A-HJ-NP-Z2-9]{6}$/.test(String(room||'')))return false;
+  pendingAutoRoom=room;pendingAutoUntil=Date.now()+45000;return true;
  }
  function showAchievements(){
   panel(tr('HALL OF FAME','DOM SLAVE'));const p=document.createElement('p');
@@ -478,7 +623,12 @@
   if(!opened||!canVisit()){if(opened)closeVillage();return}
   if(document.hidden)return;
   const dt=clamp((time-frameAt)/1000,0,.14);frameAt=time;
+  if(focused==='invite'&&time-lastInviteUiAt>=1600){lastInviteUiAt=time;const status=$('ns122Presence');if(status)status.textContent=inviteRosterText()}
   const roster=getPlayers();
+  const stateText=isLobby()?
+   tr('● ONLINE ROOM ','● ONLINE SOBA ')+NET.code+' · '+roster.length+'/'+NS92_DIR.maxPlayers():
+   tr('◇ SOLO VILLAGE','◇ SOLO SELO');
+  if($('ns109Info').textContent!==stateText)$('ns109Info').textContent=stateText;
   const oldX=my.x,oldY=my.y;
   const keyX=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0);
   const keyY=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
@@ -594,7 +744,7 @@
   setTimeout(()=>{if(isLobby()&&NET.round>=1&&!opened&&!document.hidden&&pane.classList.contains('ns109Hidden'))showVillage()},3800);
  }
  $('ns109PaneBack').onclick=closePane;
- $('ns109Classic').onclick=()=>{localStorage.setItem('ns109_village_pref','classic');closeVillage()};
+ $('ns109Classic').onclick=()=>{pendingAutoRoom='';pendingAutoUntil=0;localStorage.setItem('ns109_village_pref','classic');closeVillage()};
  $('ns109Sound').onclick=playMusic;
  $('ns109Results').onclick=()=>{closeVillage();$('ns97Results')?.scrollIntoView({block:'start'})};
  $('ns109Global').onclick=()=>{focused='leaderboard';showRankings()};
@@ -651,10 +801,10 @@
    if(fpsBadge)fpsBadge.textContent=PERF.fps+' FPS · '+PERF.averageDrawMs.toFixed(1)+'ms';
   }
  }
- window.NS109_VILLAGE={open:showVillage,close:closeVillage,frame:villageFrame,onMessage,enter,onLobbyUI:()=>{if(isLobby())scheduleAutoVillage()},
+ window.NS109_VILLAGE={open:showVillage,close:closeVillage,frame:villageFrame,onMessage,enter,onLobbyUI:onVillageLobbyReady,expectJoin:expectVillageJoin,openInvites:()=>{if(!opened&&canVisit())showVillage();if(!opened)return false;showInviteHouse();return true},
  onSoloResult:run=>{if(run&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(run.kills)},
  onMPAward:packet=>{if(packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}},
- get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my},nearDoor:closestDoor()?.id||null,doorLatch,depthOrder:lastDepthOrder.slice(),cachedHouses:houseLayers.size}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y),visit:(id)=>{const b=buildings.find(x=>x.id===id);return opened&&!!b&&startVillageTravel(doorPoint(b).x,doorPoint(b).y,b.id)},testMove:(x,y)=>{if(!new URLSearchParams(location.search).has('village-test')||!opened)return false;const p=ground(x,y);if(blockedVillage(p.x,p.y))return false;my.x=p.x;my.y=p.y;return true}}};
+ get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my},nearDoor:closestDoor()?.id||null,doorLatch,depthOrder:lastDepthOrder.slice(),cachedHouses:houseLayers.size,pendingAutoRoom}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y),visit:(id)=>{const b=buildings.find(x=>x.id===id);return opened&&!!b&&startVillageTravel(doorPoint(b).x,doorPoint(b).y,b.id)},testMove:(x,y)=>{if(!new URLSearchParams(location.search).has('village-test')||!opened)return false;const p=ground(x,y);if(blockedVillage(p.x,p.y))return false;my.x=p.x;my.y=p.y;return true}}};
  window.NS109_SPARTA={appearance:decorate,owned:spartaOwned,equipped:spartaEquipped,claim:spartaClaim};
  // Real engine preview: preserve the current selected character and input.
  if(new URLSearchParams(location.search).get('village-test')==='1'){

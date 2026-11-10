@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const village=fs.readFileSync(path.join(__dirname,'../public/v115-village.js'),'utf8');
-assert.ok(html.includes('VERZIJA V121 · VILLAGE DEPTH'));
+assert.ok(html.includes('VERZIJA V122 · VILLAGE DEPTH'));
 for(const tag of ['function villageHouseSprite(','function drawDepthHouse(','depthItems.sort(','depthOrder:lastDepthOrder.slice()','const layer=villageStaticLayer()']){
  assert.ok(village.includes(tag),'Missing depth fix '+tag);
 }
@@ -39,10 +39,10 @@ new Function(village);
   const frontDebug=await page.evaluate(()=>window.NS109_VILLAGE.test.debug);
   assert.ok(frontDebug.depthOrder.indexOf('house:guardian')<frontDebug.depthOrder.indexOf('hero:p1'),
    'Character in front must render AFTER the building '+JSON.stringify(frontDebug.depthOrder));
-  assert.equal(frontDebug.cachedHouses,7,'Only seven compact house sprites should be cached');
+  assert.equal(frontDebug.cachedHouses,8,'Only eight compact house sprites should be cached');
   assert.ok(frontDebug.staticBuilds===1,'Terrain still cached once');
   assert.ok(errors.length===0,'Browser JS exceptions: '+errors.join(' | '));
-  console.log('V121 ROOF OCCLUSION PASS',JSON.stringify({baseline,behindPixel,back:behindDebug.depthOrder,front:frontDebug.depthOrder,houseSprites:frontDebug.cachedHouses}));
+  console.log('V122 ROOF OCCLUSION PASS',JSON.stringify({baseline,behindPixel,back:behindDebug.depthOrder,front:frontDebug.depthOrder,houseSprites:frontDebug.cachedHouses}));
   await page.close();
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
