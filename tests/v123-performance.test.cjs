@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const load=p=>fs.readFileSync(path.resolve(__dirname,'../',p),'utf8');
 const html=load('public/index.html'),village=load('public/v115-village.js');
-for(const needle of ['VERZIJA V123 · PERFORMANCE QA','v115-village.js?v=123',
+for(const needle of ['VERZIJA V124 · PERFORMANCE QA','v115-village.js?v=124',
  'ns123RenderBudget','ns123RenderTick','mobGridBucketPool','idx.drawBounds===bounds','window.__NS123_PERF']){
  assert.ok(html.includes(needle),'Missing optimized build '+needle);
 }
@@ -11,7 +11,7 @@ for(const script of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))
  if(!/\bsrc=/.test(script[1]))new Function(script[2]);
 }
 new Function(village);
-console.log('V123 script syntax and performance optimization integration PASS');
+console.log('V124 script syntax and performance optimization integration PASS');
 // Test the real MobGrid functions in isolation: neighboring membership must be
 // identical before/after 300 rebuilds, including moved and newly dead monsters.
 {
@@ -32,7 +32,7 @@ console.log('V123 script syntax and performance optimization integration PASS');
  }
  const stat=api.metrics();
  assert.ok(stat.builds===300&&stat.newBuckets<=initial+20,'Buckets are leaking instead of being reused '+JSON.stringify(stat));
- console.log('V123 300x crowd-grid rebuild PASS',JSON.stringify(stat));
+ console.log('V124 300x crowd-grid rebuild PASS',JSON.stringify(stat));
 }
 function frameBudget(refreshHz){
  const target=1000/60;let last=0,budget=0,rendered=0;
@@ -46,7 +46,7 @@ function frameBudget(refreshHz){
 }
 for(const hz of [60,90,120,144])assert.ok(frameBudget(hz)>=59&&frameBudget(hz)<=61,
  'Combat draw scheduler must not fall to 45 FPS on 90Hz '+hz+' => '+frameBudget(hz));
-console.log('V123 render scheduler 60/90/120/144Hz PASS');
+console.log('V124 render scheduler 60/90/120/144Hz PASS');
 (async()=>{
  const bin=['/usr/bin/google-chrome','/usr/bin/chromium'].find(fs.existsSync);
  const browser=await chromium.launch({headless:true,executablePath:bin,args:['--no-sandbox','--allow-file-access-from-files','--disable-dev-shm-usage']});
@@ -83,7 +83,7 @@ console.log('V123 render scheduler 60/90/120/144Hz PASS');
    assert.ok(diag.perf.gridNewBuckets<Math.max(200,diag.perf.gridBuilds),'Mob-grid bucket pool is not bounded');
    assert.ok(diag.perf.drawCacheActive,'Viewport prop caching not active');
    assert.equal(errors.length,0,'JavaScript exceptions '+errors.join(' | '));
-   console.log('V123 MOBILE GAME STRESS PASS',width,JSON.stringify({village:villageState,mode:diag.mode,mobs:diag.mobs,perf:diag.perf,render:diag.render,fx:diag.fx}));
+   console.log('V124 MOBILE GAME STRESS PASS',width,JSON.stringify({village:villageState,mode:diag.mode,mobs:diag.mobs,perf:diag.perf,render:diag.render,fx:diag.fx}));
    await page.close();
   }
  }finally{await browser.close()}

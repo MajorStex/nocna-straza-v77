@@ -1,0 +1,28 @@
+name: V124 enemy collision allocation and mobile QA
+on:
+  push:
+    branches: [main]
+    paths: ['public/index.html','tests/v124-enemy-performance.test.cjs','.github/workflows/v124-enemy-performance.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  enemy-performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v124-enemy-performance.test.cjs
+      - run: node tests/v123-performance.test.cjs
+      - run: node tests/v122-village-invite.test.cjs
+      - run: node tests/v121-village-roof.test.cjs
+      - run: node tests/v120-village-doors.test.cjs
+      - run: node tests/v119-village-60fps.test.cjs
+      - run: node tests/v118-village-regression.test.cjs
+      - run: node tests/v117-village-avatar.test.cjs
+      - run: node tests/v116-release.test.cjs
+      - run: node tests/v114-gate-hud-goblin.test.cjs

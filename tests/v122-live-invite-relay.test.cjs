@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const {chromium}=require('playwright-core');
-const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=123&online-invite-qa=1';
+const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=124&online-invite-qa=1';
 (async()=>{
  const bin=['/usr/bin/google-chrome','/usr/bin/chromium'].find(fs.existsSync);
  const browser=await chromium.launch({headless:true,executablePath:bin,args:['--no-sandbox','--disable-dev-shm-usage']});
@@ -42,7 +42,7 @@ const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=123&online-i
   assert.ok(hostState.village&&guestState.village&&hostState.code===guestState.code&&hostState.players===2,'Both browsers joined same real room '+JSON.stringify({hostState,guestState}));
   await guest.evaluate(()=>document.getElementById('lobbyReadyBtn').click());
   await host.waitForFunction(()=>window.__NS110_BRIDGE.currentLobbyRoster().some(p=>p.id!=='p1'&&p.ready),{timeout:10000});
-  console.log('LIVE V123 RELAY INVITE ACCEPT + VILLAGE + READY PASS',JSON.stringify({room,hostState,guestState,errors:errors.slice(0,4)}));
+  console.log('LIVE V124 RELAY INVITE ACCEPT + VILLAGE + READY PASS',JSON.stringify({room,hostState,guestState,errors:errors.slice(0,4)}));
   // The normal host-authoritative START path must transition this SAME room into
   // the existing gameplay engine. No new room, ID, or relay is created.
   await host.waitForFunction(()=>{const b=document.getElementById('lobbyStartBtn');return b&&!b.disabled},{timeout:18000});
@@ -61,7 +61,7 @@ const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=123&online-i
   ]);
   const playing=await Promise.all([host.evaluate(()=>({code:window.__NS110_BRIDGE.NET.code,village:window.NS109_VILLAGE.opened,mode:window.__NS110_BRIDGE.G.mode})),guest.evaluate(()=>({code:window.__NS110_BRIDGE.NET.code,village:window.NS109_VILLAGE.opened,mode:window.__NS110_BRIDGE.G.mode}))]);
   assert.ok(playing.every(p=>p.code===room&&p.mode==='play'&&!p.village),'Both browsers must enter the same normal game '+JSON.stringify(playing));
-  console.log('LIVE V123 SAME ROOM -> NORMAL GAME PASS',JSON.stringify({room,playing}));
+  console.log('LIVE V124 SAME ROOM -> NORMAL GAME PASS',JSON.stringify({room,playing}));
   await Promise.all([host.close(),guest.close(),a.close(),b.close()]);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

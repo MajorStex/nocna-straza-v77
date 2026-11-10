@@ -1,0 +1,19 @@
+name: V124 real six-player relay lobby and match start
+on:
+  push:
+    branches: [main]
+    paths: ['tests/v124-six-player.test.cjs','.github/workflows/v124-six-player.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  six-online:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v124-six-player.test.cjs
