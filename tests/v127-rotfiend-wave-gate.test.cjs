@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const src=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
-assert.match(src,/VERZIJA V127 · ROTFIEND SPAWN GUARD/);
+assert.match(src,/VERZIJA V128 · MULTIPLAYER OPTIMIZATION/);
 const start=src.indexOf('function addMob(type,x,y,levelOverride)');
 const end=src.indexOf('function applyCombatClass(',start);
 assert.ok(start>=0&&end>start);
