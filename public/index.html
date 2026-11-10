@@ -1161,8 +1161,8 @@ window.NSRelayPeer=RelayPeer;
 const $=id=>document.getElementById(id), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // V129: derive the displayed build from the HTML title (fallback: release banner).
 // Updating the title on every release also updates this always-visible label.
-const NS129_BUILD=(/\\bNight Watch v(\\d+)\\b/i.exec(document.title)
- ||/\\bVERZIJA V(\\d+)\\b/i.exec($('ns102MenuVersion')?.textContent||''))?.[1]||'?';
+const NS129_BUILD=(/\bNight Watch v(\d+)\b/i.exec(document.title)
+ ||/\bVERZIJA V(\d+)\b/i.exec($('ns102MenuVersion')?.textContent||''))?.[1]||'?';
 $('ns129VersionBadge').textContent='v'+NS129_BUILD;
 const canvas=$('gameCanvas');let ctx=canvas.getContext('2d',{alpha:false});
 const WORLD={w:4200,h:4200}, TAU=Math.PI*2;
