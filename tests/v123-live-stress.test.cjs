@@ -31,7 +31,15 @@ const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=123&mp-stres
    return b.currentLobbyRoster().length===4&&b.currentLobbyRoster().every(p=>p.ready)&&
      [...n.worldReadyPlayers.values()].filter(Boolean).length>=3;
   },{timeout:25000});
-  await host.waitForFunction(()=>{const b=document.getElementById('lobbyStartBtn');return b&&!b.disabled},{timeout:8000});
+  const beforeStart=await host.evaluate(()=>{
+   const a=window.__NS110_BRIDGE,n=a.NET,button=document.getElementById('lobbyStartBtn');
+   return {buttonDisabled:button.disabled,ready:a.currentLobbyRoster().map(p=>({id:p.id,ready:p.ready})),
+     synced:[...n.worldReadyPlayers.entries()],localReady:n.localReady};
+  });
+  console.log('V123 LOBBY READY DIAGNOSTIC',JSON.stringify(beforeStart));
+  // Check whether an out-of-date host UI is hiding an otherwise-ready room.
+  await host.evaluate(()=>window.__nightWatch.renderLobby());
+  await host.waitForFunction(()=>{const b=document.getElementById('lobbyStartBtn');return b&&!b.disabled},null,{timeout:9000});
   await host.evaluate(()=>document.getElementById('lobbyStartBtn').click());
   await Promise.all(pages.map(p=>p.waitForFunction(()=>window.__NS110_BRIDGE.NET.phase==='playing'&&window.__nightWatch.G.mode==='play',{timeout:30000})));
   console.log('V123 FOUR REAL PLAYERS IN GAME',room);
