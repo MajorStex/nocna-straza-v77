@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const village=fs.readFileSync(path.join(__dirname,'../public/v115-village.js'),'utf8');
-assert.ok(html.includes('VERZIJA V128 · MULTIPLAYER OPTIMIZATION'));
+assert.ok(html.includes('VERZIJA V129 · BUILD WATERMARK'));
 for(const tag of ['function villageHouseSprite(','function drawDepthHouse(','depthItems.sort(','depthOrder:lastDepthOrder.slice()','const layer=villageStaticLayer()']){
  assert.ok(village.includes(tag),'Missing depth fix '+tag);
 }
