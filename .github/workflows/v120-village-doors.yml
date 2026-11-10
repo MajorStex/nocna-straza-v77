@@ -1,0 +1,24 @@
+name: V120 all Village doors and menus
+on:
+  push:
+    branches: [main]
+    paths: ['public/index.html','public/v115-village.js','tests/v120-village-doors.test.cjs','.github/workflows/v120-village-doors.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  village-interactions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v120-village-doors.test.cjs
+      - run: node tests/v119-village-60fps.test.cjs
+      - run: node tests/v118-village-regression.test.cjs
+      - run: node tests/v117-village-avatar.test.cjs
+      - run: node tests/v116-release.test.cjs
+      - run: node tests/v114-gate-hud-goblin.test.cjs
