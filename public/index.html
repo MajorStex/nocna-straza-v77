@@ -5879,12 +5879,13 @@ function moveFloatingJoystick(e){
 }
 canvas.addEventListener('pointerdown',e=>{
  if(G.mode!=='play'||G.paused||floatingStick.pointerId!==null)return;
- if(e.pointerType==='mouse'&&e.button!==0)return;
+ if(e.pointerType==='mouse'){if(e.button===0){input.attack=true;e.preventDefault()}return;}
  e.preventDefault();floatingStick.pointerId=e.pointerId;
  floatingStick.startX=e.clientX;floatingStick.startY=e.clientY;
  const base=$('joyBase');base.style.left=`${e.clientX-56}px`;base.style.top=`${e.clientY-56}px`;base.classList.remove('hidden');setJoy(0,0);
  try{canvas.setPointerCapture(e.pointerId)}catch{}
 });
+window.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')input.attack=false});
 canvas.addEventListener('pointermove',e=>{if(e.pointerId===floatingStick.pointerId){e.preventDefault();moveFloatingJoystick(e)}});
 for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,e=>{if(e.pointerId===floatingStick.pointerId)resetFloatingJoystick()});
 for(const [id,key] of [['dashBtn','dash']]){const b=$(id);if(!b)continue;b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch{};input[key]=true});/* Dash is latched until next game tick so quick taps are not missed. */}
