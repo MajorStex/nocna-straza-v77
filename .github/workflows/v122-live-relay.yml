@@ -1,0 +1,19 @@
+name: V122 live real relay invite two browser smoke
+on:
+  push:
+    branches: [main]
+    paths: ['tests/v122-live-invite-relay.test.cjs','.github/workflows/v122-live-relay.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v122-live-invite-relay.test.cjs
