@@ -43,6 +43,25 @@ const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/?v=122&online-i
   await guest.evaluate(()=>document.getElementById('lobbyReadyBtn').click());
   await host.waitForFunction(()=>window.__NS110_BRIDGE.currentLobbyRoster().some(p=>p.id!=='p1'&&p.ready),{timeout:10000});
   console.log('LIVE V122 RELAY INVITE ACCEPT + VILLAGE + READY PASS',JSON.stringify({room,hostState,guestState,errors:errors.slice(0,4)}));
+  // The normal host-authoritative START path must transition this SAME room into
+  // the existing gameplay engine. No new room, ID, or relay is created.
+  await host.waitForFunction(()=>{const b=document.getElementById('lobbyStartBtn');return b&&!b.disabled},{timeout:18000});
+  const startInfo=await host.evaluate(()=>{
+    window.NS109_VILLAGE.openInvites();
+    const btn=document.getElementById('ns122Start');
+    if(!btn)return {error:'Missing start button'};
+    btn.click();
+    const n=window.__NS110_BRIDGE.NET;
+    return {room:n.code,phase:n.phase,button:btn.textContent};
+  });
+  assert.ok(!startInfo.error&&startInfo.room===room,'START must reuse original room '+JSON.stringify(startInfo));
+  await Promise.all([
+   host.waitForFunction(()=>window.__NS110_BRIDGE.NET.phase==='playing',{timeout:18000}),
+   guest.waitForFunction(()=>window.__NS110_BRIDGE.NET.phase==='playing',{timeout:18000})
+  ]);
+  const playing=await Promise.all([host.evaluate(()=>({code:window.__NS110_BRIDGE.NET.code,village:window.NS109_VILLAGE.opened,mode:window.__NS110_BRIDGE.G.mode})),guest.evaluate(()=>({code:window.__NS110_BRIDGE.NET.code,village:window.NS109_VILLAGE.opened,mode:window.__NS110_BRIDGE.G.mode}))]);
+  assert.ok(playing.every(p=>p.code===room&&p.mode==='play'&&!p.village),'Both browsers must enter the same normal game '+JSON.stringify(playing));
+  console.log('LIVE V122 SAME ROOM -> NORMAL GAME PASS',JSON.stringify({room,playing}));
   await Promise.all([host.close(),guest.close(),a.close(),b.close()]);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
