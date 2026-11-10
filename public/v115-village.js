@@ -26,6 +26,7 @@
  let originalShowLobby=null,originalStartMatch=null,originalSettle=null,originalAward=null,originalOnKill=null,musicCtx=null,musicTimer=null,musicOn=false;
  // V118 profiling is local-only: no network packets or account writes.
  let villageLastTick=0,villageFrameCredit=0,sceneLayer=null,sceneLayerLang='';let route=[],routeIndex=0,doorLatch=null,doorLabel='';
+ const houseLayers=new Map();let lastDepthOrder=[];
  // One shared rAF with the game's update loop; avoid a second timer and frame pacing drift.
  const VILLAGE_TARGET_MS=1000/60;
  let fpsStart=0,fpsFrames=0,drawMsSum=0,drawMsMax=0,lastStatsAt=0;
@@ -265,8 +266,29 @@
   g.fillText(b.icon+' '+tr(b.label,b.sr),0,-b.h/2+41,b.w-18);
   g.shadowBlur=0;g.restore();
  }
- // Background and buildings change only when the language changes.
- // Cache them in a single texture to avoid hundreds of paths/labels every frame.
+ // V121: depth ordering. The road/landscape is cached separately from the houses.
+ // Each cottage has a small cached transparent sprite which is placed in the same
+ // y-sorted drawing queue as player characters. When behind a cottage, the roof
+ // and wall cover the hero; when in front of the doorway, the hero stays visible.
+ function villageHouseSprite(b){
+  if(houseLayers.has(b.id))return houseLayers.get(b.id);
+  const left=Math.floor(b.x-b.w/2-17),top=Math.floor(b.y-b.h/2-51);
+  const right=Math.ceil(b.x+b.w/2+17),bottom=Math.ceil(b.y+b.h/2+20);
+  const img=document.createElement('canvas');
+  img.width=right-left;img.height=bottom-top;
+  const off=img.getContext('2d',{alpha:true});
+  if(!off)return null;
+  off.setTransform(1,0,0,1,-left,-top);
+  const prev=g;
+  try{g=off;house(b)}finally{g=prev}
+  const sprite={img,left,top};
+  houseLayers.set(b.id,sprite);
+  return sprite;
+ }
+ function drawDepthHouse(b){
+  const sprite=villageHouseSprite(b);
+  if(sprite)g.drawImage(sprite.img,sprite.left,sprite.top);else house(b);
+ }
  function villageStaticLayer(){
   const lang=window.__gameLanguage?.value||'en';
   if(sceneLayer&&sceneLayerLang===lang)return sceneLayer;
@@ -274,12 +296,14 @@
   const off=img.getContext('2d',{alpha:false});if(!off)return null;
   const prev=g;
   try{
-   g=off;background();buildings.forEach(house);
+   g=off;background();
    g.fillStyle='#467d55';g.beginPath();g.arc(790,465,37,0,7);g.fill();
    g.strokeStyle='#c5c38b';g.lineWidth=5;g.stroke();
    g.font='bold 13px system-ui';g.textAlign='center';g.fillStyle='#f5e5a4';g.fillText('READY',790,475);
   }finally{g=prev}
-  sceneLayer=img;sceneLayerLang=lang;PERF.staticBuilds++;return sceneLayer;
+  houseLayers.clear();
+  sceneLayer=img;sceneLayerLang=lang;PERF.staticBuilds++;
+  return sceneLayer;
  }
  function sheep(time){
   // Four atmospheric woolly sheep: local-only animation, zero multiplayer packets.
@@ -480,8 +504,9 @@
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
   g.setTransform(ratio,0,0,ratio,0,0);g.fillStyle='#1d342d';g.fillRect(0,0,screen.rect.width,screen.rect.height);
   g.setTransform(ratio*screen.scale,0,0,ratio*screen.scale,ratio*screen.ox,ratio*screen.oy);
-  const layer=villageStaticLayer();if(layer)g.drawImage(layer,0,0);else{background();buildings.forEach(house)}
-  const tt=time;sheep(tt);PERF.frames++;
+  const layer=villageStaticLayer();if(layer)g.drawImage(layer,0,0);else background();
+  sheep(time);PERF.frames++;
+  const depthItems=buildings.map(b=>({y:b.y+b.h/2,kind:'house',id:b.id,paint:()=>drawDepthHouse(b)}));
   for(const p of roster){
    if(p.id===NET.localId)continue;
    const dest=avatars.get(p.id)||{x:460+Number(p.id?.slice(1)||2)*27,y:279};
@@ -489,9 +514,13 @@
    if(!a){a={x:dest.x,y:dest.y};smoothAvatars.set(p.id,a)}
    const t=Math.min(1,dt*10);a.x+=(dest.x-a.x)*t;a.y+=(dest.y-a.y)*t;
    const moving=Math.hypot(a.x-dest.x,a.y-dest.y)>1;
-   avatar(p.id,a.x,a.y,String(p.name||'GUARDIAN').slice(0,14),p.ready,false,{walking:moving||!!dest.walking,frame:time/145,side:dest.side||1});
+   depthItems.push({y:a.y,kind:'hero',id:p.id,paint:()=>avatar(p.id,a.x,a.y,String(p.name||'GUARDIAN').slice(0,14),p.ready,false,{walking:moving||!!dest.walking,frame:time/145,side:dest.side||1})});
   }
-  const me=roster.find(p=>p.id===NET.localId);avatar(NET.localId,my.x,my.y,ownName(),!!me?.ready||NET.ns97Results?.votes?.[NET.localId]==='yes',spartaEquipped(),{walking,frame:stepFrame,side});
+  const me=roster.find(p=>p.id===NET.localId);
+  depthItems.push({y:my.y,kind:'hero',id:NET.localId,paint:()=>avatar(NET.localId,my.x,my.y,ownName(),!!me?.ready||NET.ns97Results?.votes?.[NET.localId]==='yes',spartaEquipped(),{walking,frame:stepFrame,side})});
+  depthItems.sort((a,b)=>a.y-b.y||(a.kind===b.kind?0:(a.kind==='house'?-1:1)));
+  lastDepthOrder=depthItems.map(item=>item.kind+':'+item.id);
+  for(const item of depthItems)item.paint();
   if(opened&&!pane.classList.contains('ns109Hidden')&&focused==='leaderboard')return;
  }
  function onMessage(data,assigned){
@@ -625,7 +654,7 @@
  window.NS109_VILLAGE={open:showVillage,close:closeVillage,frame:villageFrame,onMessage,enter,onLobbyUI:()=>{if(isLobby())scheduleAutoVillage()},
  onSoloResult:run=>{if(run&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(run.kills)},
  onMPAward:packet=>{if(packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}},
- get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my},nearDoor:closestDoor()?.id||null,doorLatch}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y),visit:(id)=>{const b=buildings.find(x=>x.id===id);return opened&&!!b&&startVillageTravel(doorPoint(b).x,doorPoint(b).y,b.id)},testMove:(x,y)=>{if(!new URLSearchParams(location.search).has('village-test')||!opened)return false;const p=ground(x,y);if(blockedVillage(p.x,p.y))return false;my.x=p.x;my.y=p.y;return true}}};
+ get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my},nearDoor:closestDoor()?.id||null,doorLatch,depthOrder:lastDepthOrder.slice(),cachedHouses:houseLayers.size}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y),visit:(id)=>{const b=buildings.find(x=>x.id===id);return opened&&!!b&&startVillageTravel(doorPoint(b).x,doorPoint(b).y,b.id)},testMove:(x,y)=>{if(!new URLSearchParams(location.search).has('village-test')||!opened)return false;const p=ground(x,y);if(blockedVillage(p.x,p.y))return false;my.x=p.x;my.y=p.y;return true}}};
  window.NS109_SPARTA={appearance:decorate,owned:spartaOwned,equipped:spartaEquipped,claim:spartaClaim};
  // Real engine preview: preserve the current selected character and input.
  if(new URLSearchParams(location.search).get('village-test')==='1'){

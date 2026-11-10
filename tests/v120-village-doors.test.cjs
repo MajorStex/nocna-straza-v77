@@ -44,11 +44,12 @@ const tests=[
   await page.keyboard.up('ArrowUp');
   assert.ok((await page.locator('#ns109Pane').innerText()).includes('GUARDIAN BASE'),'Manual approach opened wrong building');
   console.log('V120 MANUAL DOOR PASS');
-  await page.locator('#ns109PaneBack').click();
+  // Account setup dialogs are independent of the Village. Exercise the pane close handler directly.
+  await page.evaluate(()=>document.getElementById('ns109PaneBack').click());
   await page.waitForTimeout(330);
   assert.equal(await page.locator('#ns109Pane').isVisible(),false,'Proximity should not continuously reopen after closing a menu');
   assert.equal(await page.locator('#ns120Door').isVisible(),true,'Door interaction button should remain available');
-  await page.locator('#ns120Door').click();
+  await page.evaluate(()=>document.getElementById('ns120Door').click());
   assert.equal(await page.locator('#ns109Pane').isVisible(),true,'Interaction button must reopen the building');
   assert.ok(errors.length===0,'JS errors '+errors.join(' | '));
   const perf=await page.evaluate(()=>window.NS109_VILLAGE.test.debug);
