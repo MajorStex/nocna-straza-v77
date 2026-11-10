@@ -1,52 +1,73 @@
-name: V129 package and deploy existing Cloudflare Pages project
+name: Noćna Straža - automatic production deployment
 on:
   push:
     branches: [main]
     paths:
       - 'public/**'
+      - 'tests/current-deployment.test.cjs'
       - 'tests/v128-multiplayer-performance.test.cjs'
       - 'tests/v129-version-watermark.test.cjs'
       - '.github/workflows/cloudflare-existing-pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: nocna-straza-cloudflare-production
+  cancel-in-progress: false
 jobs:
-  package-and-deploy:
+  production:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check that the live root points at the current release
-        run: |
-          grep -q 'VERZIJA V129' public/index.html
-          grep -q '<title>Night Watch v129' public/index.html
-      - name: Verify multiplayer performance and preloading regressions
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate release version, gameplay JavaScript, assets and phone shortcut
+        run: node tests/current-deployment.test.cjs
+      - name: Multiplayer performance regression
         run: node tests/v128-multiplayer-performance.test.cjs
-      - name: Verify current build watermark stays visible and noninteractive
+      - name: Visible build badge regression
         run: node tests/v129-version-watermark.test.cjs
-      - name: Prepare ZIP for existing Pages project
+      - name: Save backup release package
         run: |
           cd public
-          zip -q -r ../nocna-straza-V129-Cloudflare-Pages.zip .
-          cd ..
-          unzip -p nocna-straza-V129-Cloudflare-Pages.zip index.html | grep -F 'VERZIJA V129' > /dev/null
-      - name: Save V129 upload package
+          zip -q -r ../nocna-straza-latest-Cloudflare-Pages.zip .
+      - name: Upload backup release package
         uses: actions/upload-artifact@v4
         with:
-          name: nocna-straza-V129-Cloudflare-Pages
-          path: nocna-straza-V129-Cloudflare-Pages.zip
+          name: nocna-straza-latest-Cloudflare-Pages
+          path: nocna-straza-latest-Cloudflare-Pages.zip
           retention-days: 30
-      - name: Publish to EXISTING nocna-straza-igra.pages.dev project if Cloudflare credentials are present
+      - name: Require real Cloudflare access (never report a skipped deployment as success)
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::notice::Cloudflare credentials are not present in THIS GitHub repository; existing nocna-straza-igra.pages.dev cannot be updated by GitHub push alone."
-            echo "::notice::Use the generated ZIP artifact and Cloudflare Workers & Pages > nocna-straza-igra > Deployments > Create deployment > Production."
-            exit 0
+            echo '::error title=Cloudflare production NOT deployed::Set repository Actions secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. Existing homescreen URL was NOT updated.'
+            exit 1
           fi
-          echo 'Deploy V129 to existing Cloudflare Worker and Pages project'
-          npx --yes wrangler@4 deploy --config wrangler.jsonc
-          echo 'Deploy same files to existing Cloudflare Pages project'
-          npx --yes wrangler@4 pages deploy ./public --project-name nocna-straza-igra --branch main --commit-dirty=true
-          echo 'Deployed V129 to existing nocna-straza-igra Pages project.'
+      - name: Deploy to the EXISTING Cloudflare Pages project
+        run: npx --yes wrangler@4 pages deploy ./public --project-name=nocna-straza-igra --branch=main
+      - name: Verify the SAME production URL serves the new build
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=$(node -e "const fs=require('fs'); const s=fs.readFileSync('public/index.html','utf8'); process.stdout.write(s.match(/<title>Night Watch v([0-9]+)/)[1])")
+          ok=0
+          for attempt in 1 2 3 4 5 6; do
+            html=$(curl --fail --silent --show-error --location --max-time 25 --header 'Cache-Control: no-cache' "https://nocna-straza-igra.pages.dev/?deploy=$GITHUB_SHA" || true)
+            if printf '%s' "$html" | grep -Fq "<title>Night Watch v$expected "; then
+              ok=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "::error title=Production version mismatch::Cloudflare did not serve Night Watch v$expected at the permanent URL."
+            exit 1
+          fi
+          echo "### ✅ Night Watch v$expected LIVE" >> "$GITHUB_STEP_SUMMARY"
+          echo 'https://nocna-straza-igra.pages.dev/' >> "$GITHUB_STEP_SUMMARY"
+          echo "Cloudflare production verified: v$expected"
