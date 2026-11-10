@@ -614,7 +614,9 @@
  });
  for(const kind of ['keydown','keyup'])window.addEventListener(kind,e=>{
   if(!opened||/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||''))return;
-  const k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=kind==='keydown';
+  const k=e.key.length===1?e.key.toLowerCase():e.key;
+  if(k===' '||k==='Spacebar'){e.preventDefault();if(kind==='keydown'&&!e.repeat&&!pane.classList.contains('ns109Hidden'))return;if(kind==='keydown'&&!e.repeat)$('ns117Dodge')?.click();return;}
+  keys[k]=kind==='keydown';
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','a','s','d'].includes(k))e.preventDefault();
  });
  window.addEventListener('blur',()=>{for(const k of Object.keys(keys))delete keys[k];resetStick()});
