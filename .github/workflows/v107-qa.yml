@@ -2,7 +2,7 @@ name: V107 multiplayer selections, identity, direct links and Temple QA
 on:
   push:
     branches: [v107-testing, main]
-    paths: ['public/**','tests/v107-*','.github/workflows/v107-qa.yml','RIGHTS_AND_SECURITY.md']
+    paths: ['public/**','tests/v107-*','tests/v105-temple.test.cjs','.github/workflows/v107-qa.yml','RIGHTS_AND_SECURITY.md']
   workflow_dispatch:
 permissions:
   contents: read
