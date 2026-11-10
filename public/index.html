@@ -1164,8 +1164,8 @@ let navCache=new Map(),navVersion=0;
 const NS77_PROP_CELL=176;
 let ns77PropIndex=null,ns77PropGeneration=0,ns77PropBuilds=0;
 function ns77InvalidateProps(){ns77PropGeneration++;ns77PropIndex=null;}
-function ns77GetPropIndex(){
- if(G.mode!=='play')return null; // editor can move an object without reallocating props
+function ns77GetPropIndex(prewarm=false){
+ if(G.mode!=='play'&&!prewarm)return null; // editor can move an object without reallocating props
  if(ns77PropIndex&&ns77PropIndex.source===props&&ns77PropIndex.length===props.length&&ns77PropIndex.generation===ns77PropGeneration)return ns77PropIndex;
  const grid=new Map();let solids=0;
  for(let i=0;i<props.length;i++){
@@ -5271,7 +5271,10 @@ function ns111VisualProps(v,cam){
  return idx.drawItems=ids.map(i=>props[i]);
 }
 function ns111PreloadWorld(){
- // No extra downloads: prebuild render buckets for the already loaded map.
+ // V128: warm both collision and render grids before a guest reports READY.
+ // All art is vector-drawn: downloading/preloading fake textures wastes memory.
+ if(!Array.isArray(props)||!props.length)return;
+ ns77GetPropIndex(true);
  const cam=G?.camera||START;
  ns111VisualProps(viewSize(),cam);
 }
