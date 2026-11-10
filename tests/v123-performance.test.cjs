@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const load=p=>fs.readFileSync(path.resolve(__dirname,'../',p),'utf8');
 const html=load('public/index.html'),village=load('public/v115-village.js');
-for(const needle of ['VERZIJA V124 · PERFORMANCE QA','v115-village.js?v=124',
+for(const needle of ['VERZIJA V125 · DESKTOP CONTROLS','v115-village.js?v=125',
  'ns123RenderBudget','ns123RenderTick','mobGridBucketPool','idx.drawBounds===bounds','window.__NS123_PERF']){
  assert.ok(html.includes(needle),'Missing optimized build '+needle);
 }
