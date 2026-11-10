@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
-assert.match(html,/VERZIJA V129 · BUILD WATERMARK/);
+assert.match(html,/id="ns129VersionBadge"/,'current build watermark retained');
 const scripts=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)].filter(x=>!/\bsrc=/.test(x[1]));
 for(const m of scripts)new Function(m[2]);
 const start=html.indexOf('const NS128_SIM_STEP=1/60;'),end=html.indexOf('function loop(ts){',start);
