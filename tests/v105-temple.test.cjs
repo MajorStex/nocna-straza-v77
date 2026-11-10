@@ -38,8 +38,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
     return {first,level:G.level,trollHp:troll.maxHp,oldDropCount,dropsAfter,keys:keys.length,oldXpDrops,collected,entered,inside,drawWorks,stillSleeping,triggered,awakenedStart,after,activeGuards:activeGuards.length,guardianSpeeds,exited,restored,caveMode:G.caveMode,title:document.title,
       menuVersion:document.getElementById('ns102MenuVersion')?.textContent};
    });
-   assert.match(result.title,/v108/);
-   assert.match(result.menuVersion,/V108/);
+   assert.match(result.title,/v123/);
+   assert.match(result.menuVersion,/V123/);
    assert.equal(result.first.phase,'keeper');
    assert.equal(result.first.key,false);
    assert.equal(result.first.preview,true);
