@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright-core');
 const src=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
-assert.ok(src.includes('VERZIJA V125 · DESKTOP CONTROLS'),'Current release V124');
+assert.ok(src.includes('VERZIJA V126 · GATE SPAWN FIX'),'Current release V124');
 for(const marker of ['ns124NeighborScratch','ns124EarlyGridExit','if(!hadOverlap)','neighborScratchSize:ns124NeighborScratch.length']){
  assert.ok(src.includes(marker),'Missing allocation optimization '+marker);
 }
