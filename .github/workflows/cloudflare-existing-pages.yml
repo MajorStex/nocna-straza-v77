@@ -5,6 +5,7 @@ on:
     paths:
       - 'public/**'
       - 'tests/v128-multiplayer-performance.test.cjs'
+      - 'tests/v129-version-watermark.test.cjs'
       - '.github/workflows/cloudflare-existing-pages.yml'
   workflow_dispatch:
 permissions:
@@ -23,6 +24,8 @@ jobs:
           grep -q '<title>Night Watch v129' public/index.html
       - name: Verify multiplayer performance and preloading regressions
         run: node tests/v128-multiplayer-performance.test.cjs
+      - name: Verify current build watermark stays visible and noninteractive
+        run: node tests/v129-version-watermark.test.cjs
       - name: Prepare ZIP for existing Pages project
         run: |
           cd public
