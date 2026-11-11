@@ -48,6 +48,29 @@ jobs:
             echo '::error title=Cloudflare production NOT deployed::Set repository Actions secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. Existing homescreen URL was NOT updated.'
             exit 1
           fi
+      - name: Reject an old commit or a downgrade before touching production
+        shell: bash
+        run: |
+          set -euo pipefail
+          head=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::error title=Old commit blocked::Newer GitHub code exists. Refusing to overwrite production."
+            exit 1
+          fi
+          expected=$(node -e "const fs=require('fs');const html=fs.readFileSync('public/index.html','utf8'); process.stdout.write(html.match(/<title>Night Watch v([0-9]+)/)[1])")
+          live=$(curl --fail --silent --show-error --location --max-time 25 --header 'Cache-Control: no-cache' "https://nocna-straza-igra.pages.dev/?preflight=$GITHUB_SHA")
+          # Some older builds advertised a different version in the menu; compare both.
+          live_versions=$(printf '%s' "$live" | grep -oE 'Night Watch v[0-9]+|VERZIJA V[0-9]+' | grep -oE '[0-9]+' || true)
+          if [ -z "$live_versions" ]; then
+            echo "::error title=Unrecognized live build::Cannot prove that this upload is newer. No deployment was made."
+            exit 1
+          fi
+          live_max=$(printf '%s\n' "$live_versions" | sort -nr | head -1)
+          if [ "$expected" -lt "$live_max" ]; then
+            echo "::error title=Downgrade blocked::Current Pages build v$live_max is newer than candidate v$expected."
+            exit 1
+          fi
+          echo "Safe to upgrade existing Pages project from v$live_max to v$expected"
       - name: Deploy to the EXISTING Cloudflare Pages project
         run: npx --yes wrangler@4 pages deploy ./public --project-name=nocna-straza-igra --branch=main
       - name: Verify the SAME production URL serves the new build
