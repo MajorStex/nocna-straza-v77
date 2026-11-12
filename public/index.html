@@ -3,7 +3,7 @@
      No commercial copying or redistribution without the rights holder's permission.
      Browser JavaScript can be inspected; true paid entitlements require independent server validation. -->
 
-<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><meta name="copyright" content="© 2026 Noćna Straža · All rights reserved"><meta name="author" content="Noćna Straža / Night Watch"><meta property="og:site_name" content="Noćna Straža — zvanična igra"><meta property="og:url" content="https://nocna-straza-igra.pages.dev/"><link rel="canonical" href="https://nocna-straza-igra.pages.dev/"><title>Night Watch v131 — Noćna Straža</title><style>
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><meta name="copyright" content="© 2026 Noćna Straža · All rights reserved"><meta name="author" content="Noćna Straža / Night Watch"><meta property="og:site_name" content="Noćna Straža — zvanična igra"><meta property="og:url" content="https://nocna-straza-igra.pages.dev/"><link rel="canonical" href="https://nocna-straza-igra.pages.dev/"><title>Night Watch v132 — Noćna Straža</title><style>
 :root{--bg:#0e171d;--surface:#17232a;--card:#1d2c33;--line:#52605888;--sage:#a7d3ae;--gold:#e9c17d;--ink:#f1eddf;--muted:#aab7b8;--red:#bf5550}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;touch-action:none}button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--ink);background:#26363c;border:1px solid #60706d71;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:800;letter-spacing:.035em}button:active{transform:scale(.98)}button:hover{border-color:#c1c9a0}button.primary{background:linear-gradient(135deg,#d2a665,#f0cf91);color:#202c29;border:0;box-shadow:0 5px 24px #0006}button:disabled{opacity:.5}input,select,textarea{color:#eee9df;background:#101b22;border:1px solid #536660;border-radius:9px;padding:9px;min-width:0}input[type=color]{height:38px;padding:3px;width:58px}input[type=range]{padding:0;accent-color:var(--gold);flex:1}input[type=checkbox]{accent-color:var(--gold);width:19px;height:19px}#app,#gameCanvas{width:100%;height:100%;position:absolute;inset:0}#gameCanvas{display:block;touch-action:none;background:#28332f}.veil{pointer-events:none;position:absolute;inset:0;background:linear-gradient(90deg,#0a1014a8,transparent 75%);opacity:.45}.hidden{display:none!important}.kicker{color:var(--gold);font-size:10px;font-weight:900;letter-spacing:.18em}.panel{position:absolute;z-index:5}.home{top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 34px));background:linear-gradient(160deg,#18272bed,#0d161ce9);border:1px solid #80918c59;border-radius:23px;padding:27px 29px 22px;text-align:center;box-shadow:0 30px 100px #000a;backdrop-filter:blur(12px)}.logoGlyph{font-size:39px;color:var(--gold);margin:10px 0 0}.home h1{font-family:Georgia,'Times New Roman',serif;line-height:.9;letter-spacing:.07em;font-size:clamp(42px,9vw,63px);margin:8px auto 16px;text-shadow:0 5px 20px #0009}.home h1 em{font-style:normal;color:var(--gold)}.tagline{color:#bac5be;font-size:14px;line-height:1.55;max-width:320px;margin:0 auto 19px}.homeButtons{display:grid;gap:9px}.homeButtons button{min-height:47px}.smallMuted{color:#8ba09b;font-size:11px;margin:17px auto 0}.hud{position:absolute;z-index:3;top:0;left:0;right:0;padding:max(12px,env(safe-area-inset-top)) 14px 8px;pointer-events:none;background:linear-gradient(#0b1118d6,#0b111800)}.hudTop{display:flex;align-items:start;gap:10px}.stats{width:54%;max-width:300px;display:grid;gap:6px}.bar{position:relative;overflow:hidden;background:#142024c9;border:2px solid #8c958259;border-radius:5px;height:21px;box-shadow:0 2px 10px #0005}.bar>div{position:absolute;inset:0 auto 0 0;width:100%;transition:width .16s linear}.bar span{position:absolute;inset:0;display:grid;place-items:center;font-size:10px;font-weight:900;text-shadow:1px 1px 2px #000}.hpbar>div{background:linear-gradient(90deg,#922e35,#d06b59)}.xpbar>div{background:linear-gradient(90deg,#378ba0,#9bd5cd)}.miniStats{margin:auto;display:grid;gap:3px;text-align:right;font-size:12px;color:#e5d2a8;font-weight:900}.iconBtn{pointer-events:auto;padding:8px 12px;font-size:19px;background:#202c34df}.bossHud{margin:15px auto 0;width:min(480px,92%)}.bossHead{display:flex;justify-content:space-between;font-family:Georgia,serif;font-size:12px;color:#f0b6a4;font-weight:bold;text-shadow:0 2px 3px #000}.bossbar{height:15px;margin-top:4px;border-color:#853f40}.bossbar>div{background:linear-gradient(90deg,#8a1e39,#f07564)}.notice{text-align:center;font-family:Georgia,serif;letter-spacing:.1em;color:var(--gold);font-weight:bold;margin-top:12px;text-shadow:1px 2px 3px #000}.controls{position:absolute;bottom:max(19px,env(safe-area-inset-bottom));left:0;right:0;height:130px;z-index:3;pointer-events:none}.joyBase{position:absolute;bottom:0;left:24px;width:120px;height:120px;border-radius:50%;border:2px solid #b2b4a64d;background:#13232c65;pointer-events:auto;touch-action:none;box-shadow:inset 0 0 26px #0006}.joyBase:before{content:'✣';position:absolute;inset:0;display:grid;place-items:center;font-size:44px;color:#9fc7b340}.joyKnob{position:absolute;width:56px;height:56px;left:30px;top:30px;border-radius:50%;background:radial-gradient(circle at 32% 25%,#829d93,#46645f);border:2px solid #a0bbb1a3;box-shadow:0 4px 14px #000a;transform:translate(0,0)}.actionArea{position:absolute;bottom:0;right:23px;display:flex;align-items:end;gap:12px;pointer-events:auto}.attackBtn,.dashBtn{display:grid;place-items:center;align-content:center;gap:1px;touch-action:none;border-radius:50%;box-shadow:0 3px 18px #0009}.attackBtn{width:91px;height:91px;background:radial-gradient(circle at 35% 25%,#e3b478,#975b44);border:2px solid #e7d2a3;color:#141b20;font-size:31px}.dashBtn{height:64px;width:64px;background:#283f46c9;border-color:#8baeb1;font-size:26px}.actionArea small{font-size:8px;letter-spacing:.06em}.modal{position:absolute;inset:0;z-index:10;background:#061117cb;display:grid;place-items:center;padding:14px;backdrop-filter:blur(7px)}.modalBox{width:min(420px,100%);max-height:calc(100vh - 30px);overflow-y:auto;background:linear-gradient(145deg,#1a2b31,#101d25);border:1px solid #7b8a825c;border-radius:19px;padding:24px;box-shadow:0 20px 80px #000c;text-align:center;display:grid;gap:12px}.modalBox h2{font-family:Georgia,serif;font-size:29px;margin:0}.modalBox p{font-size:14px;line-height:1.45;color:#b6c6c1;margin:0}.settingRow{display:flex;align-items:center;justify-content:space-between;text-align:left;font-size:13px;gap:10px}.upgradeCards{display:grid;gap:8px}.upgradeCards button{display:grid;gap:5px;text-align:left}.upgradeCards button span{font-weight:400;font-size:11px;color:#a9b7b4}.roomCode{padding:14px;border:1px dashed var(--gold);font-size:30px;font-weight:900;letter-spacing:.23em;color:var(--gold);user-select:all}.separator{color:#8ba09b;text-transform:uppercase;font-size:12px}.joinRow{display:flex;gap:6px}.joinRow input{width:100%;text-transform:uppercase;letter-spacing:.12em}.netStatus{font-size:12px;color:#a9c2b9;line-height:1.45;text-align:left;background:#122028;padding:10px;border-radius:8px}.toast{pointer-events:none;position:absolute;z-index:30;left:50%;bottom:145px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 30px);padding:11px 17px;border-radius:12px;border:1px solid #a0b19b5e;background:#15272cef;font-weight:700;font-size:12px;box-shadow:0 10px 30px #0009}.editor{position:absolute;z-index:7;right:0;top:0;bottom:0;width:min(375px,100%);display:flex;flex-direction:column;background:#111e25f5;border-left:1px solid #7c8b7e66;box-shadow:-14px 0 44px #0008}.editorHeader{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 15px 12px}.editorHeader strong{font-family:Georgia,serif;font-size:20px}.subtleBtn{padding:8px 10px;font-size:11px}.tabs{display:flex;gap:4px;padding:0 13px 12px;border-bottom:1px solid #82948730}.tabs button{flex:1;padding:10px 4px;font-size:11px;background:transparent}.tabs button.active,.toolGrid button.active{color:var(--gold);border-color:var(--gold);background:#3b3d2f9c}.editBody{padding:14px;overflow:auto;flex:1}.editHelp{margin:0 0 13px;line-height:1.5;color:#b4c5bf;font-size:12px}.toolGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.toolActions{display:flex;gap:7px;margin-top:10px}.toolActions button{flex:1;font-size:10px;padding:11px 7px}.editTab label{margin:10px 0;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:12px;color:#cad4c8}.editTab label input[type=number],.editTab label select{width:46%}.previewLine{font-size:11px;color:#bbd0bc;line-height:1.7;border-top:1px solid #4e645360;padding-top:12px;margin-top:13px}.editTab textarea{width:100%;line-height:1.5;resize:vertical;touch-action:auto}.editTab .primary{width:100%;margin-top:8px}.cmdResult{font-size:12px;border:1px solid #4e6f5f;background:#1b3330;padding:11px;border-radius:8px;line-height:1.5;margin-top:11px}.examples{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}.examples div{width:100%;font-size:11px;color:#a2b5ae}.examples button{font-size:10px;padding:7px 9px}.editFooter{padding:12px;border-top:1px solid #82948733;display:grid;gap:7px}.editFooter .toolActions{margin:0}.editFooter>.primary{padding:13px}.editFooter>button:last-child{background:#4b2933;border-color:#86525b}.editor:not(.hidden)~.controls{display:none}.editor .editFooter button{font-size:12px}
 @media (max-width:760px){.editor{top:auto;bottom:0;left:0;right:0;width:100%;height:min(58vh,510px);border-left:0;border-top:1px solid #7c8b7e66;border-radius:18px 18px 0 0}.editorHeader{padding-top:12px}.home{padding:20px 23px}.home h1{font-size:48px}.homeButtons button{min-height:44px}.hud{padding-top:max(12px,env(safe-area-inset-top))}.joyBase{left:19px;bottom:8px;width:104px;height:104px}.joyKnob{left:23px;top:23px}.actionArea{right:17px;bottom:6px}.controls{height:117px}.editor .editBody{padding-top:10px}}
 @media (max-height:680px){.home{padding:12px 20px}.home h1{font-size:38px;margin:0 0 8px}.home .logoGlyph{display:none}.home .tagline{font-size:12px;margin-bottom:10px}.homeButtons button{min-height:38px;padding:8px}.smallMuted{display:none}.controls{transform:scale(.83);transform-origin:bottom center}}
@@ -920,7 +920,7 @@ body:has(#ns109Village:not(.ns109Hidden)) #ns129VersionBadge{display:block;botto
  <button type="button" id="ns99LeaveGame" style="display:block;width:100%;margin-top:9px">↩ LEAVE MATCH / NAPUSTI PARTIJU</button>
 </section>
 <button aria-label="Pauza i meni" class="cornerPause hidden" id="pauseBtn" title="Otvori pauzu / meni">☰<small>MENI</small></button>
-<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL</div><div id="ns102MenuVersion" class="ns102Version">NOĆNA STRAŽA · VERZIJA V131 · MAGIJA ISPOD DODGE</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
+<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL</div><div id="ns102MenuVersion" class="ns102Version">NOĆNA STRAŽA · VERZIJA V132 · BRŽI MULTIPLAYER</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
  <div class="ns50MenuGroups" id="ns50MenuGroups">
   <details class="ns50MenuGroup" id="ns50MenuPlay" open><summary><span class="ns50GroupIcon">▶</span><span class="ns50GroupWords"><strong data-ns50-en="PLAY" data-ns50-sr="IGRAJ">PLAY</strong><small data-ns50-en="Solo, campaign, co-op" data-ns50-sr="Solo, kampanja, co-op">Solo, campaign, co-op</small></span><span class="ns50Chevron">⌄</span></summary><div class="ns50GroupBody">
    <button class="primary ns50MainPlay" id="startBtn">⚔ ZAPOČNI IGRU</button>
@@ -1143,14 +1143,24 @@ class RelayPeer extends Events {
   const c=this._conns.get(cid);if(!c||c.peer!==m.src)return;
   if(m.t==='ACCEPT')c._opened();
   else if(m.t==='DATA'){
-   if(m.value?.t==='snapshot'){
-    // Coalesce only disposable world snapshots, never reliable gameplay events.
-    const older=this._frameStates.get(cid)?.value;if(older)this._staleFrames++;
-    if(older?.nx&&!m.value.nx)m.value.nx=older.nx;
-    this._frameStates.set(cid,{c,value:m.value});
+   if(m.value?.t==='snapshot'||m.value?.t==='ns132Motion'){
+    // Coalesce disposable network state once per displayed frame. Reliable
+    // events (loot, room actions, rewards) still run immediately in order.
+    const entry=this._frameStates.get(cid)||{c,snapshot:null,motion:null};
+    if(m.value.t==='snapshot'){
+     if(entry.snapshot)this._staleFrames++;
+     if(entry.snapshot?.nx&&!m.value.nx)m.value.nx=entry.snapshot.nx;
+     entry.snapshot=m.value;
+    }else entry.motion=m.value;
+    this._frameStates.set(cid,entry);
     if(!this._frameRequest)this._frameRequest=requestAnimationFrame(()=>{
      this._frameRequest=0;const states=[...this._frameStates.values()];this._frameStates.clear();
-     for(const s of states)if(s.c.open)s.c._received(s.value);
+     for(const frame of states){
+      if(!frame.c.open)continue;
+      if(frame.snapshot)frame.c._received(frame.snapshot);
+      if(frame.motion&&(!frame.snapshot||frame.motion.time>frame.snapshot.time))
+       frame.c._received(frame.motion);
+     }
     });
    }else c._received(m.value);
   }else if(m.t==='CLOSE'){this._frameStates.delete(cid);c._close(true);} 
@@ -3193,7 +3203,7 @@ function drawAmbientCrystals(){const vw=viewSize().w,vh=viewSize().h;for(const c
  ctx.fillStyle='#60d3ff';ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(11,-2);ctx.lineTo(0,13);ctx.lineTo(-11,-2);ctx.closePath();ctx.fill();
  ctx.fillStyle='#d5f6ff';ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(0,8);ctx.lineTo(-9,-2);ctx.closePath();ctx.fill();ctx.restore();
 }}
-function startGame(opts={}){NS105_TEMPLE.reset(!!opts.templePreview);NS99_TEAM.reset();NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(cloneProps(NET.hostProps))));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap)))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';ns111PreloadWorld();G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();G.ns100RotfiendWaves=new Set();G.ns100RotfiendRetryAt=0;progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns111MetaAt=-100;NET.ns111MetaCache=null;NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
+function startGame(opts={}){NS105_TEMPLE.reset(!!opts.templePreview);NS99_TEAM.reset();NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(cloneProps(NET.hostProps))));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap)))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';ns111PreloadWorld();G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();G.ns100RotfiendWaves=new Set();G.ns100RotfiendRetryAt=0;progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns132MobIds=new Map();NET.ns132SentAt=new Map();NET.ns132LastSend=0;NET.ns132LastMotionHostTime=0;NET.ns132MotionStats=null;NET.ns111MetaAt=-100;NET.ns111MetaCache=null;NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
 NS105_TEMPLE.placeDoor();mapReset();NSX.start(opts);NS95_CAGE.reset();$('pauseBtn').classList.remove('hidden');$('home').classList.add('hidden');$('editorPanel').classList.add('hidden');$('pausePanel').classList.add('hidden');$('gameOver').classList.add('hidden');$('coopPanel').classList.add('hidden');$('settingsPanel').classList.add('hidden');$('hud').classList.remove('hidden');$('controls').classList.remove('hidden');$('veil').classList.add('hidden');$('spectatorPanel').classList.add('hidden');resetFloatingJoystick();updateHUD();updateNightHUD();announce(opts.bossTest?'BOSS TEST · NIVO 10':G.runType==='campaign'?`KAMPANJA · ${findLevel(G.stageId).name}`:'TALAS 1 · PREŽIVI',2);sfx('wave');voiceLine('preview',true)}
 function addRemotePlayer(id){
  if(G.players.some(p=>p.id===id))return;
@@ -5044,7 +5054,7 @@ if(NET.role==='guest'){
  if(NET.conn?.open){
   const key=[Math.round((inp.x||0)*16),Math.round((inp.y||0)*16),inp.attack?1:0,inp.dash?1:0].join(':');
   const elapsed=G.time-(NET.lastInput||0),changed=key!==NET.lastInputKey;
-  if((changed&&elapsed>=.025)||elapsed>=(relayActive()?.063:.047)){
+  if((changed&&elapsed>=.025)||elapsed>=(relayActive()?.043:.047)){
    // Do not add stale controls behind a queued WebSocket; retry the next frame instead.
    if(Number(NET.conn.bufferSize||0)<9000){
     const v=mine?.dead?{x:0,y:0,attack:false,dash:false}:inp;
@@ -5070,7 +5080,10 @@ if(!G.caveMode&&!G.ns95TestOnly){G.spawnClock+=dt;}const spawnInterval=Math.max(
  if(G.wave===20||G.wave===30){G.ns100RotfiendRetryAt=G.time;spawnRotfiend();G.ns100RotfiendRetryAt=G.time+3}
  if(G.runType==='campaign'){G.stageWaveIndex++;const stage=findLevel(G.stageId);if(stage&&G.stageWaveIndex>=stage.waves){advanceStage()}else{announce(`KAMPANJA ${G.stageId} · TALAS ${G.stageWaveIndex+1}`,2);sfx('wave');voiceLine('wave');coopVoiceRequestOneGuest('wave')}}else{announce('TALAS '+G.wave+' · INTENZITET RASTE',2);sfx('wave');voiceLine('wave');coopVoiceRequestOneGuest('wave')}if(!G.campaignDone)for(let i=0;i<Math.min(11,2+Math.ceil(G.wave*1.1));i++)spawnEnemy()}
 let target=G.players.filter(p=>!p.dead).reduce((a,p)=>({x:a.x+p.x,y:a.y+p.y,n:a.n+1}),{x:0,y:0,n:0});if(target.n){target.x/=target.n;target.y/=target.n;const me=G.players.find(p=>p.id===(NET.role==='host'?NET.localId:'p1'));const watch=NET.role==='host'&&!me?.dead?me:me?.dead?G.players.find(p=>p.id===NET.viewTarget&&!p.dead)||G.players.find(p=>!p.dead):null;if(watch){target.x=watch.x;target.y=watch.y}G.camera.x+=(target.x-G.camera.x)*Math.min(1,dt*4);G.camera.y+=(target.y-G.camera.y)*Math.min(1,dt*4)}
-if(NET.role==='host'&&NET.phase==='playing'){if(G.players.find(p=>p.id===NET.localId)?.dead)syncSpectator()}if(NET.role==='host'&&NET.phase==='playing'&&NET.clients.size&&G.time-NET.lastSnapshot>(relayActive()?.070:.085)){NET.lastSnapshot=G.time;sendSnapshot()}if(!G.ns77HudAt||G.time-G.ns77HudAt>.085){G.ns77HudAt=G.time;updateHUD();updateNightHUD()}}
+if(NET.role==='host'&&NET.phase==='playing'){if(G.players.find(p=>p.id===NET.localId)?.dead)syncSpectator()}if(NET.role==='host'&&NET.phase==='playing'&&NET.clients.size){
+ if(G.time-NET.lastSnapshot>(relayActive()?.070:.085)){NET.lastSnapshot=G.time;sendSnapshot()}
+ ns132SendMotion();
+}if(!G.ns77HudAt||G.time-G.ns77HudAt>.085){G.ns77HudAt=G.time;updateHUD();updateNightHUD()}}
 function syncSpectator(){
  if(NET.phase!=='playing'||G.mode!=='play'){$('spectatorPanel').classList.add('hidden');return}
  const mine=G.players.find(p=>p.id===(NET.role?NET.localId:'p1'));
@@ -6958,6 +6971,7 @@ function setupConnection(c){
    }
    if(data.t==='start'&&NET.phase==='playing'){safeSend({t:'started'});return}
    if(data.t==='snapshot'&&NET.phase==='playing')receiveSnapshot(data);
+   else if(data.t==='ns132Motion'&&NET.phase==='playing')ns132ReceiveMotion(data);
    else if(NET.phase==='playing'&&data.t==='powerOffer'){const own=G.players.find(p=>p.id===NET.localId)||G.players[0];own.level=data.level||own.level;showQuickChoice(own,true)}
    else if(NET.phase==='playing'&&data.t==='chestOffer')showRemoteLootChoice(data.items);
    else if(NET.phase==='playing'&&data.t==='guildOffer'){const own=G.players.find(p=>p.id===NET.localId)||G.players[0];G.guildPending={playerId:own.id,remote:true};G.paused=false;$('guildPanel').classList.remove('hidden');showChoiceTimer('guildPanel',7);renderGuildShop();const offer=G.guildPending;setTimeout(()=>{if(G.guildPending===offer)closeGuildShop()},7000)}
@@ -7063,33 +7077,118 @@ function sendSnapshot(){
     bs:G.blasts.filter(v=>near(v,700)).slice(0,slow?4:8).map(v=>({...v})),
     bc:G.blueCrystals.filter(v=>near(v,690)).slice(0,slow?8:16).map(v=>({...v}))};
   if(NETLAB.gameSend(c,snap,id)){
+   NET.ns132MobIds=NET.ns132MobIds||new Map();
+   NET.ns132SentAt=NET.ns132SentAt||new Map();
+   NET.ns132MobIds.set(id,mobs.map(m=>m[0]));
+   NET.ns132SentAt.set(id,G.time);
    NET.snapshotStats.packets++;
    // JSON.stringify also happens inside the relay adapter; sample byte size to avoid double work every frame.
    if(NET.snapshotStats.packets%4===1)NET.snapshotStats.bytes+=JSON.stringify(snap).length*4;
   }
  }
 }
+/* V132: send small disposable movement updates between authoritative full snapshots.
+   One shared host simulation; game rules, HP, items and events remain host-owned.
+   Never queue movement behind a backed-up reliable relay or exceed its message budget. */
+function ns132SendMotion(){
+ if(NET.role!=='host'||NET.phase!=='playing'||!NET.clients.size)return;
+ const now=G.time, recipients=NET.clients.size;
+ const interval=recipients>=4?.082:recipients>=3?.070:.055;
+ if(now-(NET.ns132LastSend||0)<interval)return;
+ NET.ns132LastSend=now;
+ const sent=NET.ns132SentAt||(NET.ns132SentAt=new Map());
+ const visible=NET.ns132MobIds||(NET.ns132MobIds=new Map());
+ const mobsById=new Map(G.mobs.filter(m=>!m.dead).map(m=>[m.id,m]));
+ const players=G.players.map(p=>[p.id,Math.round(p.x*10)/10,Math.round(p.y*10)/10,
+  Math.round(p.frame*10)/10,p.facing,p.walking?1:0,p.headFacing,p.bodyFacing,p.dead?1:0]);
+ for(const [id,c] of NET.clients){
+  if(!c?.open||Number(c.bufferSize||0)>5000||!visible.has(id))continue;
+  if(now-(sent.get(id)||-100)<interval*.73)continue;
+  const f=G.players.find(p=>p.id===id)||G.players[0];if(!f)continue;
+  const mobRows=[];
+  for(const mobId of visible.get(id)){
+   const m=mobsById.get(mobId);
+   if(!m||Math.abs(m.x-f.x)>730||Math.abs(m.y-f.y)>730)continue;
+   mobRows.push([m.id,Math.round(m.x*10)/10,Math.round(m.y*10)/10,
+    Math.round(m.frame*10)/10,m.angle,Math.round(m.attackT*100)/100]);
+  }
+  const packet={t:'ns132Motion',round:NET.round,time:now,p:players,m:mobRows};
+  if(NETLAB.gameSend(c,packet,id))sent.set(id,now);
+ }
+}
+
+/* V132: newest movement sample wins; stale full snapshots must not rewind positions.
+   Movement packets update existing remote entities only; all world mutations still
+   arrive in regular authoritative snapshots. No extra simulation or render loop. */
+function ns132ReceiveMotion(d){
+ if(NET.role!=='guest'||NET.phase!=='playing'||!NET.localId||
+    !Number.isFinite(d?.time)||d.round!==NET.round)return;
+ const now=performance.now(),stamp=d.time;
+ const stat=NET.ns132MotionStats||(NET.ns132MotionStats={from:now,count:0,hz:0,lastAt:0});
+ stat.count++;stat.lastAt=now;
+ if(now-stat.from>=1000){stat.hz=Math.round(stat.count*10000/(now-stat.from))/10;stat.count=0;stat.from=now;}
+ const update=(existing,rows,isPlayer)=>{
+  if(!Array.isArray(rows)||!existing?.length)return;
+  const byId=new Map(existing.map(e=>[e.id,e]));
+  for(const a of rows){
+   if(!Array.isArray(a)||a.length<4||!Number.isFinite(a[1])||!Number.isFinite(a[2]))continue;
+   const e=byId.get(a[0]);if(!e||Number.isFinite(e.ns132HostTime)&&stamp<=e.ns132HostTime+.00001)continue;
+   const px=Number.isFinite(e.netAuthX)?e.netAuthX:e.x;
+   const py=Number.isFinite(e.netAuthY)?e.netAuthY:e.y;
+   const hostDelta=stamp-(Number.isFinite(e.ns132HostTime)?e.ns132HostTime:stamp-.09);
+   const elapsed=clamp(hostDelta,.035,.55);
+   const teleported=Math.hypot(a[1]-px,a[2]-py)>285;
+   e.netVx=teleported?0:clamp((a[1]-px)/elapsed,-285,285);
+   e.netVy=teleported?0:clamp((a[2]-py)/elapsed,-285,285);
+   e.netAuthX=a[1];e.netAuthY=a[2];e.netAuthAt=now;
+   e.netAge=0;e.ns132HostTime=stamp;
+   if(teleported){e.x=a[1];e.y=a[2];}
+   if(isPlayer){
+    if(Number.isFinite(a[3]))e.frame=a[3];
+    if(Number.isFinite(a[4]))e.facing=a[4];
+    e.walking=!!a[5];
+    if(Number.isFinite(a[6]))e.headFacing=a[6];
+    if(Number.isFinite(a[7]))e.bodyFacing=a[7];
+    if(a.length>8)e.dead=!!a[8];
+   }else{
+    if(Number.isFinite(a[3]))e.frame=a[3];
+    if(Number.isFinite(a[4]))e.angle=a[4];
+    if(Number.isFinite(a[5]))e.attackT=a[5];
+   }
+  }
+ };
+ update(G.players,d.p,true);
+ update(G.mobs,d.m,false);
+ NET.ns132LastMotionHostTime=Math.max(NET.ns132LastMotionHostTime||0,stamp);
+}
+
 /* v79: estimate velocity ONLY from two actual authoritative snapshots.
    v77 used the already extrapolated tx in its velocity calculation, causing
    guests to alternate between freezing and overshooting under relay jitter. */
-function reconcilePositions(oldItems,incoming,interval=.16){
+function reconcilePositions(oldItems,incoming,interval=.16,hostStamp=NaN){
  const previous=new Map(oldItems.map(p=>[p.id,p]));
  const receivedAt=performance.now();
  return incoming.map(n=>{
   const old=previous.get(n.id);
-  if(!old)return {...n,tx:n.x,ty:n.y,netAuthX:n.x,netAuthY:n.y,netAuthAt:receivedAt,netVx:0,netVy:0,netAge:0};
-  const distance=Math.hypot(old.x-n.x,old.y-n.y);
+  if(!old)return {...n,tx:n.x,ty:n.y,netAuthX:n.x,netAuthY:n.y,netAuthAt:receivedAt,netVx:0,netVy:0,netAge:0,ns132HostTime:hostStamp};
+  // If a newer compact position was delivered, keep it while taking gameplay
+  // fields (health, statuses, pickups) from this older full snapshot.
+  const newer=Number.isFinite(old.ns132HostTime)&&Number.isFinite(hostStamp)&&old.ns132HostTime>hostStamp+.00001;
+  const authX=newer?old.netAuthX:n.x,authY=newer?old.netAuthY:n.y;
+  const distance=Math.hypot((Number.isFinite(old.netAuthX)?old.netAuthX:old.x)-authX,
+                            (Number.isFinite(old.netAuthY)?old.netAuthY:old.y)-authY);
   const elapsed=Number.isFinite(old.netAuthAt)?(receivedAt-old.netAuthAt)/1000:interval;
   const period=clamp(Number.isFinite(interval)&&interval>.025&&interval<.75?interval:elapsed,.055,.75);
   const px=Number.isFinite(old.netAuthX)?old.netAuthX:old.tx??old.x;
   const py=Number.isFinite(old.netAuthY)?old.netAuthY:old.ty??old.y;
   // A hard teleport only for genuine large world corrections / rejoins.
   const teleport=distance>285;
-  const velocityX=teleport?0:clamp((n.x-px)/period,-285,285);
-  const velocityY=teleport?0:clamp((n.y-py)/period,-285,285);
-  return {...n,x:teleport?n.x:old.x,y:teleport?n.y:old.y,
-   tx:n.x,ty:n.y,netAuthX:n.x,netAuthY:n.y,netAuthAt:receivedAt,
-   netVx:velocityX,netVy:velocityY,netAge:0,frame:teleport?n.frame:old.frame};
+  const velocityX=teleport?0:newer?(old.netVx||0):clamp((authX-px)/period,-285,285);
+  const velocityY=teleport?0:newer?(old.netVy||0):clamp((authY-py)/period,-285,285);
+  return {...n,x:teleport?authX:old.x,y:teleport?authY:old.y,
+   tx:authX,ty:authY,netAuthX:authX,netAuthY:authY,netAuthAt:receivedAt,
+   netVx:velocityX,netVy:velocityY,netAge:0,
+   ns132HostTime:newer?old.ns132HostTime:hostStamp,frame:teleport?n.frame:old.frame};
  });
 }
 /* v79: one inexpensive render-target per remote entity; no remote AI/physics.
@@ -7109,6 +7208,7 @@ const NS79STATS={count:0,last:0,hz:0,periodMs:0,jitterMs:0,dropped:0,frames:0,
  receive(seq,now,period){this.count++;this.periodMs=this.periodMs?this.periodMs*.8+period*200:period*1000;const deviation=Math.abs(period*1000-this.periodMs);this.jitterMs=this.jitterMs*.85+deviation*.15;if(this.last){const sample=now-this.last;if(sample>=1000){this.hz=Math.round(this.count*10000/sample)/10;this.count=0;this.last=now}}else this.last=now;},
  status(){return{hz:this.hz,periodMs:Math.round(this.periodMs),jitterMs:Math.round(this.jitterMs),dropped:this.dropped}}};
 window.__NS79STATS=NS79STATS;
+window.__NS132_MP_DIAG=()=>({motionHz:NET.ns132MotionStats?.hz??0,lastMotionAgeMs:NET.ns132MotionStats?.lastAt?Math.round(performance.now()-NET.ns132MotionStats.lastAt):null,snapshot:NET.role==='guest'?NS79STATS.status():NET.snapshotStats,relayBufferedBytes:Number(NET.conn?.bufferSize||0)});
 // V112: read-only diagnostics for tests on real mobile devices.
 window.__NS112_MP_DIAG=()=>({role:NET.role,phase:NET.phase,round:NET.round,fps:NET.ns112Perf?.fps??null,hostPingMs:NET.role==='guest'?NETLAB.peer('host').rtt:null,hostBufferBytes:Number(NET.conn?.bufferSize||0),snapshot:NET.role==='guest'?NS79STATS.status():{...NET.snapshotStats},guestReports:NET.role==='host'?[...(NET.ns112GuestPerf||new Map())].map(([id,v])=>({id,fps:v.fps,hz:v.hz,jitterMs:v.jitterMs,ageMs:Math.round(performance.now()-v.at)})):[]});
 
@@ -7119,7 +7219,7 @@ function receiveSnapshot(d){
  if(Number.isInteger(d.seq)){if(NET.lastSnapSeq>0&&d.seq>NET.lastSnapSeq+1)NS79STATS.dropped+=d.seq-NET.lastSnapSeq-1;NET.lastSnapSeq=d.seq;}const snapshotNow=performance.now(),snapshotInterval=(snapshotNow-(NET.lastReceiveAt||snapshotNow-150))/1000;NET.lastReceiveAt=snapshotNow;const hostStep=Number.isFinite(d.time)&&Number.isFinite(NET.ns80LastHostTime)?d.time-NET.ns80LastHostTime:snapshotInterval;NET.ns80LastHostTime=Number(d.time)||null;NS79STATS.receive(d.seq,snapshotNow,snapshotInterval);NETLAB.snapshotReceived();NETMIG.observe(d.mig);if(d.ns99)NS99_TEAM.receive(d.ns99);
  if(d.nx)NSX.onGuestSnapshot(d.nx);NS91.receiveMask(d.a91);NS92_CHALLENGES.receive(d.c92);NS95_CAGE.receive(d.c95);G.wave=d.w;if(d.specialMode)G.specialMode=d.specialMode;G.time=Math.max(G.time,d.time||0);if(Array.isArray(d.towers)){for(const st of d.towers){const tower=props.find(o=>o.type==='nightTower'&&o.seed===st[0]);if(tower){tower.hp=st[1];tower.destroyed=!!st[2]}}G.nightTowersDestroyed=props.filter(o=>o.type==='nightTower'&&o.destroyed).length;}G.level=d.l;G.xp=d.xp;G.xpNeed=d.xpn;G.kills=d.k;G.bossId=d.b;
  // Do not overwrite the render position: blend it toward the authoritative state.
- G.players=reconcilePositions(G.players,d.p.map(p=>Array.isArray(p)?{id:p[0],x:p[1],y:p[2],r:p[3],hp:p[4],maxHp:p[5],speed:p[6],weapon:p[7],damage:p[8],range:p[9],attackRate:p[10],attackT:p[11],attackCD:p[12],dashCD:p[13],frame:p[14],walking:!!p[15],visualSide:p[16],facing:p[17],headFacing:p[18],bodyFacing:p[19],flash:p[20],dead:!!p[21],deathT:p[22],shieldUntil:p[23],freezeUntil:p[24],crystals:p[25],keys:p[26],perks:p[27],perkTimers:p[28],visualScale:p[29],xp:p[30],level:p[31],xpNeed:p[32],reviveCount:p[33]||0,sosUsed:!!p[34],sosAt:Number(p[35])||0,evolutions:p[36]||{},evolutionCooldown:p[37]||{},nsRole:p[38]||'guardian',nsLegendaryWeapon:p[39]||null,secondaryWeapon:MEDIEVAL_WEAPONS[p[40]]?p[40]:null,nsCombatClass:['warrior','ranger','mage','support'].includes(p[41])?p[41]:'warrior',mpName:safePlayerName(p[42]||multiplayerDisplayName(p[0])),ns93Mana:Number(p[43])||0,ns93MaxMana:Number(p[44])||64,ns93ManaRegen:Number(p[45])||2.5,ns93Cooldown:p[46]||{},look:NET.heroLooks.get(p[0])||networkHeroStyle(FACTORY_HERO)}:p),hostStep);G.mobs=reconcilePositions(G.mobs,(d.m||[]).map(m=>Array.isArray(m)?{id:m[0],type:m[1],x:m[2],y:m[3],r:m[4],hp:m[5],maxHp:m[6],angle:m[7],frame:m[8],flash:m[9],attackT:m[10],deathT:m[11],dead:!!m[12],spitWindup:m[13],bossPhase:m[14]||1,bossCast:m[15]||null,nsExploreBoss:!!m[16],nsExploreTag:m[17]||0,nsCaveSpider:!!m[18],nsCaveThief:!!m[19],nsThiefUntil:m[20]||0,ns95Guard:!!m[21]}:m),hostStep);
+ G.players=reconcilePositions(G.players,d.p.map(p=>Array.isArray(p)?{id:p[0],x:p[1],y:p[2],r:p[3],hp:p[4],maxHp:p[5],speed:p[6],weapon:p[7],damage:p[8],range:p[9],attackRate:p[10],attackT:p[11],attackCD:p[12],dashCD:p[13],frame:p[14],walking:!!p[15],visualSide:p[16],facing:p[17],headFacing:p[18],bodyFacing:p[19],flash:p[20],dead:!!p[21],deathT:p[22],shieldUntil:p[23],freezeUntil:p[24],crystals:p[25],keys:p[26],perks:p[27],perkTimers:p[28],visualScale:p[29],xp:p[30],level:p[31],xpNeed:p[32],reviveCount:p[33]||0,sosUsed:!!p[34],sosAt:Number(p[35])||0,evolutions:p[36]||{},evolutionCooldown:p[37]||{},nsRole:p[38]||'guardian',nsLegendaryWeapon:p[39]||null,secondaryWeapon:MEDIEVAL_WEAPONS[p[40]]?p[40]:null,nsCombatClass:['warrior','ranger','mage','support'].includes(p[41])?p[41]:'warrior',mpName:safePlayerName(p[42]||multiplayerDisplayName(p[0])),ns93Mana:Number(p[43])||0,ns93MaxMana:Number(p[44])||64,ns93ManaRegen:Number(p[45])||2.5,ns93Cooldown:p[46]||{},look:NET.heroLooks.get(p[0])||networkHeroStyle(FACTORY_HERO)}:p),hostStep,d.time);G.mobs=reconcilePositions(G.mobs,(d.m||[]).map(m=>Array.isArray(m)?{id:m[0],type:m[1],x:m[2],y:m[3],r:m[4],hp:m[5],maxHp:m[6],angle:m[7],frame:m[8],flash:m[9],attackT:m[10],deathT:m[11],dead:!!m[12],spitWindup:m[13],bossPhase:m[14]||1,bossCast:m[15]||null,nsExploreBoss:!!m[16],nsExploreTag:m[17]||0,nsCaveSpider:!!m[18],nsCaveThief:!!m[19],nsThiefUntil:m[20]||0,ns95Guard:!!m[21]}:m),hostStep,d.time);
  const own=G.players.find(p=>p.id===NET.localId);
  if(own&&Number.isFinite(own.tx)){
   const desired=getLocalInput(),rtt=NETLAB.peer('host').rtt;
@@ -7161,7 +7261,7 @@ $('ns62ShareRoomCode').onclick=async()=>{
  const code=String(NET.code||$('roomCode').textContent||'').trim().toUpperCase();
  if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('Prvo napravi sobu.');return;}
  const link=location.origin+location.pathname+'?join='+encodeURIComponent(code);
-  const message='Noćna Straža V130 🎮\nKod sobe: '+code+'\nOtvori ovaj link za automatsko povezivanje: '+link;
+  const message='Noćna Straža V132 🎮\nKod sobe: '+code+'\nOtvori ovaj link za automatsko povezivanje: '+link;
  try{if(navigator.share){await navigator.share({title:'Noćna Straža — poziv u multiplayer',text:'Kod sobe: '+code,url:link});return;}}catch(err){if(err?.name==='AbortError')return}
  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(link);toast('Link za ulazak je kopiran. Pošalji ga drugaru.');return;}}catch{}
  window.prompt('Kopiraj ovaj link i pošalji drugaru:',link);
