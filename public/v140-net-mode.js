@@ -275,5 +275,5 @@ function frame(now){
   ' | korekcija '+Math.round(N.correction)+'px | stanje '+Math.round(now-N.lastState)+'ms | CPU '+N.serverMs+'ms';
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs}}};
+ get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null}}};
 })();
