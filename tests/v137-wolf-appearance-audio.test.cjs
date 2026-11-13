@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const licenses=fs.readFileSync(path.join(__dirname,'../public/THIRD_PARTY_AUDIO.md'),'utf8');
-const buildVersion=Number(html.match(/<title>Night Watch v(\d+) — Noćna Straža<\/title>/)?.[1]||0);
+const buildVersion=Number(html.match(/<title>Night Watch v(\d+)(?: TEST)? — Noćna Straža<\/title>/)?.[1]||0);
 assert.ok(buildVersion>=138,'V138+ features require a release build v138 or newer');
 assert.match(html,/function drawWerewolfLegacy\(e\)/);
 assert.match(html,/function drawWerewolfV137\(e\)/);
