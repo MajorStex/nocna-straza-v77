@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright-core');
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8');
-assert.match(html,/<title>Night Watch v136 — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v137 — Noćna Straža<\/title>/);
 assert.match(html,/get\('wave40-preview'\)==='1'/);
 assert.match(html,/function ns136StartWave40Preview\(\)/);
 assert.match(html,/G\.runType='wave40Preview'/);
@@ -46,7 +46,7 @@ assert.match(html,/G\.runType!=='wave40Preview'&&G\.spawnClock>=/);
    assert.equal(after.debugRun,true,'no permanent rewards');
    await page.waitForTimeout(400);
    assert.deepEqual(errors.filter(x=>/TypeError|ReferenceError|SyntaxError|RangeError/.test(x)),[],errors.join(' | '));
-   console.log('V136 LINK PREVIEW PASS '+width+'px: direct wave 39 -> 40, '+after.wolves+' wolf pups, one alpha, solo no rewards');
+   console.log('V137 LINK PREVIEW PASS '+width+'px: direct wave 39 -> 40, '+after.wolves+' wolf pups, one alpha, solo no rewards');
    await context.close();
   }
  }finally{await browser.close();}
