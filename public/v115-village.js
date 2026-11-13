@@ -57,6 +57,7 @@
   '<div id="ns109Top"><strong>🏡 NIGHT WATCH · VILLAGE</strong><span id="ns109Info">No enemies · No timer · No pauses</span>'+
   '<button id="ns109Sound" type="button">♫</button><button id="ns109Classic" type="button">☷ CLASSIC LOBBY</button></div>'+
   '<div id="ns109Stage"><canvas id="ns109Scene" width="960" height="540" aria-label="Village with interactive buildings"></canvas><div id="ns117Stick" class="ns109Hidden" aria-hidden="true"><span id="ns117Knob"></span></div><button id="ns117Dodge" type="button" aria-label="Dodge / Izbegni">↝<small>DODGE</small></button><button id="ns120Door" type="button" class="ns109Hidden" aria-label="Enter building / Uđi u kućicu">↳ ENTER</button>'+
+  '<button id="ns138Attack" type="button" aria-label="Attack nearby animals or players" title="Attack · J / F">⚔<small>ATTACK</small></button>'+
   '<div id="ns109Hint">Tap the ground to move, or a house to walk there. Enter the green gate when ready.</div></div>'+
   '<div id="ns109Bottom"><button id="ns109Results" type="button">🏆 RESULTS</button>'+
   '<button id="ns109Global" type="button">🌍 GLOBAL RANKINGS</button>'+
@@ -80,6 +81,8 @@
   '#ns117Dodge small{font-size:9px;letter-spacing:.04em}',
   '#ns117Dodge:disabled{opacity:.5;filter:grayscale(.7)}',
   '#ns120Door{position:absolute;z-index:6;right:12px;bottom:56px;padding:10px 12px!important;border-radius:12px!important;background:#23534de8;border:1.5px solid #efcc8d;color:#ffedbf;font:bold 12px system-ui!important;max-width:min(210px,58vw);white-space:normal!important;box-shadow:0 4px 18px #06181699;touch-action:manipulation}',
+  '#ns138Attack{position:absolute;z-index:5;right:14px;bottom:145px;width:74px;height:74px;display:grid;place-content:center;border:2px solid #e5be91!important;border-radius:50%!important;background:#634439db;color:#fff1c8;font-size:23px!important;box-shadow:0 3px 14px #0008;touch-action:manipulation}',
+  '#ns138Attack small{font-size:9px;letter-spacing:.05em}',
   '#ns109Hint{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);text-align:center;max-width:96%;padding:5px 11px;border:1px solid #d3c18b64;border-radius:12px;background:#122522c8;font-size:clamp(9px,2.6vw,12px);pointer-events:none}',
   '#ns109Bottom{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;padding:8px 6px calc(9px + env(safe-area-inset-bottom));background:#172b2a}',
   '#ns109Pane{position:absolute;inset:0;z-index:2;display:grid;place-items:center;padding:14px;background:#061016b5}',
@@ -154,6 +157,7 @@
   }
   if(id==='hall'){showAchievements();return}
   if(id==='invite'){showInviteHouse();return}
+  if(id==='barn'){showBarnPvP();return}
   if(id==='ready'){
    if(soloPreview){closeVillage();$('coopBtn')?.click();return}
    if(NS97_POST.active){if(!NET.ns97Results?.votes?.[NET.localId])NS97_POST.vote('yes');else NS97_POST.vote('no')}
@@ -161,6 +165,159 @@
    else $('lobbyReadyBtn')?.click();
    $('ns109Hint').textContent=NET.localReady||NET.ns97Results?.votes?.[NET.localId]==='yes'?tr('Ready! Waiting for others.','Spreman! Čekamo ostale.'):tr('Not ready.','Nisi spreman.');return;
   }
+ }
+
+ // V138: completely separate village sparring state. NEVER touches G.hp, kills,
+ // currency, XP, rankings, matchmaking, or an actual game session.
+ const PVP=new Map(),PVP_HP=100,PVP_RANGE=84;
+ const hitFX=[];let pvpSeq=0,lastPvpSync=0,localRespawnSeq=0,lastSoloHit=0;
+ const getPvP=id=>{if(!PVP.has(id))PVP.set(id,{opted:false,hp:PVP_HP,respawnAt:0,invulnerableUntil:0,seq:0,x:0,y:0,lastHit:0});return PVP.get(id)};
+ const villageHeroPos=id=>id===NET.localId||!NET.role&&id==='p1'?my:avatars.get(id);
+ const barnDoor=()=>doorPoint(buildings.find(b=>b.id==='barn'));
+ function nearBarn(id){
+  const p=villageHeroPos(id),door=barnDoor();
+  return !!p&&Math.hypot(p.x-door.x,p.y-door.y)<96;
+ }
+ function villageBroadcastPvp(){
+  if(NET.role!=='host'||NET.phase!=='lobby')return;
+  const pvp=[...PVP].slice(0,6).map(([id,p])=>({id,opted:p.opted,hp:p.hp,seq:p.seq,x:p.x,y:p.y,respawnAt:p.respawnAt,invulnerableUntil:p.invulnerableUntil}));
+  const animals=NPCS.map(a=>[a.id,a.hp,a.deadUntil]);
+  const data={t:'ns138State',pvp,animals};
+  for(const c of NET.clients.values())if(c?.open)try{c.send(data)}catch{}
+ }
+ function applyVillageState(data){
+  if(!Array.isArray(data.pvp)||data.pvp.length>6||!Array.isArray(data.animals)||data.animals.length>20)return;
+  for(const p of data.pvp){
+   if(!/^p[1-6]$/.test(String(p?.id||''))||!Number.isFinite(p.hp)||!Number.isFinite(p.seq))continue;
+   const prev=getPvP(p.id);
+   const next={...prev,opted:p.opted===true,hp:clamp(p.hp,0,PVP_HP),
+    seq:Math.max(0,Math.min(1e7,p.seq)),x:clamp(Number(p.x)||0,29,VILLAGE_W-29),
+    y:clamp(Number(p.y)||0,62,VILLAGE_H-35),respawnAt:Math.max(0,Number(p.respawnAt)||0),
+    invulnerableUntil:Math.max(0,Number(p.invulnerableUntil)||0)};
+   PVP.set(p.id,next);
+   // The host alone orders respawn; it does not use a client-supplied teleport.
+   if(p.id===NET.localId&&NET.role==='guest'&&next.seq>localRespawnSeq){
+    localRespawnSeq=next.seq;my.x=next.x;my.y=next.y;
+    route=[];walkTo=null;thenEnter=null;resetStick();
+   }
+  }
+  for(const q of data.animals)if(Array.isArray(q)&&q.length===3&&Number.isInteger(q[0])&&NPCS[q[0]]&&Number.isFinite(q[1])&&Number.isFinite(q[2])){
+   NPCS[q[0]].hp=clamp(q[1],0,2);
+   NPCS[q[0]].deadUntil=Math.max(0,q[2]);
+  }
+  if(focused==='barn'&&!pane.classList.contains('ns109Hidden'))showBarnPvP();
+ }
+ function toggleVillagePvp(id){
+  if(!isLobby()||NET.role!=='host'||!/^p[1-6]$/.test(String(id||''))||!nearBarn(id))return false;
+  const state=getPvP(id);state.opted=!state.opted;state.hp=PVP_HP;state.respawnAt=0;state.invulnerableUntil=Date.now()+1100;
+  villageBroadcastPvp();if(focused==='barn')showBarnPvP();return true;
+ }
+ function randomVillageRespawn(){
+  const choices=buildings.filter(b=>b.id!=='barn'),b=choices[(pvpSeq++)%choices.length];
+  const d=doorPoint(b);
+  return blockedVillage(d.x,d.y)?{x:840,y:506}:d;
+ }
+ function villageRespawn(id,seq){
+  if(NET.role!=='host'||!isLobby())return;
+  const state=getPvP(id);if(!state.opted||state.seq!==seq||state.hp>0)return;
+  const pos=randomVillageRespawn();
+  state.hp=PVP_HP;state.respawnAt=0;state.invulnerableUntil=Date.now()+2000;
+  state.seq++;state.x=pos.x;state.y=pos.y;
+  if(id===NET.localId){my.x=pos.x;my.y=pos.y;route=[];walkTo=null}
+  else{
+   avatars.set(id,{...pos,walking:false,side:1,lastMoveAt:performance.now()});
+   const prev=limits.get(id)||{at:0,emote:0};
+   limits.set(id,{...prev,x:pos.x,y:pos.y,at:performance.now()});
+  }
+  villageBroadcastPvp();
+ }
+ function villageStrike(id){
+  if(!opened||!canVisit())return false;
+  const now=Date.now(),pos=villageHeroPos(id);
+  if(!pos)return false;
+  const state=getPvP(id);
+  if(now-(state.lastHit||0)<640)return false;
+  if(state.opted&&state.hp<=0)return false;
+  state.lastHit=now;
+  // Only mutually opted-in, living players in the SAME lobby can hurt one another.
+  let victimId=null,best=PVP_RANGE;
+  if(isLobby()&&state.opted){
+   for(const p of getPlayers()){
+    if(p.id===id)continue;
+    const other=getPvP(p.id),at=villageHeroPos(p.id);
+    if(!other.opted||other.hp<=0||now<other.invulnerableUntil||!at)continue;
+    const d=Math.hypot(pos.x-at.x,pos.y-at.y);
+    if(d<best){best=d;victimId=p.id}
+   }
+  }
+  if(victimId){
+   const target=getPvP(victimId);
+   target.hp=Math.max(0,target.hp-34);
+   hitFX.push({x:villageHeroPos(victimId).x,y:villageHeroPos(victimId).y-25,until:now+280});
+   if(target.hp===0){
+    target.respawnAt=now+1650;
+    const seq=target.seq; // ignore timers from prior deaths / resets
+    setTimeout(()=>villageRespawn(victimId,seq),1700);
+   }
+   villageBroadcastPvp();
+   return true;
+  }
+  // Farm animals have separate temporary HP. Killing them gives zero rewards.
+  let closest=null,nearest=72;
+  for(const a of NPCS){
+   if(!animalAlive(a,now))continue;
+   const v=animalPos(a,now),d=Math.hypot(pos.x-v.x,pos.y-v.y);
+   if(d<nearest){nearest=d;closest=a}
+  }
+  if(!closest)return false;
+  closest.hp=Math.max(0,closest.hp-1);
+  const v=animalPos(closest,now);
+  hitFX.push({x:v.x,y:v.y-12,until:now+270});
+  if(closest.hp===0){closest.deadUntil=now+16000;closest.hp=2}
+  if(NET.role==='host')villageBroadcastPvp();
+  return true;
+ }
+ function villageTryStrike(){
+  if(!opened||!canVisit()||!pane.classList.contains('ns109Hidden'))return false;
+  if(isLobby()&&NET.role==='guest'){
+   if(!NET.conn?.open)return false;
+   try{NET.conn.send({t:'ns138Strike'});return true}catch{return false}
+  }
+  const id=NET.localId||'p1';return villageStrike(id);
+ }
+ function drawVillageHits(){
+  const now=Date.now();
+  for(let i=hitFX.length-1;i>=0;i--){
+   const e=hitFX[i];if(e.until<now){hitFX.splice(i,1);continue}
+   g.save();g.globalAlpha=(e.until-now)/280;g.strokeStyle='#fff0bd';g.lineWidth=4;
+   g.beginPath();g.moveTo(e.x-17,e.y-16);g.lineTo(e.x+14,e.y+8);g.stroke();g.restore();
+  }
+ }
+ function drawVillagePvpHp(id,x,y){
+  const p=PVP.get(id);if(!p?.opted)return;
+  g.save();g.fillStyle='#211c1dbb';g.fillRect(x-26,y-94,52,6);
+  g.fillStyle=p.hp>35?'#a9d7aa':'#e09276';g.fillRect(x-25,y-93,50*clamp(p.hp/PVP_HP,0,1),4);
+  g.font='bold 11px sans-serif';g.textAlign='center';g.fillStyle='#f6dab1';g.fillText('⚔',x+38,y-78);
+  g.restore();
+ }
+ function showBarnPvP(){
+  panel(tr('⚔ BARN · FRIENDLY PVP','⚔ ŠTALA · PRIJATELJSKI PVP'));focused='barn';
+  const hint=document.createElement('p');
+  hint.textContent=tr('Opt in here to spar with friends. Both players must activate PvP. No XP, no coins, no rankings. After defeat you respawn at a nearby house. You can attack sheep and pigs without PvP.','Ovde uključi PvP za zezanje sa društvom. Oba igrača moraju da uključe PvP. Nema XP, novca ni statistike. Posle poraza se vraćaš kod neke kućice. Ovce i prasiće možeš da napadneš i bez PvP-a.');
+  area.append(hint);
+  const status=document.createElement('p');const own=getPvP(NET.localId||'p1');
+  status.textContent=own.opted?tr('PVP ACTIVE · HP ','PVP UKLJUČEN · HP ')+own.hp+'/'+PVP_HP:tr('PVP OFF','PVP ISKLJUČEN');area.append(status);
+  const btn=document.createElement('button');btn.className='primary';
+  btn.textContent=own.opted?tr('DISABLE PVP','ISKLJUČI PVP'):tr('ENABLE PVP','UKLJUČI PVP');
+  btn.disabled=!isLobby();
+  btn.onclick=()=>{
+   if(!isLobby()){toast(tr('Invite a friend to an online room first','Prvo pozovi prijatelja u online sobu'));return}
+   if(NET.role==='host')toggleVillagePvp(NET.localId);
+   else if(NET.role==='guest'&&NET.conn?.open){NET.conn.send({t:'ns138PvpToggle'});toast(tr('PVP request sent','Zahtev za PvP poslat'))}
+  };
+  area.append(btn);
+  const note=document.createElement('p');note.textContent=isLobby()?tr('Attack: ⚔ button or J / F on keyboard. PvP only works in the Village.','Napad: dugme ⚔ ili J / F na tastaturi. PvP radi samo u selu.'):tr('Join a multiplayer lobby to fight friends. Animals are available in solo Village.','Uđi u multiplayer sobu za PvP. Životinje možeš da napadaš i u solo selu.');
+  area.append(note);
  }
 
  function inviteRosterText(){
