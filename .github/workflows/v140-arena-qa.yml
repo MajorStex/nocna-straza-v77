@@ -34,6 +34,19 @@ jobs:
               const result=await page.evaluate(()=>({title:document.title,arena:!!window.NS140_ARENA,loaded:!!window.__NS110_BRIDGE}));
               console.log('V140_BOOT',width,result,failures);
               if(!result.arena||!result.loaded||!result.title.includes('v140')||failures.some(e=>/SyntaxError|ReferenceError/.test(e)))throw new Error('V140 boot failed');
+              const solo=await page.evaluate(()=>{
+                window.__NS110_BRIDGE.currentProfileLevel=()=>7; // isolate local gameplay QA, no fake XP save
+                const ok=window.NS140_ARENA.startSolo();
+                return {ok,active:window.NS140_ARENA.active,hidden:document.getElementById('ns140Root')?.hidden,
+                  text:document.getElementById('ns140Status')?.textContent};
+              });
+              await page.waitForTimeout(450);
+              const runtime=await page.evaluate(()=>window.NS140_ARENA.diagnostics);
+              console.log('V140_SOLO',width,solo,runtime,failures);
+              if(!solo.ok||!solo.active||solo.hidden||!solo.text.includes('SINGLEPLAYER')||failures.length)
+                throw new Error('V140 offline solo run failed');
+              await page.evaluate(()=>window.NS140_ARENA.stop());
+              if(await page.locator('#ns140Root').isVisible())throw new Error('Solo Exit did not close arena');
               await page.close();
             }
             await browser.close();
