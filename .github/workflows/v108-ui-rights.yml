@@ -2,7 +2,7 @@ name: V108 mobile HUD and copyright QA
 on:
   push:
     branches: [main]
-    paths: ['public/index.html','tests/v108-ui-rights.test.cjs','tests/v135-werewolves-browser.test.cjs','tests/v136-wave40-link.test.cjs','.github/workflows/v108-ui-rights.yml']
+    paths: ['public/index.html','tests/v108-ui-rights.test.cjs','tests/v135-werewolves-browser.test.cjs','tests/v136-wave40-link.test.cjs','tests/v137-wolf-appearance-audio.test.cjs','.github/workflows/v108-ui-rights.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,5 +21,7 @@ jobs:
 
       - name: V135 actual mobile browser wave-40 werewolf smoke
         run: node tests/v135-werewolves-browser.test.cjs
-      - name: V136 direct wave-39 preview and actual wave-40 transition
+      - name: V137 direct wave-39 preview and actual wave-40 transition
         run: node tests/v136-wave40-link.test.cjs
+      - name: V137 real wolf recording and reversible visuals
+        run: node tests/v137-wolf-appearance-audio.test.cjs
