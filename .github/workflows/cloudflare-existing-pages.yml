@@ -7,6 +7,7 @@ on:
       - 'tests/current-deployment.test.cjs'
       - 'tests/v128-multiplayer-performance.test.cjs'
       - 'tests/v129-version-watermark.test.cjs'
+      - 'tests/v135-werewolves.test.cjs'
       - '.github/workflows/cloudflare-existing-pages.yml'
   workflow_dispatch:
 permissions:
@@ -32,6 +33,8 @@ jobs:
         run: node tests/v128-multiplayer-performance.test.cjs
       - name: Visible build badge regression
         run: node tests/v129-version-watermark.test.cjs
+      - name: Wave 40 werewolf boss, pack, claw and no-damage slow QA
+        run: node tests/v135-werewolves.test.cjs
       - name: Save backup release package
         run: |
           cd public
