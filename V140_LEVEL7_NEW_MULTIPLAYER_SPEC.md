@@ -1,3 +1,12 @@
+## Odluka 13.11.2026 — ISTI NOVI MOD U SINGLEPLAYER I MULTIPLAYER
+- Pristup iz iste glavne igre, preko CHOOSE MODE / IZABERI REŽIM, uz opšti **nivo naloga 7**.
+- U režimu NOVA ZONA prikazati **dve jasne opcije:** `SINGLEPLAYER — NOVA ZONA (OFFLINE)` i `MULTIPLAYER — NOVA ZONA (DO 6 IGRAČA)`. Ne podrazumevati da je izabrana zona automatski samo MP.
+- **Solo** počinje bez lobija, WebSocketa, Cloudflare zahteva ili naknade. Simulacija je lokalna i koristi isti raspored arene/prepreka i isti izgled heroja kao nova MP zona. Izlaz vraća u CHOOSE MODE.
+- **MP** koristi postojeći lobby / kod sobe / Ready, a na početku meča prelazi na potpuno odvojen autorizovan server; stari Classic i druge režime ne menjati.
+- **Krajnji cilj:** isti sadržaj, neprijatelji, mape, boss talasi i mehanike u Singleplayer i Multiplayer varijanti Nove zone. Razlika je samo u lokaciji računanja stanja (lokalno ili autoritativni server).
+- **Faza 1, privremeno:** offline solo ima testnu arenu, prepreke, mobilne/PC kontrole, napade i gobline; bez XP-a, nagrada ili cloud progresa. MP faza 1 još testira odvojeni server bez mobova. Obe faze nisu završene kao pun režim; ne predstavljati ih kao kompletnu igru.
+- **Objavljivanje:** promene samo na posebnoj razvojnoj grani sve dok nova backend infrastruktura i test dva klijenta ne prođu; produkcioni Cloudflare URL ne menjati pre toga.
+
 # Noćna Straža — Level 7: NEW multiplayer mode, separate netcode (V140 design)
 
 Status: architecture proposal only; **not yet selectable or live**. Created on a separate branch from v138 main. Do not merge/deploy until user settles progression gate and first test scope.
