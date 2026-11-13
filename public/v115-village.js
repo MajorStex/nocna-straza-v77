@@ -7,7 +7,7 @@
  // The original game is a private IIFE; consume only its explicit read/write bridge.
  const {NET,G,NSX,NS91,NS97_POST,NS76CHAT,CoopVoice,renderCoopForge,renderPreRun,
   currentLobbyRoster,currentProfileLevel,getActiveAccount,coopVoiceUpdatePreference,
-  unlockSound,voiceLine,toast,meta,heroStyle,drawVillageHero,getVillageHeroLook,
+  unlockSound,voiceLine,toast,meta,heroStyle,drawVillageHero,getVillageHeroLook,villageCombatProfile,drawVillageSlash,villageSwingSfx,
  NS103_PARTY,NS96_INVITES,SOCIAL,startSocial,socialCheckFriends,showFriends,ensureSocialIdentity,safePlayerName,sendSocialStatus,NS92_DIR}=window.__NS110_BRIDGE||{};
  if(!NET||!G||!NS91||!NS97_POST){console.error('Village: game API not ready');return}
  const $=id=>document.getElementById(id);
@@ -170,6 +170,7 @@
  // V138: completely separate village sparring state. NEVER touches G.hp, kills,
  // currency, XP, rankings, matchmaking, or an actual game session.
  const PVP=new Map(),PVP_HP=100,PVP_RANGE=84;
+ const NS139_COMBAT=new Map();let ns139LastAuto=0,ns139NetSeq=0;
  const hitFX=[];let pvpSeq=0,lastPvpSync=0,localRespawnSeq=0,lastSoloHit=0;
  const getPvP=id=>{if(!PVP.has(id))PVP.set(id,{opted:false,hp:PVP_HP,respawnAt:0,invulnerableUntil:0,seq:0,x:0,y:0,lastHit:0});return PVP.get(id)};
  const villageHeroPos=id=>id===NET.localId||!NET.role&&id==='p1'?my:avatars.get(id);
@@ -236,62 +237,77 @@
   }
   villageBroadcastPvp();
  }
- function villageStrike(id){
+ // V139: reuse campaign hero weapon stats, target acquisition, animation and slash.
+ const villageAttackState=id=>{
+  if(!NS139_COMBAT.has(id))NS139_COMBAT.set(id,{angle:-Math.PI/2,attackUntil:0,lastAt:0,weapon:'sword',netSeq:0});
+  return NS139_COMBAT.get(id);
+ };
+ const villageWeapon=id=>villageCombatProfile(typeof getVillageHeroLook==='function'?getVillageHeroLook(id):heroStyle);
+ function villageTarget(id,weapon,now){
+  const from=villageHeroPos(id);if(!from)return null;
+  let best=(weapon.acquire||142)**2,target=null;
+  if(isLobby()&&getPvP(id).opted)for(const p of getPlayers()){
+   if(p.id===id)continue;
+   const state=getPvP(p.id),point=villageHeroPos(p.id);
+   if(!point||!state.opted||state.hp<=0||now<state.invulnerableUntil)continue;
+   const dx=point.x-from.x,dy=point.y-from.y,d=dx*dx+dy*dy;
+   if(d<best){best=d;target={type:'pvp',id:p.id,x:point.x,y:point.y,r:17}}
+  }
+  for(const sheepOrPig of NPCS){
+   if(!animalAlive(sheepOrPig,now))continue;
+   const point=animalPos(sheepOrPig,now),dx=point.x-from.x,dy=point.y-from.y,d=dx*dx+dy*dy;
+   if(d<best){best=d;target={type:'animal',id:sheepOrPig.id,x:point.x,y:point.y,r:12}}
+  }
+  return target;
+ }
+ function villageStrike(id,predict=false){
   if(!canVisit()||(!opened&&id===NET.localId))return false;
-  const now=Date.now(),pos=villageHeroPos(id);
-  if(!pos)return false;
-  const state=getPvP(id);
-  if(now-(state.lastHit||0)<640)return false;
-  if(state.opted&&state.hp<=0)return false;
-  state.lastHit=now;
-  // Only mutually opted-in, living players in the SAME lobby can hurt one another.
-  let victimId=null,best=PVP_RANGE;
-  if(isLobby()&&state.opted){
-   for(const p of getPlayers()){
-    if(p.id===id)continue;
-    const other=getPvP(p.id),at=villageHeroPos(p.id);
-    if(!other.opted||other.hp<=0||now<other.invulnerableUntil||!at)continue;
-    const d=Math.hypot(pos.x-at.x,pos.y-at.y);
-    if(d<best){best=d;victimId=p.id}
-   }
+  const now=Date.now(),from=villageHeroPos(id);
+  if(!from||getPvP(id).opted&&getPvP(id).hp<=0)return false;
+  const weapon=villageWeapon(id),state=villageAttackState(id);
+  if(now-state.lastAt<weapon.cooldown*1000)return false;
+  const target=villageTarget(id,weapon,now);if(!target)return false;
+  state.angle=Math.atan2(target.y-from.y,target.x-from.x);
+  state.weapon=weapon.weapon;state.attackUntil=now+weapon.animation*1000;state.lastAt=now;
+  if(id===NET.localId&&typeof villageSwingSfx==='function')villageSwingSfx(weapon.weapon);
+  if(predict)return true; // guest visual only; host determines real hits.
+  if(isLobby()&&NET.role==='host'){
+   const swing={t:'ns139Swing',round:NET.round,id,angle:state.angle,weapon:weapon.weapon};
+   for(const c of NET.clients.values())if(c?.open&&Number(c.bufferSize||0)<6500)try{c.send(swing)}catch{}
   }
-  if(victimId){
-   const target=getPvP(victimId);
-   target.hp=Math.max(0,target.hp-34);
-   hitFX.push({x:villageHeroPos(victimId).x,y:villageHeroPos(victimId).y-25,until:now+280});
-   if(target.hp===0){
-    target.respawnAt=now+1650;
-    const seq=target.seq; // ignore timers from prior deaths / resets
-    setTimeout(()=>villageRespawn(victimId,seq),1700);
-   }
-   villageBroadcastPvp();
-   return true;
+  const dist=Math.hypot(from.x-target.x,from.y-target.y);
+  if(dist>=weapon.range+target.r)return true;
+  hitFX.push({x:target.x,y:target.y-15,until:now+280});
+  if(target.type==='pvp'){
+   const enemy=getPvP(target.id);
+   if(!isLobby()||!getPvP(id).opted||!enemy.opted||enemy.hp<=0||now<enemy.invulnerableUntil)return true;
+   enemy.hp=Math.max(0,enemy.hp-34*weapon.damageMultiplier);
+   if(enemy.hp===0){enemy.respawnAt=now+1650;
+    const seq=enemy.seq;setTimeout(()=>villageRespawn(target.id,seq),1700)}
+  }else{
+   const animal=NPCS[target.id];
+   if(animal&&animalAlive(animal,now)){animal.hp=Math.max(0,animal.hp-1);
+    if(animal.hp===0){animal.hp=2;animal.deadUntil=now+16000}}
   }
-  // Farm animals have separate temporary HP. Killing them gives zero rewards.
-  let closest=null,nearest=72;
-  for(const a of NPCS){
-   if(!animalAlive(a,now))continue;
-   const v=animalPos(a,now),d=Math.hypot(pos.x-v.x,pos.y-v.y);
-   if(d<nearest){nearest=d;closest=a}
-  }
-  if(!closest)return false;
-  closest.hp=Math.max(0,closest.hp-1);
-  const v=animalPos(closest,now);
-  hitFX.push({x:v.x,y:v.y-12,until:now+270});
-  if(closest.hp===0){closest.deadUntil=now+16000;closest.hp=2}
   if(NET.role==='host')villageBroadcastPvp();
   return true;
  }
  function villageTryStrike(){
   if(!opened||!canVisit()||!pane.classList.contains('ns109Hidden'))return false;
-  const now=Date.now();if(now-lastSoloHit<600)return false;
-  lastSoloHit=now;
-  if(isLobby()&&NET.role==='guest'){
-   if(!NET.conn?.open)return false;
-   try{NET.conn.send({t:'ns138Strike'});return true}catch{return false}
+  const id=NET.localId||'p1';if(getPvP(id).opted&&getPvP(id).hp<=0)return false;
+  if(NET.role==='guest'&&isLobby()){
+   if(!NET.conn?.open||!villageStrike(id,true))return false;
+   try{NET.conn.send({t:'ns139Strike',round:NET.round,seq:++ns139NetSeq});return true}catch{return false}
   }
-  const id=NET.localId||'p1';return villageStrike(id);
+  return villageStrike(id);
  }
+ function villageAutoAttack(time){
+  if(!opened||!canVisit()||!pane.classList.contains('ns109Hidden')||time-ns139LastAuto<80)return;
+  ns139LastAuto=time;
+  const id=NET.localId||'p1',weapon=villageWeapon(id),swing=villageAttackState(id);
+  if(Date.now()-swing.lastAt>=weapon.cooldown*1000&&villageTarget(id,weapon,Date.now()))villageTryStrike();
+ }
+
  function drawVillageHits(){
   const now=Date.now();
   for(let i=hitFX.length-1;i>=0;i--){
