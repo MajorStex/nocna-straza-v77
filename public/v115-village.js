@@ -213,15 +213,19 @@
   const state=getPvP(id);state.opted=!state.opted;state.hp=PVP_HP;state.respawnAt=0;state.invulnerableUntil=Date.now()+1100;
   villageBroadcastPvp();if(focused==='barn')showBarnPvP();return true;
  }
- function randomVillageRespawn(){
-  const choices=buildings.filter(b=>b.id!=='barn'),b=choices[(pvpSeq++)%choices.length];
-  const d=doorPoint(b);
+ function randomVillageRespawn(near){
+  // Respawn at a safe doorway close to the defeat, never on the far side of the map.
+  const candidates=buildings.filter(b=>b.id!=='barn').map(b=>({door:doorPoint(b),
+   dist:Math.hypot(b.x-near.x,b.y+b.h/2+26-near.y)})).sort((a,b)=>a.dist-b.dist);
+  const nearby=candidates.filter(q=>q.dist<=420).slice(0,3);
+  const choices=nearby.length?nearby:candidates.slice(0,2);
+  const d=choices[(pvpSeq++)%choices.length].door;
   return blockedVillage(d.x,d.y)?{x:840,y:506}:d;
  }
  function villageRespawn(id,seq){
   if(NET.role!=='host'||!isLobby())return;
   const state=getPvP(id);if(!state.opted||state.seq!==seq||state.hp>0)return;
-  const pos=randomVillageRespawn();
+  const pos=randomVillageRespawn(villageHeroPos(id)||{x:840,y:506});
   state.hp=PVP_HP;state.respawnAt=0;state.invulnerableUntil=Date.now()+2000;
   state.seq++;state.x=pos.x;state.y=pos.y;
   if(id===NET.localId){my.x=pos.x;my.y=pos.y;route=[];walkTo=null}
