@@ -964,7 +964,7 @@
   if(!canVisit()){toast(tr('Open the village from the main menu or multiplayer lobby.','Otvori selo iz glavnog menija ili multiplayer lobija.'));return false;}
   soloPreview=!isLobby();
   if(!soloPreview){$('coopPanel')?.classList.remove('hidden');$('lobbyArea')?.classList.remove('hidden')}
-  opened=true;walkTo=null;thenEnter=null;route=[];doorLatch=null;doorLabel='';resetStick();stepFrame=0;walking=false;closePane();my.x=840;my.y=506;localRespawnSeq=0;if(!isLobby())PVP.clear();
+  opened=true;walkTo=null;thenEnter=null;route=[];doorLatch=null;doorLabel='';resetStick();stepFrame=0;walking=false;closePane();my.x=840;my.y=506;localRespawnSeq=0;PVP.clear();
   frameAt=performance.now();villageLastTick=0;villageFrameCredit=VILLAGE_TARGET_MS;
   fpsStart=0;fpsFrames=0;drawMsSum=0;drawMsMax=0;PERF.fps=0;
   root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
@@ -1062,13 +1062,13 @@
    get world(){return {width:VILLAGE_W,height:VILLAGE_H}},animalPos,attack:villageTryStrike,
    barn:()=>{if(!opened)return false;showBarnPvP();return true},
    togglePvp:()=>NET.role==='host'&&toggleVillagePvp(NET.localId),
-   testHit:(id)=>NET.role==='host'&&villageStrike(id),get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my},nearDoor:closestDoor()?.id||null,doorLatch,depthOrder:lastDepthOrder.slice(),cachedHouses:houseLayers.size,pendingAutoRoom}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y),visit:(id)=>{const b=buildings.find(x=>x.id===id);return opened&&!!b&&startVillageTravel(doorPoint(b).x,doorPoint(b).y,b.id)},testMove:(x,y)=>{if(!new URLSearchParams(location.search).has('village-test')||!opened)return false;const p=ground(x,y);if(blockedVillage(p.x,p.y))return false;my.x=p.x;my.y=p.y;return true}}};
+   testHit:(id)=>NET.role==='host'&&villageStrike(id),get soloPreview(){return soloPreview},get sheepCount(){return NPCS.filter(a=>a.kind==='sheep').length},get pigCount(){return NPCS.filter(a=>a.kind==='pig').length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my},nearDoor:closestDoor()?.id||null,doorLatch,depthOrder:lastDepthOrder.slice(),cachedHouses:houseLayers.size,pendingAutoRoom}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y),visit:(id)=>{const b=buildings.find(x=>x.id===id);return opened&&!!b&&startVillageTravel(doorPoint(b).x,doorPoint(b).y,b.id)},testMove:(x,y)=>{if(!new URLSearchParams(location.search).has('village-test')||!opened)return false;const p=ground(x,y);if(blockedVillage(p.x,p.y))return false;my.x=p.x;my.y=p.y;return true}}};
  window.NS109_SPARTA={appearance:decorate,owned:spartaOwned,equipped:spartaEquipped,claim:spartaClaim};
  // Real engine preview: preserve the current selected character and input.
  if(new URLSearchParams(location.search).get('village-test')==='1'){
   const launch=()=>{
    const ok=showVillage();
-   window.__VILLAGE_PREVIEW_STATUS={open:ok,buildings:buildings.length,sheep:NPCS.length,authenticHero:typeof drawVillageHero==='function'};
+   window.__VILLAGE_PREVIEW_STATUS={open:ok,buildings:buildings.length,sheep:NPCS.filter(a=>a.kind==='sheep').length,pigs:NPCS.filter(a=>a.kind==='pig').length,authenticHero:typeof drawVillageHero==='function'};
    if(ok&&!$('return')){
     const link=document.createElement('a');link.id='return';link.href='./';link.textContent=tr('← FULL GAME','← IGRA');
     link.style.cssText='position:absolute;z-index:3;right:9px;bottom:calc(78px + env(safe-area-inset-bottom));padding:8px;border-radius:9px;background:#123832;border:1px solid #9fc3ad;color:#f6e4b8;text-decoration:none;font:bold 11px system-ui';
