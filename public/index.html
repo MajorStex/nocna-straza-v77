@@ -3139,7 +3139,8 @@ function spawnRotfiend(){
    never an endless random spawn. No extra network heartbeat. */
 function ns135SpawnWolfPack(){
  if(G.mode!=='play'||G.caveMode||NET.role==='guest'||G.wave!==40||G.ns135WolfSpawned)return false;
- if(G.mobs.filter(m=>!m.dead).length>79)return false;
+ // Normal wave cap is 82; reserve up to four extra actors for the scripted pack.
+ if(G.mobs.filter(m=>!m.dead).length>83)return false;
  const target=nextSpawnTarget();if(!target)return false;
  const radius=34*configs.werewolfAlpha.size;let alpha=null;
  for(let i=0;i<72;i++){
@@ -3723,7 +3724,7 @@ window.__NS92_CHALLENGES=NS92_CHALLENGES;
 
 
 function killMob(m,killer=null){if(m.dead)return;if(BOSS_TYPES.has(m.type))m.bossCast=null;sfx(BOSS_TYPES.has(m.type)?'boss':'kill');if(G.kills>0&&G.kills%35===0)coopVoiceCueOrLocal(killer,'kill');m.dead=true;m.deathT=.39;G.kills++;NSX.onKill(m,killer);NS91.onKill(m);NS92_CHALLENGES.onKill(m);NSX.onCaveSpecialKill(m,killer);if(killer)killer.runKills=(killer.runKills||0)+1;if(killer){const w=killer.weapon||'sword';G.weaponKills[w]=(G.weaponKills[w]||0)+1}if(G.kills%18===0)addKeyDrop(m.x,m.y);for(let j=0;j<((m.type==='boss'||m.type==='werewolfAlpha')?14:m.type==='troll'?4:m.type==='brute'?4:2);j++){addDrop(m.x+(rnd()-.5)*24,m.y+(rnd()-.5)*24,(m.type==='boss'||m.type==='werewolfAlpha')?20:8)}for(let i=0;i<7;i++)effect('puff',m.x+(rnd()-.5)*20,m.y+(rnd()-.5)*20);if((G.runType==='default'||NET.role==='host')&&rnd()<(G.specialMode==='night'?.07:.023+(G.relicDropBonus||0)))addShardDrop(m.x,m.y);if(m.type==='troll'&&m.nsTempleKeeper)NS105_TEMPLE.dropKey(m);if(m.type==='troll'&&!G.caveMode){if(rnd()<.11)spawnWorldWeapon(m.x,m.y,TROLL_WEAPON_POOL[Math.floor(rnd()*TROLL_WEAPON_POOL.length)]);}
- else if(G.wave>=3&&m.type!=='boss'&&!G.caveMode&&(m.type==='elephant'?rnd()<.24:rnd()<.014))spawnWorldWeapon(m.x,m.y);if(killer?.perks.leech){killer.perkKills=(killer.perkKills||0)+1;if(killer.perkKills%7===0)killer.hp=Math.min(killer.maxHp,killer.hp+3)}if(G.relicChoice==='putnik'&&killer&&G.kills%20===0){killer.hp=Math.min(killer.maxHp,killer.hp+10);effect('buff',killer.x,killer.y)}if(m.type==='rotfiend'){G.bossKills=(G.bossKills||0)+1;sfx('rotfiend');addDrop(m.x,m.y,15);if(rnd()<.8)addKeyDrop(m.x+12,m.y-8);voiceLine('boss')}if(m.type==='boss'||m.type==='werewolfAlpha'){G.bossKills=(G.bossKills||0)+1;G.bossId=0;addKeyDrop(m.x,m.y);spawnWorldWeapon(m.x+18,m.y+10);announce(m.type==='werewolfAlpha'?'🐺 ALFA SAVLADAN · KLJUČ + XP':'BOSS POBEĐEN · KLJUČ + XP',3);sfx('level');voiceLine('victory')}}
+ else if(G.wave>=3&&m.type!=='boss'&&m.type!=='werewolfAlpha'&&!G.caveMode&&(m.type==='elephant'?rnd()<.24:rnd()<.014))spawnWorldWeapon(m.x,m.y);if(killer?.perks.leech){killer.perkKills=(killer.perkKills||0)+1;if(killer.perkKills%7===0)killer.hp=Math.min(killer.maxHp,killer.hp+3)}if(G.relicChoice==='putnik'&&killer&&G.kills%20===0){killer.hp=Math.min(killer.maxHp,killer.hp+10);effect('buff',killer.x,killer.y)}if(m.type==='rotfiend'){G.bossKills=(G.bossKills||0)+1;sfx('rotfiend');addDrop(m.x,m.y,15);if(rnd()<.8)addKeyDrop(m.x+12,m.y-8);voiceLine('boss')}if(m.type==='boss'||m.type==='werewolfAlpha'){G.bossKills=(G.bossKills||0)+1;G.bossId=0;addKeyDrop(m.x,m.y);spawnWorldWeapon(m.x+18,m.y+10);announce(m.type==='werewolfAlpha'?'🐺 ALFA SAVLADAN · KLJUČ + XP':'BOSS POBEĐEN · KLJUČ + XP',3);sfx('level');voiceLine('victory')}}
 /* V105 THE SILENT TOMB — original hand-drawn sci-fi crypt, not copyrighted game assets.
    This is a solo expedition until the independent team-transition protocol is built. */
 const NS105_TEMPLE=(()=>{
