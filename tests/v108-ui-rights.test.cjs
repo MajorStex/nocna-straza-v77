@@ -17,7 +17,23 @@ assert.match(html,/bytes>18000/);
    const check=await page.evaluate(async()=>{
     const $=id=>document.getElementById(id);
     const area=(a,b)=>{const x=a.getBoundingClientRect(),y=b.getBoundingClientRect();return Math.max(0,Math.min(x.right,y.right)-Math.max(x.left,y.left))*Math.max(0,Math.min(x.bottom,y.bottom)-Math.max(x.top,y.top))};
-    for(const id of ['ns99PauseOpen','nsNetLabDock','mapDock'])$(id).classList.remove('hidden');
+    for(const id of ['ns99PauseOpen','nsNetLabDock','mapDock','nsExtractionBtn','nsExploreBeacon','nsCaveGuide'])$(id).classList.remove('hidden');
+    $('nsExploreBeacon').textContent='✦ ↓ 36m';
+    $('nsCaveGuide').textContent='CAVE EXIT • ROPE NEEDED';
+    $('nsExtractionBtn').textContent='➡ EXIT';
+    const hudElements=['ns84BackButton','mapDock','nsExtractionBtn','ns99PauseOpen','nsNetLabDock'];
+    const rightOverlaps=[];
+    for(let i=0;i<hudElements.length;i++)for(let j=i+1;j<hudElements.length;j++){
+      const first=$(hudElements[i]),second=$(hudElements[j]);
+      if(getComputedStyle(first).display==='none'||getComputedStyle(second).display==='none')continue;
+      rightOverlaps.push({pair:hudElements[i]+'/'+hudElements[j],area:area(first,second)});
+    }
+    const mapChildren=['mapToggle','nsExploreBeacon','nsCaveGuide'];
+    for(let i=0;i<mapChildren.length;i++)for(let j=i+1;j<mapChildren.length;j++){
+      rightOverlaps.push({pair:mapChildren[i]+'/'+mapChildren[j],area:area($(mapChildren[i]),$(mapChildren[j]))});
+    }
+    const rightLayout=getComputedStyle($('ns134RightHud')).display;
+    const backVisible=getComputedStyle($('ns84BackButton')).display!=='none';
     const overlap={mapPause:area($('mapDock'),$('ns99PauseOpen')),mapNetwork:area($('mapDock'),$('nsNetLabDock')),pauseNetwork:area($('ns99PauseOpen'),$('nsNetLabDock'))};
     $('chestPanel').classList.remove('hidden');$('quickChoicePanel').classList.remove('hidden');
     await new Promise(ok=>setTimeout(ok,40));
@@ -34,9 +50,12 @@ assert.match(html,/bytes>18000/);
     const waitOnTop=+getComputedStyle($('ns107WaitOverlay')).zIndex>+getComputedStyle($('ns99PausePanel')).zIndex;
     const backHidden=getComputedStyle($('ns84BackButton')).visibility==='hidden';
     window.__NS99_TEAM.finishShop('p2','guild');
-    return {overlap,active,blocked,hudHidden,restored,began,waitVisible,waitOnTop,backHidden};
+    return {overlap,rightOverlaps,rightLayout,backVisible,active,blocked,hudHidden,restored,began,waitVisible,waitOnTop,backHidden};
    });
    for(const [k,v] of Object.entries(check.overlap))assert.equal(v,0,width+'x'+height+' '+k+' overlaps');
+   assert.equal(check.rightLayout,'flex',width+'x'+height+': responsive right HUD must stack vertically');
+   assert.equal(check.backVisible,true,width+'x'+height+': gameplay back stays visible');
+   for(const {pair,area} of check.rightOverlaps)assert.equal(area,0,width+'x'+height+': right HUD collision '+pair);
    assert.equal(check.active,'quickChoicePanel');assert.equal(check.blocked,true);assert.equal(check.hudHidden,true);
    assert.equal(check.restored,true);assert.equal(check.began,true);assert.equal(check.waitVisible,true);
    assert.equal(check.waitOnTop,true);assert.equal(check.backHidden,true);
