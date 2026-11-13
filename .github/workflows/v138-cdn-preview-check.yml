@@ -39,3 +39,37 @@ jobs:
           print('VALID_V138_PREVIEW_URLS',good,flush=True)
           if not good: raise SystemExit('No confirmed browser-served preview URL')
           PY
+      - name: Mobile Chromium loads the full game and expanded Village from CDN
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock playwright-core@1.58.2
+          node <<'JS'
+          const {chromium}=require('playwright-core');
+          (async()=>{
+           const sha='e9eb8165f9b6a9363f66b0501f5300bf02d1f025';
+           const url='https://rawcdn.githack.com/MajorStex/nocna-straza-v77/'+sha+'/public/index.html';
+           const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',
+             args:['--no-sandbox','--disable-dev-shm-usage']});
+           try{
+            for (const width of [360,412]){
+             const page=await browser.newPage({viewport:{width,height:844},isMobile:true,hasTouch:true});
+             const errors=[];
+             page.on('pageerror',e=>errors.push(e.message));
+             const res=await page.goto(url+'?village-test=1&lang=sr',{waitUntil:'domcontentloaded',timeout:28000});
+             await page.waitForFunction(()=>window.__VILLAGE_PREVIEW_STATUS?.open===true,{timeout:22000});
+             const state=await page.evaluate(()=>({
+               version:document.querySelector('#ns129VersionBadge')?.textContent,
+               world:window.NS109_VILLAGE.test.world,
+               buildings:window.NS109_VILLAGE.test.buildings.length,
+               animals:window.NS109_VILLAGE.test.animals.length,
+               villageVisible:!document.querySelector('#ns109Village')?.classList.contains('ns109Hidden')
+             }));
+             console.log('LIVE_CDN_V138_BROWSER',width,'status',res.status(),JSON.stringify(state),'errors',JSON.stringify(errors));
+             if(res.status()!==200||state.version!=='v138'||state.world.width!==1660||
+                state.buildings!==9||state.animals!==12||!state.villageVisible||
+                errors.some(e=>/SyntaxError|TypeError|ReferenceError|RangeError/.test(e)))throw Error('Live V138 browser smoke failed');
+             await page.close();
+            }
+           } finally { await browser.close() }
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
