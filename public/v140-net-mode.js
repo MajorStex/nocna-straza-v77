@@ -6,7 +6,7 @@ const B=()=>window.__NS110_BRIDGE||{},clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
  players:new Map(),me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
- correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null},attack:false,timeout:null};
+ correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null},attack:false,timeout:null,ticket:'',retry:0};
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -43,7 +43,7 @@ function stop(notify=false){
  if(notify&&N.id==='p1'&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'end'}))}catch{}
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
- N.phase='idle';N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.attack=false;
+ N.phase='idle';N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.attack=false;
  if(el('ns140Root'))el('ns140Root').hidden=true;
  if(B().NET?.phase==='lobby')try{B().renderLobby?.()}catch{}
  return true;
@@ -86,7 +86,7 @@ function snapshot(m){
 function connect(match,id,ticket){
  if(N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<7){status('V140 zahteva OPŠTI NIVO 7');return false}
- N.match=match;N.id=id;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];N.players.clear();N.me=null;
+ N.match=match;N.id=id;N.ticket=ticket;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];N.players.clear();N.me=null;
  N.phase='connecting';status('V140 · POVEZIVANJE NA NOVI SERVER...');
  let ws;
  try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
@@ -99,12 +99,24 @@ function connect(match,id,ticket){
   if(m.t==='welcome'){if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');return}
    N.world=m.world||N.world;status('V140 · POVEZAN · ČEKAM IGRAČE');return}
   if(m.t==='roster'){status('V140 · NOVI SERVER: '+m.ready.length+'/'+m.total+' IGRAČA');return}
-  if(m.t==='start'){N.phase='running';if(N.timeout)clearTimeout(N.timeout);N.timeout=null;N.lastFrame=0;status('V140 · IGRIVO · SERVER AUTORITET · 0 XP');return}
+  if(m.t==='start'){N.phase='running';N.retry=0;if(N.timeout)clearTimeout(N.timeout);N.timeout=null;N.lastFrame=0;status('V140 · IGRIVO · SERVER AUTORITET · 0 XP');return}
   if(m.t==='s'){snapshot(m);return}
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
   if(m.t==='end'){status('TEST ZAVRŠEN: '+String(m.reason||'kraj'));setTimeout(()=>{if(N.ws===ws)stop()},1200)}
  };
- ws.onclose=()=>{if(N.ws===ws&&N.phase!=='idle'){N.phase='error';status('NOVI SERVER JE PREKINUO VEZU · VRATI SE U LOBBY')}};
+ ws.onclose=()=>{
+  if(N.ws!==ws||N.phase==='idle')return;
+  if(N.timeout){clearTimeout(N.timeout);N.timeout=null}
+  if(N.phase==='running'&&N.retry<3){
+   N.retry++;
+   const retry=N.retry,match=N.match,id=N.id,ticket=N.ticket;
+   N.phase='reconnecting';status('V140 · PONOVNO POVEZIVANJE '+retry+'/3');
+   setTimeout(()=>{
+    if(N.ws!==ws||N.phase!=='reconnecting')return;
+    N.ws=null;N.phase='idle';connect(match,id,ticket);
+   },Math.min(3500,retry*1100));
+  }else{N.phase='error';status('NOVI SERVER JE PREKINUO VEZU · VRATI SE U LOBBY')}
+ };
  ws.onerror=()=>{if(N.ws===ws)status('V140 SERVER JOŠ NIJE OBJAVLJEN ILI JE NEDOSTUPAN')};
  return true;
 }
