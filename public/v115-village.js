@@ -195,6 +195,7 @@
     y:clamp(Number(p.y)||0,62,VILLAGE_H-35),respawnAt:Math.max(0,Number(p.respawnAt)||0),
     invulnerableUntil:Math.max(0,Number(p.invulnerableUntil)||0)};
    PVP.set(p.id,next);
+   if(next.hp<prev.hp){const hit=villageHeroPos(p.id);if(hit)hitFX.push({x:hit.x,y:hit.y-30,until:Date.now()+280})}
    // The host alone orders respawn; it does not use a client-supplied teleport.
    if(p.id===NET.localId&&NET.role==='guest'&&next.seq>localRespawnSeq){
     localRespawnSeq=next.seq;my.x=next.x;my.y=next.y;
@@ -279,6 +280,8 @@
  }
  function villageTryStrike(){
   if(!opened||!canVisit()||!pane.classList.contains('ns109Hidden'))return false;
+  const now=Date.now();if(now-lastSoloHit<600)return false;
+  lastSoloHit=now;
   if(isLobby()&&NET.role==='guest'){
    if(!NET.conn?.open)return false;
    try{NET.conn.send({t:'ns138Strike'});return true}catch{return false}
@@ -686,14 +689,18 @@
  function avatar(id,x,y,name,ready,sparta,animation={}){
   if(typeof drawVillageHero==='function'){
    const look=typeof getVillageHeroLook==='function'?getVillageHeroLook(id):heroStyle;
+   const ko=PVP.get(id)?.opted&&PVP.get(id)?.hp<=0;
+   g.save();if(ko)g.globalAlpha*=.38;
    drawVillageHero(g,x,y,{id,look,frame:animation.frame||0,walking:!!animation.walking,visualSide:animation.side||1});
+   g.restore();
+   if(ko){g.save();g.textAlign='center';g.font='18px sans-serif';g.fillText('💀',x,y-103);g.restore()}
    g.save();g.textAlign='center';g.font='bold 12px system-ui';g.lineWidth=3;g.strokeStyle='#0b191d';
    g.strokeText(name,x,y-74);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,x,y-74);
    if(ready){g.font='bold 14px system-ui';g.fillStyle='#c2ffc5';g.fillText('✓',x+27,y-60)}
    const emote=emotes.get(id);if(emote&&Date.now()<emote.until){g.font='22px system-ui';g.fillText(emote.text,x+30,y-75)}
    drawVillagePvpHp(id,x,y);g.restore();return;
   }
-  g.save();g.translate(x,y);g.textAlign='center';g.font='bold 12px system-ui';g.strokeStyle='#0b191d';g.lineWidth=3;g.strokeText(name,0,-36);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,0,-36);
+  g.save();if(PVP.get(id)?.opted&&PVP.get(id)?.hp<=0)g.globalAlpha*=.38;g.translate(x,y);g.textAlign='center';g.font='bold 12px system-ui';g.strokeStyle='#0b191d';g.lineWidth=3;g.strokeText(name,0,-36);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,0,-36);
   g.fillStyle='#061a21a1';g.beginPath();g.ellipse(0,15,15,5,0,0,7);g.fill();
   g.fillStyle=sparta?'#d8ac4f':id===NET.localId?'#8abfba':'#9ba8cc';g.fillRect(-11,-18,22,29);
   g.fillStyle='#e3b58e';g.beginPath();g.arc(0,-24,9,0,7);g.fill();
@@ -868,7 +875,7 @@
   if(walking){stepFrame+=dt*8;if(my.x<oldX-.1)side=-1;if(my.x>oldX+.1)side=1}
   updateDoorInteraction(magnitude>.05&&walking);
   $('ns117Dodge').disabled=knockedOut||time<dodgeReady;
-  $('ns138Attack').disabled=knockedOut;
+  $('ns138Attack').disabled=knockedOut||Date.now()-lastSoloHit<600;
   if(NET.phase==='lobby'&&NET.role==='guest'&&NET.conn?.open&&time-lastSent>110){
    lastSent=time;try{NET.conn.send({t:'ns109Move',x:Math.round(my.x),y:Math.round(my.y)})}catch{}
   }
