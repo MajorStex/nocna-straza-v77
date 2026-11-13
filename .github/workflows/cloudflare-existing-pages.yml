@@ -8,6 +8,7 @@ on:
       - 'tests/v128-multiplayer-performance.test.cjs'
       - 'tests/v129-version-watermark.test.cjs'
       - 'tests/v135-werewolves.test.cjs'
+      - 'tests/v137-wolf-appearance-audio.test.cjs'
       - '.github/workflows/cloudflare-existing-pages.yml'
   workflow_dispatch:
 permissions:
@@ -35,6 +36,8 @@ jobs:
         run: node tests/v129-version-watermark.test.cjs
       - name: Wave 40 werewolf boss, pack, claw and no-damage slow QA
         run: node tests/v135-werewolves.test.cjs
+      - name: V137 public-domain wolf howl and reversible appearance QA
+        run: node tests/v137-wolf-appearance-audio.test.cjs
       - name: Save backup release package
         run: |
           cd public
