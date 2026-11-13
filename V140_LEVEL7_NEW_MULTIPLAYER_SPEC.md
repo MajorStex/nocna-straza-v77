@@ -31,6 +31,27 @@ Status: architecture proposal only; **not yet selectable or live**. Created on a
 - Separate render budget, reusable arrays/object pools, no DOM HUD rebuild per frame, distance culling and bounded particles.
 - New mode test has NO permanent XP/coins/achievement awards until server architecture is verified and the user explicitly approves progression rules. No purchases.
 
+## Agreed architecture: keep the old lobby, switch networks ONLY when new mode starts
+- **Yes: use existing Create Game / Join Game / invite friends / Ready controls unchanged** until mode V140 is launched. Everyone initially joins through `/room/<code>` using the old relay; matchmaking stays compatible.
+- `startLobbyMatch()` currently does `NET.phase='playing'`, `startGame(...)` and broadcasts `{t:'start'}`. For V140, **intercept at the start of `startLobbyMatch()`** *before* `NET.phase='playing'` or `startGame()`. Do not instantiate the old G simulation for V140.
+- Host presses Start -> sends one `arenaPrepare` request to new authoritative Durable Object `/arena/<new_match_id>` (server creates a short-lived room; the host is just player P1). Server returns unique match ID and cryptographically unpredictable, expiring **per-seat** tickets. Validate intended roster/seat IDs. Never trust the room code alone to authorize an arena seat.
+- Host sends `arenaOffer` (version, new match id, per-recipient single-use ticket, seat id, expected server protocol) to each guest over the **existing lobby control connection**; never leak the whole ticket map to all players. Old lobby stays active **for control only**, not for simulation.
+- Every browser opens a **second, isolated** `wss://…/arena/<match_id>` connection itself; clients handshake `arenaHello(ticket, build, seat)`, server validates one-time ticket and marks member `connected`. Server replies `arenaWelcome` with authoritative initial state + server tick.
+- Keep old lobby connected until all expected seats have `arenaReady`, or until a bounded timeout. On failure return everyone to the existing lobby with a clear retry indicator (NO automatic downgrade to legacy combat). If 1 of 4 is disconnected or old client version, do not silently run a 3-person different match. Allow host to cancel or explicitly retry.
+- Once all seats are ready, the new server emits `arenaStartAt(tick)`; only then switch render/input from old lobby to V140 simulation. Both host and guests route controls to the new WebSocket; **old `NET.remoteInputs` / `sendSnapshot` / `ns132SendMotion` / `NS95_CAGE` are never used for the arena**.
+- During V140 play, old lobby connection is kept low-rate/idle strictly for social/room restoration, or shut down after migration if measurements show it causes congestion (in that case rebuild the lobby when the arena ends). Never stream two separate game-state pipelines.
+- When the match ends, everyone receives `arenaGameOver`, V140 sockets close and clients return to the same social lobby. Restore same players/Ready if possible; if old room expired, show a one-tap rejoin by retained code instead of pretending restoration succeeded.
+- Duplicate `arenaOffer` / repeated Start / reconnections are idempotent per `match_id`. A stale callback must not turn on the old game. Guest version mismatch -> explicit error, no silent fallback. Host disconnect must **not** terminate server simulation while guests remain (server is authority). Handle room empty TTL.
+- Keep a **separate** code path for V140, feature flag, protocol version and safety switch. No changes to existing Classic/Night Flame/Siege network code beyond the small conditional `startLobbyMatch()` intercept and V140 lobby selector.
+- Multiplayer quality cannot be guaranteed perfect on every network. Require controlled tests with throttling plus two real Android devices before declaring playable.
+
+## Concrete old code integration points (verified)
+- `public/index.html`: `renderPreRun()` defines modes (classic level 1, night level 3, rush level 8, future disabled); new V140 mode belongs between night and rush with unlock at account/general level 7 if user confirms.
+- `startLobbyMatch()` is the host initiation point. It currently changes `NET.phase`, calls `startGame`, and sends `t:'start'`; the intercept **must be before this** for V140.
+- Guest receives `t:'start'` inside `setupConnection().on('data')`, where it calls `startGame()`; V140 uses a separate `t:'arenaOffer'` and must never call this legacy branch.
+- Existing lobby WebSocket is `wss://nocna-straza-relay.stefanstevic1996.workers.dev/room/<code>` and can remain as just a low-rate control channel; separate V140 URL `/arena/<match_id>` must only become available once new backend has been deployed.
+- `MajorStex/nocna-straza-relay` currently only exposes `/room/`; add a new Durable Object class + binding and new route in a separate release, preserving the legacy GameRoom schema.
+
 ## Staged QA / release gates
 1. Pure movement sandbox on two clients: walking, sprint/dodge, turn rapidly and collide with walls; show **real-time** FPS, ping, snapshot Hz, byte rates, correction pixels, server tick cost and connection queue.
 2. Mobile browser E2E at 360/412 px, one test server + 2 clients; simulators add 100/250/400ms RTT, 20–100ms jitter, temporary 0.5–2s pauses and 5% application-level drops; actual WebSocket TCP is reliable.
