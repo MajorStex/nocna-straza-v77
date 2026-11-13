@@ -3,7 +3,7 @@
      No commercial copying or redistribution without the rights holder's permission.
      Browser JavaScript can be inspected; true paid entitlements require independent server validation. -->
 
-<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><meta name="copyright" content="© 2026 Noćna Straža · All rights reserved"><meta name="author" content="Noćna Straža / Night Watch"><meta property="og:site_name" content="Noćna Straža — zvanična igra"><meta property="og:url" content="https://nocna-straza-igra.pages.dev/"><link rel="canonical" href="https://nocna-straza-igra.pages.dev/"><title>Night Watch v134 — Noćna Straža</title><style>
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" name="viewport"/><meta content="#0d141b" name="theme-color"/><meta content="yes" name="mobile-web-app-capable"/><meta name="copyright" content="© 2026 Noćna Straža · All rights reserved"><meta name="author" content="Noćna Straža / Night Watch"><meta property="og:site_name" content="Noćna Straža — zvanična igra"><meta property="og:url" content="https://nocna-straza-igra.pages.dev/"><link rel="canonical" href="https://nocna-straza-igra.pages.dev/"><title>Night Watch v135 — Noćna Straža</title><style>
 :root{--bg:#0e171d;--surface:#17232a;--card:#1d2c33;--line:#52605888;--sage:#a7d3ae;--gold:#e9c17d;--ink:#f1eddf;--muted:#aab7b8;--red:#bf5550}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;touch-action:none}button,input,textarea,select{font:inherit}button{cursor:pointer;color:var(--ink);background:#26363c;border:1px solid #60706d71;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:800;letter-spacing:.035em}button:active{transform:scale(.98)}button:hover{border-color:#c1c9a0}button.primary{background:linear-gradient(135deg,#d2a665,#f0cf91);color:#202c29;border:0;box-shadow:0 5px 24px #0006}button:disabled{opacity:.5}input,select,textarea{color:#eee9df;background:#101b22;border:1px solid #536660;border-radius:9px;padding:9px;min-width:0}input[type=color]{height:38px;padding:3px;width:58px}input[type=range]{padding:0;accent-color:var(--gold);flex:1}input[type=checkbox]{accent-color:var(--gold);width:19px;height:19px}#app,#gameCanvas{width:100%;height:100%;position:absolute;inset:0}#gameCanvas{display:block;touch-action:none;background:#28332f}.veil{pointer-events:none;position:absolute;inset:0;background:linear-gradient(90deg,#0a1014a8,transparent 75%);opacity:.45}.hidden{display:none!important}.kicker{color:var(--gold);font-size:10px;font-weight:900;letter-spacing:.18em}.panel{position:absolute;z-index:5}.home{top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 34px));background:linear-gradient(160deg,#18272bed,#0d161ce9);border:1px solid #80918c59;border-radius:23px;padding:27px 29px 22px;text-align:center;box-shadow:0 30px 100px #000a;backdrop-filter:blur(12px)}.logoGlyph{font-size:39px;color:var(--gold);margin:10px 0 0}.home h1{font-family:Georgia,'Times New Roman',serif;line-height:.9;letter-spacing:.07em;font-size:clamp(42px,9vw,63px);margin:8px auto 16px;text-shadow:0 5px 20px #0009}.home h1 em{font-style:normal;color:var(--gold)}.tagline{color:#bac5be;font-size:14px;line-height:1.55;max-width:320px;margin:0 auto 19px}.homeButtons{display:grid;gap:9px}.homeButtons button{min-height:47px}.smallMuted{color:#8ba09b;font-size:11px;margin:17px auto 0}.hud{position:absolute;z-index:3;top:0;left:0;right:0;padding:max(12px,env(safe-area-inset-top)) 14px 8px;pointer-events:none;background:linear-gradient(#0b1118d6,#0b111800)}.hudTop{display:flex;align-items:start;gap:10px}.stats{width:54%;max-width:300px;display:grid;gap:6px}.bar{position:relative;overflow:hidden;background:#142024c9;border:2px solid #8c958259;border-radius:5px;height:21px;box-shadow:0 2px 10px #0005}.bar>div{position:absolute;inset:0 auto 0 0;width:100%;transition:width .16s linear}.bar span{position:absolute;inset:0;display:grid;place-items:center;font-size:10px;font-weight:900;text-shadow:1px 1px 2px #000}.hpbar>div{background:linear-gradient(90deg,#922e35,#d06b59)}.xpbar>div{background:linear-gradient(90deg,#378ba0,#9bd5cd)}.miniStats{margin:auto;display:grid;gap:3px;text-align:right;font-size:12px;color:#e5d2a8;font-weight:900}.iconBtn{pointer-events:auto;padding:8px 12px;font-size:19px;background:#202c34df}.bossHud{margin:15px auto 0;width:min(480px,92%)}.bossHead{display:flex;justify-content:space-between;font-family:Georgia,serif;font-size:12px;color:#f0b6a4;font-weight:bold;text-shadow:0 2px 3px #000}.bossbar{height:15px;margin-top:4px;border-color:#853f40}.bossbar>div{background:linear-gradient(90deg,#8a1e39,#f07564)}.notice{text-align:center;font-family:Georgia,serif;letter-spacing:.1em;color:var(--gold);font-weight:bold;margin-top:12px;text-shadow:1px 2px 3px #000}.controls{position:absolute;bottom:max(19px,env(safe-area-inset-bottom));left:0;right:0;height:130px;z-index:3;pointer-events:none}.joyBase{position:absolute;bottom:0;left:24px;width:120px;height:120px;border-radius:50%;border:2px solid #b2b4a64d;background:#13232c65;pointer-events:auto;touch-action:none;box-shadow:inset 0 0 26px #0006}.joyBase:before{content:'✣';position:absolute;inset:0;display:grid;place-items:center;font-size:44px;color:#9fc7b340}.joyKnob{position:absolute;width:56px;height:56px;left:30px;top:30px;border-radius:50%;background:radial-gradient(circle at 32% 25%,#829d93,#46645f);border:2px solid #a0bbb1a3;box-shadow:0 4px 14px #000a;transform:translate(0,0)}.actionArea{position:absolute;bottom:0;right:23px;display:flex;align-items:end;gap:12px;pointer-events:auto}.attackBtn,.dashBtn{display:grid;place-items:center;align-content:center;gap:1px;touch-action:none;border-radius:50%;box-shadow:0 3px 18px #0009}.attackBtn{width:91px;height:91px;background:radial-gradient(circle at 35% 25%,#e3b478,#975b44);border:2px solid #e7d2a3;color:#141b20;font-size:31px}.dashBtn{height:64px;width:64px;background:#283f46c9;border-color:#8baeb1;font-size:26px}.actionArea small{font-size:8px;letter-spacing:.06em}.modal{position:absolute;inset:0;z-index:10;background:#061117cb;display:grid;place-items:center;padding:14px;backdrop-filter:blur(7px)}.modalBox{width:min(420px,100%);max-height:calc(100vh - 30px);overflow-y:auto;background:linear-gradient(145deg,#1a2b31,#101d25);border:1px solid #7b8a825c;border-radius:19px;padding:24px;box-shadow:0 20px 80px #000c;text-align:center;display:grid;gap:12px}.modalBox h2{font-family:Georgia,serif;font-size:29px;margin:0}.modalBox p{font-size:14px;line-height:1.45;color:#b6c6c1;margin:0}.settingRow{display:flex;align-items:center;justify-content:space-between;text-align:left;font-size:13px;gap:10px}.upgradeCards{display:grid;gap:8px}.upgradeCards button{display:grid;gap:5px;text-align:left}.upgradeCards button span{font-weight:400;font-size:11px;color:#a9b7b4}.roomCode{padding:14px;border:1px dashed var(--gold);font-size:30px;font-weight:900;letter-spacing:.23em;color:var(--gold);user-select:all}.separator{color:#8ba09b;text-transform:uppercase;font-size:12px}.joinRow{display:flex;gap:6px}.joinRow input{width:100%;text-transform:uppercase;letter-spacing:.12em}.netStatus{font-size:12px;color:#a9c2b9;line-height:1.45;text-align:left;background:#122028;padding:10px;border-radius:8px}.toast{pointer-events:none;position:absolute;z-index:30;left:50%;bottom:145px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 30px);padding:11px 17px;border-radius:12px;border:1px solid #a0b19b5e;background:#15272cef;font-weight:700;font-size:12px;box-shadow:0 10px 30px #0009}.editor{position:absolute;z-index:7;right:0;top:0;bottom:0;width:min(375px,100%);display:flex;flex-direction:column;background:#111e25f5;border-left:1px solid #7c8b7e66;box-shadow:-14px 0 44px #0008}.editorHeader{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 15px 12px}.editorHeader strong{font-family:Georgia,serif;font-size:20px}.subtleBtn{padding:8px 10px;font-size:11px}.tabs{display:flex;gap:4px;padding:0 13px 12px;border-bottom:1px solid #82948730}.tabs button{flex:1;padding:10px 4px;font-size:11px;background:transparent}.tabs button.active,.toolGrid button.active{color:var(--gold);border-color:var(--gold);background:#3b3d2f9c}.editBody{padding:14px;overflow:auto;flex:1}.editHelp{margin:0 0 13px;line-height:1.5;color:#b4c5bf;font-size:12px}.toolGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.toolActions{display:flex;gap:7px;margin-top:10px}.toolActions button{flex:1;font-size:10px;padding:11px 7px}.editTab label{margin:10px 0;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:12px;color:#cad4c8}.editTab label input[type=number],.editTab label select{width:46%}.previewLine{font-size:11px;color:#bbd0bc;line-height:1.7;border-top:1px solid #4e645360;padding-top:12px;margin-top:13px}.editTab textarea{width:100%;line-height:1.5;resize:vertical;touch-action:auto}.editTab .primary{width:100%;margin-top:8px}.cmdResult{font-size:12px;border:1px solid #4e6f5f;background:#1b3330;padding:11px;border-radius:8px;line-height:1.5;margin-top:11px}.examples{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}.examples div{width:100%;font-size:11px;color:#a2b5ae}.examples button{font-size:10px;padding:7px 9px}.editFooter{padding:12px;border-top:1px solid #82948733;display:grid;gap:7px}.editFooter .toolActions{margin:0}.editFooter>.primary{padding:13px}.editFooter>button:last-child{background:#4b2933;border-color:#86525b}.editor:not(.hidden)~.controls{display:none}.editor .editFooter button{font-size:12px}
 @media (max-width:760px){.editor{top:auto;bottom:0;left:0;right:0;width:100%;height:min(58vh,510px);border-left:0;border-top:1px solid #7c8b7e66;border-radius:18px 18px 0 0}.editorHeader{padding-top:12px}.home{padding:20px 23px}.home h1{font-size:48px}.homeButtons button{min-height:44px}.hud{padding-top:max(12px,env(safe-area-inset-top))}.joyBase{left:19px;bottom:8px;width:104px;height:104px}.joyKnob{left:23px;top:23px}.actionArea{right:17px;bottom:6px}.controls{height:117px}.editor .editBody{padding-top:10px}}
 @media (max-height:680px){.home{padding:12px 20px}.home h1{font-size:38px;margin:0 0 8px}.home .logoGlyph{display:none}.home .tagline{font-size:12px;margin-bottom:10px}.homeButtons button{min-height:38px;padding:8px}.smallMuted{display:none}.controls{transform:scale(.83);transform-origin:bottom center}}
@@ -977,7 +977,7 @@ body:has(#ns109Village:not(.ns109Hidden)) #ns129VersionBadge{display:block;botto
  <button type="button" id="ns99LeaveGame" style="display:block;width:100%;margin-top:9px">↩ LEAVE MATCH / NAPUSTI PARTIJU</button>
 </section>
 <button aria-label="Pauza i meni" class="cornerPause hidden" id="pauseBtn" title="Otvori pauzu / meni">☰<small>MENI</small></button>
-<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL</div><div id="ns102MenuVersion" class="ns102Version">NOĆNA STRAŽA · VERZIJA V134 · SREĐEN DESNI HUD</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
+<div aria-label="Otvori prijatelje" class="friendsCorner" id="friendsCorner" role="button" tabindex="0"><span class="friendDot" id="friendsDot"></span><span id="friendsCornerText">PRIJATELJI · POVEZUJEM...</span></div><section class="home panel" id="home"><button type="button" id="ns82-open" class="ns82-cloudbtn">☁ CLOUD ACCOUNT / NALOG</button><small id="ns82-status"></small><div class="gameLanguageRow"><label for="gameLanguageHome">🌐 <span>JEZIK / LANGUAGE</span></label><select aria-label="Language / Jezik" data-game-language="" id="gameLanguageHome"><option value="en">English</option><option value="sr">Srpski</option></select></div><div class="kicker">ORIGINALNI MOBILNI SURVIVAL</div><div id="ns102MenuVersion" class="ns102Version">NOĆNA STRAŽA · VERZIJA V135 · VUKODLACI NA TALASU 40</div><div class="logoGlyph">✦</div><h1>NOĆNA<br/><em>STRAŽA</em></h1><p class="tagline">Preživi horde. Ojačaj heroja. Pobedi čuvare svakog desetog nivoa.</p><button aria-label="Open My Profile / Otvori moj profil" class="profileHomeBadge ns74-profile-shortcut" id="profileHomeBadge" type="button">STRAŽAR · TRAJNI NIVO 1</button><div class="ns50Welcome hidden" id="ns50Welcome" aria-live="off"><span id="ns50WelcomeText"></span><button id="ns50WelcomeClose" type="button" aria-label="Dismiss hint">×</button></div>
  <div class="ns50MenuGroups" id="ns50MenuGroups">
   <details class="ns50MenuGroup" id="ns50MenuPlay" open><summary><span class="ns50GroupIcon">▶</span><span class="ns50GroupWords"><strong data-ns50-en="PLAY" data-ns50-sr="IGRAJ">PLAY</strong><small data-ns50-en="Solo, campaign, co-op" data-ns50-sr="Solo, kampanja, co-op">Solo, campaign, co-op</small></span><span class="ns50Chevron">⌄</span></summary><div class="ns50GroupBody">
    <button class="primary ns50MainPlay" id="startBtn">⚔ ZAPOČNI IGRU</button>
@@ -1246,7 +1246,7 @@ const WORLD={w:4200,h:4200}, TAU=Math.PI*2;
 const START={x:WORLD.w/2,y:WORLD.h/2}, VIEW_SCALE=.9;
 const COLORS={blue:'#77cbe9',plava:'#77cbe9',crvena:'#d47778',red:'#d47778',zelena:'#8dd5a4',green:'#8dd5a4',ljubicasta:'#bca0e9',ljubičasta:'#bca0e9',zuta:'#e8c575',žuta:'#e8c575',bela:'#ebe4d4',white:'#ebe4d4',crna:'#555967',black:'#555967',narandzasta:'#e9a572',narandžasta:'#e9a572'};
 const MARKET_TRADE={xp:55,hp:28};
-const DEFAULT={hero:{color:'#90d1b6',size:1,hp:120,speed:161,weapon:'sword',anim:'march'},crawler:{color:'#262c39',size:1,hp:48,speed:78,weapon:'claw',anim:'crawl'},skeleton:{color:'#8e303d',size:1,hp:67,speed:65,weapon:'claw',anim:'march'},goblin:{color:'#6ea84b',size:.94,hp:52,speed:96,weapon:'spear',anim:'scurry'},troll:{color:'#83ae91',size:1.04,hp:132,speed:69,weapon:'club',anim:'stomp'},brute:{color:'#636976',size:1.17,hp:155,speed:49,weapon:'claw',anim:'stomp'},worm:{color:'#638a67',size:1.05,hp:81,speed:42,weapon:'acid',anim:'slither'},elephant:{color:'#99546d',size:1.16,hp:240,speed:34,weapon:'spear',anim:'scurry'},rotfiend:{color:'#829b4a',size:1.28,hp:620,speed:31,weapon:'claw',anim:'stomp'},boss:{color:'#55516c',size:1.75,hp:450,speed:53,weapon:'claw',anim:'stomp'}};
+const DEFAULT={hero:{color:'#90d1b6',size:1,hp:120,speed:161,weapon:'sword',anim:'march'},crawler:{color:'#262c39',size:1,hp:48,speed:78,weapon:'claw',anim:'crawl'},skeleton:{color:'#8e303d',size:1,hp:67,speed:65,weapon:'claw',anim:'march'},goblin:{color:'#6ea84b',size:.94,hp:52,speed:96,weapon:'spear',anim:'scurry'},troll:{color:'#83ae91',size:1.04,hp:132,speed:69,weapon:'club',anim:'stomp'},brute:{color:'#636976',size:1.17,hp:155,speed:49,weapon:'claw',anim:'stomp'},worm:{color:'#638a67',size:1.05,hp:81,speed:42,weapon:'acid',anim:'slither'},elephant:{color:'#99546d',size:1.16,hp:240,speed:34,weapon:'spear',anim:'scurry'},rotfiend:{color:'#829b4a',size:1.28,hp:620,speed:31,weapon:'claw',anim:'stomp'},werewolf:{color:'#71867e',size:1.08,hp:130,speed:92,weapon:'claw',anim:'scurry'},werewolfAlpha:{color:'#82948a',size:1.94,hp:1120,speed:59,weapon:'claw',anim:'stomp'},boss:{color:'#55516c',size:1.75,hp:450,speed:53,weapon:'claw',anim:'stomp'}};
 let configs=JSON.parse(JSON.stringify(DEFAULT)), props=[], cfgSettings={autoAttack:true,vibrate:true,waveDuration:27,xpPace:'slow',sfx:true,voice:true,sfxVolume:.52,music:true,musicVolume:.18};
 const XP_BASE={normal:100,slow:160,verySlow:240};
 function xpRequirement(level,pace=cfgSettings.xpPace){let xp=XP_BASE[pace]||XP_BASE.slow;for(let i=1;i<level;i++)xp=Math.round(xp*1.12+18);return xp;}
@@ -1364,7 +1364,7 @@ const NETMIG=(()=>{
   roster={round:NET.round,leader:info.leader,peers,epoch:Number(info.epoch)||0,at:now()};if(playerID(info.hostId))NET.hostId=info.hostId;return true;
  }
  function makeBackup(meta){
-  const fields=['time','wave','waveClock','spawnClock','crystalSpawnClock','level','xp','xpNeed','kills','bossId','nextId','fxSeq','bossKills','chestsOpened','shopVisits','guildUnlocked','cornerGateOpened','specialMode','runType','relicTaken','relicChoice','relicDropBonus','relicEnemyHaste','relicXpTax','nightVictory','nightTowersDestroyed','spawnCursor','bossLastCastType','ns75BrokenIds','ns75KitsSpawned','ns75KitsThisWave'];
+  const fields=['time','wave','waveClock','spawnClock','crystalSpawnClock','level','xp','xpNeed','kills','bossId','nextId','fxSeq','bossKills','chestsOpened','shopVisits','guildUnlocked','cornerGateOpened','specialMode','runType','relicTaken','relicChoice','relicDropBonus','relicEnemyHaste','relicXpTax','nightVictory','nightTowersDestroyed','spawnCursor','bossLastCastType','ns135WolfSpawned','ns75BrokenIds','ns75KitsSpawned','ns75KitsThisWave'];
   const state={};for(const k of fields)state[k]=G[k];state.ns100RotfiendWaves=[...(G.ns100RotfiendWaves||new Set())];
   for(const k of ['players','mobs','drops','projectiles','blasts','blueCrystals','effects'])state[k]=G[k];
   // Props hold physical barriers, chests, towers, damage state and the opened gate.
@@ -1424,7 +1424,7 @@ const NETMIG=(()=>{
   NET.conn=null;NET.role='host';NET.hostId=id;NET.migrationEpoch=(Number(b.epoch)||0)+1;NET.snapshotSeq=(b.seq||0)+10;NET.lastSnapshot=0;
   NET.clients.clear();NET.pendingOffers.clear();NET.remoteInputs.clear();NET.startAcks.clear();NET.worldReadyPlayers.clear();NET.spectateTargets.clear();
   NETLAB.tokens.clear();for(const [pid,x] of Object.entries(b.tokens||{})){if(playerID(pid)&&pid!==id&&typeof x?.token==='string'&&/^[0-9a-f]{48}$/.test(x.token))NETLAB.tokens.set(pid,{token:x.token,round:NET.round,until:now()+30000});}
-  const preserved=['time','wave','waveClock','spawnClock','crystalSpawnClock','level','xp','xpNeed','kills','bossId','nextId','fxSeq','bossKills','chestsOpened','shopVisits','guildUnlocked','cornerGateOpened','specialMode','runType','relicTaken','relicChoice','relicDropBonus','relicEnemyHaste','relicXpTax','nightVictory','nightTowersDestroyed','spawnCursor','bossLastCastType','ns75BrokenIds','ns75KitsSpawned','ns75KitsThisWave'];
+  const preserved=['time','wave','waveClock','spawnClock','crystalSpawnClock','level','xp','xpNeed','kills','bossId','nextId','fxSeq','bossKills','chestsOpened','shopVisits','guildUnlocked','cornerGateOpened','specialMode','runType','relicTaken','relicChoice','relicDropBonus','relicEnemyHaste','relicXpTax','nightVictory','nightTowersDestroyed','spawnCursor','bossLastCastType','ns135WolfSpawned','ns75BrokenIds','ns75KitsSpawned','ns75KitsThisWave'];
   for(const k of preserved)if(s[k]!==undefined)G[k]=s[k];
   G.ns100RotfiendWaves=new Set(Array.isArray(s.ns100RotfiendWaves)?s.ns100RotfiendWaves.filter(w=>w===20||w===30):[]);
   G.ns100RotfiendRetryAt=G.time+3;
@@ -3037,7 +3037,8 @@ function addMob(type,x,y,levelOverride){
  // V127: independent final safeguard. Only the dedicated wave-20/30
  // event may create a Rotfiend, including calls outside normal spawnEnemy.
  if(type==='rotfiend'&&(![20,30].includes(G.wave)||G.mode!=='play'))return null;
- const c=configs[type],level=levelOverride||G.level;const mul=type==='boss'?1+Math.floor((level-1)/10)*.92:1+Math.min(3.4,(G.wave-1)*.06);let hp=Math.round(c.hp*mul),mob={id:G.nextId++,type,x,y,r:(type==='boss'?30:type==='rotfiend'?38:type==='elephant'?24:type==='troll'?21:type==='brute'?18:type==='goblin'?13:type==='worm'?18:15)*c.size,hp,maxHp:hp,damage:(type==='boss'?23:type==='rotfiend'?19:type==='elephant'?17:type==='troll'?15:type==='brute'?15:type==='goblin'?9:type==='worm'?10:8)*(1+Math.floor(G.wave/8)*.12),speed:c.speed*(1+Math.min(.6,G.wave*.015)),angle:0,frame:rnd()*6,attackT:0,attackCD:rnd()*.5,flash:0,deathT:0,dead:false,side:rnd()>.5?1:-1,stuck:0,approach:Math.floor(rnd()*5),phase:rnd()*TAU,routeOffset:70+rnd()*85,detourSide:0,detourProp:-1,detourTime:0,navRadius:type==='boss'?48:type==='rotfiend'?54:type==='elephant'?34:type==='troll'?26:type==='brute'?23:type==='worm'?19:15,nsTrollHitAt:0,nsTrollVictim:null,spitReady:G.time+3.2+rnd()*2.4,spitWindup:0,roarAt:G.time+2.5+rnd()*4,targetId:null,targetLockUntil:0,bossPhase:1,bossCast:null,bossNextCastAt:G.time+5.2+rnd()*1.4,bossPhaseSummons:0,bossEnraged:false,bossCastCount:0};if((G.relicEnemyHaste||1)!==1)mob.speed*=G.relicEnemyHaste;NSX.applyDifficulty(mob);G.mobs.push(mob);return mob}
+ if((type==='werewolfAlpha'||type==='werewolf')&&(G.wave<40||G.mode!=='play'))return null;
+ const c=configs[type],level=levelOverride||G.level;const mul=type==='werewolfAlpha'?1:type==='werewolf'?1+Math.min(1.25,G.wave*.025):type==='boss'?1+Math.floor((level-1)/10)*.92:1+Math.min(3.4,(G.wave-1)*.06);let hp=Math.round(c.hp*mul),mob={id:G.nextId++,type,x,y,r:(type==='werewolfAlpha'?34:type==='werewolf'?17:type==='boss'?30:type==='rotfiend'?38:type==='elephant'?24:type==='troll'?21:type==='brute'?18:type==='goblin'?13:type==='worm'?18:15)*c.size,hp,maxHp:hp,damage:(type==='werewolfAlpha'?19:type==='werewolf'?12:type==='boss'?23:type==='rotfiend'?19:type==='elephant'?17:type==='troll'?15:type==='brute'?15:type==='goblin'?9:type==='worm'?10:8)*(1+Math.floor(G.wave/8)*.12),speed:c.speed*(1+Math.min(.6,G.wave*.015)),angle:0,frame:rnd()*6,attackT:0,attackCD:rnd()*.5,flash:0,deathT:0,dead:false,side:rnd()>.5?1:-1,stuck:0,approach:Math.floor(rnd()*5),phase:rnd()*TAU,routeOffset:70+rnd()*85,detourSide:0,detourProp:-1,detourTime:0,navRadius:type==='werewolfAlpha'?50:type==='werewolf'?21:type==='boss'?48:type==='rotfiend'?54:type==='elephant'?34:type==='troll'?26:type==='brute'?23:type==='worm'?19:15,nsTrollHitAt:0,nsTrollVictim:null,spitReady:G.time+3.2+rnd()*2.4,spitWindup:0,roarAt:G.time+2.5+rnd()*4,targetId:null,targetLockUntil:0,bossPhase:1,bossCast:null,bossNextCastAt:G.time+5.2+rnd()*1.4,bossPhaseSummons:0,bossEnraged:false,bossCastCount:0,ns135NextHowl:G.time+5.8+rnd()*3.8,ns135HowlUntil:0,ns135RageUntil:0,ns135ClawAt:0,ns135ClawVictim:null};if((G.relicEnemyHaste||1)!==1)mob.speed*=G.relicEnemyHaste;NSX.applyDifficulty(mob);G.mobs.push(mob);return mob}
 function applyCombatClass(p,cls){
  const kind=['warrior','ranger','mage','support'].includes(cls)?cls:'warrior';p.nsCombatClass=kind;
  if(kind==='warrior'){p.maxHp+=22;p.hp+=22;p.armorBonus=(p.armorBonus||0)+1;}
@@ -3130,6 +3131,53 @@ function spawnRotfiend(){
   if(G.ns100RotfiendWaves.has(G.wave)||G.mobs.some(m=>m.type==='rotfiend'&&!m.dead))return null;
   const p=nextSpawnTarget();if(!p||!G.players.some(ns99ParticipantActive))return null;
   const r=38*configs.rotfiend.size;for(let i=0;i<70;i++){const a=rnd()*TAU,dist=280+rnd()*100,x=clamp(p.x+Math.cos(a)*dist,80,WORLD.w-80),y=clamp(p.y+Math.sin(a)*dist,80,WORLD.h-80);if(ns126LockedGateSpawn(x,y,r)||!canStepClear({r},x,y))continue;if(G.mobs.some(m=>!m.dead&&Math.hypot(m.x-x,m.y-y)<m.r+r+22))continue;const monster=addMob('rotfiend',x,y);if(!monster)continue;G.ns100RotfiendWaves.add(G.wave);monster.targetId=p.id;if(!G.cornerGateOpened&&classicGateShouldExist())openClassicCornerGate(true);announce('☣ PRIBLIŽAVA SE TRULEŽNI KOLOS',3.5);sfx('rotfiend');return monster}return null}
+
+/* V135: one wave-40 boss and a limited pack. Host-only, collision-safe,
+   never an endless random spawn. No extra network heartbeat. */
+function ns135SpawnWolfPack(){
+ if(G.mode!=='play'||G.caveMode||NET.role==='guest'||G.wave!==40||G.ns135WolfSpawned)return false;
+ if(G.mobs.filter(m=>!m.dead).length>79)return false;
+ const target=nextSpawnTarget();if(!target)return false;
+ const radius=34*configs.werewolfAlpha.size;let alpha=null;
+ for(let i=0;i<72;i++){
+  const a=i*2.39996,d=235+(i%4)*34;
+  const x=clamp(target.x+Math.cos(a)*d,90,WORLD.w-90),y=clamp(target.y+Math.sin(a)*d,90,WORLD.h-90);
+  if(ns126LockedGateSpawn(x,y,radius)||!canStepClear({r:radius},x,y))continue;
+  if(G.mobs.some(o=>!o.dead&&Math.hypot(o.x-x,o.y-y)<o.r+radius+22))continue;
+  alpha=addMob('werewolfAlpha',x,y);if(alpha)break;
+ }
+ if(!alpha)return false;
+ alpha.targetId=target.id||null;alpha.bossNextCastAt=G.time+3.8;alpha.ns135NextHowl=Infinity;
+ G.bossId=alpha.id;G.ns135WolfSpawned=true;
+ ns135SummonPups(alpha,4);
+ announce('🐺 TALAS 40 · ALFA VUKODLAK I ČOPOR!',4);sfx('wolfHowl');
+ return true;
+}
+function ns135SummonPups(alpha,desired){
+ if(!alpha||alpha.dead||NET.role==='guest')return 0;
+ const cap=Math.min(desired,6);
+ if(G.mobs.filter(m=>!m.dead).length>=86)return 0;
+ let spawned=0;
+ for(let i=0;i<cap*7&&spawned<cap&&G.mobs.filter(m=>!m.dead).length<86;i++){
+  const a=i*2.39996+alpha.id*.15,d=90+(i%3)*27;
+  const x=clamp(alpha.x+Math.cos(a)*d,75,WORLD.w-75);
+  const y=clamp(alpha.y+Math.sin(a)*d,75,WORLD.h-75),r=17*configs.werewolf.size;
+  if(ns126LockedGateSpawn(x,y,r)||!canStepClear({r},x,y))continue;
+  if(G.mobs.some(o=>!o.dead&&Math.hypot(o.x-x,o.y-y)<o.r+r+12))continue;
+  const pup=addMob('werewolf',x,y);if(!pup)continue;
+  pup.targetId=alpha.targetId;pup.ns135NextHowl=G.time+2.4+spawned*1.7;spawned++;
+ }
+ return spawned;
+}
+function ns135ClawCanHit(m,p){
+ if(!p||p.dead)return false;
+ const dx=p.x-m.x,dy=p.y-m.y,range=m.r+p.r+(m.type==='werewolfAlpha'?29:19);
+ if(dx*dx+dy*dy>range*range)return false;
+ const angle=Math.atan2(dy,dx)-(m.angle||0);
+ return Math.abs(Math.atan2(Math.sin(angle),Math.cos(angle)))<=1.2 &&
+  !obstacleInPath(m.x,m.y,p.x,p.y,Math.min(12,m.r*.43));
+}
+
 function spawnBoss(forceLevel){sfx('boss');voiceLine('boss');coopVoiceRequestOneGuest('boss');
   const c=nextSpawnTarget(),r=30*configs.boss.size;
   for(let tries=0;tries<80;tries++){
@@ -3265,7 +3313,7 @@ function drawAmbientCrystals(){const vw=viewSize().w,vh=viewSize().h;for(const c
  ctx.fillStyle='#60d3ff';ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(11,-2);ctx.lineTo(0,13);ctx.lineTo(-11,-2);ctx.closePath();ctx.fill();
  ctx.fillStyle='#d5f6ff';ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(0,8);ctx.lineTo(-9,-2);ctx.closePath();ctx.fill();ctx.restore();
 }}
-function startGame(opts={}){NS105_TEMPLE.reset(!!opts.templePreview);NS99_TEAM.reset();NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(cloneProps(NET.hostProps))));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap)))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';ns111PreloadWorld();G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();G.ns100RotfiendWaves=new Set();G.ns100RotfiendRetryAt=0;progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns132MobIds=new Map();NET.ns132SentAt=new Map();NET.ns133MotionTicks=new Map();NET.ns133InputChangeAt=0;NET.ns133InputKey='';NET.ns132LastSend=0;NET.ns132LastMotionHostTime=0;NET.ns132MotionStats=null;NET.ns111MetaAt=-100;NET.ns111MetaCache=null;NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
+function startGame(opts={}){NS105_TEMPLE.reset(!!opts.templePreview);NS99_TEAM.reset();NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(cloneProps(NET.hostProps))));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap)))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';ns111PreloadWorld();G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();G.ns135WolfSpawned=false;G.ns135WolfRetryAt=0;G.ns100RotfiendWaves=new Set();G.ns100RotfiendRetryAt=0;progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns132MobIds=new Map();NET.ns132SentAt=new Map();NET.ns133MotionTicks=new Map();NET.ns133InputChangeAt=0;NET.ns133InputKey='';NET.ns132LastSend=0;NET.ns132LastMotionHostTime=0;NET.ns132MotionStats=null;NET.ns111MetaAt=-100;NET.ns111MetaCache=null;NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
 NS105_TEMPLE.placeDoor();mapReset();NSX.start(opts);NS95_CAGE.reset();$('pauseBtn').classList.remove('hidden');$('home').classList.add('hidden');$('editorPanel').classList.add('hidden');$('pausePanel').classList.add('hidden');$('gameOver').classList.add('hidden');$('coopPanel').classList.add('hidden');$('settingsPanel').classList.add('hidden');$('hud').classList.remove('hidden');$('controls').classList.remove('hidden');$('veil').classList.add('hidden');$('spectatorPanel').classList.add('hidden');resetFloatingJoystick();updateHUD();updateNightHUD();announce(opts.bossTest?'BOSS TEST · NIVO 10':G.runType==='campaign'?`KAMPANJA · ${findLevel(G.stageId).name}`:'TALAS 1 · PREŽIVI',2);sfx('wave');voiceLine('preview',true)}
 function addRemotePlayer(id){
  if(G.players.some(p=>p.id===id))return;
@@ -3375,7 +3423,7 @@ function updatePlayer(p,vec,dt){
  p.walking=mag>.09;p.frame+=dt*(p.walking?10:2);
  if(p.walking&&p.dashT<=0)sfx('step');
  if(vec.dash&&p.dashCD<=0&&mag>.2){p.dashT=.24;p.dashCD=2.8;p.invul=Math.max(p.invul,.3);effect('dash',p.x,p.y);sfx('dash');if(cfgSettings.vibrate&&p.id===(NET.role==='guest'?NET.localId:'p1')&&navigator.vibrate)navigator.vibrate(12)}
- const speed=(p.dashT>0?3.2:1)*(G.time<(p.nsWebSlowUntil||0)?.72:1);movingCircle(p,vx*p.speed*dt*speed,vy*p.speed*dt*speed);
+ const speed=(p.dashT>0?3.2:1)*(G.time<(p.nsWebSlowUntil||0)?.72:1)*(G.time<(p.ns135SlowUntil||0)?.56:1);movingCircle(p,vx*p.speed*dt*speed,vy*p.speed*dt*speed);
  // Automatic targeting cannot be overridden by a finger or network aim packets.
  let nearest=null,best=Infinity;
  for(const mob of G.mobs){if(mob.dead)continue;const d=(mob.x-p.x)**2+(mob.y-p.y)**2;if(d<(p.range+42)**2&&d<best){nearest=mob;best=d}}
@@ -3671,8 +3719,8 @@ window.__NS92_CHALLENGES=NS92_CHALLENGES;
 
 
 
-function killMob(m,killer=null){if(m.dead)return;if(m.type==='boss'||m.type==='rotfiend')m.bossCast=null;sfx(m.type==='boss'?'boss':'kill');if(G.kills>0&&G.kills%35===0)coopVoiceCueOrLocal(killer,'kill');m.dead=true;m.deathT=.39;G.kills++;NSX.onKill(m,killer);NS91.onKill(m);NS92_CHALLENGES.onKill(m);NSX.onCaveSpecialKill(m,killer);if(killer)killer.runKills=(killer.runKills||0)+1;if(killer){const w=killer.weapon||'sword';G.weaponKills[w]=(G.weaponKills[w]||0)+1}if(G.kills%18===0)addKeyDrop(m.x,m.y);for(let j=0;j<(m.type==='boss'?14:m.type==='troll'?4:m.type==='brute'?4:2);j++){addDrop(m.x+(rnd()-.5)*24,m.y+(rnd()-.5)*24,m.type==='boss'?20:8)}for(let i=0;i<7;i++)effect('puff',m.x+(rnd()-.5)*20,m.y+(rnd()-.5)*20);if((G.runType==='default'||NET.role==='host')&&rnd()<(G.specialMode==='night'?.07:.023+(G.relicDropBonus||0)))addShardDrop(m.x,m.y);if(m.type==='troll'&&m.nsTempleKeeper)NS105_TEMPLE.dropKey(m);if(m.type==='troll'&&!G.caveMode){if(rnd()<.11)spawnWorldWeapon(m.x,m.y,TROLL_WEAPON_POOL[Math.floor(rnd()*TROLL_WEAPON_POOL.length)]);}
- else if(G.wave>=3&&m.type!=='boss'&&!G.caveMode&&(m.type==='elephant'?rnd()<.24:rnd()<.014))spawnWorldWeapon(m.x,m.y);if(killer?.perks.leech){killer.perkKills=(killer.perkKills||0)+1;if(killer.perkKills%7===0)killer.hp=Math.min(killer.maxHp,killer.hp+3)}if(G.relicChoice==='putnik'&&killer&&G.kills%20===0){killer.hp=Math.min(killer.maxHp,killer.hp+10);effect('buff',killer.x,killer.y)}if(m.type==='rotfiend'){G.bossKills=(G.bossKills||0)+1;sfx('rotfiend');addDrop(m.x,m.y,15);if(rnd()<.8)addKeyDrop(m.x+12,m.y-8);voiceLine('boss')}if(m.type==='boss'){G.bossKills=(G.bossKills||0)+1;G.bossId=0;addKeyDrop(m.x,m.y);spawnWorldWeapon(m.x+18,m.y+10);announce('BOSS POBEĐEN · KLJUČ + XP',3);sfx('level');voiceLine('victory')}}
+function killMob(m,killer=null){if(m.dead)return;if(BOSS_TYPES.has(m.type))m.bossCast=null;sfx(BOSS_TYPES.has(m.type)?'boss':'kill');if(G.kills>0&&G.kills%35===0)coopVoiceCueOrLocal(killer,'kill');m.dead=true;m.deathT=.39;G.kills++;NSX.onKill(m,killer);NS91.onKill(m);NS92_CHALLENGES.onKill(m);NSX.onCaveSpecialKill(m,killer);if(killer)killer.runKills=(killer.runKills||0)+1;if(killer){const w=killer.weapon||'sword';G.weaponKills[w]=(G.weaponKills[w]||0)+1}if(G.kills%18===0)addKeyDrop(m.x,m.y);for(let j=0;j<((m.type==='boss'||m.type==='werewolfAlpha')?14:m.type==='troll'?4:m.type==='brute'?4:2);j++){addDrop(m.x+(rnd()-.5)*24,m.y+(rnd()-.5)*24,(m.type==='boss'||m.type==='werewolfAlpha')?20:8)}for(let i=0;i<7;i++)effect('puff',m.x+(rnd()-.5)*20,m.y+(rnd()-.5)*20);if((G.runType==='default'||NET.role==='host')&&rnd()<(G.specialMode==='night'?.07:.023+(G.relicDropBonus||0)))addShardDrop(m.x,m.y);if(m.type==='troll'&&m.nsTempleKeeper)NS105_TEMPLE.dropKey(m);if(m.type==='troll'&&!G.caveMode){if(rnd()<.11)spawnWorldWeapon(m.x,m.y,TROLL_WEAPON_POOL[Math.floor(rnd()*TROLL_WEAPON_POOL.length)]);}
+ else if(G.wave>=3&&m.type!=='boss'&&!G.caveMode&&(m.type==='elephant'?rnd()<.24:rnd()<.014))spawnWorldWeapon(m.x,m.y);if(killer?.perks.leech){killer.perkKills=(killer.perkKills||0)+1;if(killer.perkKills%7===0)killer.hp=Math.min(killer.maxHp,killer.hp+3)}if(G.relicChoice==='putnik'&&killer&&G.kills%20===0){killer.hp=Math.min(killer.maxHp,killer.hp+10);effect('buff',killer.x,killer.y)}if(m.type==='rotfiend'){G.bossKills=(G.bossKills||0)+1;sfx('rotfiend');addDrop(m.x,m.y,15);if(rnd()<.8)addKeyDrop(m.x+12,m.y-8);voiceLine('boss')}if(m.type==='boss'||m.type==='werewolfAlpha'){G.bossKills=(G.bossKills||0)+1;G.bossId=0;addKeyDrop(m.x,m.y);spawnWorldWeapon(m.x+18,m.y+10);announce(m.type==='werewolfAlpha'?'🐺 ALFA SAVLADAN · KLJUČ + XP':'BOSS POBEĐEN · KLJUČ + XP',3);sfx('level');voiceLine('victory')}}
 /* V105 THE SILENT TOMB — original hand-drawn sci-fi crypt, not copyrighted game assets.
    This is a solo expedition until the independent team-transition protocol is built. */
 const NS105_TEMPLE=(()=>{
@@ -4202,7 +4250,7 @@ function separateMobBodies(){
 
 // v4.0 Boss phase controller. Host or solo owns damage, summons and cooldowns;
 // guests receive presentation state through snapshots and never run this AI.
-const BOSS_TYPES=new Set(['boss','rotfiend']);
+const BOSS_TYPES=new Set(['boss','rotfiend','werewolfAlpha']);
 function bossPhaseOf(m){if(!m||!Number.isFinite(m.maxHp)||m.maxHp<=0)return 1;const r=m.hp/m.maxHp;return r<=.30?3:r<=.65?2:1}
 function bossTarget(m){const a=G.ns95Cage?.ally;if(a&&a.hp>0&&Math.hypot(a.x-m.x,a.y-m.y)<=520)return a;const live=G.players.filter(p=>!p.dead);if(!live.length)return null;return live.reduce((best,p)=>!best||Math.hypot(p.x-m.x,p.y-m.y)<Math.hypot(best.x-m.x,best.y-m.y)?p:best,null)}
 function bossSummonWave(m,phase){
@@ -4210,6 +4258,12 @@ function bossSummonWave(m,phase){
  const bit=1<<phase;if((m.bossPhaseSummons||0)&bit)return;
  m.bossPhaseSummons=(m.bossPhaseSummons||0)|bit;
  const active=G.mobs.filter(q=>!q.dead).length;
+ if(m.type==='werewolfAlpha'){
+  if(active>78)return;
+  const n=ns135SummonPups(m,phase===3?3:2);
+  if(n){announce('🐺 ALFA DOZIVA ČOPOR!',2.8);sfx('wolfHowl')}
+  return;
+ }
  if(active>135)return;
  const amount=phase===3?4:3;
  for(let i=0;i<amount;i++){
@@ -4226,19 +4280,31 @@ function bossSummonWave(m,phase){
 }
 function bossStartCast(m,p){
  const phase=bossPhaseOf(m),windup=phase===3?1.00:phase===2?1.25:1.48;
- if(m.type==='rotfiend'){
+ if(m.type==='werewolfAlpha'){
+  m.bossCast={kind:'howlSlow',x:Math.round(p.x),y:Math.round(p.y),
+   radius:phase===3?163:phase===2?145:124,start:G.time,end:G.time+(phase===3?1.10:phase===2?1.3:1.55),phase};
+  sfx('wolfHowl');
+ }else if(m.type==='rotfiend'){
   m.bossCast={kind:'quake',x:Math.round(p.x),y:Math.round(p.y),radius:phase===3?150:phase===2?131:112,start:G.time,end:G.time+windup,phase};
  }else{
   const ang=Math.atan2(p.y-m.y,p.x-m.x);
   m.bossCast={kind:'beam',x:Math.round(m.x),y:Math.round(m.y),angle:ang,length:phase===3?475:phase===2?425:380,width:phase===3?56:phase===2?47:39,start:G.time,end:G.time+windup+.09,phase};
  }
  m.bossCastCount=(m.bossCastCount||0)+1;
- m.bossNextCastAt=m.bossCast.end+(phase===3?4.4:phase===2?6.3:8.2);
+ m.bossNextCastAt=m.bossCast.end+(m.type==='werewolfAlpha'?(phase===3?5.3:phase===2?6.5:7.8):(phase===3?4.4:phase===2?6.3:8.2));
  if(phase===3)sfx('boss');
 }
 function bossResolveCast(m){
  const c=m.bossCast;if(!c||m.dead)return false;
- if(c.kind==='quake'){
+ if(c.kind==='howlSlow'){
+  // No damage from the howl. Only players still INSIDE at impact are slowed.
+  for(const p of G.players){
+   if(p.dead)continue;
+   const dx=p.x-c.x,dy=p.y-c.y,r=c.radius+p.r*.25;
+   if(dx*dx+dy*dy<=r*r)p.ns135SlowUntil=Math.max(p.ns135SlowUntil||0,G.time+2.55);
+  }
+  effect('wolfPulse',c.x,c.y,{radius:c.radius});sfx('wolfHowl');
+ }else if(c.kind==='quake'){
   for(const p of G.players){if(p.dead)continue;if(Math.hypot(p.x-c.x,p.y-c.y)<=c.radius+p.r*.25)damagePlayer(p,10+5*c.phase,m)}
   const ally=G.ns95Cage?.ally;
   if(ally&&ally.hp>0&&Math.hypot(ally.x-c.x,ally.y-c.y)<=c.radius+4){
@@ -4273,8 +4339,8 @@ function updateBossPhases(){
     m.bossPhase=phase;
     if(phase>=2)bossSummonWave(m,phase);
     if(phase===3&&!m.bossEnraged){m.bossEnraged=true;m.speed*=1.25;m.damage=Math.round(m.damage*1.16);m.attackCD=Math.max(0,m.attackCD*.65);
-      announce(m.type==='rotfiend'?'☣ KOLOS BESNI · POSLEDNJA FAZA':'⚡ MATRIJARH BESNI · POSLEDNJA FAZA',3.3);sfx('boss')}
-    else announce(m.type==='rotfiend'?'☣ KOLOS · FAZA II':'⚡ MATRIJARH · FAZA II',2.5);
+      announce(m.type==='werewolfAlpha'?'🐺 ALFA ZAVIJANJE · BES!':m.type==='rotfiend'?'☣ KOLOS BESNI · POSLEDNJA FAZA':'⚡ MATRIJARH BESNI · POSLEDNJA FAZA',3.3);sfx('boss')}
+    else announce(m.type==='werewolfAlpha'?'🐺 ALFA VUKODLAK · FAZA II':m.type==='rotfiend'?'☣ KOLOS · FAZA II':'⚡ MATRIJARH · FAZA II',2.5);
   }else m.bossPhase=phase;
   if(m.bossCast){if(G.time>=m.bossCast.end)bossResolveCast(m);continue}
   if(G.time<(m.bossNextCastAt||Infinity))continue;
@@ -4317,11 +4383,13 @@ function updateMobs(dt){
  // Recover safely from any early Rotfiend inherited from stale saves/host migration.
  // Authoritative simulation only; never award kills, loot or XP for a rejected mob.
  if(G.wave<20&&G.mobs.some(m=>m.type==='rotfiend'))G.mobs=G.mobs.filter(m=>m.type!=='rotfiend');
+ if(G.wave<40&&G.mobs.some(m=>m.type==='werewolf'||m.type==='werewolfAlpha'))
+  G.mobs=G.mobs.filter(m=>m.type!=='werewolf'&&m.type!=='werewolfAlpha');
  buildMobGrid();NS95_CAGE.beginMobTick();
   const alive=availableTargets(),loads=new Map(alive.map(p=>[p.id,0]));
   const frostActive=G.players.some(p=>p.perks.frost&&G.time<p.freezeUntil);
   for(const m of G.mobs){
-    m.frame+=dt*(m.type==='rotfiend'?3:m.type==='boss'?4:m.type==='troll'?5:m.type==='goblin'?10:7);
+    m.frame+=dt*(m.type==='werewolfAlpha'?5:m.type==='werewolf'?(G.time<(m.ns135HowlUntil||0)?1.6:G.time<(m.ns135RageUntil||0)?13:8):m.type==='rotfiend'?3:m.type==='boss'?4:m.type==='troll'?5:m.type==='goblin'?10:7);
     m.flash=Math.max(0,m.flash-dt);m.attackT=Math.max(0,m.attackT-dt);m.attackCD=Math.max(0,m.attackCD-dt);if(m.type==='worm'&&m.spitWindup>0){m.spitWindup-=dt;if(m.spitWindup<=0&&!m.dead){let victim=alive.find(p=>p.id===m.targetId)||alive.slice().sort((a,b)=>(a.x-m.x)**2+(a.y-m.y)**2-(b.x-m.x)**2-(b.y-m.y)**2)[0];if(victim&&!(G.ns95Cage?.ally?.hp>0&&Math.hypot(m.x-G.ns95Cage.ally.x,m.y-G.ns95Cage.ally.y)<520))spawnAcid(m,victim)}}
     if(m.dead){m.deathT-=dt;continue}
     if(m.type==='troll'&&m.nsTrollHitAt){
@@ -4333,6 +4401,21 @@ function updateMobs(dt){
       }
       continue;
     }
+    if(m.ns135ClawAt){
+      if(G.time<m.ns135ClawAt)continue;
+      m.ns135ClawAt=0;
+      const victim=alive.find(p=>p.id===m.ns135ClawVictim&&!p.dead);
+      m.ns135ClawVictim=null;
+      if(ns135ClawCanHit(m,victim)){damagePlayer(victim,m.damage,m);effect('slash',victim.x,victim.y,{angle:m.angle,range:37,weapon:'claw'});}
+      continue;
+    }
+    if(m.type==='werewolf'&&G.time<(m.ns135HowlUntil||0))continue;
+    if(m.type==='werewolf'&&G.time>=(m.ns135NextHowl||Infinity)){
+      const target=alive.find(p=>!p.dead&&Math.hypot(p.x-m.x,p.y-m.y)<440);
+      if(target){m.ns135HowlUntil=G.time+.92;m.ns135RageUntil=m.ns135HowlUntil+2.8;
+       m.ns135NextHowl=G.time+8+rnd()*4.5;m.attackT=0;sfx('wolfHowl');continue}
+      m.ns135NextHowl=G.time+1.5;
+    }
     if(m.nsCaveThief)continue;if(BOSS_TYPES.has(m.type)&&m.bossCast){m.angle=m.bossCast.kind==='beam'?m.bossCast.angle:m.angle;continue}if(m.type==='rotfiend'&&G.time>=m.roarAt){m.roarAt=G.time+6+rnd()*5;if(G.players.some(p=>!p.dead&&Math.hypot(p.x-m.x,p.y-m.y)<430))sfx('rotfiend')}
     if(!alive.length)continue;
     if(m.ns95Guard&&NS95_CAGE.guardStep(m,dt,alive))continue;
@@ -4340,12 +4423,17 @@ function updateMobs(dt){
     const p=selectMobTarget(m,alive,loads);
     const dx=p.x-m.x,dy=p.y-m.y,dist=Math.max(1,Math.hypot(dx,dy));
     m.angle=Math.atan2(dy,dx);
-    const attackRange=m.type==='worm'?190:m.type==='rotfiend'?m.r+p.r+45:m.type==='boss'?m.r+p.r+76:m.type==='troll'?m.r+p.r+56:m.type==='brute'?m.r+p.r+56:m.type==='goblin'?m.r+p.r+42:m.r+p.r+38;
+    const attackRange=m.type==='werewolfAlpha'?m.r+p.r+30:m.type==='werewolf'?m.r+p.r+19:m.type==='worm'?190:m.type==='rotfiend'?m.r+p.r+45:m.type==='boss'?m.r+p.r+76:m.type==='troll'?m.r+p.r+56:m.type==='brute'?m.r+p.r+56:m.type==='goblin'?m.r+p.r+42:m.r+p.r+38;
     // A long-range whip must not damage through solid trees or rocks.
     if(dist<=attackRange&&!obstacleInPath(m.x,m.y,p.x,p.y,Math.min(12,m.r*.46))){
       m.stuck=0;m.detourTime=0;
       if(m.type==='worm'){if(G.time>=m.spitReady&&m.spitWindup<=0){m.spitWindup=.50;m.spitReady=G.time+4.6+rnd()*2.5;m.attackT=.58}}
       else if(m.type==='troll'&&m.attackCD<=0){m.attackCD=1.95;m.attackT=.82;m.nsTrollHitAt=G.time+.52;m.nsTrollVictim=p.id;}
+      else if((m.type==='werewolf'||m.type==='werewolfAlpha')&&m.attackCD<=0){
+        m.attackCD=m.type==='werewolfAlpha'?1.45:(G.time<(m.ns135RageUntil||0)?.93:1.35);
+        m.attackT=.66;m.ns135ClawAt=G.time+(m.type==='werewolfAlpha'?.42:.33);
+        m.ns135ClawVictim=p.id;sfx('wolfClaw');
+      }
       else if(m.attackCD<=0){m.attackCD=(m.type==='boss'?1.25:m.type==='rotfiend'?2.1:m.type==='brute'?1.38:m.type==='goblin'?1.08:1.22)*(BOSS_TYPES.has(m.type)&&m.bossPhase===3?.77:1);m.attackT=.36;sfx(m.type==='rotfiend'?'rotfiend':m.type==='goblin'?'goblinAttack':m.type==='brute'?'stomp':'whip');damagePlayer(p,m.damage,m)}
       continue;
     }
@@ -4412,7 +4500,9 @@ function updateMobs(dt){
     vx+=repelX*1.65;vy+=repelY*1.65;
     // Enemies can slide around a tree if the next point is partly blocked.
     let length=Math.max(.001,Math.hypot(vx,vy));vx/=length;vy/=length;
-    const oldX=m.x,oldY=m.y,step=m.speed*dt*(frostActive?(m.type==='boss'||m.type==='rotfiend'?.77:.58):1);
+    const oldX=m.x,oldY=m.y,step=m.speed*dt*
+      (m.type==='werewolf'&&G.time<(m.ns135RageUntil||0)?1.57:1)*
+      (frostActive?(BOSS_TYPES.has(m.type)?.77:.58):1);
     movingCircle(m,vx*step,vy*step);
     const progress=Math.hypot(m.x-oldX,m.y-oldY);
     m.stuck=progress<step*.18?m.stuck+dt:Math.max(0,m.stuck-dt*1.3);
@@ -5137,6 +5227,9 @@ for(const d of G.drops){d.phase+=dt*4;if(d.type==='weapon')continue;for(const p 
 if(!G.caveMode&&!G.ns95TestOnly&&[20,30].includes(G.wave)&&!G.ns100RotfiendWaves?.has(G.wave)&&G.time>=(G.ns100RotfiendRetryAt||0)){
  G.ns100RotfiendRetryAt=G.time+3;spawnRotfiend();
 }
+if(!G.caveMode&&!G.ns95TestOnly&&G.wave===40&&!G.ns135WolfSpawned&&G.time>=(G.ns135WolfRetryAt||0)){
+ G.ns135WolfRetryAt=G.time+2.5;ns135SpawnWolfPack();
+}
 if(!G.caveMode&&!G.ns95TestOnly){G.spawnClock+=dt;}const spawnInterval=Math.max(.64,4.12-Math.max(0,G.time-30)*.022-Math.max(0,G.wave-1)*.16);if(!G.caveMode&&!G.ns95TestOnly&&G.spawnClock>=spawnInterval*(G.specialMode==='rush'?.72:1)){G.spawnClock-=spawnInterval;const cap=Math.min(82,12+Math.floor(Math.max(0,G.time-30)*.47)+G.wave*3);if(G.mobs.filter(m=>!m.dead).length<cap){const batch=G.time<48?1:G.wave<4?2:Math.min(3,2+Math.floor(G.wave/6));for(let i=0;i<batch;i++)spawnEnemy()}}if(!G.caveMode&&!G.ns95TestOnly&&G.waveClock>=cfgSettings.waveDuration){G.wave++;NS91.onWave();NS92_CHALLENGES.onWave();
  if(G.wave===10){let keeper=spawnEnemy('troll');
   if(keeper?.type!=='troll')keeper=G.mobs.find(m=>m.type==='troll'&&!m.dead&&!m.nsTempleKeeper)||null;
@@ -5144,6 +5237,7 @@ if(!G.caveMode&&!G.ns95TestOnly){G.spawnClock+=dt;}const spawnInterval=Math.max(
  }
  G.ns75KitsThisWave=0;G.waveClock=0;
  if(G.wave===20||G.wave===30){G.ns100RotfiendRetryAt=G.time;spawnRotfiend();G.ns100RotfiendRetryAt=G.time+3}
+ if(G.wave===40){G.ns135WolfRetryAt=G.time;ns135SpawnWolfPack();}
  if(G.runType==='campaign'){G.stageWaveIndex++;const stage=findLevel(G.stageId);if(stage&&G.stageWaveIndex>=stage.waves){advanceStage()}else{announce(`KAMPANJA ${G.stageId} · TALAS ${G.stageWaveIndex+1}`,2);sfx('wave');voiceLine('wave');coopVoiceRequestOneGuest('wave')}}else{announce('TALAS '+G.wave+' · INTENZITET RASTE',2);sfx('wave');voiceLine('wave');coopVoiceRequestOneGuest('wave')}if(!G.campaignDone)for(let i=0;i<Math.min(11,2+Math.ceil(G.wave*1.1));i++)spawnEnemy()}
 let target=G.players.filter(p=>!p.dead).reduce((a,p)=>({x:a.x+p.x,y:a.y+p.y,n:a.n+1}),{x:0,y:0,n:0});if(target.n){target.x/=target.n;target.y/=target.n;const me=G.players.find(p=>p.id===(NET.role==='host'?NET.localId:'p1'));const watch=NET.role==='host'&&!me?.dead?me:me?.dead?G.players.find(p=>p.id===NET.viewTarget&&!p.dead)||G.players.find(p=>!p.dead):null;if(watch){target.x=watch.x;target.y=watch.y}G.camera.x+=(target.x-G.camera.x)*Math.min(1,dt*4);G.camera.y+=(target.y-G.camera.y)*Math.min(1,dt*4)}
 if(NET.role==='host'&&NET.phase==='playing'){if(G.players.find(p=>p.id===NET.localId)?.dead)syncSpectator()}if(NET.role==='host'&&NET.phase==='playing'&&NET.clients.size){
@@ -7356,7 +7450,7 @@ $('ns62ShareRoomCode').onclick=async()=>{
  const code=String(NET.code||$('roomCode').textContent||'').trim().toUpperCase();
  if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('Prvo napravi sobu.');return;}
  const link=location.origin+location.pathname+'?join='+encodeURIComponent(code);
-  const message='Noćna Straža V134 🎮\nKod sobe: '+code+'\nOtvori ovaj link za automatsko povezivanje: '+link;
+  const message='Noćna Straža V135 🎮\nKod sobe: '+code+'\nOtvori ovaj link za automatsko povezivanje: '+link;
  try{if(navigator.share){await navigator.share({title:'Noćna Straža — poziv u multiplayer',text:'Kod sobe: '+code,url:link});return;}}catch(err){if(err?.name==='AbortError')return}
  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(link);toast('Link za ulazak je kopiran. Pošalji ga drugaru.');return;}}catch{}
  window.prompt('Kopiraj ovaj link i pošalji drugaru:',link);
