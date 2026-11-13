@@ -94,3 +94,72 @@ console.log('V128 performance QA PASS: 30/45/60/90/120/144Hz simulation, map pre
  assert.match(html,/relayActive\(\)\?\.043:\.047/,'guest input sends more promptly');
 }
 console.log('V132 guest latency QA PASS: 2/4/6 players, congestion, stale movement, old rounds, input pacing');
+
+
+// V133 guest motion QA: position freshness, local control grace and bandwidth
+// priority, using isolated actual game functions (no mock gameplay implementation).
+{
+ const senderStart=html.indexOf('function ns132SendMotion(){');
+ const senderEnd=html.indexOf('/* V132: newest movement sample',senderStart);
+ const correctStart=html.indexOf('function ns133ReconcileLocal(');
+ const correctEnd=html.indexOf('/* v79: estimate velocity',correctStart);
+ const reconcileStart=html.indexOf('function reconcilePositions(');
+ const reconcileEnd=html.indexOf('/* v79: one inexpensive render-target',reconcileStart);
+ const smoothStart=html.indexOf('function ns79SmoothRemote(');
+ const smoothEnd=html.indexOf('const NS79STATS=',smoothStart);
+ assert.ok([senderStart,senderEnd,correctStart,correctEnd,reconcileStart,reconcileEnd,smoothStart,smoothEnd].every(i=>i>0),
+   'V133 multiplayer functions found');
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const currentTime={now:()=>1000};
+ const source=html.slice(senderStart,senderEnd)+html.slice(correctStart,correctEnd)
+    +html.slice(reconcileStart,reconcileEnd)+html.slice(smoothStart,smoothEnd);
+ const make=(NET,G,NETLAB)=>new Function('NET','G','NETLAB','performance','clamp',source+
+  ';return {send:ns132SendMotion,local:ns133ReconcileLocal,reconcile:reconcilePositions,smooth:ns79SmoothRemote}')(
+  NET,G,NETLAB,currentTime,clamp);
+ const id='p2',packets=[];
+ const g={time:0,players:[{id:'p1',x:100,y:100,frame:0,walking:false},
+  {id,x:120,y:100,frame:0,walking:true}],
+  mobs:[{id:1,x:150,y:120,type:'goblin',frame:1,angle:0,attackT:0,dead:false},
+        {id:2,x:650,y:120,type:'goblin',frame:1,angle:0,attackT:0,dead:false},
+        {id:3,x:640,y:125,type:'boss',frame:1,angle:0,attackT:0,dead:false}]};
+ const net={role:'host',phase:'playing',round:2,clients:new Map([[id,{open:true,bufferSize:0}]]),
+   ns132MobIds:new Map([[id,[1,2,3]]]),ns132SentAt:new Map(),ns132LastSend:0};
+ const fn=make(net,g,{gameSend(_conn,data){packets.push(data);return true}});
+ for(let i=1;i<=9;i++){g.time=i*.06;fn.send()}
+ assert.equal(packets.length,9,'all nearby movement ticks keep their original rate');
+ assert.ok(packets.every(p=>p.m.some(m=>m[0]===1)&&p.m.some(m=>m[0]===3)),
+   'nearby enemies and bosses are updated at every tick');
+ assert.equal(packets.filter(p=>p.m.some(m=>m[0]===2)).length,3,
+   'distant ordinary enemies use one out of three small movement packets');
+ assert.equal(net.ns133MotionTicks.get(id),9);
+ const old={id:1,x:135,y:120,netAuthX:150,netAuthY:120,ns132HostTime:1.5,
+   netAuthAt:900,netAge:.09,netVx:40,netVy:0,frame:6,walking:true,
+   facing:1,angle:1.3,attackT:.8,hp:30};
+ const older=fn.reconcile([old],[{id:1,x:143,y:120,frame:2,walking:false,facing:0,
+   angle:.2,attackT:0,hp:19}],.1,1.4)[0];
+ assert.equal(older.netAuthX,150,'old full state cannot undo newer movement');
+ assert.equal(older.frame,6,'older frame cannot rewind animation');
+ assert.equal(older.angle,1.3,'older mob facing cannot rewind');
+ assert.equal(older.netAuthAt,900,'older full state cannot restart animation prediction age');
+ assert.equal(older.netAge,.09);
+ assert.equal(older.hp,19,'health from full host snapshot still updates');
+ const fresh=fn.reconcile([older],[{id:1,x:154,y:120,frame:7,walking:false,
+   facing:0,angle:.1,attackT:0,hp:15}],.1,1.6)[0];
+ assert.equal(fresh.netAuthX,154,'new authoritative host state updates coordinates');
+ assert.equal(fresh.hp,15);
+ assert.equal(fresh.walking,false,'new movement state updates from the latest full snapshot');
+ const predicted={x:200,y:100,netAuthX:160,netAuthY:100,speed:180};
+ fn.local(predicted,{x:0,y:0},150,50);
+ assert.equal(predicted.x,200,'release-of-stick grace prevents immediate rubber-band');
+ fn.local(predicted,{x:0,y:0},150,310);
+ assert.ok(predicted.x<200&&predicted.x>190,'settled client reconciles toward host');
+ predicted.x=500;
+ fn.local(predicted,{x:0,y:0},150,30);
+ assert.equal(predicted.x,160,'major host collision correction still overrides prediction');
+ const moving={x:0,y:0,netAuthX:100,netAuthY:0,netVx:0,netVy:0,netAge:0};
+ fn.smooth(moving,.016,.21);
+ assert.ok(moving.x>35&&moving.x<50,'remote movement smoothing has bounded faster response');
+ assert.match(html,/MOTION \$\{mov\.hz\|\|0\}/,'connection diagnostics include compact movement frequency');
+ assert.match(html,/NET\.ns133InputChangeAt=performance\.now\(\)/,'input direction changes are timestamped');
+}
+console.log('V133 guest motion QA PASS: near/far priority, stale animation, local movement grace, host correction');
