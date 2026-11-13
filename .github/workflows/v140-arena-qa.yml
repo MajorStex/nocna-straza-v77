@@ -1,0 +1,41 @@
+name: V140 independent multiplayer QA (test only)
+on:
+  push:
+    branches: [feature/v140-new-netcode-test]
+  pull_request:
+    paths:
+      - public/v140-net-mode.js
+      - public/index.html
+      - tests/v140-isolated-arena.test.cjs
+permissions:
+  contents: read
+jobs:
+  v140:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tests/v140-isolated-arena.test.cjs
+      - name: Real Android-size Chromium boot
+        run: |
+          npm install --no-save --no-package-lock playwright-core@1.58.2
+          node - <<'JS'
+          const {chromium}=require('playwright-core');
+          (async()=>{
+            const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
+            for(const width of [360,412]){
+              const page=await browser.newPage({viewport:{width,height:844},isMobile:true,hasTouch:true});
+              const failures=[];page.on('pageerror',e=>failures.push(e.message));
+              await page.goto('file://'+process.cwd()+'/public/index.html',{waitUntil:'domcontentloaded'});
+              await page.waitForFunction(()=>!!window.NS140_ARENA,{timeout:12000});
+              const result=await page.evaluate(()=>({title:document.title,arena:!!window.NS140_ARENA,loaded:!!window.__NS110_BRIDGE}));
+              console.log('V140_BOOT',width,result,failures);
+              if(!result.arena||!result.loaded||!result.title.includes('v140')||failures.some(e=>/SyntaxError|ReferenceError/.test(e)))throw new Error('V140 boot failed');
+              await page.close();
+            }
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)})
+          JS
