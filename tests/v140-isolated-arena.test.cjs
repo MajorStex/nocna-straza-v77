@@ -19,4 +19,12 @@ assert.doesNotMatch(client,/sendSnapshot|ns132SendMotion|performAttack|coopXP|aw
 assert.match(client,/N\.pending=N\.pending\.filter\(e=>e\.seq>ack\)/,'ACK-based input reconciliation');
 assert.match(client,/if\(N\.ws\?\.readyState===1&&now-N\.lastInput>=50/,'bounded client input rate');
 assert.match(client,/Math\.hypot\(N\.me\.x-N\.me\.tx,N\.me\.y-N\.me\.ty\)/,'max prediction drift guard');
-console.log('V140 frontend QA PASS: account-level 7 gate, isolated lobby handoff, no old gameplay, syntax and input bounds');
+assert.match(html,/id="ns140ModeMultiplayer"/,'separate multiplayer button available on mode chooser');
+assert.match(html,/SINGLEPLAYER — NOVA ZONA \(OFFLINE\)/,'new mode has visible solo button');
+assert.match(html,/NS140_ARENA\?\.startSolo\?\.\(\)/,'solo starts from the mode selector');
+assert.match(client,/function startSolo\(\)/,'client provides independent solo entry');
+const soloSource=client.slice(client.indexOf('function startSolo()'),client.indexOf('function stepSolo('));
+assert.ok(!/fetch\(|new WebSocket|\.send\(/.test(soloSource),'solo must not connect to Cloudflare or send remote commands');
+assert.match(client,/function stepSolo\(dt,attackHeld\)/,'offline movement and combat have a local simulation');
+assert.match(client,/if\(wasSolo\).*showPreRun/,'back to solo choose-mode, not multiplayer lobby');
+console.log('V140 frontend + solo QA PASS: account-level 7 gate, isolated lobby handoff, no old gameplay, syntax and input bounds');
