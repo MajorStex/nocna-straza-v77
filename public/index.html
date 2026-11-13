@@ -3350,7 +3350,7 @@ function drawAmbientCrystals(){const vw=viewSize().w,vh=viewSize().h;for(const c
  ctx.fillStyle='#60d3ff';ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(11,-2);ctx.lineTo(0,13);ctx.lineTo(-11,-2);ctx.closePath();ctx.fill();
  ctx.fillStyle='#d5f6ff';ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(0,8);ctx.lineTo(-9,-2);ctx.closePath();ctx.fill();ctx.restore();
 }}
-function startGame(opts={}){NS105_TEMPLE.reset(!!opts.templePreview);NS99_TEAM.reset();NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(cloneProps(NET.hostProps))));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap)))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';ns111PreloadWorld();G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();NET.ns135LastHowlKey='';G.ns135WolfSpawned=false;G.ns135WolfRetryAt=0;G.ns100RotfiendWaves=new Set();G.ns100RotfiendRetryAt=0;progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns132MobIds=new Map();NET.ns132SentAt=new Map();NET.ns133MotionTicks=new Map();NET.ns133InputChangeAt=0;NET.ns133InputKey='';NET.ns132LastSend=0;NET.ns132LastMotionHostTime=0;NET.ns132MotionStats=null;NET.ns111MetaAt=-100;NET.ns111MetaCache=null;NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
+function startGame(opts={}){NS105_TEMPLE.reset(!!opts.templePreview);NS99_TEAM.reset();NS89_PICK.reset();NS93_MAGIC.reset();NS91.reset();NS92_CHALLENGES.reset();WORLD.w=4200;WORLD.h=4200;G.caveMode=false;G.nsOverworldState=null;if(opts.campaign){G.runType='campaign';G.campaignDone=false;let first=findLevel(levelCollection[0].id);loadStage(first.id)}else if(opts.editorTest){G.runType='editorTest';props=prepareChestLocks(ensureMapLife(cloneProps(G.mode==='editor'?props:editorDraft)));activePlayMap=props;G.stageId=null}else if(NET.role==='guest'&&NET.hostProps){G.runType='network';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(cloneProps(NET.hostProps))));activePlayMap=props}else{G.runType='default';props=prepareChestLocks(ns99ThinMarkets(ensureMapLife(ensureLootAndHouses(cloneProps(defaultPlayMap)))));activePlayMap=props;G.stageId=null}if(G.runType==='default')relocateOneChestNearStart(props);if(G.runType==='default'||G.runType==='network')ensureCaveEntrance(props);ensureRopeChest();G.specialMode=(G.runType==='default'||G.runType==='network')&&['night','rush'].includes(opts.specialMode)?opts.specialMode:'normal';G.cornerGateOpened=false;if(G.runType==='default'&&G.specialMode==='normal')ensureClassicCornerGate(props);if(G.specialMode==='night')buildNightTowers();invalidateNavigation();G.mode='play';ns111PreloadWorld();G.paused=false;G.ns95TestOnly=false;$('gameOver').querySelector('h2').textContent='STRAŽAR JE PAO';sendSocialStatus();G.time=0;G.wave=1;G.waveClock=0;G.spawnClock=0;G.crystalSpawnClock=0;G.blueCrystals=[];startMusic();G.level=opts.bossTest?10:1;G.xp=0;G.xpNeed=xpRequirement(G.level);G.kills=0;G.runSettled=false;G.lastResult=null;G.debugRun=!!(opts.editorTest||opts.bossTest);G.weaponKills={};G.ns75BrokenIds=[];G.ns75KitsSpawned=0;G.ns75KitsThisWave=0;G.shopVisits=0;G.bossKills=0;G.chestsOpened=0;G.guildUnlocked=false;G.guildNear=false;G.guildPending=null;G.guildPurchases={};G.mpBossTiers=new Set();NET.ns135LastHowlKey='';G.ns135WolfSpawned=false;G.ns135WolfRetryAt=0;G.ns100RotfiendWaves=new Set();G.ns100RotfiendRetryAt=0;progress.ropeKeyCount=0;progress.hasRope=false;progress.randomChestOpens=0;G.players=[player(NET.role==='host'?NET.localId:'p1',START.x,START.y)];G.players[0].runShards=0;G.runHeroId=activeHeroProfile;if(NET.role==='host'){G.players[0].look=networkHeroStyle(heroStyle);applyCoopBonuses(G.players[0],mpProgress.ranks);applyHeroTalent(G.players[0])}else if(NET.role!=='guest'){applyMetaBonuses(G.players[0]);applyHeroTalent(G.players[0])}NSX.applyArmoryToPlayer(G.players[0]);applyCombatClass(G.players[0],heroStyle.heroClass);G.reviveIntent={};G.reviveActive={};G.sosNotified=new Set();G.sosPendingSince=-100;G.reviveSuppressed=new Set();G.reviveRemoteProgress={};G.reviveHeld=false;G.lastReviveSignal=0;G.caveMode=false;G.nsOverworldState=null;$('reviveDock').classList.add('hidden');G.mobs=[];G.drops=[];G.effects=[];G.projectiles=[];G.blasts=[];G.bossLastCastType='';G.lootPending=null;G.marketPending=null;G.marketSeen=false;G.relicPending=null;G.relicTaken=false;G.relicChoice='';G.relicDropBonus=0;G.relicEnemyHaste=1;G.relicXpTax=1;G.spawnCursor=0;G.fxSeq=0;NET.lastFxId=0;NET.lastSnapSeq=0;NET.ns67LastSnapshot=new Map();NET.ns80PeerSeq=new Map();NET.ns132MobIds=new Map();NET.ns132SentAt=new Map();NET.ns133MotionTicks=new Map();NET.ns133InputChangeAt=0;NET.ns133InputKey='';NET.ns132LastSend=0;if(typeof ns139InputReset==='function')ns139InputReset();NET.ns132LastMotionHostTime=0;NET.ns132MotionStats=null;NET.ns111MetaAt=-100;NET.ns111MetaCache=null;NET.ns80LastHostTime=null;NET.lastInputKey='';NET.ns85PerkSig=null;NET.viewTarget=null;G.abilityDirty=true;$('chestPanel').classList.add('hidden');$('marketPanel').classList.add('hidden');$('guildPanel').classList.add('hidden');$('relicPanel').classList.add('hidden');$('vowHudWrap').classList.add('hidden');$('vowHudPopup').classList.add('hidden');$('vowHudWrap').dataset.vow='';$('evoHudWrap').classList.add('hidden');$('evoHudPopup').classList.add('hidden');closeEvolutionGuide();G.bossId=0;G.nextId=1;G.camera={x:START.x,y:START.y};G.waveNoticeT=0;for(let i=0;i<4;i++)spawnEnemy();for(let i=0;i<5;i++)spawnAmbientCrystal(true);if(opts.bossTest)spawnBoss(10);if(NET.role==='host'){for(const id of NET.clients.keys())addRemotePlayer(id)}
 NS105_TEMPLE.placeDoor();mapReset();NSX.start(opts);NS95_CAGE.reset();$('pauseBtn').classList.remove('hidden');$('home').classList.add('hidden');$('editorPanel').classList.add('hidden');$('pausePanel').classList.add('hidden');$('gameOver').classList.add('hidden');$('coopPanel').classList.add('hidden');$('settingsPanel').classList.add('hidden');$('hud').classList.remove('hidden');$('controls').classList.remove('hidden');$('veil').classList.add('hidden');$('spectatorPanel').classList.add('hidden');resetFloatingJoystick();updateHUD();updateNightHUD();announce(opts.bossTest?'BOSS TEST · NIVO 10':G.runType==='campaign'?`KAMPANJA · ${findLevel(G.stageId).name}`:'TALAS 1 · PREŽIVI',2);sfx('wave');voiceLine('preview',true)}
 function addRemotePlayer(id){
  if(G.players.some(p=>p.id===id))return;
@@ -5245,7 +5245,15 @@ if(NET.role==='guest'){
  const mine=G.players.find(p=>p.id===NET.localId),inp=mine&&!mine.dead&&!G.quickChoice&&!G.guildPending&&!G.lootPending&&!G.marketPending?getLocalInput():{x:0,y:0,dash:false};
  // Optimistic local movement removes the 130-ms stop/start of the remote hero.
  if(mine&&!mine.dead&&!(G.lootPending||G.marketPending)){
-  const m=Math.hypot(inp.x,inp.y);if(m>.08){movingCircle(mine,inp.x*mine.speed*dt,inp.y*mine.speed*dt);mine.walking=true;mine.frame+=dt*10;mine.side=inp.x<-.08?-1:inp.x>.08?1:mine.side}else{mine.walking=false;mine.frame+=dt*2}
+  const before={x:mine.x,y:mine.y},m=Math.hypot(inp.x,inp.y);
+  if(m>.08){
+   const slowdown=G.time<(mine.ns135SlowUntil||0)?.56:1;
+   movingCircle(mine,inp.x*mine.speed*dt*slowdown,inp.y*mine.speed*dt*slowdown);
+   mine.walking=true;mine.frame+=dt*10;
+   if(inp.x<-.08)mine.visualSide=-1;else if(inp.x>.08)mine.visualSide=1;
+  }else{mine.walking=false;mine.frame+=dt*2}
+  ns139PredictionBounds(mine);
+  ns139MoveRecord(before,mine);
  }
  for(const p of G.players){if(p===mine)continue;ns79SmoothRemote(p,dt,.19);p.frame+=(p.walking?10:2)*dt}
  for(const m of G.mobs){if(!Number.isFinite(m.netAuthX))continue;if(Math.abs(m.netAuthX-G.camera.x)>900||Math.abs(m.netAuthY-G.camera.y)>900){m.x=m.netAuthX;m.y=m.netAuthY;m.netAge=.3;continue}ns79SmoothRemote(m,dt,.21);m.frame+=dt*5}
@@ -5262,14 +5270,17 @@ if(NET.role==='guest'){
    // Do not add stale controls behind a queued WebSocket; retry the next frame instead.
    if(Number(NET.conn.bufferSize||0)<9000){
     const v=mine?.dead?{x:0,y:0,attack:false,dash:false}:inp;
-    if(NETLAB.gameSend(NET.conn,{t:'input',v},'host')){NET.lastInput=G.time;NET.lastInputKey=key;input.dash=false;}
+    const seq=(NS139_INPUT.round===NET.round?NS139_INPUT.sent:0)+1;
+    if(NETLAB.gameSend(NET.conn,{t:'input',v,seq},'host')){NS139_INPUT.sent=seq;NET.lastInput=G.time;NET.lastInputKey=key;input.dash=false;}
    }
   }
  }
  updateSpectatorCamera(dt);if(!G.ns66HudAt||G.time-G.ns66HudAt>.09){G.ns66HudAt=G.time;updateHUD();updateNightHUD();}return;
 }
 for(const [id,offer] of NET.pendingOffers){if(G.time<offer.deadline)continue;const p=G.players.find(q=>q.id===id);if(p){if(offer.type==='chest'&&offer.items?.length){grantTreasure(p,offer.items[0].id);maybeGrantRopeKey({seed:offer.chestSeed||1});}if(offer.type==='power'){applyQuickPower(p,'damage');p.offerUntil=0}}NET.pendingOffers.delete(id)}
-const inp=(G.quickChoice||G.lootPending||G.marketPending||G.guildPending||G.relicPending)?{x:0,y:0,dash:false}:getLocalInput();updatePlayer(G.players.find(p=>p.id===(NET.role==='host'?NET.localId:'p1'))||G.players[0],inp,dt);input.dash=false;if(NET.role==='host')for(const [id,v] of NET.remoteInputs){const last=NET.ns102InputAt?.get(id);if(last&&performance.now()-last>900){v.x=0;v.y=0;v.attack=false;v.dash=false;}const remote=G.players.find(p=>p.id===id);if(remote)updatePlayer(remote,v,dt);v.dash=false;}updateMobs(dt);updateBossPhases();updateRevives(dt);if(G.nightVictory&&completeNightRun())return;updateProjectiles(dt);updateAbilities(dt);collectBlueCrystals(dt);tryLootChests();tryMarkets();tryGuildShop();tryRelicShrine();NS105_TEMPLE.tick(dt);
+const inp=(G.quickChoice||G.lootPending||G.marketPending||G.guildPending||G.relicPending)?{x:0,y:0,dash:false}:getLocalInput();updatePlayer(G.players.find(p=>p.id===(NET.role==='host'?NET.localId:'p1'))||G.players[0],inp,dt);input.dash=false;if(NET.role==='host')for(const [id,v] of NET.remoteInputs){const last=NET.ns102InputAt?.get(id);if(last&&performance.now()-last>900){v.x=0;v.y=0;v.attack=false;v.dash=false;}const remote=G.players.find(p=>p.id===id);if(remote){updatePlayer(remote,v,dt);
+  NET.ns139Applied=NET.ns139Applied||new Map();NET.ns139Applied.set(id,NET.ns139LastRx?.get(id)||0);
+ }v.dash=false;}updateMobs(dt);updateBossPhases();updateRevives(dt);if(G.nightVictory&&completeNightRun())return;updateProjectiles(dt);updateAbilities(dt);collectBlueCrystals(dt);tryLootChests();tryMarkets();tryGuildShop();tryRelicShrine();NS105_TEMPLE.tick(dt);
 for(const e of G.effects)e.t+=dt;G.effects=G.effects.filter(e=>e.t<e.life);
 for(const d of G.drops){d.phase+=dt*4;if(d.type==='weapon')continue;for(const p of G.players){if(p.dead)continue;let dx=p.x-d.x,dy=p.y-d.y,dist=Math.hypot(dx,dy);if(d.type!=='weapon'&&dist<120+(p.perks.magnet?60:0)){let speed=200+(120-dist)*2.2;d.x+=dx/Math.max(1,dist)*speed*dt;d.y+=dy/Math.max(1,dist)*speed*dt}if(dist<p.r+d.r+5){if(d.type==='templeKey'){NS105_TEMPLE.collectKey(p);sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='key'){p.keys=(p.keys||0)+1;sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='shard'){p.runShards=(p.runShards||0)+1;sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='gear'&&d.item){NSX.collectGearDrop(d.item);sfx('loot');effect('loot',d.x,d.y)}else if(d.type==='weapon'){claimWorldWeapon(p,d)}else if(d.type==='fieldKit'){useFieldKit(p,d)}else{if(NET.role==='host')coopXP(p,d.amount);else G.xp+=d.amount;sfx('xp')}d.amount=0;break}}}G.drops=G.drops.filter(d=>d.amount>0);if(NET.role!=='host'&&G.xp>=G.xpNeed){G.xp-=G.xpNeed;upgradeLevel()}
 if(!G.caveMode&&!G.ns95TestOnly&&[20,30].includes(G.wave)&&!G.ns100RotfiendWaves?.has(G.wave)&&G.time>=(G.ns100RotfiendRetryAt||0)){
@@ -7334,7 +7345,18 @@ function setupConnection(c){
    if(assigned&&data.t==='powerChoice'&&NS99_TEAM.currentLevel?.id===assigned){NS99_TEAM.select(assigned,data.id);return}
    if(assigned&&data.t==='powerChoice'&&data.round!==NET.round)return;
    if(assigned&&data.t==='powerChoice'){const o=NET.pendingOffers.get(assigned),p=G.players.find(q=>q.id===assigned);if(o?.type==='power'&&p&&G.time<=o.deadline+1){applyQuickPower(p,data.id);p.offerUntil=0;NET.pendingOffers.delete(assigned)}return;}
-   if(assigned&&data.t==='input'&&data.v){let v=data.v;NET.ns102InputAt=NET.ns102InputAt||new Map();NET.ns102InputAt.set(assigned,performance.now());NET.remoteInputs.set(assigned,NET.pendingOffers.has(assigned)?{x:0,y:0,attack:false,dash:false}:{x:clamp(Number(v.x)||0,-1,1),y:clamp(Number(v.y)||0,-1,1),attack:!!v.attack,dash:!!v.dash})}
+   if(assigned&&data.t==='input'&&data.v){
+    const seq=Number(data.seq);
+    NET.ns139LastRx=NET.ns139LastRx||new Map();
+    const prev=NET.ns139LastRx.get(assigned)||0;
+    if(Number.isSafeInteger(seq)&&seq>0){
+     if(seq<=prev)return;NET.ns139LastRx.set(assigned,seq);
+    }
+    const v=data.v;NET.ns102InputAt=NET.ns102InputAt||new Map();
+    NET.ns102InputAt.set(assigned,performance.now());
+    NET.remoteInputs.set(assigned,NET.pendingOffers.has(assigned)?{x:0,y:0,attack:false,dash:false}:
+      {x:clamp(Number(v.x)||0,-1,1),y:clamp(Number(v.y)||0,-1,1),attack:!!v.attack,dash:!!v.dash});
+   }
    else if(assigned&&data.t==='chestChoice'){
     const offer=NET.pendingOffers.get(assigned),player=G.players.find(p=>p.id===assigned);
     if(offer?.type==='chest'&&player&&G.time<=offer.deadline+1&&offer.items.some(o=>o.id===data.id)){
@@ -7527,7 +7549,7 @@ function sendSnapshot(){
   const fx=G.effects.filter(e=>e.id&&e.t<.4&&near(e,710)).slice(-(slow?4:light?5:7)).map(e=>({id:e.id,type:e.type,x:e.x,y:e.y,value:e.value,life:e.life}));
   const peerSeq=(NET.ns80PeerSeq.get(id)||0)+1;NET.ns80PeerSeq.set(id,peerSeq);
   const detailed=(peerSeq===1||peerSeq%3===0);
-  const snap={t:'snapshot',seq:peerSeq,round:NET.round,...shared,
+  const snap={t:'snapshot',seq:peerSeq,round:NET.round,ia:NET.ns139Applied?.get(id)||0,...shared,
     ...(detailed?NET.ns111MetaCache:{}),
     nx:(G.caveMode||peerSeq%3===1)?shared.nx:undefined,
     m:mobs,fx,d:G.drops.filter(d=>near(d,690)).slice(0,slow?8:16).map(d=>({...d})),
@@ -7579,7 +7601,7 @@ function ns132SendMotion(){
    mobRows.push([m.id,Math.round(m.x*10)/10,Math.round(m.y*10)/10,
     Math.round(m.frame*10)/10,m.angle,Math.round(m.attackT*100)/100]);
   }
-  const packet={t:'ns132Motion',round:NET.round,time:now,p:players,m:mobRows};
+  const packet={t:'ns132Motion',round:NET.round,time:now,ia:NET.ns139Applied?.get(id)||0,p:players,m:mobRows};
   if(NETLAB.gameSend(c,packet,id)){sent.set(id,now);ticks.set(id,tick)}
  }
 }
@@ -7590,6 +7612,7 @@ function ns132SendMotion(){
 function ns132ReceiveMotion(d){
  if(NET.role!=='guest'||NET.phase!=='playing'||!NET.localId||
     !Number.isFinite(d?.time)||d.round!==NET.round)return;
+ if(typeof ns139AckInput==='function')ns139AckInput(d.ia);
  const now=performance.now(),stamp=d.time;
  const stat=NET.ns132MotionStats||(NET.ns132MotionStats={from:now,count:0,hz:0,lastAt:0});
  stat.count++;stat.lastAt=now;
@@ -7625,10 +7648,67 @@ function ns132ReceiveMotion(d){
   }
  };
  update(G.players,d.p,true);
+ if(typeof ns139ReconcileOwn==='function'&&Number.isSafeInteger(d.ia))ns139ReconcileOwn(G.players.find(p=>p.id===NET.localId),NETLAB.peer('host').rtt);
  update(G.mobs,d.m,false);
  NET.ns132LastMotionHostTime=Math.max(NET.ns132LastMotionHostTime||0,stamp);
 }
 
+/* V139: bounded client prediction with applied-input ACKs, not the old
+   'current stick direction * RTT' correction that causes vacuum rubber-banding.
+   This is client-only and never trusts input coordinates for host gameplay. */
+const NS139_INPUT={round:null,sent:0,acked:0,at:0,moves:[],lastCorrection:0};
+function ns139InputReset(){
+ NS139_INPUT.round=NET.round;NS139_INPUT.sent=0;NS139_INPUT.acked=0;
+ NS139_INPUT.at=0;NS139_INPUT.moves.length=0;NS139_INPUT.lastCorrection=0;
+}
+function ns139MoveRecord(before,after){
+ if(NS139_INPUT.round!==NET.round)ns139InputReset();
+ const dx=after.x-before.x,dy=after.y-before.y;
+ if(Math.abs(dx)+Math.abs(dy)<.001)return;
+ const now=performance.now();
+ NS139_INPUT.moves.push({seq:NS139_INPUT.sent+1,dx,dy,at:now});
+ while(NS139_INPUT.moves.length>48||NS139_INPUT.moves[0]?.at<now-720)NS139_INPUT.moves.shift();
+}
+function ns139AckInput(seq){
+ if(NS139_INPUT.round!==NET.round)ns139InputReset();
+ if(!Number.isSafeInteger(seq)||seq<NS139_INPUT.acked||seq>NS139_INPUT.sent)return false;
+ if(seq>NS139_INPUT.acked){NS139_INPUT.acked=seq;NS139_INPUT.at=performance.now();}
+ while(NS139_INPUT.moves.length&&NS139_INPUT.moves[0].seq<=seq)NS139_INPUT.moves.shift();
+ return true;
+}
+function ns139ReconcileOwn(own,rtt){
+ if(!own||!Number.isFinite(own.netAuthX)||!Number.isFinite(own.netAuthY))return;
+ const now=performance.now();let dx=0,dy=0;
+ for(const move of NS139_INPUT.moves){
+  if(move.seq>NS139_INPUT.acked&&now-move.at<600){dx+=move.dx;dy+=move.dy}
+ }
+ // A degraded link cannot extrapolate indefinitely. The host is authoritative.
+ const cap=clamp((own.speed||175)*clamp((Number(rtt)||160)/1000+.12,.17,.48),25,110);
+ const magnitude=Math.hypot(dx,dy);
+ if(magnitude>cap){dx*=cap/magnitude;dy*=cap/magnitude}
+ const tx=own.netAuthX+dx,ty=own.netAuthY+dy;
+ const error=Math.hypot(tx-own.x,ty-own.y);
+ NS139_INPUT.lastCorrection=error;
+ if(error>280){own.x=tx;own.y=ty}
+ else if(error>9){
+  const factor=clamp(error/180,.07,.23);
+  own.x+=(tx-own.x)*factor;own.y+=(ty-own.y)*factor;
+ }
+}
+function ns139PredictionBounds(own){
+ if(!own||!Number.isFinite(own.netAuthX)||!Number.isFinite(own.netAuthY))return;
+ const maxAhead=clamp((own.speed||175)*.54,48,125);
+ const dx=own.x-own.netAuthX,dy=own.y-own.netAuthY,delta=Math.hypot(dx,dy);
+ if(delta>maxAhead){own.x=own.netAuthX+dx/delta*maxAhead;own.y=own.netAuthY+dy/delta*maxAhead}
+}
+window.__NS139_SYNC_DIAG=()=>({
+ role:NET.role,round:NET.round,seqSent:NS139_INPUT.sent,seqAcked:NS139_INPUT.acked,
+ pendingMoves:NS139_INPUT.moves.length,ackAgeMs:NS139_INPUT.at?Math.round(performance.now()-NS139_INPUT.at):null,
+ correctionPx:Math.round(NS139_INPUT.lastCorrection),
+ hostRttMs:NET.role==='guest'?NETLAB.peer('host').rtt:null,
+ upstreamBufferBytes:Number(NET.conn?.bufferSize||0),
+ motionHz:NET.ns132MotionStats?.hz||0
+});
 /* V133: keep the guest's immediately predicted movement responsive, but
    reconcile major host corrections. Pure function so our latency QA can check
    stop/start and sharp-turn behavior without a live relay. */
@@ -7726,7 +7806,9 @@ function receiveSnapshot(d){
  }
  const own=G.players.find(p=>p.id===NET.localId);
  if(own&&Number.isFinite(own.tx)){
-  ns133ReconcileLocal(own,getLocalInput(),NETLAB.peer('host').rtt,
+  if(typeof ns139AckInput==='function'&&Number.isSafeInteger(d.ia)){
+   ns139AckInput(d.ia);ns139ReconcileOwn(own,NETLAB.peer('host').rtt);
+  }else ns133ReconcileLocal(own,getLocalInput(),NETLAB.peer('host').rtt,
    performance.now()-(NET.ns133InputChangeAt||0));
  }
  G.reviveRemoteProgress={};if(Array.isArray(d.rv))for(const a of d.rv){if(a?.[0]===NET.localId)G.reviveRemoteProgress={target:a[1],progress:Math.max(0,Math.min(REVIVE_SECONDS,Number(a[2])||0))};}if(own&&!own.dead&&G.reviveHeld&&G.reviveRemoteProgress?.target===undefined&&G.reviveSuppressed?.has(NET.localId))G.reviveHeld=false;G.drops=d.d||[];G.projectiles=d.pr||[];G.blasts=d.bs||[];G.blueCrystals=d.bc||[];
