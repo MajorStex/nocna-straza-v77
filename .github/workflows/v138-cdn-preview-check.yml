@@ -1,0 +1,41 @@
+name: Verify V138 standalone playable preview URLs
+on:
+  push:
+    branches: [probe/v138-live-preview]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Test publicly reachable exact V138 HTML and assets
+        shell: bash
+        run: |
+          python - <<'PY'
+          import urllib.request, urllib.error
+          sha='e9eb8165f9b6a9363f66b0501f5300bf02d1f025'
+          origins=[
+            'https://raw.githack.com/MajorStex/nocna-straza-v77/'+sha+'/public/',
+            'https://rawcdn.githack.com/MajorStex/nocna-straza-v77/'+sha+'/public/',
+            'https://cdn.jsdelivr.net/gh/MajorStex/nocna-straza-v77@'+sha+'/public/',
+          ]
+          good=[]
+          for origin in origins:
+            try:
+              req=urllib.request.Request(origin+'index.html',headers={'User-Agent':'Mozilla/5.0 NightWatch-V138-Preview-Check'})
+              with urllib.request.urlopen(req,timeout=23) as r:
+                body=r.read(1200000).decode('utf8','replace')
+                mime=r.headers.get('content-type','')
+                print('PREVIEW_URL',origin+'index.html','status',r.status,'type',mime,'length',len(body),flush=True)
+              req2=urllib.request.Request(origin+'v115-village.js',headers={'User-Agent':'Mozilla/5.0 NightWatch-V138-Preview-Check'})
+              with urllib.request.urlopen(req2,timeout=23) as r:
+                code=r.read(200000).decode('utf8','replace')
+                print('ASSET_URL',origin+'v115-village.js','status',r.status,'length',len(code),flush=True)
+              if '<title>Night Watch v138' in body and 'VILLAGE_W=1660,VILLAGE_H=960' in code and 'text/html' in mime.lower():
+                good.append(origin+'index.html')
+            except Exception as e:
+              print('PREVIEW_FAILED',origin,repr(e),flush=True)
+          print('VALID_V138_PREVIEW_URLS',good,flush=True)
+          if not good: raise SystemExit('No confirmed browser-served preview URL')
+          PY
