@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright-core');
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8');
-assert.match(html,/<title>Night Watch v137 — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v138 — Noćna Straža<\/title>/);
 assert.match(html,/get\('wave40-preview'\)==='1'/);
 assert.match(html,/function ns136StartWave40Preview\(\)/);
 assert.match(html,/G\.runType='wave40Preview'/);
