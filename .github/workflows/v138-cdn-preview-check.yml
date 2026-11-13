@@ -53,19 +53,27 @@ jobs:
            try{
             for (const width of [360,412]){
              const page=await browser.newPage({viewport:{width,height:844},isMobile:true,hasTouch:true});
-             const errors=[];
+             const errors=[], failedRequests=[], consoleMessages=[];
              page.on('pageerror',e=>errors.push(e.message));
+             page.on('requestfailed',r=>failedRequests.push(r.url().slice(0,220)+' '+r.failure()?.errorText));
+             page.on('console',m=>{if(m.type()==='error')consoleMessages.push(m.text().slice(0,220))});
              const res=await page.goto(url+'?village-test=1&lang=sr',{waitUntil:'domcontentloaded',timeout:28000});
-             await page.waitForFunction(()=>window.__VILLAGE_PREVIEW_STATUS?.open===true,{timeout:22000});
+             try{await page.waitForFunction(()=>window.__VILLAGE_PREVIEW_STATUS?.open===true,{timeout:11000})}
+             catch(e){console.log('CDN_WAIT_TIMEOUT',String(e))}
              const state=await page.evaluate(()=>({
+               title:document.title,
                version:document.querySelector('#ns129VersionBadge')?.textContent,
-               world:window.NS109_VILLAGE.test.world,
-               buildings:window.NS109_VILLAGE.test.buildings.length,
-               animals:window.NS109_VILLAGE.test.animals.length,
-               villageVisible:!document.querySelector('#ns109Village')?.classList.contains('ns109Hidden')
+               game:!!window.__nightWatch,
+               villageJs:!!window.NS109_VILLAGE,
+               previewStatus:window.__VILLAGE_PREVIEW_STATUS,
+               world:window.NS109_VILLAGE?.test?.world,
+               buildings:window.NS109_VILLAGE?.test?.buildings?.length,
+               animals:window.NS109_VILLAGE?.test?.animals?.length,
+               villageVisible:!document.querySelector('#ns109Village')?.classList.contains('ns109Hidden'),
+               content:document.body.innerText.slice(0,200)
              }));
-             console.log('LIVE_CDN_V138_BROWSER',width,'status',res.status(),JSON.stringify(state),'errors',JSON.stringify(errors));
-             if(res.status()!==200||state.version!=='v138'||state.world.width!==1660||
+             console.log('LIVE_CDN_V138_BROWSER',width,'status',res.status(),JSON.stringify(state),'errors',JSON.stringify(errors),'failedRequests',JSON.stringify(failedRequests),'console',JSON.stringify(consoleMessages));
+             if(res.status()!==200||state.version!=='v138'||state.world?.width!==1660||
                 state.buildings!==9||state.animals!==12||!state.villageVisible||
                 errors.some(e=>/SyntaxError|TypeError|ReferenceError|RangeError/.test(e)))throw Error('Live V138 browser smoke failed');
              await page.close();
