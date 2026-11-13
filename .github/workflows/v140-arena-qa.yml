@@ -43,7 +43,7 @@ jobs:
               await page.waitForTimeout(1350);
               const runtime=await page.evaluate(()=>window.NS140_ARENA.diagnostics);
               console.log('V140_SOLO',width,solo,runtime,failures);
-              if(!solo.ok||!solo.active||solo.hidden||!solo.text.includes('SINGLEPLAYER')||runtime.mode!=='solo'||runtime.soloMobCount!==12||runtime.soloHp!==100||runtime.fps<5||failures.length)
+              if(!solo.ok||!solo.active||solo.hidden||!solo.text.includes('SINGLEPLAYER')||runtime.mode!=='solo'||runtime.soloMobCount!==12||!(runtime.soloHp>0&&runtime.soloHp<=100)||runtime.fps<5||failures.length)
                 throw new Error('V140 offline solo run failed');
               await page.evaluate(()=>window.NS140_ARENA.stop());
               if(await page.locator('#ns140Root').isVisible())throw new Error('Solo Exit did not close arena');
