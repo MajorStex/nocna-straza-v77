@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const licenses=fs.readFileSync(path.join(__dirname,'../public/THIRD_PARTY_AUDIO.md'),'utf8');
-assert.match(html,/<title>Night Watch v137 — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v138 — Noćna Straža<\/title>/);
 assert.match(html,/function drawWerewolfLegacy\(e\)/);
 assert.match(html,/function drawWerewolfV137\(e\)/);
 assert.match(html,/NS137_WOLF_OLD\?drawWerewolfLegacy\(e\):drawWerewolfV137\(e\)/);

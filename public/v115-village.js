@@ -13,17 +13,26 @@
  const $=id=>document.getElementById(id);
  const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ // V138: larger, walkable map. Existing cottage IDs remain unchanged for lobby actions.
+ const VILLAGE_W=1660,VILLAGE_H=960;
  const buildings=[
-  {id:'shop',x:184,y:164,w:150,h:114,label:'SHOP',sr:'PRODAVNICA',roof:'#8d5651',wall:'#c0a481',icon:'🛒'},
-  {id:'guardian',x:454,y:156,w:226,h:126,label:'GUARDIAN BASE',sr:'TRAJNA UNAPREĐENJA',roof:'#525b78',wall:'#ada9a0',icon:'✦'},
-  {id:'armory',x:679,y:167,w:130,h:119,label:'ARMORY',sr:'ORUŽARNICA',roof:'#72594a',wall:'#c0ac87',icon:'⚒'},
-  {id:'invite',x:851,y:167,w:136,h:110,label:'INVITE HALL',sr:'KUĆA POZIVA',roof:'#456a70',wall:'#b9c4ad',icon:'✉'},
-  {id:'academy',x:107,y:391,w:156,h:106,label:'HERO ACADEMY',sr:'AKADEMIJA',roof:'#485b70',wall:'#b7b6a6',icon:'⚔'},
-  {id:'hall',x:338,y:393,w:174,h:106,label:'HALL OF FAME',sr:'DOSTIGNUĆA',roof:'#605a7d',wall:'#aaa8b8',icon:'🏆'},
-  {id:'chat',x:563,y:391,w:174,h:110,label:'TAVERN / CHAT',sr:'KRČMA / ČET',roof:'#967255',wall:'#d0b385',icon:'💬'},
-  {id:'ready',x:790,y:398,w:135,h:105,label:'READY GATE',sr:'KAPIJA STARTA',roof:'#386d61',wall:'#b8ac84',icon:'✓'}
+  {id:'shop',x:250,y:248,w:156,h:114,label:'SHOP',sr:'PRODAVNICA',roof:'#8d5651',wall:'#c0a481',icon:'🛒'},
+  {id:'guardian',x:565,y:210,w:214,h:126,label:'GUARDIAN BASE',sr:'TRAJNA UNAPREĐENJA',roof:'#525b78',wall:'#ada9a0',icon:'✦'},
+  {id:'armory',x:915,y:247,w:148,h:119,label:'ARMORY',sr:'ORUŽARNICA',roof:'#72594a',wall:'#c0ac87',icon:'⚒'},
+  {id:'invite',x:1260,y:205,w:156,h:110,label:'INVITE HALL',sr:'KUĆA POZIVA',roof:'#456a70',wall:'#b9c4ad',icon:'✉'},
+  {id:'academy',x:248,y:718,w:162,h:106,label:'HERO ACADEMY',sr:'AKADEMIJA',roof:'#485b70',wall:'#b7b6a6',icon:'⚔'},
+  {id:'hall',x:566,y:717,w:178,h:106,label:'HALL OF FAME',sr:'DOSTIGNUĆA',roof:'#605a7d',wall:'#aaa8b8',icon:'🏆'},
+  {id:'chat',x:954,y:717,w:178,h:110,label:'TAVERN / CHAT',sr:'KRČMA / ČET',roof:'#967255',wall:'#d0b385',icon:'💬'},
+  {id:'ready',x:1312,y:713,w:145,h:105,label:'READY GATE',sr:'KAPIJA STARTA',roof:'#386d61',wall:'#b8ac84',icon:'✓'},
+  {id:'barn',x:1452,y:429,w:194,h:130,label:'PVP BARN',sr:'ŠTALA ZA PVP',roof:'#845348',wall:'#bf9b72',icon:'⚔'}
  ];
- const avatars=new Map(),smoothAvatars=new Map(),limits=new Map(),emotes=new Map(),NPCS=Array.from({length:4},(_,i)=>({x:50+i*250,y:280+i%2*185}));
+ const avatars=new Map(),smoothAvatars=new Map(),limits=new Map(),emotes=new Map();
+ // Ambient animals use deterministic clock-based patrols; no extra rAF or network movement packets.
+ const NPCS=[
+  ['sheep',350,400],['sheep',440,845],['sheep',720,391],['sheep',1073,425],
+  ['sheep',1365,857],['sheep',1532,745],['sheep',132,441],
+  ['pig',335,867],['pig',1050,858],['pig',1493,819],['pig',1456,558],['pig',590,417]
+ ].map(([kind,x,y],id)=>({id,kind,x,y,hp:2,deadUntil:0}));
  let opened=false,soloPreview=false,focused=null,focusNode=null,returnPlace=null,walkTo=null,thenEnter=null,lastSent=0,frameAt=0,lastBroadcast=0,lastLeaderboard=0,lastLeaderRequest=0,leaderCache=null,leaderBusy=false;
  let originalShowLobby=null,originalStartMatch=null,originalSettle=null,originalAward=null,originalOnKill=null,musicCtx=null,musicTimer=null,musicOn=false;
  // V118 profiling is local-only: no network packets or account writes.
@@ -42,12 +51,13 @@
   fpsBadge.textContent='FPS --';
  }
  const stick={id:null,x:0,y:0,vx:0,vy:0,drag:false},keys=Object.create(null);let stepFrame=0,side=1,walking=false,dodgeUntil=0,dodgeReady=0;
- const my={x:492,y:285};
+ const my={x:840,y:506};
  const root=document.createElement('section');root.id='ns109Village';root.className='ns109Hidden';root.setAttribute('aria-label','Village lobby');
  root.innerHTML=
   '<div id="ns109Top"><strong>🏡 NIGHT WATCH · VILLAGE</strong><span id="ns109Info">No enemies · No timer · No pauses</span>'+
   '<button id="ns109Sound" type="button">♫</button><button id="ns109Classic" type="button">☷ CLASSIC LOBBY</button></div>'+
   '<div id="ns109Stage"><canvas id="ns109Scene" width="960" height="540" aria-label="Village with interactive buildings"></canvas><div id="ns117Stick" class="ns109Hidden" aria-hidden="true"><span id="ns117Knob"></span></div><button id="ns117Dodge" type="button" aria-label="Dodge / Izbegni">↝<small>DODGE</small></button><button id="ns120Door" type="button" class="ns109Hidden" aria-label="Enter building / Uđi u kućicu">↳ ENTER</button>'+
+  '<button id="ns138Attack" type="button" aria-label="Attack nearby animals or players" title="Attack · J / F">⚔<small>ATTACK</small></button>'+
   '<div id="ns109Hint">Tap the ground to move, or a house to walk there. Enter the green gate when ready.</div></div>'+
   '<div id="ns109Bottom"><button id="ns109Results" type="button">🏆 RESULTS</button>'+
   '<button id="ns109Global" type="button">🌍 GLOBAL RANKINGS</button>'+
@@ -71,6 +81,8 @@
   '#ns117Dodge small{font-size:9px;letter-spacing:.04em}',
   '#ns117Dodge:disabled{opacity:.5;filter:grayscale(.7)}',
   '#ns120Door{position:absolute;z-index:6;right:12px;bottom:56px;padding:10px 12px!important;border-radius:12px!important;background:#23534de8;border:1.5px solid #efcc8d;color:#ffedbf;font:bold 12px system-ui!important;max-width:min(210px,58vw);white-space:normal!important;box-shadow:0 4px 18px #06181699;touch-action:manipulation}',
+  '#ns138Attack{position:absolute;z-index:5;right:14px;bottom:145px;width:74px;height:74px;display:grid;place-content:center;border:2px solid #e5be91!important;border-radius:50%!important;background:#634439db;color:#fff1c8;font-size:23px!important;box-shadow:0 3px 14px #0008;touch-action:manipulation}',
+  '#ns138Attack small{font-size:9px;letter-spacing:.05em}',
   '#ns109Hint{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);text-align:center;max-width:96%;padding:5px 11px;border:1px solid #d3c18b64;border-radius:12px;background:#122522c8;font-size:clamp(9px,2.6vw,12px);pointer-events:none}',
   '#ns109Bottom{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;padding:8px 6px calc(9px + env(safe-area-inset-bottom));background:#172b2a}',
   '#ns109Pane{position:absolute;inset:0;z-index:2;display:grid;place-items:center;padding:14px;background:#061016b5}',
@@ -101,13 +113,16 @@
  $('ns109Top').insertBefore(destinations,$('ns109Classic'));
  function view(){
   const r=canvas.getBoundingClientRect(),portrait=r.height>r.width*1.28;
-  // Height-only zoom on tall phones showed just a narrow sliver of the Village.
-  const scale=portrait?Math.min(r.height/540,r.width/320):Math.min(r.width/960,r.height/540);
-  const visibleW=r.width/Math.max(.1,scale),left=portrait?clamp(my.x-visibleW/2,0,Math.max(0,960-visibleW)):0;
-  return{rect:r,scale,ox:portrait?-left*scale:(r.width-960*scale)/2,oy:(r.height-540*scale)/2};
+  const scale=portrait?Math.min(r.height/540,r.width/360):Math.min(r.width/960,r.height/540);
+  const visibleW=r.width/Math.max(.1,scale),visibleH=r.height/Math.max(.1,scale);
+  // Follow the hero on BOTH axes: landscape and portrait expose the larger map.
+  const left=clamp(my.x-visibleW/2,0,Math.max(0,VILLAGE_W-visibleW));
+  const top=clamp(my.y-visibleH/2,0,Math.max(0,VILLAGE_H-visibleH));
+  return{rect:r,scale,ox:(r.width-VILLAGE_W*scale)/2+(VILLAGE_W-visibleW)*scale/2-left*scale,
+    oy:(r.height-VILLAGE_H*scale)/2+(VILLAGE_H-visibleH)*scale/2-top*scale};
  }
  const ctxPoint=e=>{const {rect,scale,ox,oy}=view();return{x:(e.clientX-rect.left-ox)/scale,y:(e.clientY-rect.top-oy)/scale}};
- const ground=(x,y)=>({x:clamp(x,29,931),y:clamp(y,62,505)});
+ const ground=(x,y)=>({x:clamp(x,29,VILLAGE_W-29),y:clamp(y,62,VILLAGE_H-35)});
  const isLobby=()=>NET.phase==='lobby'&&!!NET.role;
  const canVisit=()=>isLobby()||(NET.role===''&&G.mode==='menu');
  const ownName=()=>{try{return String(getActiveAccount()?.name||'GUARDIAN').slice(0,20)}catch{return 'GUARDIAN'}};
@@ -142,6 +157,7 @@
   }
   if(id==='hall'){showAchievements();return}
   if(id==='invite'){showInviteHouse();return}
+  if(id==='barn'){showBarnPvP();return}
   if(id==='ready'){
    if(soloPreview){closeVillage();$('coopBtn')?.click();return}
    if(NS97_POST.active){if(!NET.ns97Results?.votes?.[NET.localId])NS97_POST.vote('yes');else NS97_POST.vote('no')}
@@ -149,6 +165,166 @@
    else $('lobbyReadyBtn')?.click();
    $('ns109Hint').textContent=NET.localReady||NET.ns97Results?.votes?.[NET.localId]==='yes'?tr('Ready! Waiting for others.','Spreman! Čekamo ostale.'):tr('Not ready.','Nisi spreman.');return;
   }
+ }
+
+ // V138: completely separate village sparring state. NEVER touches G.hp, kills,
+ // currency, XP, rankings, matchmaking, or an actual game session.
+ const PVP=new Map(),PVP_HP=100,PVP_RANGE=84;
+ const hitFX=[];let pvpSeq=0,lastPvpSync=0,localRespawnSeq=0,lastSoloHit=0;
+ const getPvP=id=>{if(!PVP.has(id))PVP.set(id,{opted:false,hp:PVP_HP,respawnAt:0,invulnerableUntil:0,seq:0,x:0,y:0,lastHit:0});return PVP.get(id)};
+ const villageHeroPos=id=>id===NET.localId||!NET.role&&id==='p1'?my:avatars.get(id);
+ const barnDoor=()=>doorPoint(buildings.find(b=>b.id==='barn'));
+ function nearBarn(id){
+  const p=villageHeroPos(id),door=barnDoor();
+  return !!p&&Math.hypot(p.x-door.x,p.y-door.y)<96;
+ }
+ function villageBroadcastPvp(){
+  if(NET.role!=='host'||NET.phase!=='lobby')return;
+  const pvp=[...PVP].slice(0,6).map(([id,p])=>({id,opted:p.opted,hp:p.hp,seq:p.seq,x:p.x,y:p.y,respawnAt:p.respawnAt,invulnerableUntil:p.invulnerableUntil}));
+  const animals=NPCS.map(a=>[a.id,a.hp,a.deadUntil]);
+  const data={t:'ns138State',pvp,animals};
+  for(const c of NET.clients.values())if(c?.open)try{c.send(data)}catch{}
+ }
+ function applyVillageState(data){
+  if(!Array.isArray(data.pvp)||data.pvp.length>6||!Array.isArray(data.animals)||data.animals.length>20)return;
+  for(const p of data.pvp){
+   if(!/^p[1-6]$/.test(String(p?.id||''))||!Number.isFinite(p.hp)||!Number.isFinite(p.seq))continue;
+   const prev=getPvP(p.id);
+   const next={...prev,opted:p.opted===true,hp:clamp(p.hp,0,PVP_HP),
+    seq:Math.max(0,Math.min(1e7,p.seq)),x:clamp(Number(p.x)||0,29,VILLAGE_W-29),
+    y:clamp(Number(p.y)||0,62,VILLAGE_H-35),respawnAt:Math.max(0,Number(p.respawnAt)||0),
+    invulnerableUntil:Math.max(0,Number(p.invulnerableUntil)||0)};
+   PVP.set(p.id,next);
+   if(next.hp<prev.hp){const hit=villageHeroPos(p.id);if(hit)hitFX.push({x:hit.x,y:hit.y-30,until:Date.now()+280})}
+   // The host alone orders respawn; it does not use a client-supplied teleport.
+   if(p.id===NET.localId&&NET.role==='guest'&&next.seq>localRespawnSeq){
+    localRespawnSeq=next.seq;my.x=next.x;my.y=next.y;
+    route=[];walkTo=null;thenEnter=null;resetStick();
+   }
+  }
+  for(const q of data.animals)if(Array.isArray(q)&&q.length===3&&Number.isInteger(q[0])&&NPCS[q[0]]&&Number.isFinite(q[1])&&Number.isFinite(q[2])){
+   NPCS[q[0]].hp=clamp(q[1],0,2);
+   NPCS[q[0]].deadUntil=Math.max(0,q[2]);
+  }
+  if(focused==='barn'&&!pane.classList.contains('ns109Hidden'))showBarnPvP();
+ }
+ function toggleVillagePvp(id){
+  if(!isLobby()||NET.role!=='host'||!/^p[1-6]$/.test(String(id||''))||!nearBarn(id))return false;
+  const state=getPvP(id);state.opted=!state.opted;state.hp=PVP_HP;state.respawnAt=0;state.invulnerableUntil=Date.now()+1100;
+  villageBroadcastPvp();if(focused==='barn')showBarnPvP();return true;
+ }
+ function randomVillageRespawn(near){
+  // Respawn at a safe doorway close to the defeat, never on the far side of the map.
+  const candidates=buildings.filter(b=>b.id!=='barn').map(b=>({door:doorPoint(b),
+   dist:Math.hypot(b.x-near.x,b.y+b.h/2+26-near.y)})).sort((a,b)=>a.dist-b.dist);
+  const nearby=candidates.filter(q=>q.dist<=420).slice(0,3);
+  const choices=nearby.length?nearby:candidates.slice(0,2);
+  const d=choices[(pvpSeq++)%choices.length].door;
+  return blockedVillage(d.x,d.y)?{x:840,y:506}:d;
+ }
+ function villageRespawn(id,seq){
+  if(NET.role!=='host'||!isLobby())return;
+  const state=getPvP(id);if(!state.opted||state.seq!==seq||state.hp>0)return;
+  const pos=randomVillageRespawn(villageHeroPos(id)||{x:840,y:506});
+  state.hp=PVP_HP;state.respawnAt=0;state.invulnerableUntil=Date.now()+2000;
+  state.seq++;state.x=pos.x;state.y=pos.y;
+  if(id===NET.localId){my.x=pos.x;my.y=pos.y;route=[];walkTo=null}
+  else{
+   avatars.set(id,{...pos,walking:false,side:1,lastMoveAt:performance.now()});
+   const prev=limits.get(id)||{at:0,emote:0};
+   limits.set(id,{...prev,x:pos.x,y:pos.y,at:performance.now()});
+  }
+  villageBroadcastPvp();
+ }
+ function villageStrike(id){
+  if(!canVisit()||(!opened&&id===NET.localId))return false;
+  const now=Date.now(),pos=villageHeroPos(id);
+  if(!pos)return false;
+  const state=getPvP(id);
+  if(now-(state.lastHit||0)<640)return false;
+  if(state.opted&&state.hp<=0)return false;
+  state.lastHit=now;
+  // Only mutually opted-in, living players in the SAME lobby can hurt one another.
+  let victimId=null,best=PVP_RANGE;
+  if(isLobby()&&state.opted){
+   for(const p of getPlayers()){
+    if(p.id===id)continue;
+    const other=getPvP(p.id),at=villageHeroPos(p.id);
+    if(!other.opted||other.hp<=0||now<other.invulnerableUntil||!at)continue;
+    const d=Math.hypot(pos.x-at.x,pos.y-at.y);
+    if(d<best){best=d;victimId=p.id}
+   }
+  }
+  if(victimId){
+   const target=getPvP(victimId);
+   target.hp=Math.max(0,target.hp-34);
+   hitFX.push({x:villageHeroPos(victimId).x,y:villageHeroPos(victimId).y-25,until:now+280});
+   if(target.hp===0){
+    target.respawnAt=now+1650;
+    const seq=target.seq; // ignore timers from prior deaths / resets
+    setTimeout(()=>villageRespawn(victimId,seq),1700);
+   }
+   villageBroadcastPvp();
+   return true;
+  }
+  // Farm animals have separate temporary HP. Killing them gives zero rewards.
+  let closest=null,nearest=72;
+  for(const a of NPCS){
+   if(!animalAlive(a,now))continue;
+   const v=animalPos(a,now),d=Math.hypot(pos.x-v.x,pos.y-v.y);
+   if(d<nearest){nearest=d;closest=a}
+  }
+  if(!closest)return false;
+  closest.hp=Math.max(0,closest.hp-1);
+  const v=animalPos(closest,now);
+  hitFX.push({x:v.x,y:v.y-12,until:now+270});
+  if(closest.hp===0){closest.deadUntil=now+16000;closest.hp=2}
+  if(NET.role==='host')villageBroadcastPvp();
+  return true;
+ }
+ function villageTryStrike(){
+  if(!opened||!canVisit()||!pane.classList.contains('ns109Hidden'))return false;
+  const now=Date.now();if(now-lastSoloHit<600)return false;
+  lastSoloHit=now;
+  if(isLobby()&&NET.role==='guest'){
+   if(!NET.conn?.open)return false;
+   try{NET.conn.send({t:'ns138Strike'});return true}catch{return false}
+  }
+  const id=NET.localId||'p1';return villageStrike(id);
+ }
+ function drawVillageHits(){
+  const now=Date.now();
+  for(let i=hitFX.length-1;i>=0;i--){
+   const e=hitFX[i];if(e.until<now){hitFX.splice(i,1);continue}
+   g.save();g.globalAlpha=(e.until-now)/280;g.strokeStyle='#fff0bd';g.lineWidth=4;
+   g.beginPath();g.moveTo(e.x-17,e.y-16);g.lineTo(e.x+14,e.y+8);g.stroke();g.restore();
+  }
+ }
+ function drawVillagePvpHp(id,x,y){
+  const p=PVP.get(id);if(!p?.opted)return;
+  g.save();g.fillStyle='#211c1dbb';g.fillRect(x-26,y-94,52,6);
+  g.fillStyle=p.hp>35?'#a9d7aa':'#e09276';g.fillRect(x-25,y-93,50*clamp(p.hp/PVP_HP,0,1),4);
+  g.font='bold 11px sans-serif';g.textAlign='center';g.fillStyle='#f6dab1';g.fillText('⚔',x+38,y-78);
+  g.restore();
+ }
+ function showBarnPvP(){
+  panel(tr('⚔ BARN · FRIENDLY PVP','⚔ ŠTALA · PRIJATELJSKI PVP'));focused='barn';
+  const hint=document.createElement('p');
+  hint.textContent=tr('Opt in here to spar with friends. Both players must activate PvP. No XP, no coins, no rankings. After defeat you respawn at a nearby house. You can attack sheep and pigs without PvP.','Ovde uključi PvP za zezanje sa društvom. Oba igrača moraju da uključe PvP. Nema XP, novca ni statistike. Posle poraza se vraćaš kod neke kućice. Ovce i prasiće možeš da napadneš i bez PvP-a.');
+  area.append(hint);
+  const status=document.createElement('p');const own=getPvP(NET.localId||'p1');
+  status.textContent=own.opted?tr('PVP ACTIVE · HP ','PVP UKLJUČEN · HP ')+own.hp+'/'+PVP_HP:tr('PVP OFF','PVP ISKLJUČEN');area.append(status);
+  const btn=document.createElement('button');btn.className='primary';
+  btn.textContent=own.opted?tr('DISABLE PVP','ISKLJUČI PVP'):tr('ENABLE PVP','UKLJUČI PVP');
+  btn.disabled=!isLobby();
+  btn.onclick=()=>{
+   if(!isLobby()){toast(tr('Invite a friend to an online room first','Prvo pozovi prijatelja u online sobu'));return}
+   if(NET.role==='host')toggleVillagePvp(NET.localId);
+   else if(NET.role==='guest'&&NET.conn?.open){NET.conn.send({t:'ns138PvpToggle'});toast(tr('PVP request sent','Zahtev za PvP poslat'))}
+  };
+  area.append(btn);
+  const note=document.createElement('p');note.textContent=isLobby()?tr('Attack: ⚔ button or J / F on keyboard. PvP only works in the Village.','Napad: dugme ⚔ ili J / F na tastaturi. PvP radi samo u selu.'):tr('Join a multiplayer lobby to fight friends. Animals are available in solo Village.','Uđi u multiplayer sobu za PvP. Životinje možeš da napadaš i u solo selu.');
+  area.append(note);
  }
 
  function inviteRosterText(){
@@ -369,32 +545,55 @@
   return style;
  }
  const background=()=>{
-  g.fillStyle='#294941';g.fillRect(0,0,960,540);
-  g.fillStyle='#38584a';for(let i=0;i<18;i++){let x=(i*271)%975,y=(i*191)%550;g.beginPath();g.arc(x,y,22+(i%5)*12,0,Math.PI*2);g.fill()}
-  g.strokeStyle='#95846a';g.lineWidth=76;g.lineCap='round';g.beginPath();g.moveTo(0,298);g.lineTo(960,298);g.stroke();g.beginPath();g.moveTo(488,0);g.lineTo(488,540);g.stroke();
-  g.strokeStyle='#bb9b73';g.lineWidth=61;g.beginPath();g.moveTo(0,298);g.lineTo(960,298);g.stroke();g.beginPath();g.moveTo(488,0);g.lineTo(488,540);g.stroke();
-  for(let i=0;i<32;i++){const x=(i*163)%955,y=(i*111)%540;g.fillStyle=i%2?'#8db87b':'#a4c88c';g.fillRect(x,y,3,5)}
-  // Pastoral landmarks placed outside the main roads and cottage entrances.
-  for(const [x,y,r] of [[40,58,26],[932,64,30],[35,480,29],[923,496,30],[327,73,22],[838,77,21]]){
-   g.fillStyle='#10251c77';g.beginPath();g.ellipse(x+6,y+8,r,r*.4,0,0,7);g.fill();
-   g.fillStyle='#745738';g.fillRect(x-4,y-14,8,29);
-   g.fillStyle='#376044';g.beginPath();g.arc(x,y-21,r,0,7);g.fill();
-   g.fillStyle='#497852';g.beginPath();g.arc(x-12,y-18,r*.63,0,7);g.arc(x+12,y-23,r*.65,0,7);g.fill();
+  g.fillStyle='#29493e';g.fillRect(0,0,VILLAGE_W,VILLAGE_H);
+  // Wide garden squares, independent of interactive buildings.
+  for(let i=0;i<34;i++){
+   const x=(i*271+73)%VILLAGE_W,y=(i*193+81)%VILLAGE_H;
+   g.fillStyle=i%3?'#355747':'#3b654c';g.beginPath();g.arc(x,y,20+(i%5)*15,0,7);g.fill();
   }
-  g.fillStyle='#266976';g.beginPath();g.ellipse(890,301,54,28,-.12,0,7);g.fill();
-  g.strokeStyle='#98b5a8';g.lineWidth=2;for(let i=1;i<4;i++){g.beginPath();g.ellipse(890,300,i*12,i*6,-.12,0,7);g.stroke()}
-  for(const [x,y] of [[51,218],[911,211],[278,479],[688,479]]){
-   g.strokeStyle='#76573d';g.lineWidth=6;g.beginPath();g.moveTo(x-18,y);g.lineTo(x+18,y);g.moveTo(x-18,y+8);g.lineTo(x+18,y+8);g.stroke();
+  g.lineCap='round';
+  for(const [ax,ay,bx,by,w] of [[0,513,VILLAGE_W,513,76],[828,0,828,VILLAGE_H,80],[250,513,250,625,32],[565,513,565,621,32],[957,513,957,618,32],[1312,513,1312,625,32],[1452,513,1452,520,28]]){
+   g.strokeStyle='#84755e';g.lineWidth=w+13;g.beginPath();g.moveTo(ax,ay);g.lineTo(bx,by);g.stroke();
+   g.strokeStyle='#bb9c75';g.lineWidth=w;g.beginPath();g.moveTo(ax,ay);g.lineTo(bx,by);g.stroke();
   }
-  for(let i=0;i<35;i++){const x=(i*137+51)%952,y=(i*199+24)%525;if(Math.abs(x-488)<74||Math.abs(y-298)<53)continue;
-   g.fillStyle=i%3===0?'#f0bb7e':i%3===1?'#ddabdb':'#f2dba6';
-   for(let k=0;k<4;k++){g.beginPath();g.arc(x+Math.cos(k*Math.PI/2)*3,y+Math.sin(k*Math.PI/2)*3,2,0,7);g.fill()}
+  // Trees are drawn into a cached background, so no per-frame foliage cost.
+  const trees=[[53,77,33],[140,80,28],[359,73,31],[695,81,36],[1020,75,34],[1520,65,32],
+   [55,366,30],[347,400,28],[1085,383,34],[1582,300,30],[52,675,32],[370,865,33],
+   [750,877,36],[1090,866,30],[1537,861,37],[1570,680,31],[96,876,28],[1170,414,26]];
+  for(const [x,y,r] of trees){
+   g.fillStyle='#10251c77';g.beginPath();g.ellipse(x+7,y+16,r,r*.43,0,0,7);g.fill();
+   g.fillStyle='#735337';g.fillRect(x-5,y-17,10,40);
+   for(const [dx,dy,rr,col] of [[0,-24,r,'#386847'],[-r*.43,-16,r*.7,'#487650'],[r*.40,-22,r*.65,'#345d43']]){
+    g.fillStyle=col;g.beginPath();g.arc(x+dx,y+dy,rr,0,7);g.fill();
+   }
   }
+  // Sheep meadow / pig pen, a bench, flower patches and a little pond.
+  g.fillStyle='#3b6847';g.beginPath();g.ellipse(1467,727,117,107,-.1,0,7);g.fill();
+  g.strokeStyle='#92714e';g.lineWidth=5;
+  for(let k=0;k<7;k++){const x=1390+k*30;g.beginPath();g.moveTo(x,827);g.lineTo(x,847);g.stroke()}
+  g.fillStyle='#367d87';g.beginPath();g.ellipse(350,512,57,21,.1,0,7);g.fill();
+  g.strokeStyle='#a4c1ad';g.lineWidth=2;for(let i=1;i<4;i++){g.beginPath();g.ellipse(350,512,i*13,i*4,0,0,7);g.stroke()}
+  for(let i=0;i<90;i++){
+   const x=(i*197+39)%VILLAGE_W,y=(i*317+28)%VILLAGE_H;
+   if(Math.abs(x-828)<55||Math.abs(y-513)<53)continue;
+   g.fillStyle=i%3===0?'#dfaa94':i%3===1?'#d1a4d6':'#e6d49c';
+   g.fillRect(x,y,3,4);g.fillRect(x+3,y-3,3,3);
+  }
+  g.fillStyle='#5e4634';g.fillRect(1040,460,72,9);g.fillRect(1050,470,8,18);g.fillRect(1098,470,8,18);
  };
  function house(b){
   g.save();g.translate(b.x,b.y);g.fillStyle='#14211d88';g.fillRect(-b.w/2+7,-b.h/2+11,b.w,b.h);
   g.fillStyle=b.wall;g.fillRect(-b.w/2,-b.h/2+16,b.w,b.h-20);
   g.fillStyle=b.roof;g.beginPath();g.moveTo(-b.w/2-12,-b.h/2+20);g.lineTo(0,-b.h/2-31);g.lineTo(b.w/2+12,-b.h/2+20);g.closePath();g.fill();
+  if(b.id==='barn'){
+    // Distinct red timber barn with huge double doors and an upper hay-loft.
+    g.strokeStyle='#ead0a3';g.lineWidth=5;
+    for(let x=-b.w/2+12;x<b.w/2-8;x+=29){g.beginPath();g.moveTo(x,-b.h/2+24);g.lineTo(x,b.h/2-12);g.stroke()}
+    g.fillStyle='#472d27';g.fillRect(-35,b.h/2-64,70,60);
+    g.strokeStyle='#d9b77e';g.lineWidth=4;g.strokeRect(-35,b.h/2-64,70,60);
+    g.beginPath();g.moveTo(-33,b.h/2-62);g.lineTo(33,b.h/2-6);g.moveTo(33,b.h/2-62);g.lineTo(-33,b.h/2-6);g.stroke();
+    g.fillStyle='#b68b54';g.fillRect(-18,-b.h/2+5,36,24);
+  }
   g.fillStyle='#483d35';g.fillRect(-14,b.h/2-37,28,34);
   // Distinct cottage front: solid timber framing, glowing windows, entrance and roof tiles.
   g.strokeStyle='#7b5739';g.lineWidth=3;g.strokeRect(-b.w/2+6,-b.h/2+21,b.w-12,b.h-25);
@@ -437,56 +636,87 @@
  function villageStaticLayer(){
   const lang=window.__gameLanguage?.value||'en';
   if(sceneLayer&&sceneLayerLang===lang)return sceneLayer;
-  const img=document.createElement('canvas');img.width=960;img.height=540;
+  const img=document.createElement('canvas');img.width=VILLAGE_W;img.height=VILLAGE_H;
   const off=img.getContext('2d',{alpha:false});if(!off)return null;
   const prev=g;
   try{
    g=off;background();
-   g.fillStyle='#467d55';g.beginPath();g.arc(790,465,37,0,7);g.fill();
+   g.fillStyle='#467d55';g.beginPath();g.arc(1312,802,37,0,7);g.fill();
    g.strokeStyle='#c5c38b';g.lineWidth=5;g.stroke();
-   g.font='bold 13px system-ui';g.textAlign='center';g.fillStyle='#f5e5a4';g.fillText('READY',790,475);
+   g.font='bold 13px system-ui';g.textAlign='center';g.fillStyle='#f5e5a4';g.fillText('READY',1312,812);
   }finally{g=prev}
   houseLayers.clear();
   sceneLayer=img;sceneLayerLang=lang;PERF.staticBuilds++;
   return sceneLayer;
  }
- function sheep(time){
-  // Four atmospheric woolly sheep: local-only animation, zero multiplayer packets.
-  for(const [i,o] of NPCS.entries()){
-   const t=time/2300+i*1.7,x=o.x+Math.sin(t)*18,y=o.y+Math.cos(t*.78)*11;
-   g.save();g.translate(x,y+Math.sin(t*4)*1.4);
-   g.fillStyle='#0b251e88';g.beginPath();g.ellipse(0,14,20,5,0,0,7);g.fill();
-   g.strokeStyle='#766456';g.lineWidth=4;g.lineCap='round';
-   for(const lx of [-12,-5,7,14]){g.beginPath();g.moveTo(lx,3);g.lineTo(lx+Math.sin(t*3+lx)*2,17);g.stroke()}
-   g.fillStyle='#f4f0df';for(const [wx,wy,r] of [[-10,1,9],[-2,-5,10],[8,-4,10],[14,3,8],[-2,8,9]]){g.beginPath();g.arc(wx,wy,r,0,7);g.fill()}
-   g.fillStyle='#bea795';g.beginPath();g.ellipse(20,-2,9,8,.2,0,7);g.fill();
-   g.beginPath();g.ellipse(16,-10,5,2,-.6,0,7);g.ellipse(25,-9,5,2,.6,0,7);g.fill();
-   g.fillStyle='#332e28';g.fillRect(24,-6,2.4,2.4);g.restore();
+ function animalPos(o,ms=Date.now()){
+  const t=ms/1000,oPhase=o.id*2.27;
+  return {x:o.x+Math.sin(t*.36+oPhase)*23,
+   y:o.y+Math.cos(t*.29+oPhase*.72)*15,side:Math.cos(t*.36+oPhase)>=0?1:-1};
+ }
+ function animalAlive(o,now=Date.now()){return now>=o.deadUntil}
+ function drawVillageAnimals(time){
+  const now=Date.now();
+  for(const o of NPCS){
+   if(!animalAlive(o,now))continue;
+   const p=animalPos(o,now),t=time/280+o.id*1.6;
+   g.save();g.translate(p.x,p.y+Math.sin(t)*.7);g.scale(p.side,1);
+   g.fillStyle='#071e1a77';g.beginPath();g.ellipse(0,12,19,5,0,0,7);g.fill();
+   g.strokeStyle=o.kind==='sheep'?'#705e54':'#a16f6d';g.lineWidth=4;g.lineCap='round';
+   for(const lx of [-12,-5,6,14]){
+    g.beginPath();g.moveTo(lx,3);g.lineTo(lx+Math.sin(t+lx)*1.6,16);g.stroke();
+   }
+   if(o.kind==='sheep'){
+    g.fillStyle='#f2ead8';
+    for(const [wx,wy,r] of [[-11,0,9],[-4,-5,10],[5,-6,10],[12,1,9],[-2,7,9]]){
+     g.beginPath();g.arc(wx,wy,r,0,7);g.fill();
+    }
+    g.fillStyle='#c5ad95';g.beginPath();g.ellipse(20,-2,9,8,0,0,7);g.fill();
+    g.beginPath();g.ellipse(15,-10,4,3,-.5,0,7);g.ellipse(25,-10,4,3,.5,0,7);g.fill();
+    g.fillStyle='#282b29';g.fillRect(24,-6,2.5,2.5);
+   }else{
+    // Pink pigs: wobbling body, floppy ears, round snout and curled tail.
+    g.fillStyle='#dc9d95';g.beginPath();g.ellipse(0,-1,20,13,0,0,7);g.fill();
+    g.fillStyle='#e6aaa2';g.beginPath();g.ellipse(17,-4,11,10,0,0,7);g.fill();
+    g.beginPath();g.moveTo(11,-11);g.lineTo(9,-22);g.lineTo(19,-13);g.fill();
+    g.fillStyle='#b97c7b';g.beginPath();g.ellipse(25,-1,7,5,0,0,7);g.fill();
+    g.fillStyle='#7e5252';g.fillRect(23,-3,1.5,3);g.fillRect(27,-3,1.5,3);
+    g.fillStyle='#302323';g.fillRect(18,-9,2,2);
+    g.strokeStyle='#d99d99';g.lineWidth=3;g.beginPath();
+    g.moveTo(-19,-5);g.quadraticCurveTo(-29,-16,-24,-13);g.stroke();
+   }
+   if(o.hp===1){g.fillStyle='#e9d8ad';g.font='bold 11px system-ui';g.fillText('✦',-9,-24)}
+   g.restore();
   }
  }
+
  function avatar(id,x,y,name,ready,sparta,animation={}){
   if(typeof drawVillageHero==='function'){
    const look=typeof getVillageHeroLook==='function'?getVillageHeroLook(id):heroStyle;
+   const ko=PVP.get(id)?.opted&&PVP.get(id)?.hp<=0;
+   g.save();if(ko)g.globalAlpha*=.38;
    drawVillageHero(g,x,y,{id,look,frame:animation.frame||0,walking:!!animation.walking,visualSide:animation.side||1});
+   g.restore();
+   if(ko){g.save();g.textAlign='center';g.font='18px sans-serif';g.fillText('💀',x,y-103);g.restore()}
    g.save();g.textAlign='center';g.font='bold 12px system-ui';g.lineWidth=3;g.strokeStyle='#0b191d';
    g.strokeText(name,x,y-74);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,x,y-74);
    if(ready){g.font='bold 14px system-ui';g.fillStyle='#c2ffc5';g.fillText('✓',x+27,y-60)}
    const emote=emotes.get(id);if(emote&&Date.now()<emote.until){g.font='22px system-ui';g.fillText(emote.text,x+30,y-75)}
-   g.restore();return;
+   drawVillagePvpHp(id,x,y);g.restore();return;
   }
-  g.save();g.translate(x,y);g.textAlign='center';g.font='bold 12px system-ui';g.strokeStyle='#0b191d';g.lineWidth=3;g.strokeText(name,0,-36);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,0,-36);
+  g.save();if(PVP.get(id)?.opted&&PVP.get(id)?.hp<=0)g.globalAlpha*=.38;g.translate(x,y);g.textAlign='center';g.font='bold 12px system-ui';g.strokeStyle='#0b191d';g.lineWidth=3;g.strokeText(name,0,-36);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,0,-36);
   g.fillStyle='#061a21a1';g.beginPath();g.ellipse(0,15,15,5,0,0,7);g.fill();
   g.fillStyle=sparta?'#d8ac4f':id===NET.localId?'#8abfba':'#9ba8cc';g.fillRect(-11,-18,22,29);
   g.fillStyle='#e3b58e';g.beginPath();g.arc(0,-24,9,0,7);g.fill();
   g.fillStyle=sparta?'#f7d778':'#304a4d';g.fillRect(-10,-34,20,6);
   g.fillStyle='#303c3d';g.fillRect(-11,10,8,15);g.fillRect(3,10,8,15);
   if(ready){g.font='bold 18px system-ui';g.fillStyle='#c2ffc5';g.fillText('✓',18,-22)}
-  g.restore();
+  g.restore();drawVillagePvpHp(id,x,y);
  }
  // V118: physics shared by joystick, dash and tap-to-walk.
  const COLLISION_PAD=12;
  function blockedVillage(x,y,margin=0){
-  if(x<29||x>931||y<62||y>505)return true;
+  if(x<29||x>VILLAGE_W-29||y<62||y>VILLAGE_H-35)return true;
   return buildings.some(b=>x>b.x-b.w/2-COLLISION_PAD-margin&&x<b.x+b.w/2+COLLISION_PAD+margin&&
    y>b.y-b.h/2-COLLISION_PAD-margin&&y<b.y+b.h/2+COLLISION_PAD+margin);
  }
@@ -502,7 +732,7 @@
   }
   return moved;
  }
- const PATH_CELL=12,PATH_COLS=81,PATH_ROWS=46;
+ const PATH_CELL=20,PATH_COLS=Math.floor(VILLAGE_W/PATH_CELL)+1,PATH_ROWS=Math.floor(VILLAGE_H/PATH_CELL)+1;
  const tile=(x,y)=>({x:Math.max(0,Math.min(PATH_COLS-1,Math.round(x/PATH_CELL))),
                     y:Math.max(0,Math.min(PATH_ROWS-1,Math.round(y/PATH_CELL)))});
  const pathIdx=(x,y)=>y*PATH_COLS+x;
@@ -615,11 +845,13 @@
  for(const kind of ['keydown','keyup'])window.addEventListener(kind,e=>{
   if(!opened||/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||''))return;
   const k=e.key.length===1?e.key.toLowerCase():e.key;
+  if(kind==='keydown'&&(k==='j'||k==='f')&&!e.repeat&&pane.classList.contains('ns109Hidden')){e.preventDefault();villageTryStrike();return}
   if(k===' '||k==='Spacebar'){e.preventDefault();if(kind==='keydown'&&!e.repeat&&!pane.classList.contains('ns109Hidden'))return;if(kind==='keydown'&&!e.repeat)$('ns117Dodge')?.click();return;}
   keys[k]=kind==='keydown';
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','a','s','d'].includes(k))e.preventDefault();
  });
  window.addEventListener('blur',()=>{for(const k of Object.keys(keys))delete keys[k];resetStick()});
+ $('ns138Attack').onclick=()=>{villageTryStrike()};
  $('ns117Dodge').onclick=()=>{const now=performance.now();if(!opened||now<dodgeReady)return;dodgeUntil=now+260;dodgeReady=now+2800};
  function step(time){
   if(!opened||!canVisit()){if(opened)closeVillage();return}
@@ -635,18 +867,23 @@
   const keyX=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0);
   const keyY=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
   const vx=stick.vx+keyX,vy=stick.vy+keyY,magnitude=Math.hypot(vx,vy);
-  if(magnitude>.05){
+  const ko=getPvP(NET.localId||'p1');
+  const knockedOut=ko.opted&&ko.hp<=0;
+  if(knockedOut){walkTo=null;thenEnter=null;route=[]}
+  if(!knockedOut&&magnitude>.05){
    walkTo=null;thenEnter=null;route=[];
    const speed=150*(time<dodgeUntil?2.25:1)*dt;
    moveVillage(vx/Math.max(1,magnitude)*speed,vy/Math.max(1,magnitude)*speed);
-  }else if(walkTo){updateVillageTravel(dt)}
+  }else if(!knockedOut&&walkTo){updateVillageTravel(dt)}
   walking=Math.hypot(my.x-oldX,my.y-oldY)>.15;
   if(walking){stepFrame+=dt*8;if(my.x<oldX-.1)side=-1;if(my.x>oldX+.1)side=1}
   updateDoorInteraction(magnitude>.05&&walking);
-  $('ns117Dodge').disabled=time<dodgeReady;
+  $('ns117Dodge').disabled=knockedOut||time<dodgeReady;
+  $('ns138Attack').disabled=knockedOut||Date.now()-lastSoloHit<600;
   if(NET.phase==='lobby'&&NET.role==='guest'&&NET.conn?.open&&time-lastSent>110){
    lastSent=time;try{NET.conn.send({t:'ns109Move',x:Math.round(my.x),y:Math.round(my.y)})}catch{}
   }
+  if(NET.role==='host'&&isLobby()&&time-lastPvpSync>700){lastPvpSync=time;villageBroadcastPvp()}
   if(NET.role==='host'&&time-lastBroadcast>125){
    lastBroadcast=time;const players=[...avatars.entries()].filter(([id])=>getPlayers().some(p=>p.id===id)).slice(0,6).map(([id,a])=>({id,x:Math.round(a.x),y:Math.round(a.y),walking:!!a.walking&&time-a.lastMoveAt<360,side:a.side||1}));
    players.push({id:NET.localId,x:Math.round(my.x),y:Math.round(my.y),walking,side});
@@ -657,11 +894,11 @@
   g.setTransform(ratio,0,0,ratio,0,0);g.fillStyle='#1d342d';g.fillRect(0,0,screen.rect.width,screen.rect.height);
   g.setTransform(ratio*screen.scale,0,0,ratio*screen.scale,ratio*screen.ox,ratio*screen.oy);
   const layer=villageStaticLayer();if(layer)g.drawImage(layer,0,0);else background();
-  sheep(time);PERF.frames++;
+  drawVillageAnimals(time);PERF.frames++;
   const depthItems=buildings.map(b=>({y:b.y+b.h/2,kind:'house',id:b.id,paint:()=>drawDepthHouse(b)}));
   for(const p of roster){
    if(p.id===NET.localId)continue;
-   const dest=avatars.get(p.id)||{x:460+Number(p.id?.slice(1)||2)*27,y:279};
+   const dest=avatars.get(p.id)||{x:800+Number(p.id?.slice(1)||2)*27,y:506};
    let a=smoothAvatars.get(p.id);
    if(!a){a={x:dest.x,y:dest.y};smoothAvatars.set(p.id,a)}
    const t=Math.min(1,dt*10);a.x+=(dest.x-a.x)*t;a.y+=(dest.y-a.y)*t;
@@ -673,15 +910,28 @@
   depthItems.sort((a,b)=>a.y-b.y||(a.kind===b.kind?0:(a.kind==='house'?-1:1)));
   lastDepthOrder=depthItems.map(item=>item.kind+':'+item.id);
   for(const item of depthItems)item.paint();
+  drawVillageHits();
   if(opened&&!pane.classList.contains('ns109Hidden')&&focused==='leaderboard')return;
  }
  function onMessage(data,assigned){
-  if(!data||!['ns109Move','ns109State','ns109Emote'].includes(data.t))return false;
+  if(!data||!['ns109Move','ns109State','ns109Emote','ns138State','ns138PvpToggle','ns138PvpLeave','ns138Strike'].includes(data.t))return false;
   if(!isLobby())return true;
   if(NET.role==='host'){
    if(!/^p[2-6]$/.test(String(assigned||''))||!NET.clients.get(assigned)?.open)return true;
-   if(data.t==='ns109State')return true;
-   const now=performance.now(),prev=limits.get(assigned)||{at:0,x:450,y:285,emote:0};
+   if(data.t==='ns138State'||data.t==='ns109State')return true;
+   if(data.t==='ns138PvpLeave'){
+    const state=getPvP(assigned);state.opted=false;state.hp=PVP_HP;state.respawnAt=0;
+    villageBroadcastPvp();return true;
+   }
+   // Guest actions use the peer id and host-observed position, never client damage.
+   if(data.t==='ns138PvpToggle'||data.t==='ns138Strike'){
+    const seen=limits.get(assigned);
+    if(!seen||performance.now()-seen.at>1700||!avatars.has(assigned))return true;
+    if(data.t==='ns138PvpToggle')toggleVillagePvp(assigned);
+    else villageStrike(assigned);
+    return true;
+   }
+   const now=performance.now(),prev=limits.get(assigned)||{at:0,x:840,y:506,emote:0};
    if(now-prev.at<85)return true;
    if(data.t==='ns109Emote'){
     if(now-prev.emote>5000&&['👋','⚔','🍻'].includes(data.emote)){prev.emote=now;emotes.set(assigned,{text:data.emote,until:Date.now()+2500});
@@ -689,6 +939,7 @@
     limits.set(assigned,prev);return true;
    }
    if(Number.isFinite(data.x)&&Number.isFinite(data.y)){
+    if(getPvP(assigned).opted&&getPvP(assigned).hp<=0)return true;
     const p=ground(data.x,data.y);const dt=clamp((now-prev.at)/1000,.16,1.5),max=155*dt+16;
     const d=Math.hypot(p.x-prev.x,p.y-prev.y),t=d>max?max/d:1;
     prev.x+=((p.x-prev.x)*t);prev.y+=((p.y-prev.y)*t);prev.at=now;
@@ -700,6 +951,9 @@
    }
    return true;
   }
+  if(data.t==='ns138State'){
+   if(NET.role==='guest')applyVillageState(data);return true;
+  }
   if(data.t==='ns109State'){
    if(!Array.isArray(data.players)||data.players.length>8)return true;
    for(const p of data.players)if(/^p[1-6]$/.test(String(p?.id||''))&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.id!==NET.localId)avatars.set(p.id,{...ground(p.x,p.y),walking:!!p.walking,side:p.side===-1?-1:1});
@@ -710,24 +964,32 @@
  }
  function tap(e){
   if(!opened||!canVisit()||!pane.classList.contains('ns109Hidden'))return;
-  const p=ctxPoint(e);if(p.x<0||p.y<0||p.x>960||p.y>540)return;
+  if(getPvP(NET.localId||'p1').opted&&getPvP(NET.localId||'p1').hp<=0)return;
+  const p=ctxPoint(e);if(p.x<0||p.y<0||p.x>VILLAGE_W||p.y>VILLAGE_H)return;
   const b=buildings.find(x=>Math.abs(p.x-x.x)<x.w/2+25&&Math.abs(p.y-x.y)<x.h/2+30);
   if(b){if(!startVillageTravel(b.x,b.y+b.h/2+26,b.id))toast(tr('Path blocked. Walk closer.','Put je blokiran. Priđi bliže.'));}
-  else if(Math.hypot(p.x-790,p.y-465)<44){startVillageTravel(790,465,'ready');}
+  else if(Math.hypot(p.x-1312,p.y-789)<44){startVillageTravel(1312,789,'ready');}
   else{startVillageTravel(p.x,p.y)}
  }
  function showVillage(){
   if(!canVisit()){toast(tr('Open the village from the main menu or multiplayer lobby.','Otvori selo iz glavnog menija ili multiplayer lobija.'));return false;}
   soloPreview=!isLobby();
   if(!soloPreview){$('coopPanel')?.classList.remove('hidden');$('lobbyArea')?.classList.remove('hidden')}
-  opened=true;walkTo=null;thenEnter=null;route=[];doorLatch=null;doorLabel='';resetStick();stepFrame=0;walking=false;closePane();my.x=490;my.y=284;
+  opened=true;walkTo=null;thenEnter=null;route=[];doorLatch=null;doorLabel='';resetStick();stepFrame=0;walking=false;closePane();my.x=840;my.y=506;localRespawnSeq=0;PVP.clear();
   frameAt=performance.now();villageLastTick=0;villageFrameCredit=VILLAGE_TARGET_MS;
   fpsStart=0;fpsFrames=0;drawMsSum=0;drawMsMax=0;PERF.fps=0;
   root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
   $('ns109Hint').textContent=tr('Walk to a doorway to enter · tap a house to visit','Priđi vratima za ulaz · dodirni kućicu da priđeš');
   return true;
  }
- function closeVillage(){const wasSolo=soloPreview;resetStick();opened=false;villageLastTick=0;villageFrameCredit=0;soloPreview=false;walkTo=null;route=[];doorLatch=null;thenEnter=null;closePane();root.classList.add('ns109Hidden');smoothAvatars.clear();avatars.clear();limits.clear();stopMusic();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
+ function closeVillage(){
+  // Opt-out on exit (game starts, lobby closes or player leaves); no persistent arena state.
+  if(isLobby()&&getPvP(NET.localId).opted){
+   if(NET.role==='host'){getPvP(NET.localId).opted=false;villageBroadcastPvp()}
+   else if(NET.role==='guest'&&NET.conn?.open)try{NET.conn.send({t:'ns138PvpLeave'})}catch{}
+  }
+  if(!isLobby())PVP.clear();
+  const wasSolo=soloPreview;resetStick();opened=false;villageLastTick=0;villageFrameCredit=0;soloPreview=false;walkTo=null;route=[];doorLatch=null;thenEnter=null;closePane();root.classList.add('ns109Hidden');smoothAvatars.clear();avatars.clear();limits.clear();stopMusic();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
  function playMusic(){
   if(musicOn){stopMusic();return}
   try{
@@ -806,13 +1068,18 @@
  window.NS109_VILLAGE={open:showVillage,close:closeVillage,frame:villageFrame,onMessage,enter,onLobbyUI:onVillageLobbyReady,expectJoin:expectVillageJoin,openInvites:()=>{if(!opened&&canVisit())showVillage();if(!opened)return false;showInviteHouse();return true},
  onSoloResult:run=>{if(run&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(run.kills)},
  onMPAward:packet=>{if(packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}},
- get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my},nearDoor:closestDoor()?.id||null,doorLatch,depthOrder:lastDepthOrder.slice(),cachedHouses:houseLayers.size,pendingAutoRoom}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y),visit:(id)=>{const b=buildings.find(x=>x.id===id);return opened&&!!b&&startVillageTravel(doorPoint(b).x,doorPoint(b).y,b.id)},testMove:(x,y)=>{if(!new URLSearchParams(location.search).has('village-test')||!opened)return false;const p=ground(x,y);if(blockedVillage(p.x,p.y))return false;my.x=p.x;my.y=p.y;return true}}};
+ get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,
+   get animals(){return NPCS.map(o=>({...o,...animalPos(o)}))},get pvp(){return [...PVP].map(([id,p])=>({id,...p}))},
+   get world(){return {width:VILLAGE_W,height:VILLAGE_H}},animalPos,attack:villageTryStrike,
+   barn:()=>{if(!opened)return false;showBarnPvP();return true},
+   togglePvp:()=>NET.role==='host'&&toggleVillagePvp(NET.localId),
+   testHit:(id)=>NET.role==='host'&&villageStrike(id),get soloPreview(){return soloPreview},get sheepCount(){return NPCS.filter(a=>a.kind==='sheep').length},get pigCount(){return NPCS.filter(a=>a.kind==='pig').length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my},nearDoor:closestDoor()?.id||null,doorLatch,depthOrder:lastDepthOrder.slice(),cachedHouses:houseLayers.size,pendingAutoRoom}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y),visit:(id)=>{const b=buildings.find(x=>x.id===id);return opened&&!!b&&startVillageTravel(doorPoint(b).x,doorPoint(b).y,b.id)},testMove:(x,y)=>{if(!new URLSearchParams(location.search).has('village-test')||!opened)return false;const p=ground(x,y);if(blockedVillage(p.x,p.y))return false;my.x=p.x;my.y=p.y;return true}}};
  window.NS109_SPARTA={appearance:decorate,owned:spartaOwned,equipped:spartaEquipped,claim:spartaClaim};
  // Real engine preview: preserve the current selected character and input.
  if(new URLSearchParams(location.search).get('village-test')==='1'){
   const launch=()=>{
    const ok=showVillage();
-   window.__VILLAGE_PREVIEW_STATUS={open:ok,buildings:buildings.length,sheep:NPCS.length,authenticHero:typeof drawVillageHero==='function'};
+   window.__VILLAGE_PREVIEW_STATUS={open:ok,buildings:buildings.length,sheep:NPCS.filter(a=>a.kind==='sheep').length,pigs:NPCS.filter(a=>a.kind==='pig').length,authenticHero:typeof drawVillageHero==='function'};
    if(ok&&!$('return')){
     const link=document.createElement('a');link.id='return';link.href='./';link.textContent=tr('← FULL GAME','← IGRA');
     link.style.cssText='position:absolute;z-index:3;right:9px;bottom:calc(78px + env(safe-area-inset-bottom));padding:8px;border-radius:9px;background:#123832;border:1px solid #9fc3ad;color:#f6e4b8;text-decoration:none;font:bold 11px system-ui';

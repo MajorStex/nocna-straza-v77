@@ -2,7 +2,10 @@ name: V108 mobile HUD and copyright QA
 on:
   push:
     branches: [main]
-    paths: ['public/index.html','tests/v108-ui-rights.test.cjs','tests/v135-werewolves-browser.test.cjs','tests/v136-wave40-link.test.cjs','tests/v137-wolf-appearance-audio.test.cjs','.github/workflows/v108-ui-rights.yml']
+    paths: ['public/index.html','tests/v108-ui-rights.test.cjs','tests/v135-werewolves-browser.test.cjs','tests/v136-wave40-link.test.cjs','tests/v137-wolf-appearance-audio.test.cjs','tests/v138-village-pvp-animals.test.cjs','.github/workflows/v108-ui-rights.yml']
+  pull_request:
+    branches: [main]
+    paths: ['public/index.html','public/v115-village.js','tests/v138-village-pvp-animals.test.cjs','.github/workflows/v108-ui-rights.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,3 +28,5 @@ jobs:
         run: node tests/v136-wave40-link.test.cjs
       - name: V137 real wolf recording and reversible visuals
         run: node tests/v137-wolf-appearance-audio.test.cjs
+      - name: V138 enlarged village and combat mobile QA
+        run: node tests/v138-village-pvp-animals.test.cjs

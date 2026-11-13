@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Noćna Straža V115 — Village / Selo · Safe Visual Preview</title>
+<title>Noćna Straža V138 — Village / Selo · Safe Visual Preview</title>
 <meta name="theme-color" content="#182e28">
 <style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#122822;color:#f4e8c6;font-family:system-ui,sans-serif}
@@ -15,7 +15,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#122822;col
 // Keep the old standalone preview below as a fallback for browsers without navigation.
 location.replace('../?village-test=1&lang='+(new URLSearchParams(location.search).get('lang')==='sr'?'sr':'en'));
 </script>
-<div id="fallback"><main><h2>🏡 Village preview</h2><p>Loading the actual village map and four sheep…</p></main></div>
+<div id="fallback"><main><h2>🏡 Village preview</h2><p>Loading expanded village, wandering sheep and pigs…</p></main></div>
 <script>
 window.__gameLanguage={value:new URLSearchParams(location.search).get('lang')==='sr'?'sr':'en'};
 const previewNET={role:'',phase:'',localId:'p1',round:0,clients:new Map(),ns97Results:null};
@@ -29,13 +29,13 @@ window.__NS110_BRIDGE={
  meta:{},heroStyle:{}
 };
 </script>
-<script src="../v115-village.js?v=115"></script>
+<script src="../v115-village.js?v=138"></script>
 <script>
 let villageOk=false;try{villageOk=window.NS109_VILLAGE?.open()===true}catch(e){console.error('Village preview initialization failed',e)}
 window.__VILLAGE_PREVIEW_STATUS={open:villageOk,buildings:window.NS109_VILLAGE?.test?.buildings?.length||0,sheep:window.NS109_VILLAGE?.test?.sheepCount||0};
 if(villageOk)document.getElementById('fallback').remove();
 else document.getElementById('fallback').querySelector('p').textContent='Village failed to initialize; see browser console.';
 </script>
-<a id="return" href="../v115/">↩ FULL GAME</a>
-<div id="tag">V115 · 7 buildings · 4 sheep · isolated map test</div>
+<a id="return" href="../">↩ FULL GAME</a>
+<div id="tag">V138 · 9 buildings · 7 sheep · 5 pigs · PvP barn</div>
 </body></html>
