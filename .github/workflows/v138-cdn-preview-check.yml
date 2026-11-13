@@ -58,7 +58,17 @@ jobs:
              page.on('requestfailed',r=>failedRequests.push(r.url().slice(0,220)+' '+r.failure()?.errorText));
              page.on('console',m=>{if(m.type()==='error')consoleMessages.push(m.text().slice(0,220))});
              const res=await page.goto(url+'?village-test=1&lang=sr',{waitUntil:'domcontentloaded',timeout:28000});
-             try{await page.waitForFunction(()=>window.__VILLAGE_PREVIEW_STATUS?.open===true,{timeout:11000})}
+             if((await page.title()).includes('External Content Notice')){
+               console.log('CDN_NOTICE_FORM_COUNT',await page.locator('form').count());
+               console.log('CDN_NOTICE_BUTTONS',await page.locator('button,input[type=submit]').allTextContents());
+               if(await page.locator('form').count()){
+                await Promise.all([
+                 page.waitForLoadState('domcontentloaded',{timeout:18000}).catch(()=>{}),
+                 page.locator('form').first().evaluate(el=>el.submit())
+                ]);
+               }
+             }
+             try{await page.waitForFunction(()=>window.__VILLAGE_PREVIEW_STATUS?.open===true,{timeout:17000})}
              catch(e){console.log('CDN_WAIT_TIMEOUT',String(e))}
              const state=await page.evaluate(()=>({
                title:document.title,
