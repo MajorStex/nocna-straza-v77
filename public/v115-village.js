@@ -232,7 +232,7 @@
   villageBroadcastPvp();
  }
  function villageStrike(id){
-  if(!opened||!canVisit())return false;
+  if(!canVisit()||(!opened&&id===NET.localId))return false;
   const now=Date.now(),pos=villageHeroPos(id);
   if(!pos)return false;
   const state=getPvP(id);
@@ -691,7 +691,7 @@
    g.strokeText(name,x,y-74);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,x,y-74);
    if(ready){g.font='bold 14px system-ui';g.fillStyle='#c2ffc5';g.fillText('✓',x+27,y-60)}
    const emote=emotes.get(id);if(emote&&Date.now()<emote.until){g.font='22px system-ui';g.fillText(emote.text,x+30,y-75)}
-   g.restore();return;
+   drawVillagePvpHp(id,x,y);g.restore();return;
   }
   g.save();g.translate(x,y);g.textAlign='center';g.font='bold 12px system-ui';g.strokeStyle='#0b191d';g.lineWidth=3;g.strokeText(name,0,-36);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,0,-36);
   g.fillStyle='#061a21a1';g.beginPath();g.ellipse(0,15,15,5,0,0,7);g.fill();
@@ -700,7 +700,7 @@
   g.fillStyle=sparta?'#f7d778':'#304a4d';g.fillRect(-10,-34,20,6);
   g.fillStyle='#303c3d';g.fillRect(-11,10,8,15);g.fillRect(3,10,8,15);
   if(ready){g.font='bold 18px system-ui';g.fillStyle='#c2ffc5';g.fillText('✓',18,-22)}
-  g.restore();
+  g.restore();drawVillagePvpHp(id,x,y);
  }
  // V118: physics shared by joystick, dash and tap-to-walk.
  const COLLISION_PAD=12;
@@ -834,11 +834,13 @@
  for(const kind of ['keydown','keyup'])window.addEventListener(kind,e=>{
   if(!opened||/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||''))return;
   const k=e.key.length===1?e.key.toLowerCase():e.key;
+  if(kind==='keydown'&&(k==='j'||k==='f')&&!e.repeat&&pane.classList.contains('ns109Hidden')){e.preventDefault();villageTryStrike();return}
   if(k===' '||k==='Spacebar'){e.preventDefault();if(kind==='keydown'&&!e.repeat&&!pane.classList.contains('ns109Hidden'))return;if(kind==='keydown'&&!e.repeat)$('ns117Dodge')?.click();return;}
   keys[k]=kind==='keydown';
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','a','s','d'].includes(k))e.preventDefault();
  });
  window.addEventListener('blur',()=>{for(const k of Object.keys(keys))delete keys[k];resetStick()});
+ $('ns138Attack').onclick=()=>{villageTryStrike()};
  $('ns117Dodge').onclick=()=>{const now=performance.now();if(!opened||now<dodgeReady)return;dodgeUntil=now+260;dodgeReady=now+2800};
  function step(time){
   if(!opened||!canVisit()){if(opened)closeVillage();return}
@@ -866,6 +868,7 @@
   if(NET.phase==='lobby'&&NET.role==='guest'&&NET.conn?.open&&time-lastSent>110){
    lastSent=time;try{NET.conn.send({t:'ns109Move',x:Math.round(my.x),y:Math.round(my.y)})}catch{}
   }
+  if(NET.role==='host'&&isLobby()&&time-lastPvpSync>700){lastPvpSync=time;villageBroadcastPvp()}
   if(NET.role==='host'&&time-lastBroadcast>125){
    lastBroadcast=time;const players=[...avatars.entries()].filter(([id])=>getPlayers().some(p=>p.id===id)).slice(0,6).map(([id,a])=>({id,x:Math.round(a.x),y:Math.round(a.y),walking:!!a.walking&&time-a.lastMoveAt<360,side:a.side||1}));
    players.push({id:NET.localId,x:Math.round(my.x),y:Math.round(my.y),walking,side});
@@ -880,7 +883,7 @@
   const depthItems=buildings.map(b=>({y:b.y+b.h/2,kind:'house',id:b.id,paint:()=>drawDepthHouse(b)}));
   for(const p of roster){
    if(p.id===NET.localId)continue;
-   const dest=avatars.get(p.id)||{x:460+Number(p.id?.slice(1)||2)*27,y:279};
+   const dest=avatars.get(p.id)||{x:800+Number(p.id?.slice(1)||2)*27,y:506};
    let a=smoothAvatars.get(p.id);
    if(!a){a={x:dest.x,y:dest.y};smoothAvatars.set(p.id,a)}
    const t=Math.min(1,dt*10);a.x+=(dest.x-a.x)*t;a.y+=(dest.y-a.y)*t;
@@ -892,15 +895,28 @@
   depthItems.sort((a,b)=>a.y-b.y||(a.kind===b.kind?0:(a.kind==='house'?-1:1)));
   lastDepthOrder=depthItems.map(item=>item.kind+':'+item.id);
   for(const item of depthItems)item.paint();
+  drawVillageHits();
   if(opened&&!pane.classList.contains('ns109Hidden')&&focused==='leaderboard')return;
  }
  function onMessage(data,assigned){
-  if(!data||!['ns109Move','ns109State','ns109Emote'].includes(data.t))return false;
+  if(!data||!['ns109Move','ns109State','ns109Emote','ns138State','ns138PvpToggle','ns138PvpLeave','ns138Strike'].includes(data.t))return false;
   if(!isLobby())return true;
   if(NET.role==='host'){
    if(!/^p[2-6]$/.test(String(assigned||''))||!NET.clients.get(assigned)?.open)return true;
-   if(data.t==='ns109State')return true;
-   const now=performance.now(),prev=limits.get(assigned)||{at:0,x:450,y:285,emote:0};
+   if(data.t==='ns138State'||data.t==='ns109State')return true;
+   if(data.t==='ns138PvpLeave'){
+    const state=getPvP(assigned);state.opted=false;state.hp=PVP_HP;state.respawnAt=0;
+    villageBroadcastPvp();return true;
+   }
+   // Guest actions use the peer id and host-observed position, never client damage.
+   if(data.t==='ns138PvpToggle'||data.t==='ns138Strike'){
+    const seen=limits.get(assigned);
+    if(!seen||performance.now()-seen.at>1700||!avatars.has(assigned))return true;
+    if(data.t==='ns138PvpToggle')toggleVillagePvp(assigned);
+    else villageStrike(assigned);
+    return true;
+   }
+   const now=performance.now(),prev=limits.get(assigned)||{at:0,x:840,y:506,emote:0};
    if(now-prev.at<85)return true;
    if(data.t==='ns109Emote'){
     if(now-prev.emote>5000&&['👋','⚔','🍻'].includes(data.emote)){prev.emote=now;emotes.set(assigned,{text:data.emote,until:Date.now()+2500});
@@ -918,6 +934,9 @@
     }
    }
    return true;
+  }
+  if(data.t==='ns138State'){
+   if(NET.role==='guest')applyVillageState(data);return true;
   }
   if(data.t==='ns109State'){
    if(!Array.isArray(data.players)||data.players.length>8)return true;
