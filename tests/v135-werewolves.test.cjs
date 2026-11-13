@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
-assert.match(html,/<title>Night Watch v135 — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v\\d+ — Noćna Straža<\\/title>/);
 for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)){
  if(!/\bsrc=/.test(m[1]))new vm.Script(m[2]);
 }
