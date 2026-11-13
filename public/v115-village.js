@@ -13,15 +13,18 @@
  const $=id=>document.getElementById(id);
  const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ // V138: larger, walkable map. Existing cottage IDs remain unchanged for lobby actions.
+ const VILLAGE_W=1660,VILLAGE_H=960;
  const buildings=[
-  {id:'shop',x:184,y:164,w:150,h:114,label:'SHOP',sr:'PRODAVNICA',roof:'#8d5651',wall:'#c0a481',icon:'🛒'},
-  {id:'guardian',x:454,y:156,w:226,h:126,label:'GUARDIAN BASE',sr:'TRAJNA UNAPREĐENJA',roof:'#525b78',wall:'#ada9a0',icon:'✦'},
-  {id:'armory',x:679,y:167,w:130,h:119,label:'ARMORY',sr:'ORUŽARNICA',roof:'#72594a',wall:'#c0ac87',icon:'⚒'},
-  {id:'invite',x:851,y:167,w:136,h:110,label:'INVITE HALL',sr:'KUĆA POZIVA',roof:'#456a70',wall:'#b9c4ad',icon:'✉'},
-  {id:'academy',x:107,y:391,w:156,h:106,label:'HERO ACADEMY',sr:'AKADEMIJA',roof:'#485b70',wall:'#b7b6a6',icon:'⚔'},
-  {id:'hall',x:338,y:393,w:174,h:106,label:'HALL OF FAME',sr:'DOSTIGNUĆA',roof:'#605a7d',wall:'#aaa8b8',icon:'🏆'},
-  {id:'chat',x:563,y:391,w:174,h:110,label:'TAVERN / CHAT',sr:'KRČMA / ČET',roof:'#967255',wall:'#d0b385',icon:'💬'},
-  {id:'ready',x:790,y:398,w:135,h:105,label:'READY GATE',sr:'KAPIJA STARTA',roof:'#386d61',wall:'#b8ac84',icon:'✓'}
+  {id:'shop',x:250,y:248,w:156,h:114,label:'SHOP',sr:'PRODAVNICA',roof:'#8d5651',wall:'#c0a481',icon:'🛒'},
+  {id:'guardian',x:565,y:210,w:214,h:126,label:'GUARDIAN BASE',sr:'TRAJNA UNAPREĐENJA',roof:'#525b78',wall:'#ada9a0',icon:'✦'},
+  {id:'armory',x:915,y:247,w:148,h:119,label:'ARMORY',sr:'ORUŽARNICA',roof:'#72594a',wall:'#c0ac87',icon:'⚒'},
+  {id:'invite',x:1260,y:205,w:156,h:110,label:'INVITE HALL',sr:'KUĆA POZIVA',roof:'#456a70',wall:'#b9c4ad',icon:'✉'},
+  {id:'academy',x:248,y:718,w:162,h:106,label:'HERO ACADEMY',sr:'AKADEMIJA',roof:'#485b70',wall:'#b7b6a6',icon:'⚔'},
+  {id:'hall',x:566,y:717,w:178,h:106,label:'HALL OF FAME',sr:'DOSTIGNUĆA',roof:'#605a7d',wall:'#aaa8b8',icon:'🏆'},
+  {id:'chat',x:954,y:717,w:178,h:110,label:'TAVERN / CHAT',sr:'KRČMA / ČET',roof:'#967255',wall:'#d0b385',icon:'💬'},
+  {id:'ready',x:1312,y:713,w:145,h:105,label:'READY GATE',sr:'KAPIJA STARTA',roof:'#386d61',wall:'#b8ac84',icon:'✓'},
+  {id:'barn',x:1452,y:429,w:194,h:130,label:'PVP BARN',sr:'ŠTALA ZA PVP',roof:'#845348',wall:'#bf9b72',icon:'⚔'}
  ];
  const avatars=new Map(),smoothAvatars=new Map(),limits=new Map(),emotes=new Map(),NPCS=Array.from({length:4},(_,i)=>({x:50+i*250,y:280+i%2*185}));
  let opened=false,soloPreview=false,focused=null,focusNode=null,returnPlace=null,walkTo=null,thenEnter=null,lastSent=0,frameAt=0,lastBroadcast=0,lastLeaderboard=0,lastLeaderRequest=0,leaderCache=null,leaderBusy=false;
@@ -42,7 +45,7 @@
   fpsBadge.textContent='FPS --';
  }
  const stick={id:null,x:0,y:0,vx:0,vy:0,drag:false},keys=Object.create(null);let stepFrame=0,side=1,walking=false,dodgeUntil=0,dodgeReady=0;
- const my={x:492,y:285};
+ const my={x:840,y:506};
  const root=document.createElement('section');root.id='ns109Village';root.className='ns109Hidden';root.setAttribute('aria-label','Village lobby');
  root.innerHTML=
   '<div id="ns109Top"><strong>🏡 NIGHT WATCH · VILLAGE</strong><span id="ns109Info">No enemies · No timer · No pauses</span>'+
@@ -101,13 +104,16 @@
  $('ns109Top').insertBefore(destinations,$('ns109Classic'));
  function view(){
   const r=canvas.getBoundingClientRect(),portrait=r.height>r.width*1.28;
-  // Height-only zoom on tall phones showed just a narrow sliver of the Village.
-  const scale=portrait?Math.min(r.height/540,r.width/320):Math.min(r.width/960,r.height/540);
-  const visibleW=r.width/Math.max(.1,scale),left=portrait?clamp(my.x-visibleW/2,0,Math.max(0,960-visibleW)):0;
-  return{rect:r,scale,ox:portrait?-left*scale:(r.width-960*scale)/2,oy:(r.height-540*scale)/2};
+  const scale=portrait?Math.min(r.height/540,r.width/360):Math.min(r.width/960,r.height/540);
+  const visibleW=r.width/Math.max(.1,scale),visibleH=r.height/Math.max(.1,scale);
+  // Follow the hero on BOTH axes: landscape and portrait expose the larger map.
+  const left=clamp(my.x-visibleW/2,0,Math.max(0,VILLAGE_W-visibleW));
+  const top=clamp(my.y-visibleH/2,0,Math.max(0,VILLAGE_H-visibleH));
+  return{rect:r,scale,ox:(r.width-VILLAGE_W*scale)/2+(VILLAGE_W-visibleW)*scale/2-left*scale,
+    oy:(r.height-VILLAGE_H*scale)/2+(VILLAGE_H-visibleH)*scale/2-top*scale};
  }
  const ctxPoint=e=>{const {rect,scale,ox,oy}=view();return{x:(e.clientX-rect.left-ox)/scale,y:(e.clientY-rect.top-oy)/scale}};
- const ground=(x,y)=>({x:clamp(x,29,931),y:clamp(y,62,505)});
+ const ground=(x,y)=>({x:clamp(x,29,VILLAGE_W-29),y:clamp(y,62,VILLAGE_H-35)});
  const isLobby=()=>NET.phase==='lobby'&&!!NET.role;
  const canVisit=()=>isLobby()||(NET.role===''&&G.mode==='menu');
  const ownName=()=>{try{return String(getActiveAccount()?.name||'GUARDIAN').slice(0,20)}catch{return 'GUARDIAN'}};
@@ -369,32 +375,55 @@
   return style;
  }
  const background=()=>{
-  g.fillStyle='#294941';g.fillRect(0,0,960,540);
-  g.fillStyle='#38584a';for(let i=0;i<18;i++){let x=(i*271)%975,y=(i*191)%550;g.beginPath();g.arc(x,y,22+(i%5)*12,0,Math.PI*2);g.fill()}
-  g.strokeStyle='#95846a';g.lineWidth=76;g.lineCap='round';g.beginPath();g.moveTo(0,298);g.lineTo(960,298);g.stroke();g.beginPath();g.moveTo(488,0);g.lineTo(488,540);g.stroke();
-  g.strokeStyle='#bb9b73';g.lineWidth=61;g.beginPath();g.moveTo(0,298);g.lineTo(960,298);g.stroke();g.beginPath();g.moveTo(488,0);g.lineTo(488,540);g.stroke();
-  for(let i=0;i<32;i++){const x=(i*163)%955,y=(i*111)%540;g.fillStyle=i%2?'#8db87b':'#a4c88c';g.fillRect(x,y,3,5)}
-  // Pastoral landmarks placed outside the main roads and cottage entrances.
-  for(const [x,y,r] of [[40,58,26],[932,64,30],[35,480,29],[923,496,30],[327,73,22],[838,77,21]]){
-   g.fillStyle='#10251c77';g.beginPath();g.ellipse(x+6,y+8,r,r*.4,0,0,7);g.fill();
-   g.fillStyle='#745738';g.fillRect(x-4,y-14,8,29);
-   g.fillStyle='#376044';g.beginPath();g.arc(x,y-21,r,0,7);g.fill();
-   g.fillStyle='#497852';g.beginPath();g.arc(x-12,y-18,r*.63,0,7);g.arc(x+12,y-23,r*.65,0,7);g.fill();
+  g.fillStyle='#29493e';g.fillRect(0,0,VILLAGE_W,VILLAGE_H);
+  // Wide garden squares, independent of interactive buildings.
+  for(let i=0;i<34;i++){
+   const x=(i*271+73)%VILLAGE_W,y=(i*193+81)%VILLAGE_H;
+   g.fillStyle=i%3?'#355747':'#3b654c';g.beginPath();g.arc(x,y,20+(i%5)*15,0,7);g.fill();
   }
-  g.fillStyle='#266976';g.beginPath();g.ellipse(890,301,54,28,-.12,0,7);g.fill();
-  g.strokeStyle='#98b5a8';g.lineWidth=2;for(let i=1;i<4;i++){g.beginPath();g.ellipse(890,300,i*12,i*6,-.12,0,7);g.stroke()}
-  for(const [x,y] of [[51,218],[911,211],[278,479],[688,479]]){
-   g.strokeStyle='#76573d';g.lineWidth=6;g.beginPath();g.moveTo(x-18,y);g.lineTo(x+18,y);g.moveTo(x-18,y+8);g.lineTo(x+18,y+8);g.stroke();
+  g.lineCap='round';
+  for(const [ax,ay,bx,by,w] of [[0,513,VILLAGE_W,513,76],[828,0,828,VILLAGE_H,80],[250,513,250,625,32],[565,513,565,621,32],[957,513,957,618,32],[1312,513,1312,625,32],[1452,513,1452,520,28]]){
+   g.strokeStyle='#84755e';g.lineWidth=w+13;g.beginPath();g.moveTo(ax,ay);g.lineTo(bx,by);g.stroke();
+   g.strokeStyle='#bb9c75';g.lineWidth=w;g.beginPath();g.moveTo(ax,ay);g.lineTo(bx,by);g.stroke();
   }
-  for(let i=0;i<35;i++){const x=(i*137+51)%952,y=(i*199+24)%525;if(Math.abs(x-488)<74||Math.abs(y-298)<53)continue;
-   g.fillStyle=i%3===0?'#f0bb7e':i%3===1?'#ddabdb':'#f2dba6';
-   for(let k=0;k<4;k++){g.beginPath();g.arc(x+Math.cos(k*Math.PI/2)*3,y+Math.sin(k*Math.PI/2)*3,2,0,7);g.fill()}
+  // Trees are drawn into a cached background, so no per-frame foliage cost.
+  const trees=[[53,77,33],[140,80,28],[359,73,31],[695,81,36],[1020,75,34],[1520,65,32],
+   [55,366,30],[347,400,28],[1085,383,34],[1582,300,30],[52,675,32],[370,865,33],
+   [750,877,36],[1090,866,30],[1537,861,37],[1570,680,31],[96,876,28],[1170,414,26]];
+  for(const [x,y,r] of trees){
+   g.fillStyle='#10251c77';g.beginPath();g.ellipse(x+7,y+16,r,r*.43,0,0,7);g.fill();
+   g.fillStyle='#735337';g.fillRect(x-5,y-17,10,40);
+   for(const [dx,dy,rr,col] of [[0,-24,r,'#386847'],[-r*.43,-16,r*.7,'#487650'],[r*.40,-22,r*.65,'#345d43']]){
+    g.fillStyle=col;g.beginPath();g.arc(x+dx,y+dy,rr,0,7);g.fill();
+   }
   }
+  // Sheep meadow / pig pen, a bench, flower patches and a little pond.
+  g.fillStyle='#3b6847';g.beginPath();g.ellipse(1467,727,117,107,-.1,0,7);g.fill();
+  g.strokeStyle='#92714e';g.lineWidth=5;
+  for(let k=0;k<7;k++){const x=1390+k*30;g.beginPath();g.moveTo(x,827);g.lineTo(x,847);g.stroke()}
+  g.fillStyle='#367d87';g.beginPath();g.ellipse(350,512,57,21,.1,0,7);g.fill();
+  g.strokeStyle='#a4c1ad';g.lineWidth=2;for(let i=1;i<4;i++){g.beginPath();g.ellipse(350,512,i*13,i*4,0,0,7);g.stroke()}
+  for(let i=0;i<90;i++){
+   const x=(i*197+39)%VILLAGE_W,y=(i*317+28)%VILLAGE_H;
+   if(Math.abs(x-828)<55||Math.abs(y-513)<53)continue;
+   g.fillStyle=i%3===0?'#dfaa94':i%3===1?'#d1a4d6':'#e6d49c';
+   g.fillRect(x,y,3,4);g.fillRect(x+3,y-3,3,3);
+  }
+  g.fillStyle='#5e4634';g.fillRect(1040,460,72,9);g.fillRect(1050,470,8,18);g.fillRect(1098,470,8,18);
  };
  function house(b){
   g.save();g.translate(b.x,b.y);g.fillStyle='#14211d88';g.fillRect(-b.w/2+7,-b.h/2+11,b.w,b.h);
   g.fillStyle=b.wall;g.fillRect(-b.w/2,-b.h/2+16,b.w,b.h-20);
   g.fillStyle=b.roof;g.beginPath();g.moveTo(-b.w/2-12,-b.h/2+20);g.lineTo(0,-b.h/2-31);g.lineTo(b.w/2+12,-b.h/2+20);g.closePath();g.fill();
+  if(b.id==='barn'){
+    // Distinct red timber barn with huge double doors and an upper hay-loft.
+    g.strokeStyle='#ead0a3';g.lineWidth=5;
+    for(let x=-b.w/2+12;x<b.w/2-8;x+=29){g.beginPath();g.moveTo(x,-b.h/2+24);g.lineTo(x,b.h/2-12);g.stroke()}
+    g.fillStyle='#472d27';g.fillRect(-35,b.h/2-64,70,60);
+    g.strokeStyle='#d9b77e';g.lineWidth=4;g.strokeRect(-35,b.h/2-64,70,60);
+    g.beginPath();g.moveTo(-33,b.h/2-62);g.lineTo(33,b.h/2-6);g.moveTo(33,b.h/2-62);g.lineTo(-33,b.h/2-6);g.stroke();
+    g.fillStyle='#b68b54';g.fillRect(-18,-b.h/2+5,36,24);
+  }
   g.fillStyle='#483d35';g.fillRect(-14,b.h/2-37,28,34);
   // Distinct cottage front: solid timber framing, glowing windows, entrance and roof tiles.
   g.strokeStyle='#7b5739';g.lineWidth=3;g.strokeRect(-b.w/2+6,-b.h/2+21,b.w-12,b.h-25);
@@ -437,14 +466,14 @@
  function villageStaticLayer(){
   const lang=window.__gameLanguage?.value||'en';
   if(sceneLayer&&sceneLayerLang===lang)return sceneLayer;
-  const img=document.createElement('canvas');img.width=960;img.height=540;
+  const img=document.createElement('canvas');img.width=VILLAGE_W;img.height=VILLAGE_H;
   const off=img.getContext('2d',{alpha:false});if(!off)return null;
   const prev=g;
   try{
    g=off;background();
-   g.fillStyle='#467d55';g.beginPath();g.arc(790,465,37,0,7);g.fill();
+   g.fillStyle='#467d55';g.beginPath();g.arc(1312,802,37,0,7);g.fill();
    g.strokeStyle='#c5c38b';g.lineWidth=5;g.stroke();
-   g.font='bold 13px system-ui';g.textAlign='center';g.fillStyle='#f5e5a4';g.fillText('READY',790,475);
+   g.font='bold 13px system-ui';g.textAlign='center';g.fillStyle='#f5e5a4';g.fillText('READY',1312,812);
   }finally{g=prev}
   houseLayers.clear();
   sceneLayer=img;sceneLayerLang=lang;PERF.staticBuilds++;
@@ -486,7 +515,7 @@
  // V118: physics shared by joystick, dash and tap-to-walk.
  const COLLISION_PAD=12;
  function blockedVillage(x,y,margin=0){
-  if(x<29||x>931||y<62||y>505)return true;
+  if(x<29||x>VILLAGE_W-29||y<62||y>VILLAGE_H-35)return true;
   return buildings.some(b=>x>b.x-b.w/2-COLLISION_PAD-margin&&x<b.x+b.w/2+COLLISION_PAD+margin&&
    y>b.y-b.h/2-COLLISION_PAD-margin&&y<b.y+b.h/2+COLLISION_PAD+margin);
  }
@@ -502,7 +531,7 @@
   }
   return moved;
  }
- const PATH_CELL=12,PATH_COLS=81,PATH_ROWS=46;
+ const PATH_CELL=20,PATH_COLS=Math.floor(VILLAGE_W/PATH_CELL)+1,PATH_ROWS=Math.floor(VILLAGE_H/PATH_CELL)+1;
  const tile=(x,y)=>({x:Math.max(0,Math.min(PATH_COLS-1,Math.round(x/PATH_CELL))),
                     y:Math.max(0,Math.min(PATH_ROWS-1,Math.round(y/PATH_CELL)))});
  const pathIdx=(x,y)=>y*PATH_COLS+x;
@@ -710,17 +739,17 @@
  }
  function tap(e){
   if(!opened||!canVisit()||!pane.classList.contains('ns109Hidden'))return;
-  const p=ctxPoint(e);if(p.x<0||p.y<0||p.x>960||p.y>540)return;
+  const p=ctxPoint(e);if(p.x<0||p.y<0||p.x>VILLAGE_W||p.y>VILLAGE_H)return;
   const b=buildings.find(x=>Math.abs(p.x-x.x)<x.w/2+25&&Math.abs(p.y-x.y)<x.h/2+30);
   if(b){if(!startVillageTravel(b.x,b.y+b.h/2+26,b.id))toast(tr('Path blocked. Walk closer.','Put je blokiran. Priđi bliže.'));}
-  else if(Math.hypot(p.x-790,p.y-465)<44){startVillageTravel(790,465,'ready');}
+  else if(Math.hypot(p.x-1312,p.y-789)<44){startVillageTravel(1312,789,'ready');}
   else{startVillageTravel(p.x,p.y)}
  }
  function showVillage(){
   if(!canVisit()){toast(tr('Open the village from the main menu or multiplayer lobby.','Otvori selo iz glavnog menija ili multiplayer lobija.'));return false;}
   soloPreview=!isLobby();
   if(!soloPreview){$('coopPanel')?.classList.remove('hidden');$('lobbyArea')?.classList.remove('hidden')}
-  opened=true;walkTo=null;thenEnter=null;route=[];doorLatch=null;doorLabel='';resetStick();stepFrame=0;walking=false;closePane();my.x=490;my.y=284;
+  opened=true;walkTo=null;thenEnter=null;route=[];doorLatch=null;doorLabel='';resetStick();stepFrame=0;walking=false;closePane();my.x=840;my.y=506;
   frameAt=performance.now();villageLastTick=0;villageFrameCredit=VILLAGE_TARGET_MS;
   fpsStart=0;fpsFrames=0;drawMsSum=0;drawMsMax=0;PERF.fps=0;
   root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
