@@ -9,6 +9,7 @@ on:
       - 'tests/v129-version-watermark.test.cjs'
       - 'tests/v135-werewolves.test.cjs'
       - 'tests/v137-wolf-appearance-audio.test.cjs'
+      - 'tests/v138-village-pvp-animals.test.cjs'
       - '.github/workflows/cloudflare-existing-pages.yml'
   workflow_dispatch:
 permissions:
@@ -38,6 +39,10 @@ jobs:
         run: node tests/v135-werewolves.test.cjs
       - name: V137 public-domain wolf howl and reversible appearance QA
         run: node tests/v137-wolf-appearance-audio.test.cjs
+      - name: Install headless browser for full Village regression
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: V138 expanded village, animals and multiplayer PvP safety QA
+        run: node tests/v138-village-pvp-animals.test.cjs
       - name: Save backup release package
         run: |
           cd public
