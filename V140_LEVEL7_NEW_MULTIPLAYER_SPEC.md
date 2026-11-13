@@ -52,6 +52,27 @@ Status: architecture proposal only; **not yet selectable or live**. Created on a
 - Existing lobby WebSocket is `wss://nocna-straza-relay.stefanstevic1996.workers.dev/room/<code>` and can remain as just a low-rate control channel; separate V140 URL `/arena/<match_id>` must only become available once new backend has been deployed.
 - `MajorStex/nocna-straza-relay` currently only exposes `/room/`; add a new Durable Object class + binding and new route in a separate release, preserving the legacy GameRoom schema.
 
+## Potvrđene odluke korisnika (13.11.2026)
+- **Otključavanje:** opšti nivo **naloga 7**, ne nivo pojedinačnog heroja. Novi mod odmah važi za sve heroje jednog naloga.
+- **Testiranje:** pristup **A**. Prvo 2 igrača: kretanje, promena smera, sudari i napadi; zatim 15–25 goblina; tek nakon stabilnosti 4–6 igrača i veće horde.
+- **Trošak:** strogo **0 EUR mesečno**, bez prelaska na paid plan, bez 24/7 servera ili automatske naplate. Rad samo u okviru Cloudflare Workers Free / SQLite-backed Durable Objects, sa budžetom zahteva i obračunskog vremena po sesiji i automatskim zaustavljanjem kada se budžet primakne limitu.
+- **Prebacivanje:** ostaje stari lobby/pozivi/Ready, ali pokretanje ovog moda prebacuje sve u nezavisan, server-autoritativan multiplayer; nema automatskog fallback-a na stari netcode.
+- **Trenutni sledeći korak:** potvrditi raspoloživost **dva fizička telefona na različitim mrežama**, jer simulacija jittera ne može zameniti realni 4G/5G test.
+- Nije potvrđeno da je nova implementacija izvršena ili objavljena; ovo je još plan i ne sme se prikazivati kao live igra.
+
+### Operativni test plan pod uslovom 0 €
+1. Server iza nove `/arena/` putanje, odvojen od Classic i Night Flame; eksplicitno koristi SQLite-backed Durable Object.
+2. Prvo instrumentacija: frame time, host/guest RTT, ack age, correction distance, snapshot age, outbound buffer, server tick duration, naplativi zahtevi.
+3. Probe sa **2 klijenta** bez neprijatelja: 60 sekundi mirovanja, 60 sekundi promena pravca, sudari sa zgradama, brzi napadi, skok kašnjenja 100/250/400 ms i prekid do 2 s; stanje HP i pozicija mora ostati usaglašeno.
+4. Dodaj 15, pa 25 goblina uz zajedničko polje putanja; testiraj potrošnju po neprijatelju. Ako klijent zaostaje, smanji količinu replikovanih podataka, ne lokalni responsiveness.
+5. Povećaj broj igrača 2→4→6 i broj neprijatelja 25→40→60. Beleži procentile 95/99, ne samo prosečni FPS.
+6. Server radi samo dok je makar jedan igrač aktivno u partiji; prazna soba završava simulaciju i oslobađa resurse. Idle WebSocket hibernation gde je moguća, ali ne očekivati hibernaciju tokom aktivnih tick-ova.
+7. Pri približavanju Free limitima sprečiti start novih partija i dati razumljivu poruku, umesto da igra pukne usred sesije; nikad ne preći na plaćeni plan.
+8. Tek posle kontrolisanog browser testa, obavezan pravi test dva telefona (jedan Wi-Fi, drugi mobilni internet), pa multiplayer sa šest.
+Cloudflare izvori (provereno 13.11.2026):
+https://developers.cloudflare.com/durable-objects/platform/pricing/
+https://developers.cloudflare.com/durable-objects/best-practices/websockets/
+
 ## Staged QA / release gates
 1. Pure movement sandbox on two clients: walking, sprint/dodge, turn rapidly and collide with walls; show **real-time** FPS, ping, snapshot Hz, byte rates, correction pixels, server tick cost and connection queue.
 2. Mobile browser E2E at 360/412 px, one test server + 2 clients; simulators add 100/250/400ms RTT, 20–100ms jitter, temporary 0.5–2s pauses and 5% application-level drops; actual WebSocket TCP is reliable.
