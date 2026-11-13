@@ -6,7 +6,8 @@ const B=()=>window.__NS110_BRIDGE||{},clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
  players:new Map(),me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
- correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null},attack:false,timeout:null,ticket:'',retry:0};
+ correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null},attack:false,timeout:null,ticket:'',retry:0,
+ solo:false,soloMobs:[],soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0};
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -40,12 +41,14 @@ function ui(){
 }
 function status(note){ui();el('ns140Root').hidden=false;el('ns140Status').textContent=note}
 function stop(notify=false){
+ const wasSolo=N.solo;
  if(notify&&N.id==='p1'&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'end'}))}catch{}
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
- N.phase='idle';N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.attack=false;
+ N.phase='idle';N.solo=false;N.soloMobs=[];N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.attack=false;
  if(el('ns140Root'))el('ns140Root').hidden=true;
- if(B().NET?.phase==='lobby')try{B().renderLobby?.()}catch{}
+ if(wasSolo)try{window.__nightWatch?.showPreRun?.()}catch{}
+ else if(B().NET?.phase==='lobby')try{B().renderLobby?.()}catch{}
  return true;
 }
 function input(){
@@ -83,6 +86,82 @@ function snapshot(m){
   }
  }
 }
+
+/* Local-only entry for the SAME V140 arena. Never creates a lobby, WebSocket or
+   a Cloudflare request. Practice goblins are temporary test content (0 XP). */
+function startSolo(){
+ if(B().currentProfileLevel?.()<7||B().NET?.role||!['idle','error'].includes(N.phase))return false;
+ if(N.ws){try{N.ws.close()}catch{}N.ws=null}
+ N.solo=true;N.phase='running';N.id='p1';N.match='offline';N.ticket='';
+ N.world={w:960,h:600,r:14,speed:156,obstacles:[
+  {x:275,y:140,w:95,h:92},{x:585,y:330,w:102,h:94},
+  {x:435,y:245,w:75,h:84},{x:165,y:350,w:87,h:58}
+ ]};
+ N.seq=N.ack=N.soloTick=N.soloKills=0;N.tick=-1;
+ N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;
+ N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
+ N.delta={x:0,y:0};N.pending=[];N.players.clear();
+ N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,attackTick:-100,online:true,knocked:false};
+ N.players.set('p1',N.me);
+ N.soloMobs=Array.from({length:12},(_,i)=>({
+  id:i,x:180+(i%4)*185,y:75+Math.floor(i/4)*225,
+  sx:180+(i%4)*185,sy:75+Math.floor(i/4)*225,
+  hp:35,attackAt:0,deadUntil:0
+ }));
+ status('V140 · SINGLEPLAYER · OFFLINE · TEST GOBLINI · 0 XP');
+ el('ns140Hit').disabled=false;
+ return true;
+}
+function stepSolo(dt,attackHeld){
+ if(!N.solo||!N.me)return;
+ N.soloAcc=Math.min(.15,N.soloAcc+dt);
+ let iterations=0;
+ while(N.soloAcc>=1/30&&iterations++<5){
+  N.soloAcc-=1/30;N.soloTick++;N.tick=N.soloTick;
+  const me=N.me;
+  if(me.hp<=0){N.phase='solo_ended';status('STRAŽAR JE PAO · SOLO TEST ZAVRŠEN · NAZAD ZA PONOVNO');break}
+  for(const mob of N.soloMobs){
+   if(mob.hp<=0){
+    if(N.soloTick>=mob.deadUntil){mob.hp=35;mob.x=mob.sx;mob.y=mob.sy}
+    continue;
+   }
+   const dx=me.x-mob.x,dy=me.y-mob.y,d=Math.hypot(dx,dy)||1;
+   if(d>28)moveLocal(mob,dx/d*55/30,dy/d*55/30);
+   else if(N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
+    me.hp=Math.max(0,me.hp-7);mob.attackAt=N.soloTick+43;N.soloInvul=N.soloTick+28;
+   }
+  }
+  if(attackHeld&&N.soloTick-N.soloSwing>=19){
+   N.soloSwing=N.soloTick;me.attackTick=N.soloTick;
+   let target=null,dist=83;
+   for(const mob of N.soloMobs){
+    if(mob.hp<=0)continue;
+    const d=Math.hypot(mob.x-me.x,mob.y-me.y);
+    if(d<dist){target=mob;dist=d}
+   }
+   if(target){
+    target.hp=Math.max(0,target.hp-22);
+    if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++}
+   }
+  }
+ }
+}
+function drawSoloMobs(g,now){
+ for(const mob of N.soloMobs){
+  if(mob.hp<=0)continue;
+  const pulse=Math.sin(now/250+mob.id)*1.4;
+  g.save();g.translate(mob.x,mob.y+pulse);
+  g.fillStyle='#2c3e29';g.beginPath();g.ellipse(0,6,17,13,0,0,Math.PI*2);g.fill();
+  g.fillStyle='#6a8954';g.beginPath();g.moveTo(-13,0);g.lineTo(-15,-13);g.lineTo(-6,-8);
+  g.quadraticCurveTo(0,-22,8,-8);g.lineTo(15,-14);g.lineTo(12,0);
+  g.quadraticCurveTo(0,14,-13,0);g.fill();
+  g.fillStyle='#efc269';g.fillRect(-7,-6,4,3);g.fillRect(5,-6,4,3);
+  g.fillStyle='#473a2a';g.fillRect(-16,-29,32,4);
+  g.fillStyle='#a6d49a';g.fillRect(-15,-28,30*(mob.hp/35),2);
+  g.restore();
+ }
+}
+
 function connect(match,id,ticket){
  if(N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<7){status('V140 zahteva OPŠTI NIVO 7');return false}
@@ -156,9 +235,10 @@ function frame(now){
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
   moveLocal(N.me,v.x*N.world.speed*dt,v.y*N.world.speed*dt);
-  N.delta.x+=N.me.x-oldX;N.delta.y+=N.me.y-oldY;
+  if(N.solo){stepSolo(dt,v.attack)}
+  else {N.delta.x+=N.me.x-oldX;N.delta.y+=N.me.y-oldY;}
   const away=Math.hypot(N.me.x-N.me.tx,N.me.y-N.me.ty);
-  if(away>105){N.me.x=N.me.tx+(N.me.x-N.me.tx)*105/away;N.me.y=N.me.ty+(N.me.y-N.me.ty)*105/away}
+  if(!N.solo&&away>105){N.me.x=N.me.tx+(N.me.x-N.me.tx)*105/away;N.me.y=N.me.ty+(N.me.y-N.me.ty)*105/away}
  }
  if(N.ws?.readyState===1&&now-N.lastInput>=50&&N.ws.bufferedAmount<4000){
   const seq=++N.seq;N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
@@ -176,6 +256,7 @@ function frame(now){
  g.strokeStyle='#536b55';for(let x=0;x<N.world.w;x+=55){g.beginPath();g.moveTo(x,0);g.lineTo(x,N.world.h);g.stroke()}
  for(let y=0;y<N.world.h;y+=55){g.beginPath();g.moveTo(0,y);g.lineTo(N.world.w,y);g.stroke()}
  for(const o of N.world.obstacles){g.fillStyle='#7c6b52';g.fillRect(o.x,o.y,o.w,o.h);g.strokeStyle='#bfa17b';g.lineWidth=2;g.strokeRect(o.x,o.y,o.w,o.h)}
+ if(N.solo)drawSoloMobs(g,now);
  for(const p of N.players.values()){
   if(!p.online)continue;
   if(p.id!==N.id){const k=clamp(dt*10,0,1);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
@@ -189,9 +270,10 @@ function frame(now){
   g.restore();
  }
  g.setTransform(dpr,0,0,dpr,0,0);
- el('ns140Stats').textContent='FPS '+N.fps+' | '+Math.round(N.ping)+'ms | ACK '+N.ack+'/'+N.seq+
+ el('ns140Stats').textContent=N.solo?('FPS '+N.fps+' | OFFLINE · HP '+N.me.hp+' | KILOVI '+N.soloKills+' | 0 XP'):
+  'FPS '+N.fps+' | '+Math.round(N.ping)+'ms | ACK '+N.ack+'/'+N.seq+
   ' | korekcija '+Math.round(N.correction)+'px | stanje '+Math.round(now-N.lastState)+'ms | CPU '+N.serverMs+'ms';
 }
-window.NS140_ARENA={startHost,acceptOffer,frame,stop,get active(){return N.phase==='running'},
+window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get active(){return N.phase==='running'},
  get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs}}};
 })();
