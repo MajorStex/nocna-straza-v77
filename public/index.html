@@ -7180,6 +7180,22 @@ function ns132ReceiveMotion(d){
  NET.ns132LastMotionHostTime=Math.max(NET.ns132LastMotionHostTime||0,stamp);
 }
 
+/* V133: keep the guest's immediately predicted movement responsive, but
+   reconcile major host corrections. Pure function so our latency QA can check
+   stop/start and sharp-turn behavior without a live relay. */
+function ns133ReconcileLocal(own,desired,rtt,sinceTurn){
+ if(!own||!Number.isFinite(own.netAuthX)||!Number.isFinite(own.netAuthY))return;
+ const lead=clamp(Number.isFinite(rtt)?rtt/2000+.055:.11,.055,.21);
+ const targetX=own.netAuthX+(desired.x||0)*(own.speed||175)*lead;
+ const targetY=own.netAuthY+(desired.y||0)*(own.speed||175)*lead;
+ const err=Math.hypot(targetX-own.x,targetY-own.y);
+ const grace=clamp((Number.isFinite(rtt)?rtt:140)*1.15,110,310);
+ if(err>235){own.x=targetX;own.y=targetY}
+ else if(err>28&&sinceTurn>=grace){
+  const k=Math.min(.10,5/err);
+  own.x+=(targetX-own.x)*k;own.y+=(targetY-own.y)*k;
+ }
+}
 /* v79: estimate velocity ONLY from two actual authoritative snapshots.
    v77 used the already extrapolated tx in its velocity calculation, causing
    guests to alternate between freezing and overshooting under relay jitter. */
@@ -7249,17 +7265,8 @@ function receiveSnapshot(d){
  G.players=reconcilePositions(G.players,d.p.map(p=>Array.isArray(p)?{id:p[0],x:p[1],y:p[2],r:p[3],hp:p[4],maxHp:p[5],speed:p[6],weapon:p[7],damage:p[8],range:p[9],attackRate:p[10],attackT:p[11],attackCD:p[12],dashCD:p[13],frame:p[14],walking:!!p[15],visualSide:p[16],facing:p[17],headFacing:p[18],bodyFacing:p[19],flash:p[20],dead:!!p[21],deathT:p[22],shieldUntil:p[23],freezeUntil:p[24],crystals:p[25],keys:p[26],perks:p[27],perkTimers:p[28],visualScale:p[29],xp:p[30],level:p[31],xpNeed:p[32],reviveCount:p[33]||0,sosUsed:!!p[34],sosAt:Number(p[35])||0,evolutions:p[36]||{},evolutionCooldown:p[37]||{},nsRole:p[38]||'guardian',nsLegendaryWeapon:p[39]||null,secondaryWeapon:MEDIEVAL_WEAPONS[p[40]]?p[40]:null,nsCombatClass:['warrior','ranger','mage','support'].includes(p[41])?p[41]:'warrior',mpName:safePlayerName(p[42]||multiplayerDisplayName(p[0])),ns93Mana:Number(p[43])||0,ns93MaxMana:Number(p[44])||64,ns93ManaRegen:Number(p[45])||2.5,ns93Cooldown:p[46]||{},look:NET.heroLooks.get(p[0])||networkHeroStyle(FACTORY_HERO)}:p),hostStep,d.time);G.mobs=reconcilePositions(G.mobs,(d.m||[]).map(m=>Array.isArray(m)?{id:m[0],type:m[1],x:m[2],y:m[3],r:m[4],hp:m[5],maxHp:m[6],angle:m[7],frame:m[8],flash:m[9],attackT:m[10],deathT:m[11],dead:!!m[12],spitWindup:m[13],bossPhase:m[14]||1,bossCast:m[15]||null,nsExploreBoss:!!m[16],nsExploreTag:m[17]||0,nsCaveSpider:!!m[18],nsCaveThief:!!m[19],nsThiefUntil:m[20]||0,ns95Guard:!!m[21]}:m),hostStep,d.time);
  const own=G.players.find(p=>p.id===NET.localId);
  if(own&&Number.isFinite(own.tx)){
-  const desired=getLocalInput(),rtt=NETLAB.peer('host').rtt;
-  const lead=clamp(Number.isFinite(rtt)?rtt/2000+.055:.11,.055,.21);
-  const targetX=own.netAuthX+(desired.x||0)*(own.speed||175)*lead;
-  const targetY=own.netAuthY+(desired.y||0)*(own.speed||175)*lead;
-  const err=Math.hypot(targetX-own.x,targetY-own.y);
-  const sinceTurn=performance.now()-(NET.ns133InputChangeAt||0);
-  const grace=clamp((Number.isFinite(rtt)?rtt:140)*1.15,110,310);
-  // Host remains authoritative (teleports/solid collision corrections).
-  // Avoid rubber-banding when a guest releases the stick or turns.
-  if(err>235){own.x=targetX;own.y=targetY}
-  else if(err>28&&sinceTurn>=grace){const k=Math.min(.10,5/err);own.x+=(targetX-own.x)*k;own.y+=(targetY-own.y)*k}
+  ns133ReconcileLocal(own,getLocalInput(),NETLAB.peer('host').rtt,
+   performance.now()-(NET.ns133InputChangeAt||0));
  }
  G.reviveRemoteProgress={};if(Array.isArray(d.rv))for(const a of d.rv){if(a?.[0]===NET.localId)G.reviveRemoteProgress={target:a[1],progress:Math.max(0,Math.min(REVIVE_SECONDS,Number(a[2])||0))};}if(own&&!own.dead&&G.reviveHeld&&G.reviveRemoteProgress?.target===undefined&&G.reviveSuppressed?.has(NET.localId))G.reviveHeld=false;G.drops=d.d||[];G.projectiles=d.pr||[];G.blasts=d.bs||[];G.blueCrystals=d.bc||[];
  for(const e of (d.fx||[])){
