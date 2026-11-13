@@ -26,7 +26,13 @@
   {id:'ready',x:1312,y:713,w:145,h:105,label:'READY GATE',sr:'KAPIJA STARTA',roof:'#386d61',wall:'#b8ac84',icon:'✓'},
   {id:'barn',x:1452,y:429,w:194,h:130,label:'PVP BARN',sr:'ŠTALA ZA PVP',roof:'#845348',wall:'#bf9b72',icon:'⚔'}
  ];
- const avatars=new Map(),smoothAvatars=new Map(),limits=new Map(),emotes=new Map(),NPCS=Array.from({length:4},(_,i)=>({x:50+i*250,y:280+i%2*185}));
+ const avatars=new Map(),smoothAvatars=new Map(),limits=new Map(),emotes=new Map();
+ // Ambient animals use deterministic clock-based patrols; no extra rAF or network movement packets.
+ const NPCS=[
+  ['sheep',350,400],['sheep',440,845],['sheep',720,391],['sheep',1073,425],
+  ['sheep',1365,857],['sheep',1532,745],['sheep',132,441],
+  ['pig',335,867],['pig',1050,858],['pig',1493,819],['pig',1456,558],['pig',590,417]
+ ].map(([kind,x,y],id)=>({id,kind,x,y,hp:2,deadUntil:0}));
  let opened=false,soloPreview=false,focused=null,focusNode=null,returnPlace=null,walkTo=null,thenEnter=null,lastSent=0,frameAt=0,lastBroadcast=0,lastLeaderboard=0,lastLeaderRequest=0,leaderCache=null,leaderBusy=false;
  let originalShowLobby=null,originalStartMatch=null,originalSettle=null,originalAward=null,originalOnKill=null,musicCtx=null,musicTimer=null,musicOn=false;
  // V118 profiling is local-only: no network packets or account writes.
@@ -479,20 +485,47 @@
   sceneLayer=img;sceneLayerLang=lang;PERF.staticBuilds++;
   return sceneLayer;
  }
- function sheep(time){
-  // Four atmospheric woolly sheep: local-only animation, zero multiplayer packets.
-  for(const [i,o] of NPCS.entries()){
-   const t=time/2300+i*1.7,x=o.x+Math.sin(t)*18,y=o.y+Math.cos(t*.78)*11;
-   g.save();g.translate(x,y+Math.sin(t*4)*1.4);
-   g.fillStyle='#0b251e88';g.beginPath();g.ellipse(0,14,20,5,0,0,7);g.fill();
-   g.strokeStyle='#766456';g.lineWidth=4;g.lineCap='round';
-   for(const lx of [-12,-5,7,14]){g.beginPath();g.moveTo(lx,3);g.lineTo(lx+Math.sin(t*3+lx)*2,17);g.stroke()}
-   g.fillStyle='#f4f0df';for(const [wx,wy,r] of [[-10,1,9],[-2,-5,10],[8,-4,10],[14,3,8],[-2,8,9]]){g.beginPath();g.arc(wx,wy,r,0,7);g.fill()}
-   g.fillStyle='#bea795';g.beginPath();g.ellipse(20,-2,9,8,.2,0,7);g.fill();
-   g.beginPath();g.ellipse(16,-10,5,2,-.6,0,7);g.ellipse(25,-9,5,2,.6,0,7);g.fill();
-   g.fillStyle='#332e28';g.fillRect(24,-6,2.4,2.4);g.restore();
+ function animalPos(o,ms=Date.now()){
+  const t=ms/1000,oPhase=o.id*2.27;
+  return {x:o.x+Math.sin(t*.36+oPhase)*23,
+   y:o.y+Math.cos(t*.29+oPhase*.72)*15,side:Math.cos(t*.36+oPhase)>=0?1:-1};
+ }
+ function animalAlive(o,now=Date.now()){return now>=o.deadUntil}
+ function drawVillageAnimals(time){
+  const now=Date.now();
+  for(const o of NPCS){
+   if(!animalAlive(o,now))continue;
+   const p=animalPos(o,now),t=time/280+o.id*1.6;
+   g.save();g.translate(p.x,p.y+Math.sin(t)*.7);g.scale(p.side,1);
+   g.fillStyle='#071e1a77';g.beginPath();g.ellipse(0,12,19,5,0,0,7);g.fill();
+   g.strokeStyle=o.kind==='sheep'?'#705e54':'#a16f6d';g.lineWidth=4;g.lineCap='round';
+   for(const lx of [-12,-5,6,14]){
+    g.beginPath();g.moveTo(lx,3);g.lineTo(lx+Math.sin(t+lx)*1.6,16);g.stroke();
+   }
+   if(o.kind==='sheep'){
+    g.fillStyle='#f2ead8';
+    for(const [wx,wy,r] of [[-11,0,9],[-4,-5,10],[5,-6,10],[12,1,9],[-2,7,9]]){
+     g.beginPath();g.arc(wx,wy,r,0,7);g.fill();
+    }
+    g.fillStyle='#c5ad95';g.beginPath();g.ellipse(20,-2,9,8,0,0,7);g.fill();
+    g.beginPath();g.ellipse(15,-10,4,3,-.5,0,7);g.ellipse(25,-10,4,3,.5,0,7);g.fill();
+    g.fillStyle='#282b29';g.fillRect(24,-6,2.5,2.5);
+   }else{
+    // Pink pigs: wobbling body, floppy ears, round snout and curled tail.
+    g.fillStyle='#dc9d95';g.beginPath();g.ellipse(0,-1,20,13,0,0,7);g.fill();
+    g.fillStyle='#e6aaa2';g.beginPath();g.ellipse(17,-4,11,10,0,0,7);g.fill();
+    g.beginPath();g.moveTo(11,-11);g.lineTo(9,-22);g.lineTo(19,-13);g.fill();
+    g.fillStyle='#b97c7b';g.beginPath();g.ellipse(25,-1,7,5,0,0,7);g.fill();
+    g.fillStyle='#7e5252';g.fillRect(23,-3,1.5,3);g.fillRect(27,-3,1.5,3);
+    g.fillStyle='#302323';g.fillRect(18,-9,2,2);
+    g.strokeStyle='#d99d99';g.lineWidth=3;g.beginPath();
+    g.moveTo(-19,-5);g.quadraticCurveTo(-29,-16,-24,-13);g.stroke();
+   }
+   if(o.hp===1){g.fillStyle='#e9d8ad';g.font='bold 11px system-ui';g.fillText('✦',-9,-24)}
+   g.restore();
   }
  }
+
  function avatar(id,x,y,name,ready,sparta,animation={}){
   if(typeof drawVillageHero==='function'){
    const look=typeof getVillageHeroLook==='function'?getVillageHeroLook(id):heroStyle;
@@ -686,7 +719,7 @@
   g.setTransform(ratio,0,0,ratio,0,0);g.fillStyle='#1d342d';g.fillRect(0,0,screen.rect.width,screen.rect.height);
   g.setTransform(ratio*screen.scale,0,0,ratio*screen.scale,ratio*screen.ox,ratio*screen.oy);
   const layer=villageStaticLayer();if(layer)g.drawImage(layer,0,0);else background();
-  sheep(time);PERF.frames++;
+  drawVillageAnimals(time);PERF.frames++;
   const depthItems=buildings.map(b=>({y:b.y+b.h/2,kind:'house',id:b.id,paint:()=>drawDepthHouse(b)}));
   for(const p of roster){
    if(p.id===NET.localId)continue;
