@@ -2,7 +2,7 @@ name: V108 mobile HUD and copyright QA
 on:
   push:
     branches: [main]
-    paths: ['public/index.html','tests/v108-ui-rights.test.cjs','.github/workflows/v108-ui-rights.yml']
+    paths: ['public/index.html','tests/v108-ui-rights.test.cjs','tests/v135-werewolves-browser.test.cjs','.github/workflows/v108-ui-rights.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,3 +18,6 @@ jobs:
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
       - name: UI overlap geometry and anti-copy metadata
         run: node tests/v108-ui-rights.test.cjs
+
+      - name: V135 actual mobile browser wave-40 werewolf smoke
+        run: node tests/v135-werewolves-browser.test.cjs
