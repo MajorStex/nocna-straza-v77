@@ -856,15 +856,19 @@
   const keyX=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0);
   const keyY=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
   const vx=stick.vx+keyX,vy=stick.vy+keyY,magnitude=Math.hypot(vx,vy);
-  if(magnitude>.05){
+  const ko=getPvP(NET.localId||'p1');
+  const knockedOut=ko.opted&&ko.hp<=0;
+  if(knockedOut){walkTo=null;thenEnter=null;route=[]}
+  if(!knockedOut&&magnitude>.05){
    walkTo=null;thenEnter=null;route=[];
    const speed=150*(time<dodgeUntil?2.25:1)*dt;
    moveVillage(vx/Math.max(1,magnitude)*speed,vy/Math.max(1,magnitude)*speed);
-  }else if(walkTo){updateVillageTravel(dt)}
+  }else if(!knockedOut&&walkTo){updateVillageTravel(dt)}
   walking=Math.hypot(my.x-oldX,my.y-oldY)>.15;
   if(walking){stepFrame+=dt*8;if(my.x<oldX-.1)side=-1;if(my.x>oldX+.1)side=1}
   updateDoorInteraction(magnitude>.05&&walking);
-  $('ns117Dodge').disabled=time<dodgeReady;
+  $('ns117Dodge').disabled=knockedOut||time<dodgeReady;
+  $('ns138Attack').disabled=knockedOut;
   if(NET.phase==='lobby'&&NET.role==='guest'&&NET.conn?.open&&time-lastSent>110){
    lastSent=time;try{NET.conn.send({t:'ns109Move',x:Math.round(my.x),y:Math.round(my.y)})}catch{}
   }
@@ -924,6 +928,7 @@
     limits.set(assigned,prev);return true;
    }
    if(Number.isFinite(data.x)&&Number.isFinite(data.y)){
+    if(getPvP(assigned).opted&&getPvP(assigned).hp<=0)return true;
     const p=ground(data.x,data.y);const dt=clamp((now-prev.at)/1000,.16,1.5),max=155*dt+16;
     const d=Math.hypot(p.x-prev.x,p.y-prev.y),t=d>max?max/d:1;
     prev.x+=((p.x-prev.x)*t);prev.y+=((p.y-prev.y)*t);prev.at=now;
@@ -948,6 +953,7 @@
  }
  function tap(e){
   if(!opened||!canVisit()||!pane.classList.contains('ns109Hidden'))return;
+  if(getPvP(NET.localId||'p1').opted&&getPvP(NET.localId||'p1').hp<=0)return;
   const p=ctxPoint(e);if(p.x<0||p.y<0||p.x>VILLAGE_W||p.y>VILLAGE_H)return;
   const b=buildings.find(x=>Math.abs(p.x-x.x)<x.w/2+25&&Math.abs(p.y-x.y)<x.h/2+30);
   if(b){if(!startVillageTravel(b.x,b.y+b.h/2+26,b.id))toast(tr('Path blocked. Walk closer.','Put je blokiran. Priđi bliže.'));}
@@ -958,14 +964,21 @@
   if(!canVisit()){toast(tr('Open the village from the main menu or multiplayer lobby.','Otvori selo iz glavnog menija ili multiplayer lobija.'));return false;}
   soloPreview=!isLobby();
   if(!soloPreview){$('coopPanel')?.classList.remove('hidden');$('lobbyArea')?.classList.remove('hidden')}
-  opened=true;walkTo=null;thenEnter=null;route=[];doorLatch=null;doorLabel='';resetStick();stepFrame=0;walking=false;closePane();my.x=840;my.y=506;
+  opened=true;walkTo=null;thenEnter=null;route=[];doorLatch=null;doorLabel='';resetStick();stepFrame=0;walking=false;closePane();my.x=840;my.y=506;localRespawnSeq=0;if(!isLobby())PVP.clear();
   frameAt=performance.now();villageLastTick=0;villageFrameCredit=VILLAGE_TARGET_MS;
   fpsStart=0;fpsFrames=0;drawMsSum=0;drawMsMax=0;PERF.fps=0;
   root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
   $('ns109Hint').textContent=tr('Walk to a doorway to enter · tap a house to visit','Priđi vratima za ulaz · dodirni kućicu da priđeš');
   return true;
  }
- function closeVillage(){const wasSolo=soloPreview;resetStick();opened=false;villageLastTick=0;villageFrameCredit=0;soloPreview=false;walkTo=null;route=[];doorLatch=null;thenEnter=null;closePane();root.classList.add('ns109Hidden');smoothAvatars.clear();avatars.clear();limits.clear();stopMusic();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
+ function closeVillage(){
+  // Opt-out on exit (game starts, lobby closes or player leaves); no persistent arena state.
+  if(isLobby()&&getPvP(NET.localId).opted){
+   if(NET.role==='host'){getPvP(NET.localId).opted=false;villageBroadcastPvp()}
+   else if(NET.role==='guest'&&NET.conn?.open)try{NET.conn.send({t:'ns138PvpLeave'})}catch{}
+  }
+  if(!isLobby())PVP.clear();
+  const wasSolo=soloPreview;resetStick();opened=false;villageLastTick=0;villageFrameCredit=0;soloPreview=false;walkTo=null;route=[];doorLatch=null;thenEnter=null;closePane();root.classList.add('ns109Hidden');smoothAvatars.clear();avatars.clear();limits.clear();stopMusic();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
  function playMusic(){
   if(musicOn){stopMusic();return}
   try{
@@ -1044,7 +1057,12 @@
  window.NS109_VILLAGE={open:showVillage,close:closeVillage,frame:villageFrame,onMessage,enter,onLobbyUI:onVillageLobbyReady,expectJoin:expectVillageJoin,openInvites:()=>{if(!opened&&canVisit())showVillage();if(!opened)return false;showInviteHouse();return true},
  onSoloResult:run=>{if(run&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(run.kills)},
  onMPAward:packet=>{if(packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}},
- get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my},nearDoor:closestDoor()?.id||null,doorLatch,depthOrder:lastDepthOrder.slice(),cachedHouses:houseLayers.size,pendingAutoRoom}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y),visit:(id)=>{const b=buildings.find(x=>x.id===id);return opened&&!!b&&startVillageTravel(doorPoint(b).x,doorPoint(b).y,b.id)},testMove:(x,y)=>{if(!new URLSearchParams(location.search).has('village-test')||!opened)return false;const p=ground(x,y);if(blockedVillage(p.x,p.y))return false;my.x=p.x;my.y=p.y;return true}}};
+ get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,
+   get animals(){return NPCS.map(o=>({...o,...animalPos(o)}))},get pvp(){return [...PVP].map(([id,p])=>({id,...p}))},
+   get world(){return {width:VILLAGE_W,height:VILLAGE_H}},animalPos,attack:villageTryStrike,
+   barn:()=>{if(!opened)return false;showBarnPvP();return true},
+   togglePvp:()=>NET.role==='host'&&toggleVillagePvp(NET.localId),
+   testHit:(id)=>NET.role==='host'&&villageStrike(id),get soloPreview(){return soloPreview},get sheepCount(){return NPCS.length},get position(){return {x:my.x,y:my.y}},get scene(){return root},get debug(){return {...PERF,routeLength:route.length,routeIndex,coords:{...my},nearDoor:closestDoor()?.id||null,doorLatch,depthOrder:lastDepthOrder.slice(),cachedHouses:houseLayers.size,pendingAutoRoom}},blocked:blockedVillage,route:(x,y)=>findVillagePath(my,ground(x,y)),go:(x,y)=>opened&&startVillageTravel(x,y),visit:(id)=>{const b=buildings.find(x=>x.id===id);return opened&&!!b&&startVillageTravel(doorPoint(b).x,doorPoint(b).y,b.id)},testMove:(x,y)=>{if(!new URLSearchParams(location.search).has('village-test')||!opened)return false;const p=ground(x,y);if(blockedVillage(p.x,p.y))return false;my.x=p.x;my.y=p.y;return true}}};
  window.NS109_SPARTA={appearance:decorate,owned:spartaOwned,equipped:spartaEquipped,claim:spartaClaim};
  // Real engine preview: preserve the current selected character and input.
  if(new URLSearchParams(location.search).get('village-test')==='1'){
