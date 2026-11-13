@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright-core');
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8');
-const buildVersion=Number(html.match(/<title>Night Watch v(\d+) — Noćna Straža<\/title>/)?.[1]||0);
+const buildVersion=Number(html.match(/<title>Night Watch v(\d+)(?: TEST)? — Noćna Straža<\/title>/)?.[1]||0);
 assert.ok(buildVersion>=138,'V138+ features require a release build v138 or newer');
 assert.match(html,/get\('wave40-preview'\)==='1'/);
 assert.match(html,/function ns136StartWave40Preview\(\)/);
