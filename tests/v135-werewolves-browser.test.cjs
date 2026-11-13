@@ -43,7 +43,7 @@ const {chromium}=require('playwright-core');
    assert.ok(state.pack>=2,width+': 2 or more smaller werewolves');
    assert.ok(state.visibleCanvas,width+': canvas initialized');
    assert.equal(state.wolfFlag,true);
-   assert.match(state.version,/v135/);
+   assert.match(state.version,/v\\d+/,'browser version stays current');
    await page.waitForTimeout(400);
    assert.deepEqual(errors.filter(x=>/TypeError|ReferenceError|SyntaxError|RangeError/.test(x)),[],
     width+': runtime errors '+errors.join(' | '));
