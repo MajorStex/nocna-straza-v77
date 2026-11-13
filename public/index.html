@@ -2097,7 +2097,7 @@ function ns137PlayRealWolfHowl(){
   const token=++NS137_WOLF_SOUND.token;
   if(NS137_WOLF_SOUND.stopId!==null)clearTimeout(NS137_WOLF_SOUND.stopId);
   const playing=a.play();
-  if(playing&&typeof playing.catch==='function')playing.catch(()=>{if(token===NS137_WOLF_SOUND.token)NS137_WOLF_SOUND.failed=true});
+  if(playing&&typeof playing.catch==='function')playing.catch(()=>{if(token===NS137_WOLF_SOUND.token){NS137_WOLF_SOUND.failed=true;AudioFX.last.wolfHowl=-10000;sfx('wolfHowl');}});
   NS137_WOLF_SOUND.stopId=setTimeout(()=>{if(token===NS137_WOLF_SOUND.token){a.pause();NS137_WOLF_SOUND.stopId=null;}},near?3450:4050);
   return true;
  }catch{return false;}
@@ -9082,7 +9082,7 @@ function ns136StartWave40Preview(){
   b.textContent='🔊 UKLJUČI ZAVIJANJE';
   b.style.cssText='position:fixed;z-index:999999;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:#203b40;color:#f6e5b6;border:2px solid #a7bca5;border-radius:12px;padding:12px 16px;font:bold 14px sans-serif;box-shadow:0 6px 18px #0008';
   b.addEventListener('pointerdown',ev=>ev.stopPropagation());
-  b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();unlockSound();ns137PrepareWolfHowl();sfx('wolfHowl');b.remove()});
+  b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();unlockSound();ns137PrepareWolfHowl();if(!ns137PlayRealWolfHowl()){AudioFX.last.wolfHowl=-10000;sfx('wolfHowl');}b.remove()});
   document.body.appendChild(b);
  }
  return true;
