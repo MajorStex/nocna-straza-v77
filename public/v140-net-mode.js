@@ -22,7 +22,7 @@ function ui(){
  '#ns140Hit{position:absolute;right:20px;bottom:57px;width:90px;height:90px;border-radius:50%;border:2px solid #edce9a;background:#76523e;color:#fff6cf;font-size:27px;touch-action:none}'+
  '#ns140Hit small{font-size:10px;display:block}';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
- root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V146 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns140Close">← LOBBY</button></div>'+
+ root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V147 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns140Close">← LOBBY</button></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div><button type="button" id="ns140Hit">⚔<small>ATTACK</small></button>';
  document.body.append(style,root);
  el('ns140Close').onclick=()=>stop(true);
@@ -139,7 +139,7 @@ function startSolo(){
   sx:180+(i%4)*185,sy:75+Math.floor(i/4)*225,
   hp:35,attackAt:0,deadUntil:0
  }));
- status('V146 · SINGLEPLAYER · OFFLINE · TEST GOBLINI · 0 XP');
+ status('V147 · SINGLEPLAYER · OFFLINE · TEST GOBLINI · 0 XP');
  el('ns140Hit').disabled=false;
  return true;
 }
@@ -211,7 +211,7 @@ function connect(match,id,ticket){
  if(N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<7){status('NOVA ZONA zahteva OPŠTI NIVO 7');return false}
  N.match=match;N.id=id;N.ticket=ticket;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];N.players.clear();N.me=null;
- N.phase='connecting';status('V146 · POVEZIVANJE NA NOVI SERVER...');
+ N.phase='connecting';status('V147 · POVEZIVANJE NA NOVI SERVER...');
  let ws;
  try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server novog moda nije dostupan');return false}
@@ -221,9 +221,9 @@ function connect(match,id,ticket){
  ws.onmessage=e=>{
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
   if(m.t==='welcome'){if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');return}
-   N.world=m.world||N.world;status('V146 · POVEZAN · ČEKAM IGRAČE');return}
-  if(m.t==='roster'){status('V146 · NOVI SERVER: '+m.ready.length+'/'+m.total+' IGRAČA');return}
-  if(m.t==='start'){N.phase='running';N.retry=0;if(N.timeout)clearTimeout(N.timeout);N.timeout=null;N.lastFrame=0;status('V146 · IGRIVO · SERVER AUTORITET · 0 XP');return}
+   N.world=m.world||N.world;status('V147 · POVEZAN · ČEKAM IGRAČE');return}
+  if(m.t==='roster'){status('V147 · NOVI SERVER: '+m.ready.length+'/'+m.total+' IGRAČA');return}
+  if(m.t==='start'){N.phase='running';N.retry=0;if(N.timeout)clearTimeout(N.timeout);N.timeout=null;N.lastFrame=0;status('V147 · IGRIVO · SERVER AUTORITET · 0 XP');return}
   if(m.t==='s'){snapshot(m);return}
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
   if(m.t==='end'){status('TEST ZAVRŠEN: '+String(m.reason||'kraj'));setTimeout(()=>{if(N.ws===ws)stop()},1200)}
@@ -234,14 +234,14 @@ function connect(match,id,ticket){
   if(N.phase==='running'&&N.retry<3){
    N.retry++;
    const retry=N.retry,match=N.match,id=N.id,ticket=N.ticket;
-   N.phase='reconnecting';status('V146 · PONOVNO POVEZIVANJE '+retry+'/3');
+   N.phase='reconnecting';status('V147 · PONOVNO POVEZIVANJE '+retry+'/3');
    setTimeout(()=>{
     if(N.ws!==ws||N.phase!=='reconnecting')return;
     N.ws=null;N.phase='idle';connect(match,id,ticket);
    },Math.min(3500,retry*1100));
   }else{N.phase='error';status('NOVI SERVER JE PREKINUO VEZU · VRATI SE U LOBBY')}
  };
- ws.onerror=()=>{if(N.ws===ws)status('V146 SERVER JOŠ NIJE OBJAVLJEN ILI JE NEDOSTUPAN')};
+ ws.onerror=()=>{if(N.ws===ws)status('V147 SERVER JOŠ NIJE OBJAVLJEN ILI JE NEDOSTUPAN')};
  return true;
 }
 async function startHost(){
@@ -251,7 +251,7 @@ async function startHost(){
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
  if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
- N.phase='preparing';status('V146 · PRIPREMAM ZASEBAN MP SERVER...');
+ N.phase='preparing';status('V147 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
@@ -270,7 +270,7 @@ async function startHost(){
   // Offer-free failures can safely switch the whole lobby to legacy co-op.
   // Never fall back after tickets have been sent to any player.
   N.fallbackAllowed=!offerSent&&/free_test_budget_reached|arena_not_deployed|server_not_deployed|Failed to fetch|NetworkError|fetch failed/i.test(N.errorCode);
-  N.phase='error';status('V146 SERVER NIJE SPREMAN: '+N.errorCode.slice(0,70));return false;
+  N.phase='error';status('V147 SERVER NIJE SPREMAN: '+N.errorCode.slice(0,70));return false;
  }
 }
 function acceptOffer(d){
@@ -279,7 +279,7 @@ function acceptOffer(d){
  if(N.phase!=='idle')return N.match===d.match;
  return connect(d.match,d.id,d.ticket);
 }
-// V146: movement phase is frozen when idle; a light breathing bob remains.
+// V147: movement phase is frozen when idle; a light breathing bob remains.
 // This avoids the old permanently-walking character pose in the test arena.
 function updateHeroMotion(p,dt){
  if(!p.motion)p.motion={lastX:p.x,lastY:p.y,phase:0,side:1,angle:0,walking:false};
