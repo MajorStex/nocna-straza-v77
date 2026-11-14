@@ -21,8 +21,8 @@ new Function(village);
  const browser=await chromium.launch({headless:true,executablePath:bin,
   args:['--no-sandbox','--disable-dev-shm-usage','--allow-file-access-from-files']});
  try{
-  for(const width of [360,412]){
-   const page=await browser.newPage({viewport:{width,height:844},isMobile:true,hasTouch:true});
+  for(const [width,height] of [[360,844],[412,844],[832,384]]){
+   const page=await browser.newPage({viewport:{width,height},isMobile:true,hasTouch:true});
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto('file://'+path.resolve(__dirname,'../public/index.html')+'?village-test=1',{waitUntil:'domcontentloaded'});
    await page.waitForFunction(()=>window.NS109_VILLAGE?.opened,{timeout:16000});
