@@ -40,6 +40,17 @@
  let trainingOn=false,trainingKills=0,trainingCredit=0,lastRosterCount=0,joinNoticeUntil=0,lastResultsRoundShown=-1;
  let opened=false,soloPreview=false,focused=null,focusNode=null,returnPlace=null,walkTo=null,thenEnter=null,lastSent=0,frameAt=0,lastBroadcast=0,lastLeaderboard=0,lastLeaderRequest=0,leaderCache=null,leaderBusy=false;
  let originalShowLobby=null,originalStartMatch=null,originalSettle=null,originalAward=null,originalOnKill=null,musicCtx=null,musicTimer=null,musicOn=false;
+ let villageAudioCtx=null,villageMusic=null,animalTicker=null,animalSample=null,lastAnimalCall=0,lastFX=0,noiseBuffer=null,animalAudioReady=false;
+ const animalLast=new Map();let musicFallbackStep=0;
+ const CC0_VILLAGE_AUDIO=Object.freeze({
+  sheep:'https://opengameart.org/sites/default/files/sheep_baa.ogg',
+  music:'https://opengameart.org/sites/default/files/peaceful_ville_2023.mp3'
+ });
+ const audioEnabled=()=>!document.hidden&&!!opened&&!root.classList.contains('ns109Hidden');
+ const fxEnabled=()=>audioEnabled()&&($('sfxEnabled')?.checked!==false)&&!localStorage.getItem('ns144_village_fx_off');
+ const fxLevel=()=>clamp(Number($('volume')?.value)||.52,0,1);
+ const musicLevel=()=>clamp(Number($('musicVolume')?.value)||.18,0,.4);
+ const preferMusic=()=>localStorage.getItem('ns144_village_music_off')!=='1'&&$('musicEnabled')?.checked!==false;
  // V118 profiling is local-only: no network packets or account writes.
  let villageLastTick=0,villageFrameCredit=0,sceneLayer=null,sceneLayerLang='';let route=[],routeIndex=0,doorLatch=null,doorLabel='';
  const houseLayers=new Map();let lastDepthOrder=[];let pendingAutoRoom='',pendingAutoUntil=0,lastInviteUiAt=0;
@@ -64,7 +75,7 @@
   '<div id="ns109Stage"><canvas id="ns109Scene" width="960" height="540" aria-label="Village with interactive buildings"></canvas><div id="ns117Stick" class="ns109Hidden" aria-hidden="true"><span id="ns117Knob"></span></div><button id="ns117Dodge" type="button" aria-label="Dodge / Izbegni">↝<small>DODGE</small></button><button id="ns120Door" type="button" class="ns109Hidden" aria-label="Enter building / Uđi u kućicu">↳ ENTER</button>'+
   '<button id="ns138Attack" type="button" aria-label="Attack nearby animals or players" title="Attack · J / F">⚔<small>ATTACK</small></button>'+
   '<div id="ns141Join" class="ns109Hidden" aria-live="polite"></div><div id="ns109Hint">Tap the ground to move, or a house to walk there. Enter the green gate when ready.</div></div>'+
-  '<div id="ns109Bottom"><button id="ns109Results" type="button">🏆 RESULTS</button>'+
+  '<div id="ns109Bottom"><button id="ns144Fx" type="button" aria-label="Toggle village sounds">🔊 FX</button><button id="ns109Results" type="button">🏆 RESULTS</button>'+
   '<button id="ns109Global" type="button">🌍 GLOBAL RANKINGS</button>'+
   '<button id="ns109Sparta" type="button">🛡 SPARTA</button>'+
   '<button id="ns109Voices" type="button">🎙 VOICE</button>'+
@@ -273,6 +284,7 @@
     const seq=target.seq; // ignore timers from prior deaths / resets
     setTimeout(()=>villageRespawn(victimId,seq),1700);
    }
+   if(id===NET.localId)playVillageHit(villageHeroPos(victimId).x,villageHeroPos(victimId).y,'armor');
    villageBroadcastPvp();
    return true;
   }
@@ -288,6 +300,7 @@
   const v=animalPos(closest,now);
   hitFX.push({x:v.x,y:v.y-12,until:now+270});
   if(closest.hp===0){closest.deadUntil=now+16000;closest.hp=2}
+  if(id===NET.localId){playVillageHit(v.x,v.y,closest.kind);playAnimalCall(closest.kind,v.x,v.y,true)}
   if(NET.role==='host')villageBroadcastPvp();
   return true;
  }
@@ -305,6 +318,7 @@
   }
   if(!nearest)return false;
   nearest.hp--;
+  playVillageHit(nearest.x,nearest.y,'training');
   hitFX.push({x:nearest.x,y:nearest.y-24,until:now+280});
   if(nearest.hp===0){nearest.deadUntil=now+3800;trainingKills++}
   return true;
@@ -365,6 +379,7 @@
   if(!opened||!canVisit()||!pane.classList.contains('ns109Hidden'))return false;
   const now=Date.now();if(now-lastSoloHit<600)return false;
   lastSoloHit=now;
+  primeVillageAudio();playWeaponSwing();
   if(trainingStrike(now))return true;
   if(isLobby()&&NET.role==='guest'){
    if(!NET.conn?.open)return false;
@@ -1100,6 +1115,7 @@ function showAchievements(){
   root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
   if(NET.ns97Results?.players?.length&&lastResultsRoundShown!==NET.ns97Results.round){lastResultsRoundShown=NET.ns97Results.round;showMatchBoard();}
   $('ns109Hint').textContent=tr('Walk to a doorway to enter · tap a house to visit','Priđi vratima za ulaz · dodirni kućicu da priđeš');
+  primeVillageAudio();startVillageAmbience();if(preferMusic())playMusic();else refreshVillageAudioButtons();
   return true;
  }
  function closeVillage(){
@@ -1109,20 +1125,172 @@ function showAchievements(){
    else if(NET.role==='guest'&&NET.conn?.open)try{NET.conn.send({t:'ns138PvpLeave'})}catch{}
   }
   if(!isLobby())PVP.clear();
-  const wasSolo=soloPreview;resetStick();opened=false;trainingOn=false;trainingCredit=0;villageLastTick=0;villageFrameCredit=0;soloPreview=false;walkTo=null;route=[];doorLatch=null;thenEnter=null;closePane();root.classList.add('ns109Hidden');smoothAvatars.clear();avatars.clear();limits.clear();stopMusic();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
- function playMusic(){
-  if(musicOn){stopMusic();return}
+  const wasSolo=soloPreview;resetStick();opened=false;trainingOn=false;trainingCredit=0;villageLastTick=0;villageFrameCredit=0;soloPreview=false;walkTo=null;route=[];doorLatch=null;thenEnter=null;closePane();root.classList.add('ns109Hidden');smoothAvatars.clear();avatars.clear();limits.clear();stopMusic();stopVillageAmbience();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
+ // V144: Village SFX has its own low-cost AudioContext. No audio work runs in the render loop.
+ function primeVillageAudio(){
+  if(!opened||document.hidden)return null;
   try{
-   const C=window.AudioContext||window.webkitAudioContext;if(!C)return;musicCtx=new C();musicOn=true;$('ns109Sound').textContent='♫ ON';
-   const pattern=[262,330,392,330,294,349,440,349,262,294,330,294];let n=0;
-   musicTimer=setInterval(()=>{if(!musicOn||!opened||document.hidden||musicCtx?.state!=='running')return;
-    const at=musicCtx.currentTime,osc=musicCtx.createOscillator(),amp=musicCtx.createGain();
-    osc.type='sine';osc.frequency.value=pattern[n++%pattern.length];amp.gain.setValueAtTime(.0001,at);amp.gain.exponentialRampToValueAtTime(.018,at+.06);amp.gain.exponentialRampToValueAtTime(.0001,at+.46);
-    osc.connect(amp);amp.connect(musicCtx.destination);osc.start(at);osc.stop(at+.48);
-   },540);
-  }catch{stopMusic()}
+   if(!villageAudioCtx){
+    const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
+    villageAudioCtx=new C();
+   }
+   if(villageAudioCtx.state==='suspended')void villageAudioCtx.resume().catch(()=>{});
+   animalAudioReady=villageAudioCtx.state==='running';
+   return villageAudioCtx;
+  }catch{return null}
  }
- function stopMusic(){musicOn=false;clearInterval(musicTimer);musicTimer=null;const c=musicCtx;musicCtx=null;try{c?.close()}catch{}if($('ns109Sound'))$('ns109Sound').textContent='♫'}
+ function refreshVillageAudioButtons(){
+  if($('ns144Fx'))$('ns144Fx').textContent=fxEnabled()?'🔊 FX':'🔇 FX';
+  if($('ns109Sound'))$('ns109Sound').textContent=musicOn?'♫ ON':'♫ OFF';
+ }
+ function soundDistance(x,y,max=540){
+  if(!audioEnabled())return 0;
+  const d=Math.hypot(my.x-x,my.y-y);
+  return d>=max?0:Math.pow(1-d/max,1.4);
+ }
+ function villageWeaponKind(){
+  const a=getActiveAccount?.()||{},k=String(a.legendaryWeapon||a.equippedWeapon||'').toLowerCase();
+  if(/bow|crossbow|arrow|archer/.test(k))return 'bow';
+  if(/axe|hammer|mace|club|maul/.test(k))return 'heavy';
+  if(/staff|wand|magic|frost|fire|spell/.test(k))return 'magic';
+  return 'sword';
+ }
+ // A single short noise buffer serves all blade swings, impacts and snorts.
+ function villageNoise(ctx){
+  if(noiseBuffer&&noiseBuffer.sampleRate===ctx.sampleRate)return noiseBuffer;
+  const b=ctx.createBuffer(1,Math.max(2048,Math.round(ctx.sampleRate*.42)),ctx.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  noiseBuffer=b;return b;
+ }
+ function villageBurst(kind,gain=.15,pitch=1){
+  if(!fxEnabled())return false;
+  const c=primeVillageAudio();if(!c||c.state!=='running')return false;
+  const now=c.currentTime;
+  try{
+   const len=kind==='pig'?.34:kind==='sheep'?.53:kind==='heavy'?.29:.19;
+   const n=c.createBufferSource(),filter=c.createBiquadFilter(),g=c.createGain();
+   n.buffer=villageNoise(c);n.playbackRate.value=.88+Math.random()*.24;
+   filter.type=kind==='sword'?'bandpass':'lowpass';
+   filter.frequency.value=kind==='sword'?1700:kind==='heavy'?450:kind==='pig'?420:kind==='sheep'?1100:1400;
+   filter.Q.value=.7;
+   g.gain.setValueAtTime(.0001,now);
+   g.gain.exponentialRampToValueAtTime(Math.max(.0002,Math.min(.25,gain*fxLevel())),now+.018);
+   g.gain.exponentialRampToValueAtTime(.0001,now+len);
+   n.connect(filter);filter.connect(g);g.connect(c.destination);
+   n.start(now);n.stop(now+len+.015);
+   if(kind==='pig'||kind==='sheep'||kind==='magic'||kind==='bow'||kind==='sword'){
+    const osc=c.createOscillator(),env=c.createGain(),band=c.createBiquadFilter();
+    osc.type=kind==='pig'?'sawtooth':kind==='sheep'?'triangle':kind==='bow'?'triangle':'sine';
+    const freq=kind==='pig'?175:kind==='sheep'?340:kind==='bow'?250:kind==='magic'?520:820;
+    osc.frequency.setValueAtTime(freq*pitch,now);
+    osc.frequency.exponentialRampToValueAtTime(freq*(kind==='pig'?1.65:kind==='sheep'?.77:kind==='bow'?.48:.55)*pitch,now+len*.7);
+    if(kind==='pig')osc.frequency.exponentialRampToValueAtTime(freq*.72*pitch,now+len);
+    band.type='lowpass';band.frequency.value=kind==='pig'?1300:kind==='sheep'?1350:3300;
+    env.gain.setValueAtTime(.0001,now);env.gain.exponentialRampToValueAtTime(Math.max(.0002,gain*fxLevel()*.6),now+.045);
+    env.gain.exponentialRampToValueAtTime(.0001,now+len);
+    osc.connect(band);band.connect(env);env.connect(c.destination);
+    osc.start(now);osc.stop(now+len+.015);
+   }
+   return true;
+  }catch{return false}
+ }
+ function playWeaponSwing(){
+  const kind=villageWeaponKind();
+  villageBurst(kind==='heavy'?'heavy':kind==='magic'?'magic':kind==='bow'?'bow':'sword',
+    kind==='heavy'?.24:.13,.92+Math.random()*.16);
+ }
+ function playVillageHit(x,y,target){
+  const volume=soundDistance(x,y,260);if(!volume)return;
+  villageBurst(target==='armor'?'sword':villageWeaponKind()==='heavy'?'heavy':'hit',.17*volume);
+ }
+ function playAnimalCall(kind,x,y,hit=false){
+  if(!fxEnabled())return false;
+  const now=Date.now(),dist=soundDistance(x,y,hit?310:590);
+  if(!dist||(!hit&&now-lastAnimalCall<4700))return false;
+  lastAnimalCall=now;
+  if(kind==='sheep'){
+   try{
+    if(!animalSample){
+     animalSample=new Audio(CC0_VILLAGE_AUDIO.sheep);animalSample.preload='none';
+     animalSample.addEventListener('error',()=>{animalSample.dataset.failed='1'},{once:true});
+    }
+    if(animalSample.dataset.failed!=='1'){
+     animalSample.pause();animalSample.currentTime=0;animalSample.volume=Math.min(.3,dist*fxLevel()*(hit?.46:.27));
+     animalSample.playbackRate=.92+Math.random()*.15;
+     const promise=animalSample.play();if(promise?.catch)promise.catch(()=>{villageBurst('sheep',.19*dist)});
+     return true;
+    }
+   }catch{}
+   return villageBurst('sheep',.23*dist);
+  }
+  if(kind==='pig'){
+   // Original synthesized snort/oink; avoids streaming unlicensed recordings.
+   villageBurst('pig',.23*dist,.84+Math.random()*.30);
+   return true;
+  }
+  return false;
+ }
+ function tickVillageAnimals(){
+  if(!fxEnabled()||!animalAudioReady)return;
+  const now=Date.now(),candidates=NPCS.filter(a=>animalAlive(a,now)&&now-(animalLast.get(a.id)||0)>9000)
+   .map(a=>({a,pos:animalPos(a,now)}))
+   .filter(q=>soundDistance(q.pos.x,q.pos.y,450)>.12);
+  if(!candidates.length)return;
+  const item=candidates[Math.floor(Math.random()*candidates.length)];
+  if(Math.random()>.75)return;
+  if(playAnimalCall(item.a.kind,item.pos.x,item.pos.y)){animalLast.set(item.a.id,now)}
+ }
+ function startVillageAmbience(){
+  if(animalTicker)clearInterval(animalTicker);
+  animalAudioReady=!!primeVillageAudio();
+  animalTicker=setInterval(tickVillageAnimals,3600);
+  refreshVillageAudioButtons();
+ }
+ function stopVillageAmbience(){
+  if(animalTicker)clearInterval(animalTicker);animalTicker=null;
+  try{animalSample?.pause()}catch{}
+  const c=villageAudioCtx;villageAudioCtx=null;noiseBuffer=null;animalAudioReady=false;
+  try{if(c?.state!=='closed')void c?.close().catch(()=>{})}catch{}
+ }
+ function startMusicFallback(){
+  if(musicTimer)return;
+  const notes=[196,246.94,293.66,392,220,261.63,329.63,392,174.61,220,261.63,349.23,196,246.94,293.66,370];
+  musicFallbackStep=0;
+  function note(){
+   const c=musicCtx;
+   if(!musicOn||!audioEnabled()||!c||c.state!=='running')return;
+   const now=c.currentTime,root=notes[musicFallbackStep++%notes.length];
+   for(const [freq,amp,duration] of [[root,.028,1.38],[root*1.5,.008,1.1]]){
+    const osc=c.createOscillator(),gain=c.createGain(),filter=c.createBiquadFilter();
+    osc.type='sine';osc.frequency.value=freq;
+    filter.type='lowpass';filter.frequency.value=680;
+    gain.gain.setValueAtTime(.0001,now);
+    gain.gain.linearRampToValueAtTime(amp*musicLevel()/.18,now+.20);
+    gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+    osc.connect(filter);filter.connect(gain);gain.connect(c.destination);
+    osc.start(now);osc.stop(now+duration+.02);
+   }
+  }
+  note();musicTimer=setInterval(note,1450);
+ }
+ function playMusic(){
+  if(musicOn){stopMusic();localStorage.setItem('ns144_village_music_off','1');refreshVillageAudioButtons();return}
+  localStorage.removeItem('ns144_village_music_off');
+  if(!opened||$('musicEnabled')?.checked===false){refreshVillageAudioButtons();return}
+  const ctx=primeVillageAudio();musicCtx=ctx;musicOn=true;
+  try{
+   if(!villageMusic){villageMusic=new Audio(CC0_VILLAGE_AUDIO.music);villageMusic.loop=true;villageMusic.preload='none';villageMusic.addEventListener('error',()=>{if(musicOn)startMusicFallback()});}
+   villageMusic.volume=Math.min(.16,musicLevel()*.58);
+   const p=villageMusic.play();
+   if(p?.catch)p.catch(()=>{if(musicOn&&ctx?.state==='running')startMusicFallback()});
+  }catch{startMusicFallback()}
+  refreshVillageAudioButtons();
+ }
+ function stopMusic(){
+  musicOn=false;clearInterval(musicTimer);musicTimer=null;
+  try{villageMusic?.pause();if(villageMusic)villageMusic.currentTime=0}catch{}
+  musicCtx=null;refreshVillageAudioButtons();
+ }
  function scheduleAutoVillage(){
   if(!isLobby()||NET.round<1||localStorage.getItem('ns109_village_pref')==='classic')return;
   setTimeout(()=>{if(isLobby()&&NET.round>=1&&!opened&&!document.hidden&&pane.classList.contains('ns109Hidden'))showVillage()},3800);
@@ -1130,6 +1298,7 @@ function showAchievements(){
  $('ns109PaneBack').onclick=closePane;
  $('ns109Classic').onclick=()=>{pendingAutoRoom='';pendingAutoUntil=0;localStorage.setItem('ns109_village_pref','classic');closeVillage()};
  $('ns109Sound').onclick=playMusic;
+ $('ns144Fx').onclick=()=>{if(fxEnabled())localStorage.setItem('ns144_village_fx_off','1');else localStorage.removeItem('ns144_village_fx_off');primeVillageAudio();refreshVillageAudioButtons()};
  $('ns109Results').onclick=showMatchBoard;
  $('ns109Global').onclick=()=>{focused='leaderboard';showRankings()};
  $('ns109Sparta').onclick=showSparta;
