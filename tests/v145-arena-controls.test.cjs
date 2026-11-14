@@ -43,8 +43,8 @@ new Function(source);
     if(!api.startSolo())throw Error('solo arena could not start');
     const canvas=document.getElementById('ns140Canvas');
     const pad=document.getElementById('ns140Pad');
-    const ev=(node,name,id,x,y)=>node.dispatchEvent(new PointerEvent(name,{
-     bubbles:true,cancelable:true,pointerId:id,pointerType:'touch',clientX:x,clientY:y,isPrimary:id===21
+    const ev=(node,name,id,x,y,pointerType='touch')=>node.dispatchEvent(new PointerEvent(name,{
+     bubbles:true,cancelable:true,pointerId:id,pointerType,clientX:x,clientY:y,isPrimary:id===21
     }));
     const started={visible:!pad.classList.contains('active'),display:getComputedStyle(pad).display};
     api.frame(1000);api.frame(1017); // idle before player input
@@ -76,9 +76,14 @@ new Function(source);
     api.frame(1204);api.frame(1238);
     const attack={angle:api.diagnostics.attackAngle,walk:api.diagnostics.walking};
     ev(hit,'pointerup',35,innerWidth-60,innerHeight-85);
+    // Desktop mouse should still attack rather than create a joystick.
+    ev(canvas,'pointerdown',77,55,240,'mouse');
+    const mouse={attack:api.diagnostics.attackHeld,joystick:api.diagnostics.joystickActive};
+    ev(canvas,'pointerup',77,55,240,'mouse');
+    mouse.released=!api.diagnostics.attackHeld;
     api.stop();
     const stopped={active:api.diagnostics.joystickActive,padVisible:pad.classList.contains('active')};
-    return {started,idle,down,moved,walking,release,respawn,left,attack,stopped,draws:window.__draws.length};
+    return {started,idle,down,moved,walking,release,respawn,left,attack,mouse,stopped,draws:window.__draws.length};
    });
    console.log('V145_ARENA_TOUCH',w,h,JSON.stringify(out));
    assert.equal(out.started.display,'none','no fixed joystick at idle');
@@ -95,6 +100,7 @@ new Function(source);
    assert.equal(out.respawn.left,Math.round(w*.62)+'px','next gesture reanchors pad anywhere on arena');
    assert.ok(out.left.direction<-.85&&out.left.side===-1,'walking left flips the character');
    assert.ok(Number.isFinite(out.attack.angle),'hit effect has a direction');
+   assert.ok(out.mouse.attack&&!out.mouse.joystick&&out.mouse.released,'desktop left click attacks without opening stick');
    assert.equal(out.stopped.padVisible,false,'cleanup removes floating joystick');
    assert.deepEqual(errors.filter(e=>/SyntaxError|ReferenceError|TypeError/.test(e)),[],'no runtime exceptions');
    await page.close();
