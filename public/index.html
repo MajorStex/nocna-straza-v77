@@ -7119,9 +7119,9 @@ function renderLobby(){NSX&&NSX.opt&&document.getElementById('nsLobbyRole')&&(do
  $('lobbyReadyBtn').classList.toggle('isReady',!!mine);$('lobbyReadyBtn').disabled=NET.role==='guest'&&!NET.worldReady;
  const haveGuest=roster.length>=2,allSynced=NET.role==='host'?roster.slice(1).every(p=>NET.worldReadyPlayers.get(p.id)):NET.worldReady,allReady=haveGuest&&allSynced&&roster.every(p=>p.ready);
  $('lobbyStartBtn').disabled=!allReady||NET.role!=='host';
- $('lobbyStartBtn').textContent=allReady?'▶ POKRENI PARTIJU':`▶ ČEKAM SPREMNOST (${roster.filter(p=>p.ready).length}/${roster.length})`;
+ $('lobbyStartBtn').textContent=allReady?'▶ AUTOMATSKI START':`▶ ČEKAM SPREMNOST (${roster.filter(p=>p.ready).length}/${roster.length})`;
  const force=$('lobbyForceBtn');if(force){force.classList.toggle('hidden',NET.role!=='host');force.disabled=NET.role!=='host'||!haveGuest||!allSynced;force.textContent=haveGuest&&allSynced?'⚡ FORCE START · BEZ READY':'⚡ FORCE START · ČEKAM MAPU'}
- $('lobbyHint').textContent=!haveGuest?'Pošalji kod drugaru. Biće spreman automatski kada učita mapu.':!allSynced?'Sinhronizujem mapu sa ostalim igračima. Igra još ne može da počne.':allReady?'Svi su spremni! Domaćin može da pokrene partiju.':'Sačekajte da svi potvrde SPREMAN. Igra još nije počela.';if(NET.lastRoundText&&!allReady)$('lobbyHint').textContent=NET.lastRoundText+' '+$('lobbyHint').textContent;NS96_INVITES.render();NS97_POST.render();
+ $('lobbyHint').textContent=!haveGuest?'Pošalji kod drugaru. Biće spreman automatski kada učita mapu.':!allSynced?'Sinhronizujem mapu sa ostalim igračima. Igra još ne može da počne.':allReady?'Svi su spremni! Partija počinje automatski.':'Sačekajte da svi potvrde SPREMAN. Igra još nije počela.';if(NET.lastRoundText&&!allReady)$('lobbyHint').textContent=NET.lastRoundText+' '+$('lobbyHint').textContent;NS96_INVITES.render();NS97_POST.render();
 }
 function ns106Kick(id){if(NET.role!=='host'||!/^p[2-6]$/.test(String(id)))return false;
  const c=NET.clients.get(id);if(!c?.open)return false;const prof=NET.profiles.get(id);
@@ -7130,12 +7130,46 @@ function ns106Kick(id){if(NET.role!=='host'||!/^p[2-6]$/.test(String(id)))return
  NET.clients.delete(id);NET.remoteInputs.delete(id);NET.readyPlayers.delete(id);NET.worldReadyPlayers.delete(id);NET.startAcks.delete(id);NET.pendingOffers.delete(id);NET.profiles.delete(id);NETLAB.tokens.delete(id);NET.spectateTargets.delete(id);
  NS99_TEAM.peerLeft(id);G.players=G.players.filter(p=>p.id!==id);
  try{c.close()}catch{}if(NET.phase==='lobby')broadcastLobby();netStatus(lang('Player removed.','Igrač je izbačen.'));return true;}
+let lobbyAutoStartTimer=null,lobbyAutoStartPendingKey='',lobbyAutoStartKey='';
+function scheduleLobbyAutoStart(){
+ // Only the real host may start, and only after every connected peer has
+ // completed world sync and explicitly confirmed READY. Never start during
+ // a post-match vote, which has its own rematch protocol.
+ const canHost=NET.role==='host'&&NET.phase==='lobby'&&!NS97_POST.active;
+ const roster=canHost?currentLobbyRoster():[];
+ const ready=canHost&&roster.length>=2&&roster.every(p=>p.ready)&&
+  roster.slice(1).every(p=>NET.worldReadyPlayers.get(p.id))&&
+  (selectedMode!=='arena140'||roster.every(p=>Number(p.level)>=7));
+ if(!ready){
+  if(lobbyAutoStartTimer)clearTimeout(lobbyAutoStartTimer);
+  lobbyAutoStartTimer=null;lobbyAutoStartPendingKey='';
+  if(canHost)lobbyAutoStartKey='';
+  return;
+ }
+ if(selectedMode==='arena140'&&window.NS140_ARENA?.busy)return;
+ const key=[NET.code,NET.round,selectedMode,...roster.map(p=>p.id)].join('|');
+ if(key===lobbyAutoStartKey||key===lobbyAutoStartPendingKey)return;
+ if(lobbyAutoStartTimer)clearTimeout(lobbyAutoStartTimer);
+ lobbyAutoStartPendingKey=key;
+ lobbyAutoStartTimer=setTimeout(()=>{
+  lobbyAutoStartTimer=null;lobbyAutoStartPendingKey='';
+  if(NET.role!=='host'||NET.phase!=='lobby'||NS97_POST.active)return;
+  const latest=currentLobbyRoster();
+  if(latest.length<2||!latest.every(p=>p.ready)||
+     !latest.slice(1).every(p=>NET.worldReadyPlayers.get(p.id))||
+     [NET.code,NET.round,selectedMode,...latest.map(p=>p.id)].join('|')!==key)return;
+  if(selectedMode==='arena140'&&
+     (window.NS140_ARENA?.busy||latest.some(p=>Number(p.level)<7)))return;
+  lobbyAutoStartKey=key;
+  startLobbyMatch();
+ },650);
+}
 function broadcastLobby(){
  if(NET.role!=='host'||NET.phase!=='lobby')return;
  NS92_DIR.publish();
  const roster=currentLobbyRoster(),packet={t:'lobby',code:NET.code,hostId:NET.localId,round:NET.round,specialMode:selectedMode,difficulty:NSX.opt.difficulty,result:NET.lastRoundText,players:roster,chat:NS76CHAT.items(),post:NET.ns97Results||null};
  for(const c of NET.clients.values())if(c.open)try{c.send(packet)}catch{}
- renderLobby();
+ renderLobby();scheduleLobbyAutoStart();
 }
 function setMyReady(){
  if(NS97_POST.active)return;
