@@ -11,7 +11,7 @@ function scenario({players=2,synced=true,ready=true,mode='normal',post=false,bus
  const roster=Array.from({length:players},(_,i)=>({id:'p'+(i+1),ready,level:10}));
  const timers=new Map();let next=0,started=0;
  const net={role:'host',phase:'lobby',code:'ABCDEF',round:0,localId:'p1',worldReadyPlayers:new Map(roster.slice(1).map(p=>[p.id,synced]))};
- const env={NET:net,NS97_POST:{active:post},selectedMode:mode,window:{NS140_ARENA:{busy}},
+ const env={NET:net,NS97_POST:{active:post},selectedMode:mode,window:{NS140_ARENA:{busy}},lobbyPendingReturn:()=>[],
   currentLobbyRoster:()=>roster,startLobbyMatch:()=>{started++;return true;},
   setTimeout:fn=>{const id=++next;timers.set(id,fn);return id},
   clearTimeout:id=>timers.delete(id)};
