@@ -37,7 +37,7 @@
  // The real lobby/relay continues to run independently while Village is open.
  const TRAINING_SPAWNS=[[1070,575],[1160,540],[1210,590]];
  const trainingMobs=TRAINING_SPAWNS.map(([x,y],id)=>({id,x,y,sx:x,sy:y,hp:3,deadUntil:0}));
- let trainingOn=false,trainingKills=0,trainingCredit=0,lastRosterCount=0,joinNoticeUntil=0;
+ let trainingOn=false,trainingKills=0,trainingCredit=0,lastRosterCount=0,joinNoticeUntil=0,lastResultsRoundShown=-1;
  let opened=false,soloPreview=false,focused=null,focusNode=null,returnPlace=null,walkTo=null,thenEnter=null,lastSent=0,frameAt=0,lastBroadcast=0,lastLeaderboard=0,lastLeaderRequest=0,leaderCache=null,leaderBusy=false;
  let originalShowLobby=null,originalStartMatch=null,originalSettle=null,originalAward=null,originalOnKill=null,musicCtx=null,musicTimer=null,musicOn=false;
  // V118 profiling is local-only: no network packets or account writes.
@@ -540,10 +540,32 @@
   if(!/^[A-HJ-NP-Z2-9]{6}$/.test(String(room||'')))return false;
   pendingAutoRoom=room;pendingAutoUntil=Date.now()+45000;return true;
  }
- function showAchievements(){
+ function showMatchBoard(){
+  panel(tr('MATCH SCOREBOARD · LAST ROUND','STATISTIKA EKIPE · POSLEDNJA PARTIJA'));
+  const r=NET.ns97Results;
+  if(!r||!Array.isArray(r.players)||!r.players.length){
+   const empty=document.createElement('p');empty.textContent=tr('No completed multiplayer round yet. Finish a match to see team results.','Još nema završene multiplayer partije. Odigrajte partiju pa će ovde biti učinak svih igrača.');area.append(empty);return;
+  }
+  const summary=document.createElement('p');
+  const seconds=Math.min(86400,Math.max(0,Number(r.seconds)||0));
+  summary.textContent=(r.win?'🏆 POBEDA · ':'☠ KRAJ PARTIJE · ')+'TALAS '+(Number(r.wave)||0)+' · '+Math.floor(seconds/60)+'m '+Math.floor(seconds%60)+'s · '+(Number(r.kills)||0)+' UBISTAVA';
+  summary.style.cssText='font-size:12px;font-weight:800;color:#e7c688';area.append(summary);
+  const scroll=document.createElement('div');scroll.style.cssText='max-width:100%;overflow-x:auto;overscroll-behavior:contain';
+  const table=document.createElement('table');table.style.cssText='width:100%;border-collapse:collapse;font-size:11px;min-width:515px;font-variant-numeric:tabular-nums';
+  const columns=[['Igrač','name'],['Kill','kills'],['Pao','downs'],['Revive','revives'],['Šteta','weaponDamage'],['Nivo','level'],['Čvorišta','shards']];
+  const header=table.insertRow();for(const [title] of columns){const th=document.createElement('th');th.textContent=title;th.style.cssText='padding:9px 6px;text-align:left;color:#eed19a;border-bottom:1px solid #86a998';header.append(th);}
+  for(const p of [...r.players].sort((a,b)=>(Number(b.kills)||0)-(Number(a.kills)||0))){
+   const row=table.insertRow();
+   for(const [,key] of columns){const cell=row.insertCell();cell.textContent=key==='name'?String(p.name||p.id||'STRAŽAR').slice(0,25):String(Math.max(0,Math.floor(Number(p[key])||0)));cell.style.cssText='padding:9px 6px;border-bottom:1px solid #48655b';if(p.id===NET.localId)cell.style.color='#f5cc7c';}
+  }
+  scroll.append(table);area.append(scroll);
+  const tip=document.createElement('p');tip.textContent=tr('Falls count knockdowns. Revives count rescued teammates. Results are the final host snapshot.','Pao = broj obaranja. Revive = koliko puta si oživeo saigrača. Podaci dolaze od domaćina partije.');tip.style.cssText='font-size:11px;color:#9ec5ad';area.append(tip);
+}
+function showAchievements(){
   panel(tr('HALL OF FAME','DOM SLAVE'));const p=document.createElement('p');
   p.textContent=tr('Your existing achievements and the new cosmetic Sparta prize.','Postojeća dostignuća i nova kozmetička nagrada Sparta.');area.append(p);
   const item=document.createElement('p');item.textContent=spartaOwned()?tr('🏆 SPARTA UNLOCKED · golden armor (visual only).','🏆 SPARTA OSVOJENA · zlatni oklop (samo izgled).'):tr('◇ SPARTA · 300 personal kills in one qualifying run.','◇ SPARTA · 300 ličnih ubistava u jednoj pravoj partiji.');area.append(item);
+  const mpBtn=document.createElement('button');mpBtn.textContent=tr('🏆 LAST MATCH SCOREBOARD','🏆 STATISTIKA POSLEDNJE PARTIJE');mpBtn.onclick=showMatchBoard;area.append(mpBtn);
   const btn=document.createElement('button');btn.textContent=tr('ALL ACHIEVEMENTS','SVA DOSTIGNUĆA');btn.onclick=()=>openOutside('nsGuidePanel','nsAchievementsBtn','nsGuideClose');area.append(btn);
  }
  function showVoice(){
@@ -1076,6 +1098,7 @@
   frameAt=performance.now();villageLastTick=0;villageFrameCredit=VILLAGE_TARGET_MS;
   fpsStart=0;fpsFrames=0;drawMsSum=0;drawMsMax=0;PERF.fps=0;
   root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
+  if(NET.ns97Results?.players?.length&&lastResultsRoundShown!==NET.ns97Results.round){lastResultsRoundShown=NET.ns97Results.round;showMatchBoard();}
   $('ns109Hint').textContent=tr('Walk to a doorway to enter · tap a house to visit','Priđi vratima za ulaz · dodirni kućicu da priđeš');
   return true;
  }
@@ -1107,7 +1130,7 @@
  $('ns109PaneBack').onclick=closePane;
  $('ns109Classic').onclick=()=>{pendingAutoRoom='';pendingAutoUntil=0;localStorage.setItem('ns109_village_pref','classic');closeVillage()};
  $('ns109Sound').onclick=playMusic;
- $('ns109Results').onclick=()=>{closeVillage();$('ns97Results')?.scrollIntoView({block:'start'})};
+ $('ns109Results').onclick=showMatchBoard;
  $('ns109Global').onclick=()=>{focused='leaderboard';showRankings()};
  $('ns109Sparta').onclick=showSparta;
  $('ns109Voices').onclick=showVoice;
