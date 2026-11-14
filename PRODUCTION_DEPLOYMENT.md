@@ -1,4 +1,24 @@
-# Noćna Straža — jedina produkciona adresa i automatska objava
+# Noćna Straža — produkcija na postojećem Cloudflare Worker-u
+
+**Primarna adresa koju vlasnik igre otvara na telefonu:** https://nocna-straza-v77.stefanstevic1996.workers.dev/
+
+**Worker name:** `nocna-straza-v77`; izvor `public/`; deploy konfiguracija `wrangler.jsonc`; release grana `main`.
+
+**Ispravan GitHub Actions workflow:** `.github/workflows/worker-existing-production.yml`. Pokreće se pri izmeni igre na `main`, ima ručni `workflow_dispatch`, izričito proverava da je live Worker stariji ili iste verzije pre objave, koristi `wrangler deploy` za **isti Worker** i proverava live HTML naslov posle objave. Ne izdaje lažnu potvrdu ako nije uspeo deploy.
+
+## Rešavanje automatske objave
+
+U Cloudflare kontrolnoj tabli, za Worker `nocna-straza-v77`, pogledati **Settings > Builds** i poslednji neuspeli build; Cloudflare Git integracija postoji ali je na commitovima V138 i V140 prijavljivala **Build: Failed**. Proveriti Build i Deploy command i njegov log. Ako se koristi GitHub Actions kao alternativni put, podesi u repozitorijumu (nikad u kodu):
+- `CLOUDFLARE_API_TOKEN`: token ograničen na ovaj nalog, sa **Workers Scripts: Edit** dozvolom.
+- `CLOUDFLARE_ACCOUNT_ID`: ID istog Cloudflare naloga.
+
+Secrets: https://github.com/MajorStex/nocna-straza-v77/settings/secrets/actions
+
+**Važno:** izmena u GitHub repozitorijumu nije dokaz da je Worker live. Trenutna glavna grana ima V138. Razvojna V140 grana nije produkcija; odvojeni `nocna-straza-relay` V140 backend mora biti posebno testiran i objavljen pre nego što multiplayer bude proglašen spremnim. Ne prepisivati produkciju nedovršenim testnim modom.
+
+---
+
+## Sekundarni Cloudflare Pages sajt (nije korisnikov stalni link)
 
 Produkcija: https://nocna-straza-igra.pages.dev/
 
