@@ -33,7 +33,7 @@ jobs:
               await page.waitForFunction(()=>!!window.NS140_ARENA,{timeout:12000});
               const result=await page.evaluate(()=>({title:document.title,arena:!!window.NS140_ARENA,loaded:!!window.__NS110_BRIDGE}));
               console.log('V140_BOOT',width,result,failures);
-              if(!result.arena||!result.loaded||!result.title.includes('v140')||failures.some(e=>/SyntaxError|ReferenceError/.test(e)))throw new Error('V140 boot failed');
+              if(!result.arena||!result.loaded||!/Night Watch v14[0-9]/.test(result.title)||failures.some(e=>/SyntaxError|ReferenceError/.test(e)))throw new Error('V140 boot failed');
               const solo=await page.evaluate(()=>{
                 window.__NS110_BRIDGE.currentProfileLevel=()=>7; // isolate local gameplay QA, no fake XP save
                 const ok=window.NS140_ARENA.startSolo();

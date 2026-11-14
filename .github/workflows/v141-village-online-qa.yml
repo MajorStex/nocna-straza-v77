@@ -1,0 +1,21 @@
+name: V141 Village host and practice QA
+on:
+  push:
+    branches: [feature/v141-village-server-up-training, main]
+    paths: ['public/v115-village.js', 'public/index.html', 'tests/v141-village-server-up.test.cjs', '.github/workflows/v141-village-online-qa.yml']
+  pull_request:
+    branches: [main]
+    paths: ['public/v115-village.js', 'public/index.html', 'tests/v141-village-server-up.test.cjs', '.github/workflows/v141-village-online-qa.yml']
+permissions:
+  contents: read
+jobs:
+  mobile-village:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v141-village-server-up.test.cjs
