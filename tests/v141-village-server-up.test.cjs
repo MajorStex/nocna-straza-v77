@@ -3,8 +3,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8');
 const village=fs.readFileSync(path.resolve(__dirname,'../public/v115-village.js'),'utf8');
-assert.match(html,/<title>Night Watch v145 — Noćna Straža<\/title>/);
-assert.match(html,/VERZIJA V145 · NOVA ZONA KONTROLE \+ VILLAGE AUDIO/);
+assert.match(html,/<title>Night Watch v146 — Noćna Straža<\/title>/);
+assert.match(html,/VERZIJA V146 · AUTOMATSKI READY START/);
 assert.match(html,/v115-village\.js\?v=144/);
 assert.match(village,/id="ns141Server"/);
 assert.match(village,/id="ns141Training"/);
