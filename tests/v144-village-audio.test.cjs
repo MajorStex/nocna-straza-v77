@@ -15,7 +15,7 @@ assert.match(code,/function playVillageHit\(x,y,target\)/);
 assert.match(code,/function tickVillageAnimals\(\)/);
 assert.match(code,/animalTicker=setInterval\(tickVillageAnimals,3600\)/);
 assert.match(code,/function soundDistance\(x,y,max=540\)/);
-assert.match(code,/const candidates=NPCS\.filter\(a=>animalAlive/);
+assert.match(code,/candidates=NPCS\.filter\(a=>animalAlive/);
 assert.match(code,/document\.hidden/);
 assert.match(code,/if\(trainingStrike\(now\)\)return true/);
 assert.match(code,/primeVillageAudio\(\);playWeaponSwing\(\)/);
