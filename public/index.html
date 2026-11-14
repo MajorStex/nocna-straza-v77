@@ -1296,7 +1296,7 @@ window.__NS77Spatial={status:()=>({builds:ns77PropBuilds,solids:ns77PropIndex?.s
 function hash(x,y){const z=Math.sin(x*127.1+y*311.7)*43758.5453;return z-Math.floor(z)}
 let rngSeed=71381;function rnd(){rngSeed=(rngSeed*1664525+1013904223)>>>0;return rngSeed/4294967296}
 let G={blueCrystals:[],crystalSpawnClock:0,spawnClock:0,blasts:[],lootPending:null,marketPending:null,marketSeen:false,abilityDirty:true,projectiles:[],mode:'menu',paused:false,editFrom:'menu',time:0,wave:1,waveClock:0,level:1,xp:0,xpNeed:160,kills:0,players:[],mobs:[],drops:[],effects:[],bossId:0,nextId:1,camera:{x:START.x,y:START.y},pan:{x:START.x,y:START.y},tool:'rock',tab:'map',waveNotice:'',waveNoticeT:0,muted:false,fxSeq:0,relicPending:null,relicTaken:false,relicChoice:'',relicDropBonus:0,relicEnemyHaste:1,relicXpTax:1};
-const NET={joinRetryCount:0,joinRetryTimer:null,lastConnectError:'',hostId:'p1',migrationTarget:null,migrationEpoch:0,profiles:new Map(),heroLooks:new Map(),role:'',phase:'idle',peer:null,conn:null,clients:new Map(),kickedIdentities:new Set(),remoteInputs:new Map(),pendingOffers:new Map(),readyPlayers:new Map(),worldReadyPlayers:new Map(),startAcks:new Map(),localReady:false,worldReady:false,roster:[],localId:'p1',code:'',lastSnapshot:0,lastInput:0,hostProps:null,justJoined:false,round:0,snapshotSeq:0,lastSnapSeq:0,lastFxId:0,viewTarget:null,lastRoundText:'',spectateTargets:new Map(),snapshotStats:{packets:0,bytes:0}};
+const NET={joinRetryCount:0,joinRetryTimer:null,lastConnectError:'',hostId:'p1',migrationTarget:null,migrationEpoch:0,profiles:new Map(),heroLooks:new Map(),role:'',phase:'idle',peer:null,conn:null,clients:new Map(),kickedIdentities:new Set(),remoteInputs:new Map(),pendingOffers:new Map(),readyPlayers:new Map(),worldReadyPlayers:new Map(),lobbyWaiting:[],startAcks:new Map(),localReady:false,worldReady:false,roster:[],localId:'p1',code:'',lastSnapshot:0,lastInput:0,hostProps:null,justJoined:false,round:0,snapshotSeq:0,lastSnapSeq:0,lastFxId:0,viewTarget:null,lastRoundText:'',spectateTargets:new Map(),snapshotStats:{packets:0,bytes:0}};
 // v44 connection diagnostics. Uses monotonic clocks for RTT; measured, not invented latency.
 const NETLAB=(()=>{
  const stats=new Map(),pending=new Map(),tokens=new Map();
@@ -1305,7 +1305,7 @@ const NETLAB=(()=>{
  function peer(id){if(!stats.has(id))stats.set(id,{rtt:null,lastPong:0,lastSnap:0,probeSent:0,probeLost:0,sent:0,dropped:0,received:0});return stats.get(id)}
  function generateToken(){const a=new Uint8Array(24);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('')}
  function reserve(id){const x={token:generateToken(),until:Infinity,round:0};tokens.set(id,x);return x.token}
- function markDisconnect(id){const x=tokens.get(id);if(x)x.until=t()+(NET.phase==='lobby'?60000:90000);const p=peer(id);p.lastPong=0;}
+ function markDisconnect(id){const x=tokens.get(id);if(x)x.until=t()+(NET.phase==='lobby'?120000:180000);const p=peer(id);p.lastPong=0;}
  function findResume(token,round){if(typeof token!=='string'||token.length!==48||!Number.isInteger(round)||round!==NET.round)return null;for(const [id,x] of tokens){if(x.token===token&&t()<x.until&&G.players.some(p=>p.id===id)){x.until=Infinity;return id}}return null}
  function clear(){stats.clear();pending.clear();tokens.clear();counter=0;lastPaint=0;lastRequest=0;lastRetry=0;retryCount=0;reconnecting=false;NET.rejoinToken='';options.delay=0;options.loss=0;const d=document.getElementById('nsNetDelay'),l=document.getElementById('nsNetLoss');if(d)d.value='0';if(l)l.value='0';document.getElementById('nsNetLabDock')?.classList.add('hidden');document.getElementById('nsNetLabPanel')?.classList.add('hidden')}
  function emit(c,data){if(!c?.open)return false;try{c.send(data);return true}catch{return false}}
@@ -7059,7 +7059,7 @@ function closeNet(){
  // Reset role BEFORE disconnect events fire to avoid a recursive menu change.
  NET.role='';NET.phase='idle';NET.hostId='p1';NET.migrationTarget=null;NET.migrationEpoch=0;NET.round=0;NET.lastRoundText='';NS97_POST.clear();NET.peer=null;NET.conn=null;NET.localId='p1';
  NET.clients.clear();NET.remoteInputs.clear();NET.pendingOffers.clear();NET.profiles.clear();NET.heroLooks.clear();
- NET.readyPlayers.clear();NET.worldReadyPlayers.clear();NET.startAcks.clear();NET.kickedIdentities.clear();NET.localReady=false;NET.worldReady=false;NET.roster=[];NET.hostProps=null;NET.code='';
+ NET.readyPlayers.clear();NET.worldReadyPlayers.clear();NET.lobbyWaiting=[];NET.startAcks.clear();NET.kickedIdentities.clear();NET.localReady=false;NET.worldReady=false;NET.roster=[];NET.hostProps=null;NET.code='';
  for(const c of clients)try{c.close()}catch{}
  try{connection?.close()}catch{};try{peer?.destroy()}catch{}
  resetLobbyUI();NS96_INVITES.reset();SOCIAL.waitingJoins.clear();sendSocialStatus();
@@ -7089,6 +7089,13 @@ function currentLobbyRoster(){
  }
  return NET.roster;
 }
+function lobbyPendingReturn(){
+ if(NET.role!=='host'||NET.phase!=='lobby')return [];
+ const now=performance.now();
+ return [...NETLAB.tokens.entries()].filter(([id,v])=>
+  /^p[2-6]$/.test(id)&&v.until>now&&!NET.clients.get(id)?.open)
+  .map(([id])=>({id,name:NET.profiles.get(id)?.name||'STRAŽAR '+id.slice(1)}));
+}
 function renderLobby(){NSX&&NSX.opt&&document.getElementById('nsLobbyRole')&&(document.getElementById('nsLobbyRole').value=NSX.opt.role);if(document.getElementById('nsLobbyDifficulty')){document.getElementById('nsLobbyDifficulty').value=NSX.opt.difficulty;document.getElementById('nsLobbyDifficulty').disabled=NET.role!=='host';}if($('lobbyHeroSelect')){const h=$('lobbyHeroSelect');h.textContent='';for(const x of [{id:'default',spec:FACTORY_HERO},...heroProfiles]){const o=document.createElement('option');o.value=x.id;o.textContent=(x.spec.name||'STRAŽAR')+' · HEROJ NIVO '+heroLevelStats(x.id).level;h.append(o)}h.value=activeHeroProfile;}if($('lobbyModeSelect')){$('lobbyModeSelect').disabled=NET.role!=='host';$('lobbyModeSelect').value=selectedMode;}
  const modeHost=NET.role==='host',level=currentProfileLevel(),mpModes=$('ns142MpModes');
  if(mpModes){mpModes.replaceChildren();for(const [id,name,minimum] of [['normal','KLASIČNI',1],['night','NOĆNI PLOMEN',3],['arena140','NOVA ZONA',7],['rush','OPSADA',8],['future','TAJNA KAPELA · USKORO',20]]){
@@ -7098,7 +7105,7 @@ function renderLobby(){NSX&&NSX.opt&&document.getElementById('nsLobbyRole')&&(do
   mpModes.append(b);
  }}
  if(!NET.role||NET.phase!=='lobby')return;
- const roster=currentLobbyRoster(),root=$('lobbyRoster');root.textContent='';refreshProfileLabels();const earned=$('coopEarned');if(earned){earned.classList.toggle('hidden',NET.lastEarned==null);earned.textContent='✦ TVOJA NAGRADA IZ PROŠLE PARTIJE: +'+(NET.lastEarned||0)+' POENA ČASTI'}
+ const roster=currentLobbyRoster(),returning=NET.role==='host'?lobbyPendingReturn():NET.lobbyWaiting||[],root=$('lobbyRoster');root.textContent='';refreshProfileLabels();const earned=$('coopEarned');if(earned){earned.classList.toggle('hidden',NET.lastEarned==null);earned.textContent='✦ TVOJA NAGRADA IZ PROŠLE PARTIJE: +'+(NET.lastEarned||0)+' POENA ČASTI'}
  for(const p of roster){
   const row=document.createElement('div');row.className='lobbyPlayer'+(p.id===NET.localId?' you':'');
   const who=document.createElement('span');who.className='lobbyPerson';const whoTitle=document.createElement('strong');whoTitle.textContent='⚔ '+ns97DisplayName(p.name,p.id)+(p.id===(NET.hostId||'p1')?' · DOMAĆIN':'')+(p.id===NET.localId?' · TI':'');const whoRank=document.createElement('small');whoRank.textContent=`IGRAČ ${p.id.slice(1)} · TRAJNI NIVO ${clamp(Number(p.level)||1,1,150)} · ${Math.max(0,Number(p.ranksTotal)||0)} UNAPREĐENJA · HEROJ ${p.heroName||'STRAŽAR'} (N.${p.heroLevel||1})`;who.append(whoTitle,whoRank);const avatar=avatarFace(p.avatarId,p.avatarImg);
@@ -7114,14 +7121,23 @@ function renderLobby(){NSX&&NSX.opt&&document.getElementById('nsLobbyRole')&&(do
   if(NET.role==='host'&&p.id!==NET.localId){const kick=document.createElement('button');kick.type='button';kick.className='ns106KickBtn';kick.textContent=lang('KICK','IZBACI');kick.onclick=()=>{if(window.confirm(lang('Remove '+safePlayerName(p.name)+'?','Izbaciti '+safePlayerName(p.name)+'?')))ns106Kick(p.id)};row.append(kick)}
   root.append(row);
  }
+ for(const waiting of returning){
+  const row=document.createElement('div');row.className='lobbyPlayer';
+  const who=document.createElement('span');who.className='lobbyPerson';
+  const name=document.createElement('strong');name.textContent='↻ '+ns97DisplayName(waiting.name,waiting.id);
+  const hint=document.createElement('small');hint.textContent='MESTO SAČUVANO · ČEKA SE POVRATAK NA TELEFONU';
+  who.append(name,hint);
+  const state=document.createElement('span');state.className='lobbyState';state.textContent='↻ VRAĆA SE';
+  row.append(who,state);root.append(row);
+ }
  const mine=NET.role==='host'?NET.localReady:NET.localReady;
  $('lobbyReadyBtn').textContent=mine?'✓ SPREMAN SI · OTKAŽI':'○ OZNAČI DA SI SPREMAN';
  $('lobbyReadyBtn').classList.toggle('isReady',!!mine);$('lobbyReadyBtn').disabled=NET.role==='guest'&&!NET.worldReady;
- const haveGuest=roster.length>=2,allSynced=NET.role==='host'?roster.slice(1).every(p=>NET.worldReadyPlayers.get(p.id)):NET.worldReady,allReady=haveGuest&&allSynced&&roster.every(p=>p.ready);
+ const haveGuest=roster.length>=2,allSynced=NET.role==='host'?roster.slice(1).every(p=>NET.worldReadyPlayers.get(p.id)):NET.worldReady,allReady=haveGuest&&returning.length===0&&allSynced&&roster.every(p=>p.ready);
  $('lobbyStartBtn').disabled=!allReady||NET.role!=='host';
- $('lobbyStartBtn').textContent=allReady?'▶ AUTOMATSKI START':`▶ ČEKAM SPREMNOST (${roster.filter(p=>p.ready).length}/${roster.length})`;
+ $('lobbyStartBtn').textContent=returning.length?'↻ ČEKAM POVRATAK IGRAČA':allReady?'▶ AUTOMATSKI START':`▶ ČEKAM SPREMNOST (${roster.filter(p=>p.ready).length}/${roster.length})`;
  const force=$('lobbyForceBtn');if(force){force.classList.toggle('hidden',NET.role!=='host');force.disabled=NET.role!=='host'||!haveGuest||!allSynced;force.textContent=haveGuest&&allSynced?'⚡ FORCE START · BEZ READY':'⚡ FORCE START · ČEKAM MAPU'}
- $('lobbyHint').textContent=!haveGuest?'Pošalji kod drugaru. Biće spreman automatski kada učita mapu.':!allSynced?'Sinhronizujem mapu sa ostalim igračima. Igra još ne može da počne.':allReady?'Svi su spremni! Partija počinje automatski.':'Sačekajte da svi potvrde SPREMAN. Igra još nije počela.';if(NET.lastRoundText&&!allReady)$('lobbyHint').textContent=NET.lastRoundText+' '+$('lobbyHint').textContent;NS96_INVITES.render();NS97_POST.render();
+ $('lobbyHint').textContent=returning.length?'Čuvamo mesto još do 2 minuta. Igra kreće kada se igrač vrati i svi budu Ready.':!haveGuest?'Pošalji kod drugaru. Biće spreman automatski kada učita mapu.':!allSynced?'Sinhronizujem mapu sa ostalim igračima. Igra još ne može da počne.':allReady?'Svi su spremni! Partija počinje automatski.':'Sačekajte da svi potvrde SPREMAN. Igra još nije počela.';if(NET.lastRoundText&&!allReady)$('lobbyHint').textContent=NET.lastRoundText+' '+$('lobbyHint').textContent;NS96_INVITES.render();NS97_POST.render();
 }
 function ns106Kick(id){if(NET.role!=='host'||!/^p[2-6]$/.test(String(id)))return false;
  const c=NET.clients.get(id);if(!c?.open)return false;const prof=NET.profiles.get(id);
@@ -7137,7 +7153,7 @@ function scheduleLobbyAutoStart(){
  // a post-match vote, which has its own rematch protocol.
  const canHost=NET.role==='host'&&NET.phase==='lobby'&&!NS97_POST.active;
  const roster=canHost?currentLobbyRoster():[];
- const ready=canHost&&roster.length>=2&&roster.every(p=>p.ready)&&
+ const ready=canHost&&roster.length>=2&&lobbyPendingReturn().length===0&&roster.every(p=>p.ready)&&
   roster.slice(1).every(p=>NET.worldReadyPlayers.get(p.id))&&
   (selectedMode!=='arena140'||roster.every(p=>Number(p.level)>=7));
  if(!ready){
@@ -7155,7 +7171,7 @@ function scheduleLobbyAutoStart(){
   lobbyAutoStartTimer=null;lobbyAutoStartPendingKey='';
   if(NET.role!=='host'||NET.phase!=='lobby'||NS97_POST.active)return;
   const latest=currentLobbyRoster();
-  if(latest.length<2||!latest.every(p=>p.ready)||
+  if(latest.length<2||lobbyPendingReturn().length>0||!latest.every(p=>p.ready)||
      !latest.slice(1).every(p=>NET.worldReadyPlayers.get(p.id))||
      [NET.code,NET.round,selectedMode,...latest.map(p=>p.id)].join('|')!==key)return;
   if(selectedMode==='arena140'&&
@@ -7167,7 +7183,7 @@ function scheduleLobbyAutoStart(){
 function broadcastLobby(){
  if(NET.role!=='host'||NET.phase!=='lobby')return;
  NS92_DIR.publish();
- const roster=currentLobbyRoster(),packet={t:'lobby',code:NET.code,hostId:NET.localId,round:NET.round,specialMode:selectedMode,difficulty:NSX.opt.difficulty,result:NET.lastRoundText,players:roster,chat:NS76CHAT.items(),post:NET.ns97Results||null};
+ const roster=currentLobbyRoster(),packet={t:'lobby',code:NET.code,hostId:NET.localId,round:NET.round,specialMode:selectedMode,difficulty:NSX.opt.difficulty,result:NET.lastRoundText,players:roster,waiting:lobbyPendingReturn(),chat:NS76CHAT.items(),post:NET.ns97Results||null};
  for(const c of NET.clients.values())if(c.open)try{c.send(packet)}catch{}
  renderLobby();scheduleLobbyAutoStart();
 }
@@ -7220,12 +7236,23 @@ function startLobbyMatch(){
  if(NET.role!=='host'||NET.phase!=='lobby')return false;
  if(NS97_POST.active&&!NET.ns97Results.startAt)return false;
  const roster=currentLobbyRoster();
- if(roster.length<2||(!NET.forceRequest&&!roster.every(p=>p.ready))||roster.slice(1).some(p=>!NET.worldReadyPlayers.get(p.id))){NET.forceRequest=false;netStatus('Nisu svi spremni. Čekamo najmanje 2 igrača.');renderLobby();return false}
+ if(roster.length<2||lobbyPendingReturn().length>0||(!NET.forceRequest&&!roster.every(p=>p.ready))||roster.slice(1).some(p=>!NET.worldReadyPlayers.get(p.id))){NET.forceRequest=false;netStatus('Nisu svi spremni. Čekamo najmanje 2 igrača.');renderLobby();return false}
  if(selectedMode==='arena140'){
   NET.forceRequest=false;
   if(roster.some(p=>Number(p.level)<7)){netStatus('V140 traži OPŠTI NIVO 7 na svakom nalogu.');return false}
   if(!window.NS140_ARENA){netStatus('V140 modul nije učitan. Osveži igru.');return false}
-  window.NS140_ARENA.startHost().then(ok=>{if(!ok)netStatus('Novi MP server nije dostupan. Stari lobby je sačuvan.');});
+  window.NS140_ARENA.startHost().then(ok=>{
+   if(ok)return;
+   const arena=window.NS140_ARENA;
+   if(arena?.fallbackAllowed&&NET.role==='host'&&NET.phase==='lobby'&&selectedMode==='arena140'){
+    // No arena tickets were issued, so existing lobby can fall back safely.
+    arena.stop();selectedMode='normal';
+    const note='Nova Zona je trenutno zauzeta — automatski pokrećem KLASIČNI multiplayer.';
+    NET.lastRoundText=note;netStatus(note);toast(note);broadcastLobby();
+    startLobbyMatch();return;
+   }
+   netStatus('Novi MP server nije dostupan. Stari lobby je sačuvan.');
+  }).catch(()=>netStatus('Greška pokretanja Nove Zone. Vrati se u lobby.'));
   return true;
  }
  NET.forceRequest=false;NET.lastEarned=null;NS97_POST.clear();NS99_TEAM.reset();window.NS109_VILLAGE?.close?.();NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
@@ -7566,6 +7593,7 @@ function setupConnection(c){
    }
    if(data.t==='worldPart'&&NET.phase==='lobby'&&NET.worldReady){safeSend({t:'worldAck',index:data.index});safeSend({t:'worldDone'});return}
    if(data.t==='lobby'&&NET.phase==='lobby'){
+    NET.lobbyWaiting=Array.isArray(data.waiting)?data.waiting.filter(p=>/^p[2-6]$/.test(String(p.id))).map(p=>({id:p.id,name:safePlayerName(p.name)})).slice(0,5):[];
     if(Number.isInteger(data.round)&&data.round>=NET.round)NET.round=data.round;
     NS76CHAT.history(data.chat);if(data.post)NS97_POST.receive(data.post);
     NET.hostId=/^p[1-6]$/.test(data.hostId)?data.hostId:'p1';NET.code=data.code||NET.code;if(['normal','night','rush','arena140'].includes(data.specialMode))selectedMode=data.specialMode;
@@ -7599,9 +7627,9 @@ function setupConnection(c){
    NET.conn=null;
    if(NET.phase==='connecting'){NET.lastConnectError=rejectReason||NET.lastConnectError||(relayActive()?'Relay kanal se zatvorio':'ICE/WebRTC kanal se zatvorio');retryInitialGuestConnection(NET.lastConnectError)}
    else if(NET.phase==='lobby'){
-    NET.phase='connecting';NET.worldReady=false;NET.localReady=false;NET.roster=[];
-    resetLobbyUI();$('coopPanel').classList.remove('hidden');$('home').classList.add('hidden');
-    $('joinCode').value=NET.code;netStatus(rejectReason||'Host je prekinuo vezu; pokušavam ponovo. Host mora ostati u čekaonici.');
+    NET.phase='connecting';NET.worldReady=false;NET.roster=[];
+    // Keep backgrounded Android players in the same lobby, not the JOIN menu.
+    $('joinCode').value=NET.code;netStatus(rejectReason||'Privremeni prekid mreže. Mesto u sobi je sačuvano do 2 minuta; vraćam te automatski.');
     if(NET.peer?._connected)retryInitialGuestConnection('host je prekinuo vezu');else $('retryJoinBtn').classList.remove('hidden');
    }
    else if(NET.phase==='playing'){if(NET.peer?._connected!==true||!NETMIG.onHostLost()){G.paused=true;if(NETLAB.scheduleReconnect()){netStatus('Veza prekinuta · pokušavam povratak do 30 sekundi...');setTimeout(()=>{if(NET.role==='guest'&&NET.phase==='playing'&&!NET.conn?.open&&!NET.migrationTarget&&!NETMIG.fresh()){netStatus('Domaćin je izašao. Nema dostupne rezervne partije — vrati se u meni i otvori novu sobu.');toast('Host je izašao · nema veze za nastavak partije.');G.paused=true;}},15000);}else{G.paused=true;netStatus('Host je izašao · rezervno stanje nije dostupno. Igra je zaustavljena. Otvori novu sobu iz menija.');toast('Host je izašao · otvori novu sobu iz menija.')}}}else showMenu();
