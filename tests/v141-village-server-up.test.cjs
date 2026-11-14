@@ -34,10 +34,11 @@ new Function(village);
     const moves=[[mobi.x,mobi.y],[mobi.x-28,mobi.y],[mobi.x+24,mobi.y]];
     const accessible=moves.some(([x,y])=>t.testMove(x,y));
     const attacked=accessible&&t.attack();
+    const practiceEnabled=t.practice.on;
     const host=document.getElementById('hostBtn');
     host.onclick=()=>{window.__v141HostClicked=true};
     const started=api.startServer();
-    return {practice:t.practice.on,accessible,attacked,started,hostClicked:!!window.__v141HostClicked,
+    return {practice:practiceEnabled,accessible,attacked,started,hostClicked:!!window.__v141HostClicked,
       closed:!api.opened,serverUp:api.serverUp};
    });
    console.log('V141_STAGING',width,before,errors);
