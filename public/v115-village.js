@@ -426,11 +426,11 @@
   toast(value);
  }
  function startVillageInvites(ids){
-  const online=[...new Set(ids)].filter(id=>SOCIAL?.db?.friends?.[id]&&SOCIAL.conns.get(id)?.open).slice(0,5);
-  if(!online.length){toast(tr('No online friends selected','Nema izabranih online prijatelja'));return false}
+  const targets=[...new Set(ids)].filter(id=>SOCIAL?.db?.friends?.[id]).slice(0,5);
+  if(!targets.length){toast(tr('No friends selected','Nema izabranih prijatelja'));return false}
   if(NET.phase==='lobby'&&NET.role){
    if(getPlayers().length>=NS92_DIR.maxPlayers()){toast(tr('Room is full','Soba je puna'));return false}
-   let sent=0;for(const id of online)if(NS96_INVITES?.invite(id))sent++;
+   let sent=0;for(const id of targets)if(NS96_INVITES?.invite(id))sent++;
    if(sent){lastInviteUiAt=0;showInviteHouse()}return sent>0;
   }
   if(NET.role||NET.phase!=='idle'){
@@ -443,10 +443,10 @@
   // Reuse the existing host/relay creation exactly once. Auto-return to Village
   // only AFTER the original lobby is confirmed online.
   pendingAutoRoom='HOST';pendingAutoUntil=Date.now()+45000;
-  const started=NS103_PARTY.start(online);
+  const started=NS103_PARTY.start(targets);
   if(!started){pendingAutoRoom='';pendingAutoUntil=0;return false}
   closePane();
-  toast(tr('Creating online room and sending invitations…','Pravim online sobu i šaljem pozive…'));
+  toast(tr('Creating room; offline invites will wait for friends to launch the game…','Pravim sobu · offline pozivi će čekati da prijatelji pokrenu igru…'));
   return true;
  }
  function showInviteHouse(){
@@ -455,8 +455,8 @@
   const headline=document.createElement('p');headline.id='ns122Presence';headline.textContent=inviteRosterText();
   area.append(headline);
   const intro=document.createElement('p');intro.textContent=tr(
-   'Invite up to five online friends. Accepting joins THIS room, then opens Village. Start the match with the normal Ready/Start controls.',
-   'Pozovi do pet online prijatelja. Prihvatanjem ulaze u ISTU sobu i Village. Partija se pokreće preko postojećih Ready/Start komandi.');
+   'Invite up to five friends, even if offline. Keep your room open; friends receive Accept/Decline as soon as they start the game.',
+   'Pozovi do pet prijatelja, čak i kad su offline. Ostavi sobu uključenu; čim pokrenu igru dobijaju Prihvati/Odbij.');
   area.append(intro);
   const actions=document.createElement('div');actions.className='ns122Actions';
   const refresh=document.createElement('button');refresh.type='button';refresh.textContent=tr('↻ REFRESH','↻ OSVEŽI');
@@ -478,26 +478,26 @@
   const list=document.createElement('div');list.id='ns122Friends';list.className='ns122Friends';
   const inRoom=new Set(getPlayers().map(p=>p.friendId));
   const full=isLobby()&&getPlayers().length>=NS92_DIR.maxPlayers();
-  let onlineCount=0;const selected=[];
+  let eligibleCount=0;const selected=[];
   for(const id of ids){
    const f=SOCIAL.db.friends[id],online=!!SOCIAL.conns.get(id)?.open,joined=inRoom.has(id);
-   if(online&&!joined)onlineCount++;
+   if(!joined)eligibleCount++;
    const row=document.createElement('div');row.className='ns122Friend';
    const text=document.createElement('span');text.textContent=safePlayerName(f.name)+(joined?tr(' · ✓ HERE',' · ✓ OVDE'):online?' · ● ONLINE':' · ○ OFFLINE');
    const btn=document.createElement('button');btn.type='button';btn.dataset.friendId=id;
-   btn.disabled=!online||joined||full||(!isLobby()&&NET.phase!=='idle');
-   btn.textContent=joined?tr('IN ROOM','U SOBI'):!online?'OFFLINE':full?tr('FULL','PUNO'):tr('INVITE','POZOVI');
+   btn.disabled=joined||full||NS96_INVITES?.pending(id)||(!isLobby()&&NET.phase!=='idle');
+   btn.textContent=joined?tr('IN ROOM','U SOBI'):NS96_INVITES?.pending(id)?tr('QUEUED','ČEKA'):full?tr('FULL','PUNO'):online?tr('INVITE','POZOVI'):tr('INVITE OFFLINE','POZOVI OFFLINE');
    btn.onclick=()=>startVillageInvites([id]);row.append(text,btn);list.append(row);
-   if(online&&!joined)selected.push(id);
+   if(!joined)selected.push(id);
   }
   if(!ids.length){
    const hint=document.createElement('p');hint.textContent=tr('No friends yet. Add them by their in-game Friend ID.',
     'Još nema prijatelja. Dodaj ih preko ID-a prijatelja iz igre.');list.append(hint);
   }
   area.append(list);
-  if(onlineCount>1){
+  if(eligibleCount>1){
    const all=document.createElement('button');all.id='ns122InviteAll';all.type='button';
-   all.textContent=tr('✉ INVITE ONLINE FRIENDS','✉ POZOVI ONLINE PRIJATELJE')+' ('+Math.min(5,selected.length)+')';
+   all.textContent=tr('✉ INVITE FRIENDS','✉ POZOVI PRIJATELJE')+' ('+Math.min(5,selected.length)+')';
    all.disabled=full;all.onclick=()=>startVillageInvites(selected.slice(0,5));area.append(all);
   }
   if(isLobby()){
