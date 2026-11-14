@@ -3922,7 +3922,7 @@ const NS105_TEMPLE=(()=>{
   if(!button)return;
   const inGame=G.mode==='play'&&!G.paused&&!['home','coopPanel','pausePanel','editorPanel','gameOver'].some(id=>!$(id)?.classList.contains('hidden'));
   const me=G.players.find(p=>p.id===(NET.role?NET.localId:'p1')&&!p.dead);if(!inGame||!me){button.classList.add('hidden');hint.classList.add('hidden');return}
-  hint.classList.toggle('hidden',!temple.preview&&!temple.active);
+  hint.classList.toggle('hidden',!temple.preview&&!temple.active&&!(NET.role&&temple.key&&close(me,temple.door,700)));
   if(temple.active){
    if(NET.role!=='guest'&&!temple.core&&G.players.some(p=>!p.dead&&close(p,temple.diamond,48)))takeDiamond();
    if(temple.core&&NET.role!=='guest'){
@@ -3950,7 +3950,12 @@ const NS105_TEMPLE=(()=>{
    const near=close(me,temple.door,145);button.classList.toggle('hidden',!near);
    button.textContent=temple.key?(NET.role&&temple.owner!==me.id?tr('WAIT FOR THE KEY HOLDER','SAČEKAJ IGRAČA SA KLJUČEM'):tr('⚿ ENTER THE SILENT TOMB','⚿ UĐI U TIHI HRAM')):tr('🔒 SEALED · TROLL KEY REQUIRED','🔒 ZAKLJUČANO · KLJUČ TROLA');
    button.disabled=!!NET.role&&temple.owner!==me.id;
-   if(NET.role&&temple.key&&temple.owner!==me.id&&near)hint.textContent=tr('Approach the Temple gate. The key holder will start.','Priđi kapiji Hrama · igrač sa ključem otključava.');
+   if(NET.role&&temple.key){
+    const missing=G.players.filter(q=>!q.dead&&Math.hypot(q.x-temple.door.x,q.y-temple.door.y)>270).length;
+    hint.textContent=temple.owner===me.id
+     ?(missing?tr('Wait for '+missing+' teammate(s) near the gate','Sačekaj '+missing+' saigrača da priđu kapiji'):tr('Team is near · You can enter','Ekipa je blizu · Možeš da uđeš'))
+     :tr('Move toward the Temple gate · the key holder will unlock it','Približi se kapiji Hrama · igrač sa ključem će je otključati');
+   }
    if(temple.preview)hint.textContent=temple.key?tr('KEY FOUND · GO TO THE GATE','IMAŠ KLJUČ · PRIĐI KAPIJI'):
     tr('TEMPLE TEST · DEFEAT THE LEVEL-10 TROLL','TEMPLE TEST · UBIJ TROLA NA NIVOU 10');
   }
@@ -4037,7 +4042,8 @@ const NS105_TEMPLE=(()=>{
  function receiveNet(data){
   if(NET.role!=='guest'||!data||typeof data!=='object')return false;
   if(Array.isArray(data.d)&&data.d.length===2&&data.d.every(Number.isFinite))temple.door={x:data.d[0],y:data.d[1]};
-  temple.key=!!data.k;temple.owner=/^p[1-6]$/.test(String(data.o||''))?data.o:null;
+  const previousOwner=temple.owner;temple.key=!!data.k;temple.owner=/^p[1-6]$/.test(String(data.o||''))?data.o:null;
+  if(temple.key&&temple.owner&&previousOwner!==temple.owner&&G.mode==='play')toast(tr('Temple key obtained · Gather by the gate','Ključ Hrama je preuzet · Okupite se kod kapije'));
   if(!!data.a&&!temple.active){
    temple.old={w:WORLD.w,h:WORLD.h,props:cloneProps(props),fog:Array.from(miniMap.explored)};
    WORLD.w=TW;WORLD.h=TH;props=createMaze();activePlayMap=props;invalidateNavigation();mapReset();G.caveMode=true;temple.active=true;
@@ -4126,7 +4132,7 @@ function sosRequest(){
  if(NET.role==='guest'&&NET.conn?.open){if(G.time-(G.sosPendingSince??-100)<2.5)return false;G.sosPendingSince=G.time;NET.conn.send({t:'sosRequest'});updateSOSHUD();return true}
  return false;
 }
-function sosActive(){return NET.phase==='playing'&&G.mode==='play'?G.players.filter(p=>sosEligible(p)&&p.sosUsed):[];}
+function sosActive(){return NET.phase==='playing'&&G.mode==='play'?G.players.filter(p=>sosEligible(p)&&p.sosUsed&&(!p.ns142DeathZone||p.ns142DeathZone===ns142Zone())):[];}
 function sosCompassTarget(){const id=NET.role==='guest'?NET.localId:'p1',me=G.players.find(p=>p.id===id);if(!me||me.dead)return null;
  return sosActive().filter(p=>p.id!==me.id).sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y)-Math.hypot(b.x-me.x,b.y-me.y))[0]||null;
 }
@@ -6245,7 +6251,7 @@ function drawTeamEdgeMarkers(){
  if(!NET.role||NET.phase!=='playing'||G.mode!=='play')return;
  const vw=viewSize().w,vh=viewSize().h,mine=G.players.find(p=>p.id===NET.localId),focus=mine||G.players[0];
  if(!focus)return;
- for(const p of G.players){if(p.id===NET.localId)continue;
+ for(const p of G.players){if(p.id===NET.localId||p.dead&&p.ns142DeathZone&&p.ns142DeathZone!==ns142Zone())continue;
   const sp=screenPoint(p.x,p.y),outside=sp.x<21||sp.x>vw-21||sp.y<21||sp.y>vh-21;
   if(!outside)continue;
   const dx=sp.x-vw/2,dy=sp.y-vh/2,ratio=Math.min((vw/2-23)/Math.max(1,Math.abs(dx)),(vh/2-30)/Math.max(1,Math.abs(dy)));
@@ -6378,13 +6384,13 @@ function mapDraw(canvas,large){if(G.mode!=='play')return;const context=canvas.ge
  const marks=mapMarkers();for(const m of marks){if(!within(m.x,m.y))continue;const x=mx(m.x),y=my(m.y);context.fillStyle=colors[m.type];context.strokeStyle='#152428';context.lineWidth=large?2:1.5;context.beginPath();context.arc(x,y,large?7:4.5,0,TAU);context.fill();context.stroke();if(large){context.fillStyle='#192526';context.font='bold 9px system-ui';context.textAlign='center';context.textBaseline='middle';context.fillText(({market:'B',guild:'S',tower:'T',gate:'G',vow:'V',boss:'!',quest:'?',explore:'★',cave:'C',ropeChest:'R'})[m.type],x,y+.5)}}
  // Teammates are visible irrespective of explored fog for co-op navigation.
  const myId=NET.role?NET.localId:'p1';
- for(const pl of G.players){if(!within(pl.x,pl.y))continue;const x=mx(pl.x),y=my(pl.y),mine=pl.id===myId,help=!!pl.dead&&!!pl.sosUsed;
+ for(const pl of G.players){if(pl.dead&&pl.ns142DeathZone&&pl.ns142DeathZone!==ns142Zone()||!within(pl.x,pl.y))continue;const x=mx(pl.x),y=my(pl.y),mine=pl.id===myId,help=!!pl.dead&&!!pl.sosUsed;
   if(pl.dead){if((pl.reviveCount||0)>=REVIVE_MAX)continue;}else drawTeamTriangle(context,x,y,pl.id,mine?(large?7:5.6):(large?6:4.5),Number(pl.facing)||-Math.PI/2,help);
   if(help){context.save();const pulse=.5+.5*Math.sin(performance.now()*.012);context.strokeStyle=teamColor(pl.id);context.lineWidth=2;context.shadowColor=teamColor(pl.id);context.shadowBlur=8+pulse*7;context.beginPath();context.arc(x,y,(large?10:7)+pulse*7,0,TAU);context.stroke();context.restore();}
   if(large){context.fillStyle=teamColor(pl.id);context.font='bold 10px system-ui';context.textAlign='center';context.textBaseline='middle';context.fillText(multiplayerDisplayName(pl.id).slice(0,17),x,y-17);}
  }
  // Downed allies are shown even outside discovered fog. Active SOS pulses in coral.
- if(NET.role&&NET.phase==='playing')for(const pl of G.players){if(!pl.dead||(pl.reviveCount||0)>=REVIVE_MAX||!within(pl.x,pl.y))continue;const x=mx(pl.x),y=my(pl.y),active=!!pl.sosUsed,pulse=.5+.5*Math.sin(performance.now()*.008);context.save();context.strokeStyle=teamColor(pl.id);context.lineWidth=active?2.4:1.7;context.fillStyle=teamColor(pl.id);if(active){context.globalAlpha=.35+.45*pulse;context.beginPath();context.arc(x,y,(large?10:7)+pulse*(large?12:8),0,TAU);context.stroke();context.globalAlpha=1;}context.beginPath();context.arc(x,y,large?8:5.5,0,TAU);context.fill();context.stroke();context.fillStyle='#fff4df';context.font=`bold ${large?11:8}px system-ui`;context.textAlign='center';context.textBaseline='middle';context.fillText(active?'!':'+',x,y+0.5);if(large){context.font='bold 10px system-ui';context.fillStyle='#ffdfd0';context.fillText(active?'SOS '+multiplayerDisplayName(pl.id):multiplayerDisplayName(pl.id),x,y-20)}context.restore()}
+ if(NET.role&&NET.phase==='playing')for(const pl of G.players){if(!pl.dead||(pl.reviveCount||0)>=REVIVE_MAX||pl.ns142DeathZone&&pl.ns142DeathZone!==ns142Zone()||!within(pl.x,pl.y))continue;const x=mx(pl.x),y=my(pl.y),active=!!pl.sosUsed,pulse=.5+.5*Math.sin(performance.now()*.008);context.save();context.strokeStyle=teamColor(pl.id);context.lineWidth=active?2.4:1.7;context.fillStyle=teamColor(pl.id);if(active){context.globalAlpha=.35+.45*pulse;context.beginPath();context.arc(x,y,(large?10:7)+pulse*(large?12:8),0,TAU);context.stroke();context.globalAlpha=1;}context.beginPath();context.arc(x,y,large?8:5.5,0,TAU);context.fill();context.stroke();context.fillStyle='#fff4df';context.font=`bold ${large?11:8}px system-ui`;context.textAlign='center';context.textBaseline='middle';context.fillText(active?'!':'+',x,y+0.5);if(large){context.font='bold 10px system-ui';context.fillStyle='#ffdfd0';context.fillText(active?'SOS '+multiplayerDisplayName(pl.id):multiplayerDisplayName(pl.id),x,y-20)}context.restore()}
  context.strokeStyle='#bca77b';context.lineWidth=large?4:2;context.strokeRect(1,1,w-2,h-2);
  // Expanded map shows approximate camera bounds.
  if(large){const v=viewSize();context.strokeStyle='#d6e4c777';context.lineWidth=1.5;context.setLineDash([5,4]);context.strokeRect(mx(G.camera.x-v.w*.5),my(G.camera.y-v.h*.5),v.w/range*w,v.h/range*h);context.setLineDash([])}
