@@ -1305,6 +1305,18 @@ function showAchievements(){
  $('ns109Classic').onclick=()=>{pendingAutoRoom='';pendingAutoUntil=0;localStorage.setItem('ns109_village_pref','classic');closeVillage()};
  $('ns109Sound').onclick=playMusic;
  $('ns144Fx').onclick=()=>{if(fxEnabled())localStorage.setItem('ns144_village_fx_off','1');else localStorage.removeItem('ns144_village_fx_off');primeVillageAudio();refreshVillageAudioButtons()};
+ // Pausing audio does not affect the relay: hosted Village still stays online.
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+   try{villageMusic?.pause()}catch{}
+   for(const sample of animalSamples.values())try{sample.pause()}catch{}
+  }else if(opened){
+   primeVillageAudio();
+   if(musicOn&&villageMusic?.paused){
+    try{const p=villageMusic.play();if(p?.catch)p.catch(()=>{})}catch{}
+   }
+  }
+ });
  $('ns109Results').onclick=showMatchBoard;
  $('ns109Global').onclick=()=>{focused='leaderboard';showRankings()};
  $('ns109Sparta').onclick=showSparta;
