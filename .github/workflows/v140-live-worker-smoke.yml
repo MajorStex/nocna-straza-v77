@@ -2,7 +2,7 @@ name: Verify actual V140 live on permanent Worker and relay
 on:
   push:
     branches: [main]
-    paths: ['public/**']
+    paths: ['public/**', '.github/workflows/v140-live-worker-smoke.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -39,7 +39,7 @@ jobs:
           if not ready:raise SystemExit('GAME V140 NOT LIVE at original Worker URL')
           health=json.loads(get(relay+'/health'))
           if health.get('ok') is not True:raise SystemExit('Legacy relay health unavailable')
-          req=urllib.request.Request(relay+'/arena/create',method='POST',data=json.dumps({'code':'BAD','seats':['p1']}).encode('utf-8'),headers={'Content-Type':'application/json'})
+          req=urllib.request.Request(relay+'/arena/create',method='POST',data=json.dumps({'code':'BAD','seats':['p1']}).encode('utf-8'),headers={'Content-Type':'application/json','Origin':game.rstrip('/'),'Accept':'application/json','User-Agent':'Mozilla/5.0 (Linux; Android 16; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36'})
           try:
             with urllib.request.urlopen(req,timeout=20) as res:
               raise SystemExit('Invalid arena request was unexpectedly accepted: '+str(res.status))
