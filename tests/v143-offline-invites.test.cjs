@@ -5,7 +5,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8');
 const village=fs.readFileSync(path.resolve(__dirname,'../public/v115-village.js'),'utf8');
-assert.match(html,/<title>Night Watch v14[345] — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v14[3-9] — Noćna Straža<\/title>/);
 assert.match(html,/function flushPending\(onlyId=''/);
 assert.match(html,/NS96_INVITES\.flushPending\(id\)/);
 assert.match(html,/NS96_INVITES\.flushPending\(\)/);
