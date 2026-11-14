@@ -367,7 +367,7 @@ function frame(now){
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get active(){return N.phase==='running'},
  get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
- joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,
+ joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,attackHeld:N.attack,
  playerX:N.me?.x,playerY:N.me?.y,walking:!!N.me?.motion?.walking,
  facing:N.me?.motion?.side||1,attackAngle:N.me?.attackAngle??null}}};
 })();
