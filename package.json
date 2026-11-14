@@ -3,7 +3,8 @@
   "version": "92.0.0",
   "private": true,
   "scripts": {
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "build": "node tests/current-deployment.test.cjs"
   },
   "devDependencies": {
     "wrangler": "^4.150.0"
