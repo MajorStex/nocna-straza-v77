@@ -6779,7 +6779,7 @@ const NS96_INVITES=(()=>{
  let expanded=false;const sent=new Map(),responses=new Map();
  // V143: deferred peer invitations need the host's EXISTING room to remain live.
  // Persist only the sender's pending intent; it is NOT a server-side mailbox.
- const queued=new Map(),TTL_MS=45*60*1000;let loadedRoom='';
+ const queued=new Map(),TTL_MS=24*60*60*1000;let loadedRoom='';
  const queueKey=()=> 'ns143_deferred_invites_'+getActiveAccount().id;
  function saveQueue(){try{localStorage.setItem(queueKey(),JSON.stringify([...queued].slice(0,5)))}catch{}}
  function loadQueue(){
