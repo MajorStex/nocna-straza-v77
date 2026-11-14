@@ -22,6 +22,18 @@ const scripts=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
  .filter(m=>!/\bsrc=/.test(m[1]));
 assert.equal(scripts.length,4,'Unexpected number of inline scripts');
 for(const [i,m] of scripts.entries())assert.doesNotThrow(()=>new Function(m[2]),'Inline JS syntax error '+i);
+// V142: Guard the existing Worker homepage against an accidental older MP release.
+// Do not change the Worker URL or require any new Cloudflare services.
+if(Number(title[1])>=142){
+ const village=fs.readFileSync(path.join(folder,'v115-village.js'),'utf8');
+ assert.match(html,/id="ns142MpModes"/,'MP lobby must display SP mode cards');
+ assert.match(html,/function ns142FinalDeath\(/,'The host must own final-death loot');
+ assert.match(html,/ns142DeathZone/,'Corpses must carry their map of death');
+ assert.match(html,/NS105_TEMPLE\.receiveNet\(d\.tm\)/,'Temple transitions must sync to guests');
+ assert.match(html,/ns142ResumeCheck/,'Returning phones must sync the room phase');
+ assert.match(village,/function showMatchBoard\(/,'Village must have a post-match team scoreboard');
+ assert.match(village,/\$\('ns109Results'\)\.onclick=showMatchBoard/,'Village Results must show scoreboard in place');
+}
 const headers=fs.readFileSync(path.join(folder,'_headers'),'utf8');
 assert.match(headers,/\/\s*\n\s*Cache-Control: no-cache, max-age=0, must-revalidate/,'Mobile bookmark must revalidate HTML');
 console.log('PASS current release '+title[1]+': title, menu, watermark, share links, files, JavaScript syntax and no-cache HTML');
