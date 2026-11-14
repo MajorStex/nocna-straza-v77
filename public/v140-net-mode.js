@@ -43,7 +43,11 @@ function ui(){
   knob.style.transform='translate('+(N.stick.x*39).toFixed(1)+'px,'+(N.stick.y*39).toFixed(1)+'px)';
  };
  canvas.addEventListener('pointerdown',e=>{
-  if(N.phase!=='running'||N.stick.ptr!==null||(e.pointerType==='mouse'&&e.button!==0))return;
+  if(N.phase!=='running'||N.stick.ptr!==null)return;
+  if(e.pointerType==='mouse'){
+   if(e.button===0){e.preventDefault();N.attack=true}
+   return; // PC matches normal mode: click = attack, WASD = move.
+  }
   e.preventDefault();N.stick.ptr=e.pointerId;
   N.stick.startX=e.clientX;N.stick.startY=e.clientY;
   pad.style.left=e.clientX+'px';pad.style.top=e.clientY+'px';
@@ -56,6 +60,7 @@ function ui(){
  for(const type of ['pointerup','pointercancel','lostpointercapture'])
   canvas.addEventListener(type,e=>{if(e.pointerId===N.stick.ptr)resetStick()});
  document.addEventListener('visibilitychange',()=>{if(document.hidden)resetStick()});
+ window.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')N.attack=false});
  const hit=el('ns140Hit');hit.onpointerdown=e=>{e.preventDefault();N.attack=true;hit.setPointerCapture(e.pointerId)};
  hit.onpointerup=hit.onpointercancel=hit.onlostpointercapture=()=>{N.attack=false};
  window.addEventListener('keydown',e=>{if(N.phase!=='running'||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
