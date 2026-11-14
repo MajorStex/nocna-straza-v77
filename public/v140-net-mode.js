@@ -6,7 +6,7 @@ const B=()=>window.__NS110_BRIDGE||{},clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
  players:new Map(),me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
- correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null},attack:false,timeout:null,ticket:'',retry:0,
+ correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},attack:false,timeout:null,ticket:'',retry:0,
  solo:false,soloMobs:[],soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0};
 const el=id=>document.getElementById(id);
 function ui(){
@@ -16,28 +16,52 @@ function ui(){
  '#ns140Root[hidden]{display:none!important}#ns140Canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}'+
  '#ns140Bar{position:absolute;top:max(9px,env(safe-area-inset-top));left:9px;right:9px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:#122922e9;border:1px solid #96b8a2;border-radius:10px;padding:9px;font-size:12px}'+
  '#ns140Stats{font:10px monospace;color:#b8d5c6}#ns140Close{background:#714837;color:white;border:1px solid #e9b69a;padding:7px;border-radius:7px}'+
- '#ns140Pad{position:absolute;left:15px;bottom:36px;width:128px;height:128px;border:2px solid #c1d0bb88;background:#587d6d66;border-radius:50%;touch-action:none}'+
- '#ns140Pad:after{content:"●";position:absolute;left:42px;top:42px;display:grid;place-items:center;width:44px;height:44px;background:#aac9beaa;border-radius:50%;font-size:28px}'+
+ '#ns140Pad{position:fixed;left:0;top:0;width:112px;height:112px;display:none;transform:translate(-50%,-50%);pointer-events:none;touch-action:none;z-index:4;border:2px solid #d9eee096;background:radial-gradient(circle,#9bccaa26,#1a413e77);border-radius:50%;box-shadow:inset 0 0 23px #061a2188}'+
+ '#ns140Pad.active{display:block}'+
+ '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '#ns140Hit{position:absolute;right:20px;bottom:57px;width:90px;height:90px;border-radius:50%;border:2px solid #edce9a;background:#76523e;color:#fff6cf;font-size:27px;touch-action:none}'+
  '#ns140Hit small{font-size:10px;display:block}';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
  root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V140 NOVA MREŽA</b><span id="ns140Stats"></span><button type="button" id="ns140Close">← LOBBY</button></div>'+
- '<div id="ns140Pad" aria-label="Kontrola kretanja"></div><button type="button" id="ns140Hit">⚔<small>ATTACK</small></button>';
+ '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div><button type="button" id="ns140Hit">⚔<small>ATTACK</small></button>';
  document.body.append(style,root);
  el('ns140Close').onclick=()=>stop(true);
- const pad=el('ns140Pad');
- const move=e=>{const r=pad.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/(r.width*.35),dy=(e.clientY-r.top-r.height/2)/(r.height*.35),d=Math.hypot(dx,dy);
-  N.stick.x=clamp(dx/(d>1?d:1),-1,1);N.stick.y=clamp(dy/(d>1?d:1),-1,1)};
- pad.onpointerdown=e=>{e.preventDefault();N.stick.ptr=e.pointerId;pad.setPointerCapture(e.pointerId);move(e)};
- pad.onpointermove=e=>{if(e.pointerId===N.stick.ptr)move(e)};
- const release=e=>{if(e.pointerId===N.stick.ptr){N.stick.ptr=null;N.stick.x=N.stick.y=0}};
- pad.onpointerup=release;pad.onpointercancel=release;pad.onlostpointercapture=release;
+ // Same free-position pointer joystick as the normal game: it appears
+ // where the player touches the arena, not in a fixed bottom-left spot.
+ const pad=el('ns140Pad'),knob=el('ns140Knob'),canvas=el('ns140Canvas');
+ const resetStick=()=>{
+  N.stick.ptr=null;N.stick.x=0;N.stick.y=0;
+  pad.classList.remove('active');knob.style.transform='translate(0px,0px)';
+ };
+ const moveStick=e=>{
+  const dx=e.clientX-N.stick.startX,dy=e.clientY-N.stick.startY,dist=Math.hypot(dx,dy);
+  if(dist<N.stick.deadZone){N.stick.x=N.stick.y=0}
+  else{
+   const power=Math.min(1,(dist-N.stick.deadZone)/(N.stick.radius-N.stick.deadZone));
+   N.stick.x=dx/dist*power;N.stick.y=dy/dist*power;
+  }
+  knob.style.transform='translate('+(N.stick.x*39).toFixed(1)+'px,'+(N.stick.y*39).toFixed(1)+'px)';
+ };
+ canvas.addEventListener('pointerdown',e=>{
+  if(N.phase!=='running'||N.stick.ptr!==null||(e.pointerType==='mouse'&&e.button!==0))return;
+  e.preventDefault();N.stick.ptr=e.pointerId;
+  N.stick.startX=e.clientX;N.stick.startY=e.clientY;
+  pad.style.left=e.clientX+'px';pad.style.top=e.clientY+'px';
+  pad.classList.add('active');knob.style.transform='translate(0px,0px)';
+  try{canvas.setPointerCapture(e.pointerId)}catch{}
+ });
+ canvas.addEventListener('pointermove',e=>{
+  if(e.pointerId===N.stick.ptr){e.preventDefault();moveStick(e)}
+ });
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])
+  canvas.addEventListener(type,e=>{if(e.pointerId===N.stick.ptr)resetStick()});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)resetStick()});
  const hit=el('ns140Hit');hit.onpointerdown=e=>{e.preventDefault();N.attack=true;hit.setPointerCapture(e.pointerId)};
  hit.onpointerup=hit.onpointercancel=hit.onlostpointercapture=()=>{N.attack=false};
  window.addEventListener('keydown',e=>{if(N.phase!=='running'||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
  const k=e.key.toLowerCase();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault()});
  window.addEventListener('keyup',e=>N.keys.delete(e.key.toLowerCase()));
- window.addEventListener('blur',()=>{N.keys.clear();N.stick.x=N.stick.y=0;N.attack=false});
+ window.addEventListener('blur',()=>{N.keys.clear();resetStick();N.attack=false});
 }
 function status(note){ui();el('ns140Root').hidden=false;el('ns140Status').textContent=note}
 function stop(notify=false){
@@ -45,7 +69,8 @@ function stop(notify=false){
  if(notify&&N.id==='p1'&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'end'}))}catch{}
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
- N.phase='idle';N.solo=false;N.soloMobs=[];N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.attack=false;
+ N.phase='idle';N.solo=false;N.soloMobs=[];N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;N.attack=false;
+ if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
  if(wasSolo)try{window.__nightWatch?.showPreRun?.()}catch{}
  else if(B().NET?.phase==='lobby')try{B().renderLobby?.()}catch{}
@@ -100,7 +125,8 @@ function startSolo(){
  N.seq=N.ack=N.soloTick=N.soloKills=0;N.tick=-1;
  N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
- N.delta={x:0,y:0};N.pending=[];N.players.clear();
+ N.delta={x:0,y:0};N.pending=[];N.players.clear();N.stick.ptr=null;N.stick.x=N.stick.y=0;
+ if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
  N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,attackTick:-100,online:true,knocked:false};
  N.players.set('p1',N.me);
  N.soloMobs=Array.from({length:12},(_,i)=>({
@@ -139,7 +165,21 @@ function stepSolo(dt,attackHeld){
     const d=Math.hypot(mob.x-me.x,mob.y-me.y);
     if(d<dist){target=mob;dist=d}
    }
+   // Lock slash direction onto the actual nearest goblin being hit.
+   // When nothing is in striking range, point toward the closest visible
+   // target (visual only — it never extends the authoritative 83px hitbox).
+   let visualTarget=target,visualDist=155;
+   if(!visualTarget)for(const mob of N.soloMobs){
+    if(mob.hp<=0)continue;
+    const d=Math.hypot(mob.x-me.x,mob.y-me.y);
+    if(d<visualDist){visualTarget=mob;visualDist=d}
+   }
+   if(visualTarget){
+    me.attackAngle=Math.atan2(visualTarget.y-me.y,visualTarget.x-me.x);
+    me.facingAngle=me.attackAngle;
+   }else me.attackAngle=Number.isFinite(me.facingAngle)?me.facingAngle:0;
    if(target){
+    target.hitTick=N.soloTick;
     target.hp=Math.max(0,target.hp-22);
     if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++}
    }
@@ -151,7 +191,7 @@ function drawSoloMobs(g,now){
   if(mob.hp<=0)continue;
   const pulse=Math.sin(now/250+mob.id)*1.4;
   g.save();g.translate(mob.x,mob.y+pulse);
-  g.fillStyle='#2c3e29';g.beginPath();g.ellipse(0,6,17,13,0,0,Math.PI*2);g.fill();
+  g.fillStyle=N.soloTick-(mob.hitTick||-100)>0&&N.soloTick-(mob.hitTick||-100)<6?'#506b39':'#2c3e29';g.beginPath();g.ellipse(0,6,17,13,0,0,Math.PI*2);g.fill();
   g.fillStyle='#6a8954';g.beginPath();g.moveTo(-13,0);g.lineTo(-15,-13);g.lineTo(-6,-8);
   g.quadraticCurveTo(0,-22,8,-8);g.lineTo(15,-14);g.lineTo(12,0);
   g.quadraticCurveTo(0,14,-13,0);g.fill();
@@ -226,6 +266,47 @@ function acceptOffer(d){
  if(N.phase!=='idle')return N.match===d.match;
  return connect(d.match,d.id,d.ticket);
 }
+// V145: movement phase is frozen when idle; a light breathing bob remains.
+// This avoids the old permanently-walking character pose in the test arena.
+function updateHeroMotion(p,dt){
+ if(!p.motion)p.motion={lastX:p.x,lastY:p.y,phase:0,side:1,angle:0,walking:false};
+ const m=p.motion,dx=p.x-m.lastX,dy=p.y-m.lastY,speed=Math.hypot(dx,dy);
+ m.walking=speed>.22;
+ if(m.walking){
+  m.phase+=Math.min(dt,.05)*8.5;
+  if(Math.abs(dx)>.12)m.side=dx<0?-1:1;
+  m.angle=Math.atan2(dy,dx);
+  p.facingAngle=m.angle;
+ }
+ m.lastX=p.x;m.lastY=p.y;
+ return m;
+}
+function slashHeading(p,m){
+ if(Number.isFinite(p.attackAngle))return p.attackAngle;
+ const candidates=N.solo?N.soloMobs.filter(q=>q.hp>0):[...N.players.values()].filter(q=>q.id!==p.id&&q.hp>0);
+ let angle=Number.isFinite(p.facingAngle)?p.facingAngle:(m?.angle||0),nearest=115;
+ for(const q of candidates){
+  const d=Math.hypot(q.x-p.x,q.y-p.y);
+  if(d<nearest){nearest=d;angle=Math.atan2(q.y-p.y,q.x-p.x)}
+ }
+ return angle;
+}
+function drawTargetedSlash(g,p,m){
+ if(!Number.isFinite(p.attackTick))return;
+ const age=N.tick-p.attackTick;if(age<0||age>11)return;
+ const t=clamp(age/11,0,1),alpha=Math.pow(1-t,1.25),a=slashHeading(p,m);
+ const from=a-1.03+t*.52,to=from+.34+t*1.35;
+ g.save();g.translate(p.x,p.y);g.globalAlpha*=alpha;
+ // Oriented crescent and sharp leading edge, never a fixed right-facing ring.
+ g.strokeStyle='#f5df9c';g.lineWidth=4.5;g.lineCap='round';
+ g.beginPath();g.arc(0,0,53,from,to);g.stroke();
+ g.strokeStyle='#fff8db';g.lineWidth=2;
+ g.beginPath();g.arc(0,0,58,to-.29,to+.08);g.stroke();
+ const sx=Math.cos(to)*56,sy=Math.sin(to)*56;
+ g.strokeStyle='#f7c775';g.lineWidth=1.5;
+ g.beginPath();g.moveTo(sx-Math.cos(a)*13,sy-Math.sin(a)*13);g.lineTo(sx+Math.cos(a)*7,sy+Math.sin(a)*7);g.stroke();
+ g.restore();
+}
 function frame(now){
  if(N.phase!=='running'||document.hidden)return;
  const canvas=el('ns140Canvas'),g=canvas?.getContext('2d');if(!g)return;
@@ -261,12 +342,17 @@ function frame(now){
   if(!p.online)continue;
   if(p.id!==N.id){const k=clamp(dt*10,0,1);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
   g.save();if(p.hp<=0)g.globalAlpha=.38;
-  const b=B();if(typeof b.drawVillageHero==='function')b.drawVillageHero(g,p.x,p.y,{id:p.id,
-    look:b.getVillageHeroLook?.(p.id)||b.heroStyle,frame:now/110,walking:true,visualSide:1});
+  const motion=updateHeroMotion(p,dt);
+  const b=B();if(typeof b.drawVillageHero==='function'){
+   if(!motion.walking)g.translate(0,Math.sin(now/900+(p.id==='p1'?0:1))*.85);
+   b.drawVillageHero(g,p.x,p.y,{id:p.id,
+    look:b.getVillageHeroLook?.(p.id)||b.heroStyle,frame:motion.phase,walking:motion.walking,
+    visualSide:motion.side});
+  }
   else{g.fillStyle=p.id===N.id?'#b2ddb6':'#d5b591';g.beginPath();g.arc(p.x,p.y,17,0,7);g.fill()}
   g.fillStyle='#17251c';g.fillRect(p.x-23,p.y-65,46,5);g.fillStyle='#a8e2a6';g.fillRect(p.x-22,p.y-64,44*clamp(p.hp/100,0,1),3);
   g.fillStyle='#f0dfb6';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText(p.id===N.id?'TI':p.id,p.x,p.y-72);
-  if(p.attackTick&&N.tick-p.attackTick<11){g.strokeStyle='#f4cb8f';g.lineWidth=4;g.beginPath();g.arc(p.x,p.y,54,-.8,.7);g.stroke()}
+  drawTargetedSlash(g,p,motion);
   g.restore();
  }
  g.setTransform(dpr,0,0,dpr,0,0);
@@ -275,5 +361,8 @@ function frame(now){
   ' | korekcija '+Math.round(N.correction)+'px | stanje '+Math.round(now-N.lastState)+'ms | CPU '+N.serverMs+'ms';
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null}}};
+ get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,
+ playerX:N.me?.x,playerY:N.me?.y,walking:!!N.me?.motion?.walking,
+ facing:N.me?.motion?.side||1,attackAngle:N.me?.attackAngle??null}}};
 })();
