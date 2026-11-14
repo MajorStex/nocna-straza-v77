@@ -7,7 +7,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
  players:new Map(),me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},attack:false,timeout:null,ticket:'',retry:0,
- solo:false,soloMobs:[],soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0};
+ solo:false,soloMobs:[],soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',fallbackAllowed:false};
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -246,6 +246,8 @@ function connect(match,id,ticket){
 }
 async function startHost(){
  const b=B(),net=b.NET,roster=b.currentLobbyRoster?.()||[];
+ N.errorCode='';N.fallbackAllowed=false;
+ let offerSent=false;
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
  if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
@@ -260,10 +262,16 @@ async function startHost(){
    if(peer.id===net.localId)continue;
    const c=net.clients.get(peer.id);
    if(!c?.open)throw Error('guest_disconnected');
-   c.send({t:'arena140Offer',match:data.match,id:peer.id,ticket:data.tickets[peer.id],protocol:140});
+   c.send({t:'arena140Offer',match:data.match,id:peer.id,ticket:data.tickets[peer.id],protocol:140});offerSent=true;
   }
   N.phase='idle';return connect(data.match,net.localId,data.tickets[net.localId]);
- }catch(err){N.phase='error';status('V146 SERVER NIJE SPREMAN: '+String(err?.message||err).slice(0,70));return false}
+ }catch(err){
+  N.errorCode=String(err?.message||err);
+  // Offer-free failures can safely switch the whole lobby to legacy co-op.
+  // Never fall back after tickets have been sent to any player.
+  N.fallbackAllowed=!offerSent&&/free_test_budget_reached|arena_not_deployed|server_not_deployed|Failed to fetch|NetworkError|fetch failed/i.test(N.errorCode);
+  N.phase='error';status('V146 SERVER NIJE SPREMAN: '+N.errorCode.slice(0,70));return false;
+ }
 }
 function acceptOffer(d){
  const b=B(),net=b.NET;if(net?.role!=='guest'||net.phase!=='lobby'||d?.protocol!==140||
@@ -365,7 +373,7 @@ function frame(now){
   'FPS '+N.fps+' | '+Math.round(N.ping)+'ms | ACK '+N.ack+'/'+N.seq+
   ' | korekcija '+Math.round(N.correction)+'px | stanje '+Math.round(now-N.lastState)+'ms | CPU '+N.serverMs+'ms';
 }
-window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get active(){return N.phase==='running'},
+window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get fallbackAllowed(){return N.fallbackAllowed},get active(){return N.phase==='running'},
  get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,attackHeld:N.attack,
  playerX:N.me?.x,playerY:N.me?.y,walking:!!N.me?.motion?.walking,
