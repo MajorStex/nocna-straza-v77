@@ -6560,7 +6560,7 @@ function socialStatusText(){const confirmed=[...SOCIAL.conns.values()].filter(c=
 function roomPresence(){return NET.role==='host'&&NET.phase==='lobby'?'lobby':NET.phase==='playing'?'playing':'menu'}
 function socialPacket(t){return {t,id:ensureSocialIdentity(),name:safePlayerName(getActiveAccount().name),level:currentProfileLevel(),phase:roomPresence(),room:NET.role==='host'&&NET.phase==='lobby'?NET.code:null}}
 function socialSend(id,data){const c=SOCIAL.conns.get(id);if(!c?.open)return false;try{c.send(data);return true}catch{return false}}
-function sendSocialStatus(){for(const id of Object.keys(SOCIAL.db?.friends||{}))socialSend(id,socialPacket('status'));renderFriendsCorner();if(!$('friendsPanel').classList.contains('hidden'))renderFriends();NS96_INVITES.render()}
+function sendSocialStatus(){for(const id of Object.keys(SOCIAL.db?.friends||{}))socialSend(id,socialPacket('status'));NS96_INVITES.flushPending();renderFriendsCorner();if(!$('friendsPanel').classList.contains('hidden'))renderFriends();NS96_INVITES.render()}
 function socialDisconnect(){if(SOCIAL.ticker)clearInterval(SOCIAL.ticker);SOCIAL.ticker=null;const peer=SOCIAL.peer;SOCIAL.peer=null;SOCIAL.connected=false;SOCIAL.starting=false;for(const c of SOCIAL.conns.values())try{c.close()}catch{}SOCIAL.conns.clear();try{peer?.destroy()}catch{}renderFriendsCorner()}
 function socialRefreshProfile(){socialDisconnect();SOCIAL.pending.clear();SOCIAL.expandedNames.clear();SOCIAL.action=null;SOCIAL.selected=null;NS103_PARTY.reset();loadSocialData();ensureSocialIdentity();renderFriends();startSocial()}
 async function startSocial(){if(SOCIAL.peer||SOCIAL.starting)return;SOCIAL.starting=true;ensureSocialIdentity();if(!SOCIAL.db)loadSocialData();try{const pending=JSON.parse(localStorage.getItem('ns60_friend_pending_'+getActiveAccount().id)||'[]');for(const id of pending)if(FRIEND_CODE_RE.test(id)&&id!==ensureSocialIdentity()&&!socialFriend(id))SOCIAL.pending.set(id,'add')}catch{}renderFriendsCorner();
@@ -6579,7 +6579,7 @@ function socialBindConnection(c){const ownerId=ensureSocialIdentity();const id=S
   else{try{old.close()}catch{}}
  }
  SOCIAL.conns.set(id,c);
- c.on('open',()=>{if(SOCIAL.conns.get(id)!==c)return;c.send(socialPacket('hello'));if(SOCIAL.pending.get(id)==='add')c.send(socialPacket('friendReq'));if(socialFriend(id))c.send(socialPacket('status'));renderFriends();});
+ c.on('open',()=>{if(SOCIAL.conns.get(id)!==c)return;c.send(socialPacket('hello'));if(SOCIAL.pending.get(id)==='add')c.send(socialPacket('friendReq'));if(socialFriend(id))c.send(socialPacket('status'));NS96_INVITES.flushPending(id);renderFriends();});
  c.on('data',d=>{if(ownerId!==ensureSocialIdentity()||SOCIAL.conns.get(id)!==c)return;socialHandlePacket(id,d,c)});
  const lost=()=>{if(SOCIAL.conns.get(id)===c)SOCIAL.conns.delete(id);if(SOCIAL.pending.get(id)==='add'){$('friendsStatus').textContent='Zahtev čeka · drugi telefon nije dostupan za direktnu vezu. Ponovićemo automatski.';}renderFriends()};
  c.on('close',lost);c.on('error',lost);
@@ -6680,7 +6680,7 @@ function renderFriends(){if(!$('friendsPanel'))return;ensureSocialIdentity();$('
  const root=$('friendsList');root.textContent='';const online=allIds.filter(id=>SOCIAL.conns.get(id)?.open).length;
  $('friendsCount').textContent=`${online}/${allIds.length} online${allIds.length>groups.size?' · '+(allIds.length-groups.size)+' starih ID-a':''}`;
  for(const id of ids){const f=SOCIAL.db.friends[id],isOnline=!!SOCIAL.conns.get(id)?.open;const row=document.createElement('div');row.className='friendRow';const head=document.createElement('div');head.className='friendRowHead';const who=document.createElement('div');who.className='friendWho';const name=document.createElement('strong');name.textContent=f.name;const info=document.createElement('small');info.textContent=`NIVO ${f.level} · ${id} · ${f.phase==='lobby'?'ČEKAONICA':f.phase==='playing'?'U PARTIJI · JOIN ZA SLEDEĆU':'GLAVNI MENI'}`;who.append(name,info);const badge=document.createElement('span');badge.className='friendPresence'+(isOnline?' online':'');badge.textContent=isOnline?'● ONLINE':'○ OFFLINE';head.append(who,badge);
- if(isOnline){
+ {
   const pick=document.createElement('label');pick.className='ns103FriendPick';
   const input=document.createElement('input');input.type='checkbox';input.checked=NS103_PARTY.selected.has(id);
   input.setAttribute('aria-label','Select '+f.name+' for game invite');
@@ -6690,11 +6690,11 @@ function renderFriends(){if(!$('friendsPanel'))return;ensureSocialIdentity();$('
  const actions=document.createElement('div');actions.className='friendButtons';
  function btn(label,fn,disabled=false){const b=document.createElement('button');b.textContent=label;b.disabled=disabled;b.onclick=fn;actions.append(b)}
  btn('CHAT',()=>{SOCIAL.selected=id;renderFriends();renderFriendChat()},!isOnline);
- btn('POZOVI',()=>sendFriendInvite(id),!isOnline||NET.role==='guest'||NET.phase==='playing');
+ btn(NS96_INVITES.pending(id)?'⏳ ČEKA ONLINE':isOnline?'POZOVI':'✉ POZOVI OFFLINE',()=>sendFriendInvite(id),NET.role==='guest'||NET.phase==='playing'||NS96_INVITES.pending(id));
  btn('JOIN GAME',()=>requestFriendJoin(id),!isOnline||!['lobby','playing'].includes(f.phase)||NET.phase==='playing');
  const startBtn=document.createElement('button');startBtn.className='ns103StartOne';
  startBtn.textContent=window.__gameLanguage?.value==='sr'?'🎮 IGRAJ SA':'🎮 START GAME WITH';
- startBtn.disabled=!isOnline||NET.phase==='playing'||NET.role==='guest'||NET.phase==='connecting';
+ startBtn.disabled=NET.phase==='playing'||NET.role==='guest'||NET.phase==='connecting';
  startBtn.onclick=()=>NS103_PARTY.start([id]);actions.append(startBtn);
  btn('UKLONI',()=>removeFriend(id));row.append(head,actions);
  const dup=duplicates.get(id);
@@ -6723,14 +6723,14 @@ const NS103_PARTY=(()=>{
  function paint(){
   const btn=$('ns103StartSelected'),hint=$('ns103PartyHint');if(!btn)return;
   for(const id of [...selected])if(!socialFriend(id))selected.delete(id);
-  const active=[...selected].filter(id=>SOCIAL.conns.get(id)?.open);
+  const active=[...selected].filter(id=>socialFriend(id));
   btn.disabled=!active.length||!!creating||NET.phase==='playing'||NET.role==='guest'||NET.phase==='connecting';
-  btn.textContent=tr('🎮 START WITH SELECTED','🎮 IGRAJ SA IZABRANIMA')+' ('+active.length+'/5)';
-  if(hint)hint.textContent=tr('Choose up to five online friends. Invitees accept/decline in their game.','Izaberi do 5 online prijatelja. Svako dobija poziv Prihvati/Odbij.');
+  btn.textContent=tr('🎮 INVITE SELECTED','🎮 POZOVI IZABRANE')+' ('+active.length+'/5)';
+  if(hint)hint.textContent=tr('Choose up to five friends, even offline. While your room stays open they receive Accept/Decline when starting the game.','Izaberi do 5 prijatelja, čak i offline. Dok je tvoja soba otvorena, stiže im Prihvati/Odbij čim pokrenu igru.');
  }
  function select(id,on){
   if(on&&selected.size>=5){toast(tr('Up to five friends','Najviše pet prijatelja'));renderFriends();return false}
-  if(on&&(!socialFriend(id)||!SOCIAL.conns.get(id)?.open)){renderFriends();return false}
+  if(on&&!socialFriend(id)){renderFriends();return false}
   if(on)selected.add(id);else selected.delete(id);paint();return true;
  }
  function deliver(){
@@ -6742,17 +6742,17 @@ const NS103_PARTY=(()=>{
   }
   for(const id of [...pending]){
    if(!socialFriend(id)||currentLobbyRoster().some(p=>p.friendId===id)){pending.delete(id);continue}
-   if(SOCIAL.conns.get(id)?.open&&NS96_INVITES.invite(id))pending.delete(id);
+   if(NS96_INVITES.invite(id))pending.delete(id);
   }
   if(pending.size&&++attempts<20)timer=setTimeout(deliver,850);
-  else{if(pending.size)toast(tr('Some friends are offline; invite them from the lobby.','Neki prijatelji nisu na mreži; pozovi ih iz čekaonice.'));pending.clear();paint()}
+  else{if(pending.size)toast(tr('Could not queue all invitations','Nisu svi pozivi uspešno sačuvani'));pending.clear();paint()}
  }
  function onLobbyReady(){if(!pending.size)return;clearTimer();attempts=0;deliver()}
  function onHostFailed(){if(!pending.size)return;clearTimer();pending.clear();creating=false;toast(tr('Room creation failed. Your friends were not invited.','Soba nije napravljena. Prijateljima nije poslat poziv.'));paint()}
  function start(ids){
   if(NET.role==='guest'||NET.phase==='playing'||NET.phase==='connecting'||(NET.role==='host'&&NET.phase!=='lobby')){toast(tr('Leave the current game first','Prvo izađi iz trenutne igre'));return false}
-  const targets=[...new Set(Array.isArray(ids)?ids:[])].filter(id=>FRIEND_CODE_RE.test(id)&&socialFriend(id)&&SOCIAL.conns.get(id)?.open).slice(0,5);
-  if(!targets.length){toast(tr('Select at least one online friend','Izaberi najmanje jednog online prijatelja'));return false}
+  const targets=[...new Set(Array.isArray(ids)?ids:[])].filter(id=>FRIEND_CODE_RE.test(id)&&socialFriend(id)).slice(0,5);
+  if(!targets.length){toast(tr('Select at least one friend','Izaberi najmanje jednog prijatelja'));return false}
   pending.clear();for(const id of targets)pending.add(id);
   if(NET.role==='host'&&NET.phase==='lobby'){onLobbyReady();return true}
   creating=true;paint();
@@ -6777,6 +6777,38 @@ window.__NS103_PARTY=NS103_PARTY;
 /* v96: invite already added in-game friends directly from lobby */
 const NS96_INVITES=(()=>{
  let expanded=false;const sent=new Map(),responses=new Map();
+ // V143: deferred peer invitations need the host's EXISTING room to remain live.
+ // Persist only the sender's pending intent; it is NOT a server-side mailbox.
+ const queued=new Map(),TTL_MS=45*60*1000;let loadedRoom='';
+ const queueKey=()=> 'ns143_deferred_invites_'+getActiveAccount().id;
+ function saveQueue(){try{localStorage.setItem(queueKey(),JSON.stringify([...queued].slice(0,5)))}catch{}}
+ function loadQueue(){
+  if(!active()||loadedRoom===NET.code)return;
+  loadedRoom=NET.code;queued.clear();
+  try{const raw=JSON.parse(localStorage.getItem(queueKey())||'[]');
+   if(Array.isArray(raw))for(const item of raw.slice(0,5)){const [id,p]=item;
+    if(FRIEND_CODE_RE.test(id)&&p?.room===NET.code&&Date.now()-Number(p.at)<TTL_MS&&socialFriend(id))
+      queued.set(id,{room:p.room,locked:!!p.locked,at:Number(p.at)});
+   }
+  }catch{}
+  saveQueue();
+ }
+ function pending(id){loadQueue();return queued.has(id)}
+ function flushPending(onlyId=''){
+  if(!active()||NET.role!=='host')return 0;
+  loadQueue();let sentCount=0,dirty=false;
+  for(const [id,p] of queued){
+   if(onlyId&&id!==onlyId)continue;
+   if(p.room!==NET.code||Date.now()-p.at>=TTL_MS||!socialFriend(id)||inRoom(id)){queued.delete(id);dirty=true;continue;}
+   if(roomFull()||!SOCIAL.conns.get(id)?.open)continue;
+   if(socialSend(id,{...socialPacket('invite'),room:p.room,locked:p.locked})){
+    queued.delete(id);sent.set(id,Date.now());responses.set(id,'sent');sentCount++;dirty=true;
+    toast('✉ '+socialFriend(id).name+' je online · poziv je poslat');
+   }
+  }
+  if(dirty){saveQueue();render()}
+  return sentCount;
+ }
  const tr=(en,sr)=>window.__gameLanguage?.value==='sr'?sr:en;
  const active=()=>NET.phase==='lobby'&&!!NET.role&&/^[A-HJ-NP-Z2-9]{6}$/.test(NET.code||'');
  const roster=()=>currentLobbyRoster();
@@ -6785,46 +6817,52 @@ const NS96_INVITES=(()=>{
  function render(){
   const root=$('ns96InviteWrap');if(!root)return;
   root.classList.toggle('hidden',!active());if(!active())return;
-  const friends=SOCIAL.db?.friends||{},ids=Object.keys(friends);
+  loadQueue();const friends=SOCIAL.db?.friends||{},ids=Object.keys(friends);
   const count=ids.filter(id=>SOCIAL.conns.get(id)?.open).length;
   $('ns96InviteToggle').textContent=tr('✉ INVITE FRIENDS','✉ POZOVI PRIJATELJE')+' ('+count+')';
   $('ns96InviteToggle').setAttribute('aria-expanded',String(expanded));
   $('ns96InvitePanel').classList.toggle('hidden',!expanded);
   if(!expanded)return;
   $('ns96InviteStatus').textContent=tr('Online ','Na mreži ')+count+'/'+ids.length;
-  $('ns96InviteHint').textContent=tr('Only confirmed in-game friends. Accept/Decline appears on their screen; no link required. Both devices must be online.','Samo već dodati prijatelji. Prihvati/Odbij se pojavljuje kod njih, bez linka. Oba uređaja moraju biti online.');
+  $('ns96InviteHint').textContent=tr('Invite online or offline friends. Queued invites deliver when they open the game, while YOUR room stays online.','Pozovi i offline prijatelje. Poziv čeka da pokrenu igru, dok TVOJA soba ostaje online.');
   const list=$('ns96InviteList');list.replaceChildren();
   if(!ids.length){const note=document.createElement('small');note.textContent=tr('No friends. Add them in Friends first.','Nema dodatih prijatelja. Prvo ih dodaj u meniju Prijatelji.');list.append(note);return}
   ids.sort((a,b)=>(!!SOCIAL.conns.get(b)?.open)-(!!SOCIAL.conns.get(a)?.open)||String(friends[a].name).localeCompare(String(friends[b].name)));
   for(const id of ids){
-   const f=friends[id],online=!!SOCIAL.conns.get(id)?.open,joined=inRoom(id),recent=Date.now()-(sent.get(id)||0)<12000;
+   const f=friends[id],online=!!SOCIAL.conns.get(id)?.open,joined=inRoom(id),waiting=queued.has(id),recent=Date.now()-(sent.get(id)||0)<12000;
    const row=document.createElement('div');row.className='ns96InviteFriend';
    const info=document.createElement('div'),name=document.createElement('strong'),status=document.createElement('small'),btn=document.createElement('button');
    name.textContent=safePlayerName(f.name);
-   status.textContent=joined?tr('✓ IN ROOM','✓ U SOBI'):online?tr('● ONLINE','● NA MREŽI'):tr('○ OFFLINE','○ VAN MREŽE');
+   status.textContent=joined?tr('✓ IN ROOM','✓ U SOBI'):waiting?tr('⏳ WAITING TO OPEN GAME','⏳ ČEKA DA POKRENE IGRU'):online?tr('● ONLINE','● NA MREŽI'):tr('○ OFFLINE','○ VAN MREŽE');
    info.append(name,status);btn.type='button';
-   btn.textContent=joined?tr('JOINED','U SOBI'):!online?tr('OFFLINE','OFFLINE'):roomFull()?tr('FULL','PUNO'):recent?tr('SENT','POSLATO'):tr('INVITE','POZOVI');
-   btn.disabled=joined||!online||roomFull()||recent;
+   btn.textContent=joined?tr('JOINED','U SOBI'):waiting?tr('QUEUED','ČEKA'):roomFull()?tr('FULL','PUNO'):recent?tr('SENT','POSLATO'):online?tr('INVITE','POZOVI'):tr('INVITE OFFLINE','POZOVI OFFLINE');
+   btn.disabled=joined||waiting||roomFull()||recent;
    btn.onclick=()=>invite(id);row.append(info,btn);list.append(row);
   }
  }
  function invite(id){
   if(!active()||!socialFriend(id)||inRoom(id)||roomFull())return false;
-  if(!SOCIAL.conns.get(id)?.open){toast(tr('Friend is offline','Prijatelj nije online'));render();return false}
+  loadQueue();
+  if(queued.has(id)){toast(tr('Invite is already waiting','Poziv već čeka da prijatelj pokrene igru'));return true}
   if(Date.now()-(sent.get(id)||0)<12000){toast(tr('Invite already sent','Poziv je već poslat'));return false}
   const locked=NET.role==='host'?!!NS92_DIR.options.password:!!NS92_DIR.joinPassword;
-  const ok=socialSend(id,{...socialPacket('invite'),room:NET.code,locked});
-  if(ok){sent.set(id,Date.now());responses.set(id,'sent');toast(tr('Invite sent to ','Poziv poslat: ')+socialFriend(id).name);render()}
-  else toast(tr('Friend connection unavailable','Veza sa prijateljem nije dostupna'));
-  return ok;
+  if(SOCIAL.conns.get(id)?.open){
+   const ok=socialSend(id,{...socialPacket('invite'),room:NET.code,locked});
+   if(ok){sent.set(id,Date.now());responses.set(id,'sent');toast(tr('Invite sent to ','Poziv poslat: ')+socialFriend(id).name);render();return true}
+  }
+  // Queue is local to the active host, never claim it arrived at an offline phone.
+  if(NET.role!=='host')return false;
+  queued.set(id,{room:NET.code,locked,at:Date.now()});saveQueue();responses.set(id,'queued');
+  toast(tr('Invite queued until friend opens the game. Keep this room open.','Poziv čeka da prijatelj pokrene igru. Drži ovu sobu otvorenom.'));
+  render();return true;
  }
  function reply(id,kind,room){if(!responses.has(id)||room&&room!==NET.code)return;responses.set(id,kind);
   if(kind==='inviteReceived')toast(tr('Invite delivered to ','Poziv stigao: ')+socialFriend(id)?.name);
   if(kind==='inviteAccepted')toast(tr('Invite accepted by ','Poziv prihvatio: ')+socialFriend(id)?.name);render()
  }
  function toggle(){expanded=!expanded;if(expanded){if(!SOCIAL.peer&&!SOCIAL.starting)startSocial();else socialCheckFriends()}render()}
- function reset(){expanded=false;sent.clear();responses.clear();render()}
- return {render,invite,reply,toggle,reset,get expanded(){return expanded},get sentCount(){return sent.size}};
+ function reset(){expanded=false;sent.clear();responses.clear();queued.clear();loadedRoom='';try{localStorage.removeItem(queueKey())}catch{}render()}
+ return {render,invite,reply,toggle,reset,pending,flushPending,get queuedCount(){return queued.size},get expanded(){return expanded},get sentCount(){return sent.size}};
 })();
 window.__NS96_INVITES=NS96_INVITES;
 $('ns96InviteToggle').onclick=()=>NS96_INVITES.toggle();
