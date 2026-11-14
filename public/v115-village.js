@@ -341,7 +341,7 @@
  }
  function villageOnline(){
   if(!isLobby())return false;
-  return NET.role==='host'?NET.peer?.open===true:NET.conn?.open===true;
+  return NET.role==='host'?(NET.peer?.open===true||(NET.peer?._connected===true&&NET.peer?._socket?.readyState===1)):NET.conn?.open===true;
  }
  function startVillageOnlineRoom(){
   if(isLobby()){copyVillageText(NET.code);return true}
