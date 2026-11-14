@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8');
 const inline=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(x=>!/\bsrc=|type=["']module/i.test(x[1]));
 for(const [i,m] of inline.entries())assert.doesNotThrow(()=>new vm.Script(m[2],{filename:'v108-'+i}));
-assert.match(html,/rel="canonical" href="https:\/\/nocna-straza-v77\.stefanstevic1996\.workers\.dev\//,'canonical site must point at the user's existing live Worker');
+assert.match(html,/rel="canonical" href="https:\/\/nocna-straza-v77\.stefanstevic1996\.workers\.dev\//,'canonical site must point at existing live Worker');
 assert.match(html,/© 2026 Noćna Straža/);
 assert.match(html,/bytes>18000/);
 (async()=>{
