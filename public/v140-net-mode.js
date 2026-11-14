@@ -23,7 +23,7 @@ function ui(){
  '#ns140Hit{position:absolute;right:20px;bottom:57px;width:90px;height:90px;border-radius:50%;border:2px solid #edce9a;background:#76523e;color:#fff6cf;font-size:27px;touch-action:none}'+
  '#ns140Hit small{font-size:10px;display:block}';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
- root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V147 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
+ root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V148 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div><button type="button" id="ns140Hit">⚔<small>ATTACK</small></button>';
  document.body.append(style,root);
  el('ns140Close').onclick=()=>stop(true);
@@ -162,7 +162,7 @@ function startSolo(){
   sx:180+(i%4)*185,sy:75+Math.floor(i/4)*225,
   hp:35,attackAt:0,deadUntil:0
  }));
- status('V147 · SINGLEPLAYER · OFFLINE · TEST GOBLINI · 0 XP');
+ status('V148 · SINGLEPLAYER · OFFLINE · TEST GOBLINI · 0 XP');
  el('ns140Hit').disabled=false;
  return true;
 }
@@ -361,7 +361,7 @@ async function startHost(){
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
  if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
- N.phase='preparing';status('V147 · PRIPREMAM ZASEBAN MP SERVER...');
+ N.phase='preparing';status('V148 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
@@ -387,7 +387,7 @@ function acceptOffer(d){
  if(N.phase!=='idle')return N.match===d.match;
  return connect(d.match,d.id,d.ticket);
 }
-// V147: movement phase is frozen when idle; a light breathing bob remains.
+// V148: movement phase is frozen when idle; a light breathing bob remains.
 // This avoids the old permanently-walking character pose in the test arena.
 function updateHeroMotion(p,dt){
  if(!p.motion)p.motion={lastX:p.x,lastY:p.y,phase:0,side:1,angle:0,walking:false};
