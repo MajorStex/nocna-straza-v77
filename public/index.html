@@ -7288,10 +7288,10 @@ function retryInitialGuestConnection(reason=''){
  if(reason)NET.lastConnectError=reason;
  clearTimeout(NET.joinRetryTimer);
  $('retryJoinBtn').classList.remove('hidden');
- if(NET.joinRetryCount>=8){netStatus((relayActive()?'Soba nije dostupna. Neka HOST prvo klikne CREATE ROOM i ostane u čekaonici. Oba telefona treba da koriste v104. ':'Direktni WebRTC nije povezao sobu. Za 5G koristi relay ili TURN. ')+(NET.lastConnectError||''));$('retryJoinBtn').classList.remove('hidden');return false;}
+ if(NET.joinRetryCount>=60){netStatus((relayActive()?'Soba nije dostupna. Neka HOST prvo klikne CREATE ROOM i ostane u čekaonici. Oba telefona treba da koriste v104. ':'Direktni WebRTC nije povezao sobu. Za 5G koristi relay ili TURN. ')+(NET.lastConnectError||''));$('retryJoinBtn').classList.remove('hidden');return false;}
  const attempt=++NET.joinRetryCount;
- const delay=relayActive()? (attempt===1?200:attempt===2?800:attempt===3?1700:3000):(attempt===1?700:attempt===2?2200:attempt===3?4200:7000);
- netStatus((relayActive()?'Relay povezivanje':'Direktno povezivanje')+' · pokušaj '+attempt+'/8'+(reason?' · '+reason:''));
+ const delay=relayActive()? (attempt===1?200:attempt===2?800:attempt===3?1700:attempt<8?3000:5500):(attempt===1?700:attempt===2?2200:attempt===3?4200:7000);
+ netStatus((relayActive()?'Relay povezivanje':'Direktno povezivanje')+' · pokušaj '+attempt+'/60'+(reason?' · '+reason:''));
  NET.joinRetryTimer=setTimeout(()=>{
   if(NET.role!=='guest'||NET.phase!=='connecting'||NET.conn?.open)return;
   try{const old=NET.conn;NET.conn=null;if(old){old._nsIntentionalRetry=true;old.close()}}catch{}
