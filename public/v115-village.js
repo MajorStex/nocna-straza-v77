@@ -40,10 +40,11 @@
  let trainingOn=false,trainingKills=0,trainingCredit=0,lastRosterCount=0,joinNoticeUntil=0,lastResultsRoundShown=-1;
  let opened=false,soloPreview=false,focused=null,focusNode=null,returnPlace=null,walkTo=null,thenEnter=null,lastSent=0,frameAt=0,lastBroadcast=0,lastLeaderboard=0,lastLeaderRequest=0,leaderCache=null,leaderBusy=false;
  let originalShowLobby=null,originalStartMatch=null,originalSettle=null,originalAward=null,originalOnKill=null,musicCtx=null,musicTimer=null,musicOn=false;
- let villageAudioCtx=null,villageMusic=null,animalTicker=null,animalSample=null,lastAnimalCall=0,lastFX=0,noiseBuffer=null,animalAudioReady=false;
+ let villageAudioCtx=null,villageMusic=null,animalTicker=null,animalSamples=new Map(),lastAnimalCall=0,lastFX=0,noiseBuffer=null,animalAudioReady=false;
  const animalLast=new Map();let musicFallbackStep=0;
  const CC0_VILLAGE_AUDIO=Object.freeze({
-  sheep:'https://opengameart.org/sites/default/files/sheep_baa.ogg',
+  sheep:'https://upload.wikimedia.org/wikipedia/commons/2/28/Sheep_bleat.ogg',
+  pig:'https://upload.wikimedia.org/wikipedia/commons/6/6f/618483_foleyhaven_piglet-squeal-01.flac',
   music:'https://opengameart.org/sites/default/files/peaceful_ville_2023.mp3'
  });
  const audioEnabled=()=>!document.hidden&&!!opened&&!root.classList.contains('ns109Hidden');
@@ -1208,25 +1209,25 @@ function showAchievements(){
   const now=Date.now(),dist=soundDistance(x,y,hit?310:590);
   if(!dist||(!hit&&now-lastAnimalCall<4700))return false;
   lastAnimalCall=now;
-  if(kind==='sheep'){
+  if(kind==='sheep'||kind==='pig'){
    try{
-    if(!animalSample){
-     animalSample=new Audio(CC0_VILLAGE_AUDIO.sheep);animalSample.preload='none';
-     animalSample.addEventListener('error',()=>{animalSample.dataset.failed='1'},{once:true});
+    let sample=animalSamples.get(kind);
+    if(!sample){
+     sample=new Audio(CC0_VILLAGE_AUDIO[kind]);sample.preload='none';
+     sample.addEventListener('error',()=>{sample.dataset.failed='1'},{once:true});
+     animalSamples.set(kind,sample);
     }
-    if(animalSample.dataset.failed!=='1'){
-     animalSample.pause();animalSample.currentTime=0;animalSample.volume=Math.min(.3,dist*fxLevel()*(hit?.46:.27));
-     animalSample.playbackRate=.92+Math.random()*.15;
-     const promise=animalSample.play();if(promise?.catch)promise.catch(()=>{villageBurst('sheep',.19*dist)});
+    if(sample.dataset.failed!=='1'){
+     sample.pause();sample.currentTime=0;
+     sample.volume=Math.min(.33,dist*fxLevel()*(hit?.53:.28));
+     sample.playbackRate=.91+Math.random()*.18;
+     const promise=sample.play();
+     if(promise?.catch)promise.catch(()=>{sample.dataset.failed='1';villageBurst(kind,.2*dist)});
      return true;
     }
    }catch{}
-   return villageBurst('sheep',.23*dist);
-  }
-  if(kind==='pig'){
-   // Original synthesized snort/oink; avoids streaming unlicensed recordings.
-   villageBurst('pig',.23*dist,.84+Math.random()*.30);
-   return true;
+   // When the CC0 recording is unreachable on mobile, the original synth still works.
+   return villageBurst(kind,.23*dist,.85+Math.random()*.3);
   }
   return false;
  }
@@ -1248,7 +1249,7 @@ function showAchievements(){
  }
  function stopVillageAmbience(){
   if(animalTicker)clearInterval(animalTicker);animalTicker=null;
-  try{animalSample?.pause()}catch{}
+  for(const sample of animalSamples.values())try{sample.pause()}catch{}
   const c=villageAudioCtx;villageAudioCtx=null;noiseBuffer=null;animalAudioReady=false;
   try{if(c?.state!=='closed')void c?.close().catch(()=>{})}catch{}
  }
