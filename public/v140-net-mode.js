@@ -7,7 +7,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
  players:new Map(),me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},attack:false,timeout:null,ticket:'',retry:0,
- solo:false,soloMobs:[],soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',fallbackAllowed:false};
+ solo:false,soloMobs:[],mpMobs:[],soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -74,7 +74,8 @@ function stop(notify=false){
  if(notify&&N.id==='p1'&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'end'}))}catch{}
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
- N.phase='idle';N.solo=false;N.soloMobs=[];N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;N.attack=false;
+ if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
+ N.phase='idle';N.solo=false;N.soloMobs=[];N.mpMobs=[];N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;N.attack=false;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
  if(wasSolo)try{window.__nightWatch?.showPreRun?.()}catch{}
@@ -98,6 +99,14 @@ function moveLocal(p,dx,dy){
 function snapshot(m){
  if(!Number.isInteger(m.tick)||m.tick<=N.tick||!Array.isArray(m.players))return;
  N.tick=m.tick;N.lastState=performance.now();N.serverMs=Number(m.ms)||0;
+ if(Array.isArray(m.mobs)){
+  const previous=new Map(N.mpMobs.map(q=>[q.id,q]));
+  N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<24&&
+   Number.isFinite(q[1])&&Number.isFinite(q[2])&&Number.isFinite(q[3])).map(q=>{
+   const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10;
+   return {id:q[0],x:prev?.x??x,y:prev?.y??y,tx:x,ty:y,hp:q[3],hitTick:Number(q[4])||0};
+  });
+ }
  for(const row of m.players){
   if(!Array.isArray(row)||!/^p[1-6]$/.test(row[0]))continue;
   const [id,xx,yy,hp,attackTick,online,knocked]=row;
@@ -191,12 +200,14 @@ function stepSolo(dt,attackHeld){
   }
  }
 }
-function drawSoloMobs(g,now){
- for(const mob of N.soloMobs){
+function drawArenaMobs(g,now){
+ const mobs=N.solo?N.soloMobs:N.mpMobs,tick=N.solo?N.soloTick:N.tick;
+ for(const mob of mobs){
   if(mob.hp<=0)continue;
+  if(!N.solo){const t=.16;mob.x+=(mob.tx-mob.x)*t;mob.y+=(mob.ty-mob.y)*t;}
   const pulse=Math.sin(now/250+mob.id)*1.4;
   g.save();g.translate(mob.x,mob.y+pulse);
-  g.fillStyle=N.soloTick-(mob.hitTick||-100)>0&&N.soloTick-(mob.hitTick||-100)<6?'#506b39':'#2c3e29';g.beginPath();g.ellipse(0,6,17,13,0,0,Math.PI*2);g.fill();
+  g.fillStyle=tick-(mob.hitTick||-100)>0&&tick-(mob.hitTick||-100)<6?'#506b39':'#2c3e29';g.beginPath();g.ellipse(0,6,17,13,0,0,Math.PI*2);g.fill();
   g.fillStyle='#6a8954';g.beginPath();g.moveTo(-13,0);g.lineTo(-15,-13);g.lineTo(-6,-8);
   g.quadraticCurveTo(0,-22,8,-8);g.lineTo(15,-14);g.lineTo(12,0);
   g.quadraticCurveTo(0,14,-13,0);g.fill();
@@ -204,6 +215,63 @@ function drawSoloMobs(g,now){
   g.fillStyle='#473a2a';g.fillRect(-16,-29,32,4);
   g.fillStyle='#a6d49a';g.fillRect(-15,-28,30*(mob.hp/35),2);
   g.restore();
+ }
+}
+
+// V148: tiny, cached canvas houses. Same collision rectangles as the
+// original plain blocks; artwork is pre-rendered once, not rebuilt at 60 FPS.
+const cottageCache=new Map();
+function cottageSprite(o,index){
+ const key=index+':'+o.w+':'+o.h;
+ if(cottageCache.has(key))return cottageCache.get(key);
+ const canvas=document.createElement('canvas'),w=o.w,h=o.h;
+ canvas.width=Math.ceil(w+26);canvas.height=Math.ceil(h+32);
+ const g=canvas.getContext('2d');if(!g)return null;
+ g.translate(13,16);
+ // Shadows and stone foundations.
+ g.fillStyle='#0b1913a0';g.fillRect(-7,9,w+17,h+11);
+ g.fillStyle='#a58e71';g.fillRect(0,0,w,h);
+ g.fillStyle='#6e5c49';g.fillRect(2,3,w-4,h-6);
+ g.fillStyle='#b8a182';g.fillRect(2,h-12,w-4,10);
+ for(let x=7;x<w-6;x+=18){g.fillStyle=x%3?'#d0b998':'#887761';g.fillRect(x,h-10,12,2);}
+ // A heavy timber door and two tiny windows along the visible wall.
+ const doorX=Math.round(w*.56)-9;
+ g.fillStyle='#34271e';g.fillRect(doorX,h-15,18,15);
+ g.fillStyle='#805a3a';g.fillRect(doorX+2,h-13,14,13);
+ g.strokeStyle='#442e22';g.lineWidth=2;g.beginPath();g.moveTo(doorX+9,h-13);g.lineTo(doorX+9,h);g.stroke();
+ g.fillStyle='#dbb56e';g.fillRect(doorX+12,h-7,2,2);
+ for(const px of [Math.round(w*.15),Math.round(w*.80)]){
+  g.fillStyle='#422e25';g.fillRect(px-5,h-15,10,8);
+  g.fillStyle='#9eb8ac';g.fillRect(px-3,h-13,6,4);
+  g.fillStyle='#d3bc90';g.fillRect(px-1,h-14,2,6);
+ }
+ // Pitched tiled roof, two distinct slopes and a ridge.
+ const roof=index%3===1?['#73513f','#956b4b']:index%3===2?['#64604f','#837a61']:['#70483c','#935a40'];
+ g.fillStyle=roof[0];g.beginPath();g.moveTo(-5,-5);g.lineTo(w/2,4);g.lineTo(w/2,h-16);g.lineTo(-5,h-8);g.closePath();g.fill();
+ g.fillStyle=roof[1];g.beginPath();g.moveTo(w/2,4);g.lineTo(w+5,-5);g.lineTo(w+5,h-8);g.lineTo(w/2,h-16);g.closePath();g.fill();
+ g.strokeStyle='#d0ad7b';g.lineWidth=3;g.beginPath();g.moveTo(w/2,4);g.lineTo(w/2,h-16);g.stroke();
+ g.strokeStyle='#b28f68';g.lineWidth=2;g.beginPath();g.moveTo(-5,-5);g.lineTo(w/2,4);g.lineTo(w+5,-5);g.moveTo(-5,h-8);g.lineTo(w/2,h-16);g.lineTo(w+5,h-8);g.stroke();
+ // Rows of hand-cut roof tiles and wooden braces.
+ g.strokeStyle='#33261f70';g.lineWidth=1;
+ for(let y=13;y<h-17;y+=11){
+  g.beginPath();g.moveTo(-2,y-6);g.lineTo(w/2-3,y+1);g.moveTo(w/2+3,y+1);g.lineTo(w+2,y-6);g.stroke();
+ }
+ for(let x=10;x<w-7;x+=17){
+  g.beginPath();g.moveTo(x,6);g.lineTo(x+6,h-21);g.stroke();
+ }
+ // Stone chimney (solid roof ornament).
+ const cx=index%2===0?w*.70:w*.23;
+ g.fillStyle='#3b372e';g.fillRect(cx-7,9,15,15);
+ g.fillStyle='#c8b596';g.fillRect(cx-9,7,18,5);
+ g.fillStyle='#272b24';g.fillRect(cx-5,8,10,3);
+ // Modest door lamp, rendered onto the wall rather than as a pop-up.
+ g.fillStyle='#f8d68b';g.fillRect(doorX+21,h-12,4,4);
+ cottageCache.set(key,canvas);return canvas;
+}
+function drawArenaBuildings(g,obstacles){
+ for(let i=0;i<obstacles.length;i++){
+  const o=obstacles[i],sprite=cottageSprite(o,i);
+  if(sprite)g.drawImage(sprite,o.x-13,o.y-16);
  }
 }
 
@@ -296,7 +364,7 @@ function updateHeroMotion(p,dt){
 }
 function slashHeading(p,m){
  if(Number.isFinite(p.attackAngle))return p.attackAngle;
- const candidates=N.solo?N.soloMobs.filter(q=>q.hp>0):[...N.players.values()].filter(q=>q.id!==p.id&&q.hp>0);
+ const candidates=(N.solo?N.soloMobs:N.mpMobs).filter(q=>q.hp>0);
  let angle=Number.isFinite(p.facingAngle)?p.facingAngle:(m?.angle||0),nearest=115;
  for(const q of candidates){
   const d=Math.hypot(q.x-p.x,q.y-p.y);
@@ -349,8 +417,8 @@ function frame(now){
  g.fillStyle='#395443';g.fillRect(0,0,N.world.w,N.world.h);
  g.strokeStyle='#536b55';for(let x=0;x<N.world.w;x+=55){g.beginPath();g.moveTo(x,0);g.lineTo(x,N.world.h);g.stroke()}
  for(let y=0;y<N.world.h;y+=55){g.beginPath();g.moveTo(0,y);g.lineTo(N.world.w,y);g.stroke()}
- for(const o of N.world.obstacles){g.fillStyle='#7c6b52';g.fillRect(o.x,o.y,o.w,o.h);g.strokeStyle='#bfa17b';g.lineWidth=2;g.strokeRect(o.x,o.y,o.w,o.h)}
- if(N.solo)drawSoloMobs(g,now);
+ drawArenaBuildings(g,N.world.obstacles);
+ drawArenaMobs(g,now);
  for(const p of N.players.values()){
   if(!p.online)continue;
   if(p.id!==N.id){const k=clamp(dt*10,0,1);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
