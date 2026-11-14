@@ -1,4 +1,5 @@
 name: Noćna Straža - deploy EXISTING workers.dev game
+# V142 redeploy requested; existing Worker name and version guard remain unchanged.
 on:
   push:
     branches: [main]
