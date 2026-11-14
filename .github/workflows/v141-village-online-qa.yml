@@ -22,5 +22,6 @@ jobs:
       - run: node tests/v144-village-audio.test.cjs
       - run: node tests/v140-isolated-arena.test.cjs
       - run: node tests/v146-ready-autostart.test.cjs
+      - run: node tests/v147-mobile-resume-fallback.test.cjs
       - run: node tests/v145-arena-controls.test.cjs
       - run: node tests/v141-village-server-up.test.cjs
