@@ -7242,18 +7242,10 @@ function startLobbyMatch(){
   NET.forceRequest=false;
   if(roster.some(p=>Number(p.level)<7)){netStatus('V140 traži OPŠTI NIVO 7 na svakom nalogu.');return false}
   if(!window.NS140_ARENA){netStatus('V140 modul nije učitan. Osveži igru.');return false}
+  // V148: NEVER redirect players from New Zone to old co-op.
   window.NS140_ARENA.startHost().then(ok=>{
-   if(ok)return;
-   const arena=window.NS140_ARENA;
-   if(arena?.fallbackAllowed&&NET.role==='host'&&NET.phase==='lobby'&&selectedMode==='arena140'){
-    // No arena tickets were issued, so existing lobby can fall back safely.
-    arena.stop();selectedMode='normal';
-    const note='Nova Zona je trenutno zauzeta — automatski pokrećem KLASIČNI multiplayer.';
-    NET.lastRoundText=note;netStatus(note);toast(note);broadcastLobby();
-    startLobbyMatch();return;
-   }
-   netStatus('Novi MP server nije dostupan. Stari lobby je sačuvan.');
-  }).catch(()=>netStatus('Greška pokretanja Nove Zone. Vrati se u lobby.'));
+   if(!ok)netStatus('Nova Zona se nije povezala. Svi ostaju u istoj sobi; koristi POKUŠAJ PONOVO.');
+  }).catch(()=>netStatus('Greška pokretanja Nove Zone. Ostajemo u istoj sobi.'));
   return true;
  }
  NET.forceRequest=false;NET.lastEarned=null;NS97_POST.clear();NS99_TEAM.reset();window.NS109_VILLAGE?.close?.();NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
@@ -9214,7 +9206,7 @@ const ns117VillageLook=id=>(!NET.role||id===NET.localId)?networkHeroStyle(heroSt
 window.__NS110_BRIDGE={NET,G,NSX,NS91,NS97_POST,NS76CHAT,CoopVoice,renderCoopForge,renderPreRun,
  currentLobbyRoster,currentProfileLevel,getActiveAccount,coopVoiceUpdatePreference,unlockSound,voiceLine,toast,meta,heroStyle,
  NS103_PARTY,NS96_INVITES,SOCIAL,startSocial,socialCheckFriends,showFriends,ensureSocialIdentity,safePlayerName,sendSocialStatus,NS92_DIR,
- drawVillageHero:ns117DrawVillageHero,getVillageHeroLook:ns117VillageLook,broadcastLobby,renderLobby};
+ drawVillageHero:ns117DrawVillageHero,getVillageHeroLook:ns117VillageLook,broadcastLobby,renderLobby,startLobbyMatch};
 window.__nightWatch={NS103_PARTY,NS95_CAGE,NS95_PROGRESS,NETMIG,NSX,NETLAB,updateHUD,draw,bossPhaseOf,bossTarget,bossSummonWave,bossStartCast,bossResolveCast,updateBossPhases,drawBossTelegraphs,WEAPON_EVOLUTIONS,checkWeaponEvolution,currentEvolution,triggerEvolutionAttack,renderEvolutionGuide,openEvolutionGuide,updateEvolutionHud,sosRequest,sosRegister,sosEligible,sosActive,sosCompassTarget,updateSOSHUD,sosObserveSnapshot,REVIVE_RANGE,REVIVE_SECONDS,REVIVE_MAX,REVIVE_HP_RATIO,REVIVE_INVUL,teamColor,drawTeamTriangle,drawTeamEdgeMarkers,reviveCandidate,setReviveHeld,interruptRevive,updateRevives,updateReviveHUD,miniMap,mapReset,mapReveal,mapDraw,mapMarkers,mapGateUnlocked,mapOpen,mapClose,mapSeen,mapFocus,completeNightRun,finishNetworkRound,startLobbyMatch,sendSnapshot,receiveSnapshot,selectPlayerAccount,performAttack,settleRun,awardMP,levelHeroAfterRun,giveSoloLifetimeRewards,earnMPReward,createArchetype,heroLevelStats,heroFreePoints,getHeroTrack,improveChosenHero,renderPreRun,showPreRun,selectPreHero,buildNightTowers,nightDark,lightAt,towerAttack,get selectedMode(){return selectedMode},get mpProgress(){return mpProgress},portableDiagnostics,exportLocalSave,importLocalSave,SOCIAL,get socialId(){return ensureSocialIdentity()},get socialFriends(){return SOCIAL.db?.friends||{}},startSocial,showFriends,socialConnectTo,socialHandlePacket,acceptSocialAction,joinFriendRoom,sendFriendInvite,requestFriendJoin,sendSocialStatus,renderFriends,mpProgress,get playerAccounts(){return playerAccounts},get activeAccount(){return getActiveAccount()},avatarFace,safeAvatarId,safeAvatarImage,saveCurrentAvatar,renderMPAvatarPreview,profileLevelStats,currentProfileLevel,safePlayerName,renderPlayerProfile,selectPlayerAccount,createPlayerAccount,commitMPName,MP_SKILLS,mpCost,buyCoopSkill,earnMPReward,awardMP,applyCoopBonuses,networkHeroStyle,showQuickChoice,coopXP,applyQuickPower,goBack,renderLobby,broadcastLobby,setMyReady,startLobbyMatch,showLobbyUI,leaveLobby,closeNet,damagePlayer,killMob,meta,calculateRunReward,settleRun,showStats,showBase,buyMetaUpgrade,applyMetaBonuses,openGuildShop,closeGuildShop,buyGuildItem,tryGuildShop,get guildItems(){return GUILD_ITEMS},renderRelicChoices,openRelicPanel,chooseRelic,tryRelicShrine,G,NET,configs,VoiceClips,CoopVoice,coopVoiceSendClip,coopVoicePreparedBlob,coopVoiceReceive,coopVoiceHandleNetwork,coopVoicePlayReceived,coopVoiceUpdatePreference,microphoneDiagnostics,FACTORY_HERO,get activeHeroProfile(){return activeHeroProfile},get heroProfiles(){return heroProfiles},applyHeroProfile,createHeroProfile,deleteActiveHero,MEDIEVAL_WEAPONS,drawMedievalWeapon,drawWardrobeExtras,recordVoice,stopVoiceRecording,checkMicPermission,microphoneDiagnostics,exportVoiceClip,saveVoiceClip,removeVoiceClip,playClip,refreshVoiceUI,WARD_CONTROLS,get props(){return props},get defaultPlayMap(){return defaultPlayMap},get levels(){return levelCollection},get editorLevelId(){return editorLevelId},get heroStyle(){return heroStyle},get settings(){return cfgSettings},get projectiles(){return G.projectiles},updateProjectiles,spawnAmbientCrystal,collectBlueCrystals,drawAmbientCrystals,Music,startMusic,stopMusic,tryLootChests,tryMarkets,showLootChoice,lootOptions,grantTreasure,updateAbilities,spawnRotfiend,spawnEnemy,addMob,selectMobTarget,availableTargets,nextSpawnTarget,TREASURES,separateMobBodies,spawnAcid,setupConnection,addRemotePlayer,sendSnapshot,receiveSnapshot,isSolidProp,turnToward,ensureLootAndHouses,saveCurrentLevel,openLevel,addLevel,deleteLevel,saveCharacter,sfx,voiceLine,command,startGame,spawnBoss,generateMap,update,updateMobs,flowDirection,obstacleInPath,invalidateNavigation,draw,move:movingCircle,worldPoint,showMenu,save:persist,xpRequirement};
 /* v50 — first-use hints appear only when the relevant screen is opened; no modal, no click interception. */
 const NS50MENU=(()=>{
