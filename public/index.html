@@ -1305,7 +1305,7 @@ const NETLAB=(()=>{
  function peer(id){if(!stats.has(id))stats.set(id,{rtt:null,lastPong:0,lastSnap:0,probeSent:0,probeLost:0,sent:0,dropped:0,received:0});return stats.get(id)}
  function generateToken(){const a=new Uint8Array(24);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('')}
  function reserve(id){const x={token:generateToken(),until:Infinity,round:0};tokens.set(id,x);return x.token}
- function markDisconnect(id){const x=tokens.get(id);if(x)x.until=t()+(NET.phase==='lobby'?120000:180000);const p=peer(id);p.lastPong=0;}
+ function markDisconnect(id){const x=tokens.get(id);if(x)x.until=t()+(NET.phase==='lobby'?300000:180000);const p=peer(id);p.lastPong=0;}
  function findResume(token,round){if(typeof token!=='string'||token.length!==48||!Number.isInteger(round)||round!==NET.round)return null;for(const [id,x] of tokens){if(x.token===token&&t()<x.until&&G.players.some(p=>p.id===id)){x.until=Infinity;return id}}return null}
  function clear(){stats.clear();pending.clear();tokens.clear();counter=0;lastPaint=0;lastRequest=0;lastRetry=0;retryCount=0;reconnecting=false;NET.rejoinToken='';options.delay=0;options.loss=0;const d=document.getElementById('nsNetDelay'),l=document.getElementById('nsNetLoss');if(d)d.value='0';if(l)l.value='0';document.getElementById('nsNetLabDock')?.classList.add('hidden');document.getElementById('nsNetLabPanel')?.classList.add('hidden')}
  function emit(c,data){if(!c?.open)return false;try{c.send(data);return true}catch{return false}}
@@ -1334,10 +1334,11 @@ const NETLAB=(()=>{
  lines.push(`JITTER ${Math.round(NS79STATS.jitterMs)}ms  GAPS ${NS79STATS.dropped}  QUEUE ${Number(NET.conn?.bufferSize||0)} B`);
 }if(NETMIG.status().leader)lines.push(`BACKUP ${NETMIG.status().leader.toUpperCase()} · ${NETMIG.status().hasFreshBackup?'READY':'AWAITING'}`)}else lines.push(en('Join or host a multiplayer lobby to measure latency.','Uđi u multiplayer sobu da bi merio kašnjenje.'));return lines.join('\n')}
  function paint(){const active=!!NET.role,playing=NET.phase==='playing';const badge=document.getElementById('nsNetLabDock');if(badge){badge.classList.toggle('hidden',!playing);badge.classList.toggle('withSOS',!document.getElementById('sosCompass').classList.contains('hidden'));if(playing){const p=NET.role==='guest'?peer('host'):peer([...NET.clients.keys()][0]||'p2');const stale=NET.role==='guest'&&(!NET.conn?.open||(p.lastSnap&&t()-p.lastSnap>3000));badge.classList.toggle('bad',!!stale);badge.textContent=stale?'📶 RECONNECT':`📶 ${p.rtt===null?'--':Math.round(p.rtt)} ms`}}document.getElementById('nsNetLabReconnect').classList.toggle('hidden',NET.role!=='guest'||NET.phase!=='playing');if(!document.getElementById('nsNetLabPanel').classList.contains('hidden')){document.getElementById('nsNetLabTitle').textContent=en('📶 Connection Lab','📶 Test veze');document.getElementById('nsNetLabState').textContent=en(`Mode: ${NET.role||'offline'} · Round ${NET.round} · Delay ${options.delay}ms · Loss ${options.loss}%`,`Režim: ${NET.role||'offline'} · Runda ${NET.round} · Kašnjenje ${options.delay}ms · Gubitak ${options.loss}%`);document.getElementById('nsNetPeers').textContent=status();document.getElementById('nsNetDelayLabel').textContent=en('SIMULATED DELAY','SIMULIRANO KAŠNJENJE');document.getElementById('nsNetLossLabel').textContent=en('SIMULATED PACKET LOSS','SIMULIRANI GUBITAK PAKETA')}}
- function tick(now=t()){if(now-lastPaint<550)return;lastPaint=now;paint();if(NET.role==='host'&&(NET.phase==='playing'||NET.phase==='lobby')){for(const [id,x] of [...tokens]){if(x.until<now&&!NET.clients.has(id)){
+ function tick(now=t()){if(now-lastPaint<550)return;lastPaint=now;paint();let freedSeat=false;if(NET.role==='host'&&(NET.phase==='playing'||NET.phase==='lobby')){for(const [id,x] of [...tokens]){if(x.until<now&&!NET.clients.has(id)){
+ freedSeat=true;
  tokens.delete(id);NET.remoteInputs.delete(id);NET.pendingOffers.delete(id);NET.profiles.delete(id);
  G.players=G.players.filter(p=>p.id!==id);
- }}}if(NET.role==='guest'&&NET.phase==='playing'){if(reconnecting&&!NET.conn?.open&&now-lastRetry>Math.min(9000,1500+retryCount*1200))reconnectNow();const last=peer('host').lastSnap;if(NET.conn?.open&&last&&now-last>2700&&now-lastRequest>4000){lastRequest=now;emit(NET.conn,{t:'stateRequest',round:NET.round})}}}
+ }}}if(freedSeat&&NET.phase==='lobby')broadcastLobby();if(NET.role==='guest'&&NET.phase==='playing'){if(reconnecting&&!NET.conn?.open&&now-lastRetry>Math.min(9000,1500+retryCount*1200))reconnectNow();const last=peer('host').lastSnap;if(NET.conn?.open&&last&&now-last>2700&&now-lastRequest>4000){lastRequest=now;emit(NET.conn,{t:'stateRequest',round:NET.round})}}}
  function open(){document.getElementById('nsNetLabPanel').classList.remove('hidden');paint()}
  function close(){document.getElementById('nsNetLabPanel').classList.add('hidden')}
  function bind(){document.getElementById('nsNetLabLobby').onclick=open;document.getElementById('nsNetLabDock').onclick=open;document.getElementById('nsNetLabBack').onclick=close;document.getElementById('nsNetDelay').onchange=e=>setTest(e.target.value,options.loss);document.getElementById('nsNetLoss').onchange=e=>setTest(options.delay,e.target.value);document.getElementById('nsNetLabReset').onclick=()=>setTest(0,0);document.getElementById('nsNetLabReconnect').onclick=()=>{if(NET.role==='guest'&&NET.phase==='playing'&&NET.rejoinToken){manualReconnect()}};document.getElementById('nsNetLabPing').onclick=()=>{if(NET.role==='guest')ping(NET.conn,'host');else if(NET.role==='host')for(const [id,c] of NET.clients)ping(c,id);paint()}}
@@ -7137,7 +7138,7 @@ function renderLobby(){NSX&&NSX.opt&&document.getElementById('nsLobbyRole')&&(do
  $('lobbyStartBtn').disabled=!allReady||NET.role!=='host';
  $('lobbyStartBtn').textContent=returning.length?'↻ ČEKAM POVRATAK IGRAČA':allReady?'▶ AUTOMATSKI START':`▶ ČEKAM SPREMNOST (${roster.filter(p=>p.ready).length}/${roster.length})`;
  const force=$('lobbyForceBtn');if(force){force.classList.toggle('hidden',NET.role!=='host');force.disabled=NET.role!=='host'||!haveGuest||!allSynced;force.textContent=haveGuest&&allSynced?'⚡ FORCE START · BEZ READY':'⚡ FORCE START · ČEKAM MAPU'}
- $('lobbyHint').textContent=returning.length?'Čuvamo mesto još do 2 minuta. Igra kreće kada se igrač vrati i svi budu Ready.':!haveGuest?'Pošalji kod drugaru. Biće spreman automatski kada učita mapu.':!allSynced?'Sinhronizujem mapu sa ostalim igračima. Igra još ne može da počne.':allReady?'Svi su spremni! Partija počinje automatski.':'Sačekajte da svi potvrde SPREMAN. Igra još nije počela.';if(NET.lastRoundText&&!allReady)$('lobbyHint').textContent=NET.lastRoundText+' '+$('lobbyHint').textContent;NS96_INVITES.render();NS97_POST.render();
+ $('lobbyHint').textContent=returning.length?'Čuvamo mesto do 5 minuta. Igra kreće kada se igrač vrati i svi budu Ready.':!haveGuest?'Pošalji kod drugaru. Biće spreman automatski kada učita mapu.':!allSynced?'Sinhronizujem mapu sa ostalim igračima. Igra još ne može da počne.':allReady?'Svi su spremni! Partija počinje automatski.':'Sačekajte da svi potvrde SPREMAN. Igra još nije počela.';if(NET.lastRoundText&&!allReady)$('lobbyHint').textContent=NET.lastRoundText+' '+$('lobbyHint').textContent;NS96_INVITES.render();NS97_POST.render();
 }
 function ns106Kick(id){if(NET.role!=='host'||!/^p[2-6]$/.test(String(id)))return false;
  const c=NET.clients.get(id);if(!c?.open)return false;const prof=NET.profiles.get(id);
@@ -7629,7 +7630,7 @@ function setupConnection(c){
    else if(NET.phase==='lobby'){
     NET.phase='connecting';NET.worldReady=false;NET.roster=[];
     // Keep backgrounded Android players in the same lobby, not the JOIN menu.
-    $('joinCode').value=NET.code;netStatus(rejectReason||'Privremeni prekid mreže. Mesto u sobi je sačuvano do 2 minuta; vraćam te automatski.');
+    $('joinCode').value=NET.code;netStatus(rejectReason||'Privremeni prekid mreže. Mesto u sobi je sačuvano do 5 minuta; vraćam te automatski.');
     if(NET.peer?._connected)retryInitialGuestConnection('host je prekinuo vezu');else $('retryJoinBtn').classList.remove('hidden');
    }
    else if(NET.phase==='playing'){if(NET.peer?._connected!==true||!NETMIG.onHostLost()){G.paused=true;if(NETLAB.scheduleReconnect()){netStatus('Veza prekinuta · pokušavam povratak do 30 sekundi...');setTimeout(()=>{if(NET.role==='guest'&&NET.phase==='playing'&&!NET.conn?.open&&!NET.migrationTarget&&!NETMIG.fresh()){netStatus('Domaćin je izašao. Nema dostupne rezervne partije — vrati se u meni i otvori novu sobu.');toast('Host je izašao · nema veze za nastavak partije.');G.paused=true;}},15000);}else{G.paused=true;netStatus('Host je izašao · rezervno stanje nije dostupno. Igra je zaustavljena. Otvori novu sobu iz menija.');toast('Host je izašao · otvori novu sobu iz menija.')}}}else showMenu();
@@ -8195,6 +8196,27 @@ const NS107_LINK_JOIN=(()=>{
  return {code,get pending(){return !done}};
 })();
 window.__NS107_LINK_JOIN=NS107_LINK_JOIN;
+
+// V147: minimize on Android never means leaving the online room.
+function ns147ResumeMobileRoom(){
+ if(document.hidden||!NET.role||!NET.peer)return;
+ if(!NET.peer._connected){
+  NET.peer.reconnect?.();
+  netStatus('Vraćam mrežu i isto mesto u sobi...');
+  return;
+ }
+ if(NET.role==='guest'&&NET.phase==='connecting'&&!NET.conn?.open){
+  NET.joinRetryCount=0;
+  retryInitialGuestConnection('vraćam isto mesto nakon pauziranja telefona');
+ }else if(NET.role==='guest'&&NET.phase==='playing'&&!NET.conn?.open){
+  NETLAB.scheduleReconnect();NETLAB.manualReconnect();
+ }else if(NET.role==='host'&&NET.phase==='lobby'){
+  broadcastLobby();
+ }
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)ns147ResumeMobileRoom()});
+document.addEventListener('resume',ns147ResumeMobileRoom);
+window.addEventListener('pageshow',ns147ResumeMobileRoom);
 
 const HERO_LOOKS={
  guardian:{hat:'helmet',top:'armor',bottom:'armored',shoes:'heavy',gloves:'armor',accessory:'pauldron',topColor:'#90d1b6',bottomColor:'#25343b',hatColor:'#c6a66c'},
