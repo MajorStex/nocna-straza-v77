@@ -47,7 +47,7 @@ new Function(village);
    assert.equal(before.serverUp,false,'not allowed to advertise server UP before relay connects');
    const online=await page.evaluate(()=>{
     const api=window.NS109_VILLAGE,net=window.__NS110_BRIDGE.NET;
-    net.role='host';net.hostId='p1';net.localId='p1';net.phase='lobby';net.code='ABCDEF';net.peer={open:true};
+    net.role='host';net.hostId='p1';net.localId='p1';net.phase='lobby';net.code='ABCDEF';net.peer={_connected:true,_socket:{readyState:1}};
     api.onLobbyUI();api.frame(performance.now()+60);
     return {opened:api.opened,up:api.serverUp,code:api.roomCode,
       label:document.getElementById('ns109Info')?.textContent,
@@ -58,6 +58,26 @@ new Function(village);
    assert.match(online.label,/SERVER UP · ABCDEF/);
    assert.equal(online.practice,true,'training remains available while the room is hosted');
    assert.match(online.readyButton,/LOBI|LOBBY/);
+   const reconnect=await page.evaluate(()=>{
+    const api=window.NS109_VILLAGE,net=window.__NS110_BRIDGE.NET;
+    net.peer._connected=false;net.peer._socket.readyState=3;
+    api.frame(performance.now()+50);
+    const down={up:api.serverUp,label:document.getElementById('ns109Info').textContent};
+    net.peer._connected=true;net.peer._socket.readyState=1;
+    api.frame(performance.now()+105);
+    const back={up:api.serverUp,label:document.getElementById('ns109Info').textContent};
+    net.clients.set('p2',{open:true,send(){}});
+    net.profiles.set('p2',{name:'Drugar',level:7});
+    api.frame(performance.now()+170);
+    return {down,back,count:document.getElementById('ns109Info').textContent,
+      join:document.getElementById('ns141Join').textContent};
+   });
+   console.log('V141_RECONNECT_JOIN',width,reconnect,errors);
+   assert.equal(reconnect.down.up,false,'disconnect must never advertise SERVER UP');
+   assert.match(reconnect.down.label,/POVEZUJEM|RECONNECTING/);
+   assert.equal(reconnect.back.up,true,'actual Cloudflare OPEN must restore UP');
+   assert.match(reconnect.count,/2\/6/,'join changes roster without leaving Village');
+   assert.match(reconnect.join,/Igrač se pridružio|Player joined/);
    assert.deepEqual(errors.filter(e=>/SyntaxError|ReferenceError|TypeError/.test(e)),[],'runtime exceptions');
    await page.close();
   }
