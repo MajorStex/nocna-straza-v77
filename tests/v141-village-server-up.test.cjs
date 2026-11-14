@@ -3,9 +3,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8');
 const village=fs.readFileSync(path.resolve(__dirname,'../public/v115-village.js'),'utf8');
-assert.match(html,/<title>Night Watch v143 — Noćna Straža<\/title>/);
-assert.match(html,/VERZIJA V143 · OFFLINE INVITE \+ VILLAGE/);
-assert.match(html,/v115-village\.js\?v=143/);
+assert.match(html,/<title>Night Watch v144 — Noćna Straža<\/title>/);
+assert.match(html,/VERZIJA V144 · VILLAGE AUDIO \+ OFFLINE INVITE/);
+assert.match(html,/v115-village\.js\?v=144/);
 assert.match(village,/id="ns141Server"/);
 assert.match(village,/id="ns141Training"/);
 assert.match(village,/const TRAINING_SPAWNS=/);
