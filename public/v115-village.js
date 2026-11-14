@@ -49,8 +49,8 @@
  });
  const audioEnabled=()=>!document.hidden&&!!opened&&!root.classList.contains('ns109Hidden');
  const fxEnabled=()=>audioEnabled()&&($('sfxEnabled')?.checked!==false)&&!localStorage.getItem('ns144_village_fx_off');
- const fxLevel=()=>clamp(Number($('volume')?.value)||.52,0,1);
- const musicLevel=()=>clamp(Number($('musicVolume')?.value)||.18,0,.4);
+ const fxLevel=()=>{const n=Number($('volume')?.value);return clamp(Number.isFinite(n)?n:.52,0,1)};
+ const musicLevel=()=>{const n=Number($('musicVolume')?.value);return clamp(Number.isFinite(n)?n:.18,0,.4)};
  const preferMusic=()=>localStorage.getItem('ns144_village_music_off')!=='1'&&$('musicEnabled')?.checked!==false;
  // V118 profiling is local-only: no network packets or account writes.
  let villageLastTick=0,villageFrameCredit=0,sceneLayer=null,sceneLayerLang='';let route=[],routeIndex=0,doorLatch=null,doorLabel='';
@@ -224,8 +224,12 @@
    }
   }
   for(const q of data.animals)if(Array.isArray(q)&&q.length===3&&Number.isInteger(q[0])&&NPCS[q[0]]&&Number.isFinite(q[1])&&Number.isFinite(q[2])){
-   NPCS[q[0]].hp=clamp(q[1],0,2);
-   NPCS[q[0]].deadUntil=Math.max(0,q[2]);
+   const animal=NPCS[q[0]],oldHp=animal.hp,oldDead=animal.deadUntil;
+   animal.hp=clamp(q[1],0,2);animal.deadUntil=Math.max(0,q[2]);
+   if(NET.role==='guest'&&(animal.hp<oldHp||(animal.deadUntil>Date.now()&&animal.deadUntil>oldDead+1000))){
+    const at=animalPos(animal,Date.now());
+    if(soundDistance(at.x,at.y,270)>.1){playVillageHit(at.x,at.y,animal.kind);playAnimalCall(animal.kind,at.x,at.y,true)}
+   }
   }
   if(focused==='barn'&&!pane.classList.contains('ns109Hidden'))showBarnPvP();
  }
@@ -1150,7 +1154,7 @@ function showAchievements(){
   return d>=max?0:Math.pow(1-d/max,1.4);
  }
  function villageWeaponKind(){
-  const a=getActiveAccount?.()||{},k=String(a.legendaryWeapon||a.equippedWeapon||'').toLowerCase();
+  const a=getActiveAccount?.()||{},k=String(a.equippedWeapon||a.legendaryWeapon||'').toLowerCase();
   if(/bow|crossbow|arrow|archer/.test(k))return 'bow';
   if(/axe|hammer|mace|club|maul/.test(k))return 'heavy';
   if(/staff|wand|magic|frost|fire|spell/.test(k))return 'magic';
@@ -1237,6 +1241,7 @@ function showAchievements(){
    .map(a=>({a,pos:animalPos(a,now)}))
    .filter(q=>soundDistance(q.pos.x,q.pos.y,450)>.12);
   if(!candidates.length)return;
+  if(villageMusic&&musicOn)villageMusic.volume=Math.min(.16,musicLevel()*.58);
   const item=candidates[Math.floor(Math.random()*candidates.length)];
   if(Math.random()>.75)return;
   if(playAnimalCall(item.a.kind,item.pos.x,item.pos.y)){animalLast.set(item.a.id,now)}
