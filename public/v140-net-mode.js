@@ -16,16 +16,21 @@ function ui(){
  '#ns140Root[hidden]{display:none!important}#ns140Canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}'+
  '#ns140Bar{position:absolute;top:max(9px,env(safe-area-inset-top));left:9px;right:9px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:#122922e9;border:1px solid #96b8a2;border-radius:10px;padding:9px;font-size:12px}'+
  '#ns140Stats{font:10px monospace;color:#b8d5c6}#ns140Close{background:#714837;color:white;border:1px solid #e9b69a;padding:7px;border-radius:7px}'+
+ '#ns140Retry{background:#446447;color:#fff3d9;border:1px solid #d5bf83;border-radius:7px;padding:7px;font-weight:800}#ns140Retry[hidden]{display:none!important}'+
  '#ns140Pad{position:fixed;left:0;top:0;width:112px;height:112px;display:none;transform:translate(-50%,-50%);pointer-events:none;touch-action:none;z-index:4;border:2px solid #d9eee096;background:radial-gradient(circle,#9bccaa26,#1a413e77);border-radius:50%;box-shadow:inset 0 0 23px #061a2188}'+
  '#ns140Pad.active{display:block}'+
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '#ns140Hit{position:absolute;right:20px;bottom:57px;width:90px;height:90px;border-radius:50%;border:2px solid #edce9a;background:#76523e;color:#fff6cf;font-size:27px;touch-action:none}'+
  '#ns140Hit small{font-size:10px;display:block}';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
- root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V147 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns140Close">← LOBBY</button></div>'+
+ root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V147 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div><button type="button" id="ns140Hit">⚔<small>ATTACK</small></button>';
  document.body.append(style,root);
  el('ns140Close').onclick=()=>stop(true);
+ el('ns140Retry').onclick=()=>{
+  if(B().NET?.role!=='host'||B().NET?.phase!=='lobby')return;
+  stop();B().startLobbyMatch?.(); // retry SAME new arena, never legacy
+ };
  // Same free-position pointer joystick as the normal game: it appears
  // where the player touches the arena, not in a fixed bottom-left spot.
  const pad=el('ns140Pad'),knob=el('ns140Knob'),canvas=el('ns140Canvas');
@@ -59,7 +64,13 @@ function ui(){
  });
  for(const type of ['pointerup','pointercancel','lostpointercapture'])
   canvas.addEventListener(type,e=>{if(e.pointerId===N.stick.ptr)resetStick()});
- document.addEventListener('visibilitychange',()=>{if(document.hidden)resetStick()});
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){resetStick();return}
+  if(N.phase==='reconnecting'&&N.match&&N.ticket){
+   if(N.retryTimer){clearTimeout(N.retryTimer);N.retryTimer=null}
+   if(N.ws?.readyState!==1)connect(N.match,N.id,N.ticket,true);
+  }
+ });
  window.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')N.attack=false});
  const hit=el('ns140Hit');hit.onpointerdown=e=>{e.preventDefault();N.attack=true;hit.setPointerCapture(e.pointerId)};
  hit.onpointerup=hit.onpointercancel=hit.onlostpointercapture=()=>{N.attack=false};
@@ -68,7 +79,10 @@ function ui(){
  window.addEventListener('keyup',e=>N.keys.delete(e.key.toLowerCase()));
  window.addEventListener('blur',()=>{N.keys.clear();resetStick();N.attack=false});
 }
-function status(note){ui();el('ns140Root').hidden=false;el('ns140Status').textContent=note}
+function status(note){
+ ui();el('ns140Root').hidden=false;el('ns140Status').textContent=note;
+ el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
+}
 function stop(notify=false){
  const wasSolo=N.solo;
  if(notify&&N.id==='p1'&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'end'}))}catch{}
@@ -275,47 +289,75 @@ function drawArenaBuildings(g,obstacles){
  }
 }
 
-function connect(match,id,ticket){
- if(N.phase!=='idle')return false;
- if(B().currentProfileLevel?.()<7){status('NOVA ZONA zahteva OPŠTI NIVO 7');return false}
- N.match=match;N.id=id;N.ticket=ticket;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];N.players.clear();N.me=null;
- N.phase='connecting';status('V147 · POVEZIVANJE NA NOVI SERVER...');
+function connect(match,id,ticket,rejoin=false){
+ if(rejoin?N.phase!=='reconnecting':N.phase!=='idle')return false;
+ if(B().currentProfileLevel?.()<7){N.phase='error';status('NOVA ZONA zahteva OPŠTI NIVO 7');return false}
+ if(!rejoin){
+  N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
+  N.players.clear();N.mpMobs=[];N.me=null;N.retry=0;N.lostSince=0;
+ }
+ N.match=match;N.id=id;N.ticket=ticket;
+ N.phase=rejoin?'reconnecting':'connecting';
+ status('V148 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
  try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
- catch{N.phase='error';status('Server novog moda nije dostupan');return false}
+ catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
  N.ws=ws;
- N.timeout=setTimeout(()=>{if(N.phase==='connecting'){N.phase='error';status('Novi server nije odgovorio. Vrati se u lobby.');try{ws.close()}catch{}}},24000);
+ if(N.timeout)clearTimeout(N.timeout);
+ N.timeout=setTimeout(()=>{
+  if(N.ws!==ws||!['connecting','reconnecting'].includes(N.phase))return;
+  try{ws.close(4000,'handshake timeout')}catch{}
+ },18000);
  ws.onopen=()=>{if(N.ws===ws)ws.send(JSON.stringify({t:'hello',id,ticket,protocol:140}))};
  ws.onmessage=e=>{
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
-  if(m.t==='welcome'){if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');return}
-   N.world=m.world||N.world;status('V147 · POVEZAN · ČEKAM IGRAČE');return}
-  if(m.t==='roster'){status('V147 · NOVI SERVER: '+m.ready.length+'/'+m.total+' IGRAČA');return}
-  if(m.t==='start'){N.phase='running';N.retry=0;if(N.timeout)clearTimeout(N.timeout);N.timeout=null;N.lastFrame=0;status('V147 · IGRIVO · SERVER AUTORITET · 0 XP');return}
+  if(m.t==='welcome'){
+   if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
+   if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
+   N.world=m.world||N.world;N.phase='waiting';
+   status('V148 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
+  }
+  if(m.t==='roster'){
+   status('V148 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
+  }
+  if(m.t==='start'){
+   N.phase='running';N.retry=0;N.lostSince=0;
+   if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
+   if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
+   N.lastFrame=0;status('V148 · NOVA ZONA · ZAJEDNIČKI GOBLINI · 0 XP');return;
+  }
   if(m.t==='s'){snapshot(m);return}
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
-  if(m.t==='end'){status('TEST ZAVRŠEN: '+String(m.reason||'kraj'));setTimeout(()=>{if(N.ws===ws)stop()},1200)}
+  if(m.t==='end'){
+   N.phase='ended';status('TEST ZAVRŠEN: '+String(m.reason||'kraj'));
+   setTimeout(()=>{if(N.ws===ws)stop()},1200);
+  }
  };
- ws.onclose=()=>{
-  if(N.ws!==ws||N.phase==='idle')return;
-  if(N.timeout){clearTimeout(N.timeout);N.timeout=null}
-  if(N.phase==='running'&&N.retry<3){
-   N.retry++;
-   const retry=N.retry,match=N.match,id=N.id,ticket=N.ticket;
-   N.phase='reconnecting';status('V147 · PONOVNO POVEZIVANJE '+retry+'/3');
-   setTimeout(()=>{
-    if(N.ws!==ws||N.phase!=='reconnecting')return;
-    N.ws=null;N.phase='idle';connect(match,id,ticket);
-   },Math.min(3500,retry*1100));
-  }else{N.phase='error';status('NOVI SERVER JE PREKINUO VEZU · VRATI SE U LOBBY')}
+ ws.onclose=e=>{
+  if(N.ws!==ws||['idle','ended'].includes(N.phase))return;
+  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
+  N.ws=null;
+  if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
+  if(!N.lostSince)N.lostSince=Date.now();
+  if(Date.now()-N.lostSince>=120000){
+   N.phase='error';status('V148 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
+  }
+  N.retry++;N.phase='reconnecting';
+  status('V148 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
+  if(N.retryTimer)clearTimeout(N.retryTimer);
+  N.retryTimer=setTimeout(()=>{
+   N.retryTimer=null;
+   if(N.phase==='reconnecting'&&!document.hidden)connect(match,id,ticket,true);
+  },Math.min(4000,650+N.retry*380));
  };
- ws.onerror=()=>{if(N.ws===ws)status('V147 SERVER JOŠ NIJE OBJAVLJEN ILI JE NEDOSTUPAN')};
+ ws.onerror=()=>{
+  if(N.ws===ws)status('V148 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
+ };
  return true;
 }
 async function startHost(){
  const b=B(),net=b.NET,roster=b.currentLobbyRoster?.()||[];
- N.errorCode='';N.fallbackAllowed=false;
- let offerSent=false;
+ N.errorCode='';
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
  if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
@@ -330,15 +372,13 @@ async function startHost(){
    if(peer.id===net.localId)continue;
    const c=net.clients.get(peer.id);
    if(!c?.open)throw Error('guest_disconnected');
-   c.send({t:'arena140Offer',match:data.match,id:peer.id,ticket:data.tickets[peer.id],protocol:140});offerSent=true;
+   c.send({t:'arena140Offer',match:data.match,id:peer.id,ticket:data.tickets[peer.id],protocol:140});
   }
   N.phase='idle';return connect(data.match,net.localId,data.tickets[net.localId]);
  }catch(err){
   N.errorCode=String(err?.message||err);
-  // Offer-free failures can safely switch the whole lobby to legacy co-op.
-  // Never fall back after tickets have been sent to any player.
-  N.fallbackAllowed=!offerSent&&/free_test_budget_reached|arena_not_deployed|server_not_deployed|Failed to fetch|NetworkError|fetch failed/i.test(N.errorCode);
-  N.phase='error';status('V147 SERVER NIJE SPREMAN: '+N.errorCode.slice(0,70));return false;
+  // Never redirect players to the legacy MP. Host can retry this room in-place.
+  N.phase='error';status('NOVA ZONA NIJE SPREMNA: '+N.errorCode.slice(0,70)+' · POKUŠAJ PONOVO');return false;
  }
 }
 function acceptOffer(d){
@@ -441,7 +481,7 @@ function frame(now){
   'FPS '+N.fps+' | '+Math.round(N.ping)+'ms | ACK '+N.ack+'/'+N.seq+
   ' | korekcija '+Math.round(N.correction)+'px | stanje '+Math.round(now-N.lastState)+'ms | CPU '+N.serverMs+'ms';
 }
-window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get fallbackAllowed(){return N.fallbackAllowed},get active(){return N.phase==='running'},
+window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
  get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,attackHeld:N.attack,
  playerX:N.me?.x,playerY:N.me?.y,walking:!!N.me?.motion?.walking,
