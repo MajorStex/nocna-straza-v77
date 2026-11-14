@@ -6,7 +6,7 @@ const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const village=fs.readFileSync(path.join(__dirname,'../public/v115-village.js'),'utf8');
 const buildVersion=Number(html.match(/<title>Night Watch v(\d+)(?: TEST)? — Noćna Straža<\/title>/)?.[1]||0);
 assert.ok(buildVersion>=138,'V138+ features require a release build v138 or newer');
-assert.match(html,/v115-village\.js\?v=138/,'full game must load fresh village asset');
+assert.match(html,/v115-village\.js\?v=(?:138|14[0-9])/,'full game must load fresh Village release asset');
 assert.match(village,/VILLAGE_W=1660,VILLAGE_H=960/);
 assert.match(village,/id:'barn'/);
 assert.match(village,/function villageStrike\(id\)/);
