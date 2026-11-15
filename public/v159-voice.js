@@ -11,7 +11,20 @@ const RATE=12000,LOG=Math.log(256),MAX_BUFFER=.35;
 let session=null,socket=null,ready=false,context=null,master=null,limiter=null;
 let mic=null,source=null,filter=null,processor=null,silence=null,micOn=false,micPending=false;
 let reconnectTimer=null,attempts=0,button=null,info=null,lastPacketAt=0;
-const speakers=new Map();
+// Small room-only state: 6 peers, one transition packet per toggle.
+const speakers=new Map(),remoteMics=new Set(),lastVoice=new Map();
+let lastLocalVoice=0;
+function signalMic(on){
+ if(socket?.readyState===WebSocket.OPEN&&ready&&session)
+  try{socket.send(JSON.stringify({t:'mic',on:!!on}))}catch{}
+}
+function badgeState(id,now=performance.now()){
+ if(!session||!ready||!testSeat(id)||document.hidden)return 0;
+ const enabled=id===session.id?micOn:remoteMics.has(id);
+ if(!enabled)return 0;
+ const speaking=id===session.id?now-lastLocalVoice<850:now-(lastVoice.get(id)||-1e8)<1000;
+ return speaking?2:1;
+}
 const testSeat=x=>/^p[1-6]$/.test(String(x||''));
 const encode=x=>{const a=Math.min(1,Math.abs(x)),c=Math.log(1+255*a)/LOG;return Math.max(0,Math.min(255,Math.round((Math.sign(x)*c+1)*127.5)))};
 const decode=x=>{const v=(x/255)*2-1;return Math.sign(v)*(Math.pow(256,Math.abs(v))-1)/255};
@@ -36,7 +49,8 @@ function redraw(){
  button.setAttribute('aria-pressed',String(micOn));
 }
 function stopMic(){
- micOn=false;
+ if(micOn)signalMic(false);
+ micOn=false;lastLocalVoice=0;
  if(processor){processor.onaudioprocess=null;try{processor.disconnect()}catch{}processor=null}
  for(const n of [filter,source,silence])if(n)try{n.disconnect()}catch{}
  filter=source=silence=null;
@@ -54,6 +68,8 @@ function distanceGain(id){
 function playback(packet){
  if(!session||document.hidden||!ready||packet.length<121)return;
  const seat='p'+packet[0];if(!testSeat(seat)||seat===session.id)return;
+ // A received audio frame drives the icon; it does not touch game snapshots.
+ lastVoice.set(seat,performance.now());
  const ctx=audio();if(!ctx||ctx.state!=='running')return;
  let p=speakers.get(seat);
  if(!p){const gain=ctx.createGain();gain.gain.value=distanceGain(seat);gain.connect(master);p={gain,next:0};speakers.set(seat,p)}
@@ -82,7 +98,7 @@ function capture(event){
  const rms=Math.sqrt(sum/count),now=performance.now();
  // Voice activity detection avoids streaming background hiss and saves Worker budget.
  if(rms<.012&&now-lastPacketAt>240)return;
- if(rms>=.012)lastPacketAt=now;
+ if(rms>=.012){lastPacketAt=now;lastLocalVoice=now}
  try{socket.send(bytes)}catch{}
 }
 async function startMic(){
@@ -101,7 +117,7 @@ async function startMic(){
   filter.type='highpass';filter.frequency.value=125;
   processor=ctx.createScriptProcessor(4096,1,1);silence=ctx.createGain();silence.gain.value=0;
   source.connect(filter);filter.connect(processor);processor.connect(silence);silence.connect(ctx.destination);
-  micOn=true;processor.onaudioprocess=capture;
+  micOn=true;processor.onaudioprocess=capture;signalMic(true);
   for(const track of stream.getTracks())track.onended=stopMic;
   redraw();notice('Pričaš dok je mikrofon uključen · klikni ponovo za gašenje.');
  }catch{stopMic();notice('Mikrofon nije dozvoljen ili nije dostupan.')}
@@ -109,7 +125,7 @@ async function startMic(){
 }
 function closeSocket(){
  if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}
- const ws=socket;socket=null;ready=false;
+ const ws=socket;socket=null;ready=false;remoteMics.clear();lastVoice.clear();
  if(ws){ws.onopen=ws.onclose=ws.onmessage=ws.onerror=null;try{ws.close()}catch{}}
 }
 function connect(){
@@ -124,8 +140,16 @@ function connect(){
   if(e.data instanceof ArrayBuffer){playback(new Uint8Array(e.data));return}
   let msg;try{msg=JSON.parse(e.data)}catch{return}
   if(msg.t==='ready'&&msg.seat===current.id&&msg.codec==='log8'){
-   ready=true;attempts=0;notice('Glas povezan · mikrofon je podrazumevano isključen.');
+   ready=true;attempts=0;remoteMics.clear();lastVoice.clear();notice('Glas povezan · mikrofon je podrazumevano isključen.');
    audio()?.resume().catch(()=>{});
+  }
+  if(msg.t==='mic'&&testSeat(msg.seat)&&msg.seat!==current.id&&typeof msg.on==='boolean'){
+   if(msg.on)remoteMics.add(msg.seat);
+   else {remoteMics.delete(msg.seat);lastVoice.delete(msg.seat)}
+  }
+  if(msg.t==='micState'&&Array.isArray(msg.seats)){
+   remoteMics.clear();
+   for(const seat of msg.seats.slice(0,6))if(testSeat(seat)&&seat!==current.id)remoteMics.add(seat);
   }
  };
  ws.onclose=()=>{
@@ -157,7 +181,7 @@ function mount(config){
  stop();session={...config};attempts=0;installUI();connect();
 }
 function stop(){
- stopMic();closeSocket();session=null;attempts=0;
+ stopMic();closeSocket();session=null;attempts=0;remoteMics.clear();lastVoice.clear();lastLocalVoice=0;
  for(const p of speakers.values())try{p.gain.disconnect()}catch{}
  speakers.clear();
  const wrap=document.getElementById('ns159Voice');if(wrap)wrap.remove();button=null;info=null;
@@ -170,6 +194,6 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('pagehide',()=>{stopMic();closeSocket()});
 window.addEventListener('pageshow',()=>{if(session&&!socket&&!document.hidden)connect()});
-window.NS159_VOICE={mount,stop,get connected(){return ready},get microphoneOn(){return micOn}};
+window.NS159_VOICE={mount,stop,badgeState,get connected(){return ready},get microphoneOn(){return micOn}};
 window.dispatchEvent(new Event('ns159VoiceReady'));
 })();
