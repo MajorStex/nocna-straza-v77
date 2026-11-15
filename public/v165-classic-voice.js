@@ -9,6 +9,8 @@ const API='https://nocna-straza-relay.stefanstevic1996.workers.dev';
 const SEAT=/^p[1-6]$/,ROOM=/^[A-HJ-NP-Z2-9]{6}$/,MATCH=/^[a-f0-9]{24}$/,TOKEN=/^[a-f0-9]{48}$/;
 let config=null,sessionCode='',mode='toggle',suspended=false,busy=false,hostContext=null,enginePromise=null,generation=0;
 let status='Nije povezan',ticker=0;
+const ownVoice=()=>!!config&&window.NS159_VOICE?.classic===true&&
+ window.NS159_VOICE?.activeMatch===config.match;
 const $=id=>document.getElementById(id);
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function engine(){
@@ -92,22 +94,22 @@ function receive(packet,{code,id,position:getPosition}={}){
 }
 function suspend(){
  suspended=true;
- if(config)try{window.NS159_VOICE?.stop()}catch{}
+ if(ownVoice())try{window.NS159_VOICE?.stop()}catch{}
  refresh();
 }
 function resume(){suspended=false;if(config)attach();refresh()}
 function leave(){
  generation++;busy=false;
- if(config)try{window.NS159_VOICE?.stop()}catch{}
+ if(ownVoice())try{window.NS159_VOICE?.stop()}catch{}
  config=null;hostContext=null;sessionCode='';suspended=false;status='Nije povezan';
  refresh();
 }
 function toggleMode(){
  mode=mode==='toggle'?'ptt':'toggle';
- if(config&&!suspended)window.NS159_VOICE?.setMode(mode);
+ if(ownVoice()&&!suspended)window.NS159_VOICE?.setMode(mode);
  refresh();
 }
-function micOff(){window.NS159_VOICE?.disableMic();refresh()}
+function micOff(){if(ownVoice())window.NS159_VOICE?.disableMic();refresh()}
 function bind(){
  const voice=window.NS159_VOICE;
  if(!voice)return;
@@ -160,7 +162,7 @@ function install(){
 }
 function refresh(){
  const voice=window.NS159_VOICE;
- const live=!!config&&!suspended&&voice?.connected;
+ const live=ownVoice()&&!suspended&&voice?.connected;
  for(const card of document.querySelectorAll('.ns165VoiceCard')){
   const modeBtn=card.querySelector('.ns165VoiceMode'),mic=card.querySelector('.ns165Mic'),
    off=card.querySelector('.ns165Off'),note=card.querySelector('.ns165VoiceNote');
@@ -206,8 +208,8 @@ function drawBadge(g,id,x,y){
 }
 window.addEventListener('nsVoiceChanged',refresh);
 window.addEventListener('ns159VoiceReady',()=>{bind();refresh()});
-window.addEventListener('pagehide',()=>{window.NS159_VOICE?.disableMic()});
+window.addEventListener('pagehide',()=>{if(ownVoice())window.NS159_VOICE?.disableMic()});
 window.NS165_CLASSIC_VOICE={host,guest,receive,syncGuest,syncAll,suspend,resume,leave,install,refresh,decorateLobby,drawBadge,
- get active(){return !!config&&!suspended},get room(){return sessionCode},get mode(){return mode},
+ get active(){return ownVoice()&&!suspended},get room(){return sessionCode},get mode(){return mode},
  get status(){return status},get match(){return config?.match||''}};
 })();
