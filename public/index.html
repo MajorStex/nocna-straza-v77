@@ -5834,7 +5834,9 @@ function drawHeroHairStyle(c,style,color,back=false){
 }
 
 function drawUprightHero(e){
- const heroLook=window.NS109_SPARTA?.appearance(window.NS69Store?.appearance(e.look||heroStyle)||(e.look||heroStyle),e)||(window.NS69Store?.appearance(e.look||heroStyle)||(e.look||heroStyle));const unit=(e.r||17)/17,side=e.visualSide===-1?-1:1,ward=heroLook.wardrobe||HERO_WARDROBE,hit=(e.flash||0)>0;
+ const sourceLook=e.look||heroStyle;const gameLook=window.NS69Store?.appearance(sourceLook)||sourceLook;
+ // V155: each arena avatar already carries the OWNER'S network cosmetics. Never apply this phone's equipped skin to another seat.
+ const heroLook=e.nsArenaPortrait?(gameLook.ns109Sparta?window.NS109_SPARTA?.appearance(gameLook,{...e,nsArenaPortrait:true})||gameLook:gameLook):(window.NS109_SPARTA?.appearance(gameLook,e)||gameLook);const unit=(e.r||17)/17,side=e.visualSide===-1?-1:1,ward=heroLook.wardrobe||HERO_WARDROBE,hit=(e.flash||0)>0;
  const t=e.frame||0,walk=e.walking?1:0,step=Math.sin(t*1.65)*walk;
  const slash=e.attackT>0?Math.sin(Math.PI*clamp(1-e.attackT/.30,0,1)):0;
  const bob=Math.abs(step)*1.3;
@@ -9194,8 +9196,8 @@ function ns117DrawVillageHero(target,x,y,options={}){
  const original=ctx;
  try{
   ctx=target;
-  const look=options.look||((!NET.role||options.id===NET.localId)?heroStyle:NET.heroLooks.get(options.id))||heroStyle;
-  drawUprightHero({id:'p1',nsVillagePortrait:true,x,y,r:17,frame:Number(options.frame)||0,
+  const look=options.netArena===true?options.look||networkHeroStyle(FACTORY_HERO):options.look||((!NET.role||options.id===NET.localId)?heroStyle:NET.heroLooks.get(options.id))||heroStyle;
+  drawUprightHero({id:/^p[1-6]$/.test(String(options.id||''))?options.id:'p1',nsVillagePortrait:true,nsArenaPortrait:options.netArena===true,x,y,r:17,frame:Number(options.frame)||0,
    walking:!!options.walking,visualSide:options.visualSide===-1?-1:1,
    // V150: same upright hero asset, weapon animation follows the
    // server-authoritative attack tick on EVERY multiplayer client.
