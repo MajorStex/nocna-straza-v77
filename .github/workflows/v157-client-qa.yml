@@ -12,6 +12,7 @@ on:
       - 'tests/v158-tree-menu.test.cjs'
       - 'public/v160-sandbox.js'
       - 'tests/v160-sandbox.test.cjs'
+      - 'tests/v161-voice-badges.test.cjs'
       - 'tests/v140-isolated-arena.test.cjs'
       - 'tests/v154-goblins.test.cjs'
       - '.github/workflows/v157-client-qa.yml'
@@ -32,6 +33,8 @@ jobs:
       - name: Test cached weapon waveforms, pause, scenery and 80 safe spawns
         run: |
           node --check public/v140-net-mode.js
+          node --check public/v159-voice.js
+          node tests/v161-voice-badges.test.cjs
           node --check public/v160-sandbox.js
           node --check public/v152-arena-audio.js
           node --check public/v154-goblin-renderer.js
