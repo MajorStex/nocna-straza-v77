@@ -100,6 +100,12 @@ function peerFor(id){
   const opus=codecs.filter(c=>c.mimeType?.toLowerCase()==='audio/opus');
   if(opus.length&&peer.transceiver.setCodecPreferences)peer.transceiver.setCodecPreferences(opus);
   if(micTrack)peer.transceiver.sender.replaceTrack(micTrack).catch(()=>{});
+  // Best-effort 24 kbps/peer Opus cap for up to 5 uplink audio streams.
+  const sender=peer.transceiver.sender,params=sender.getParameters?.();
+  if(params?.encodings?.length){
+   params.encodings[0].maxBitrate=24000;
+   sender.setParameters(params).catch(()=>{});
+  }
  }catch{dropPeer(id);return null}
  pc.onicecandidate=e=>{
   if(e.candidate&&connections.get(id)===peer){
@@ -271,6 +277,6 @@ function stop(){
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopCapture()});
 window.NS159_LIVE=Object.freeze({attach,receive,syncOnline,toggle,stop,unlock,setListening,attenuation,status,
- get stats(){return {...stats,connected:status().connected,peers:connections.size}},
+ get stats(){return {...stats,connected:status().connected,peers:connections.size,remoteStreams:[...connections.values()].filter(p=>!!p.stream).length}},
  get active(){return talking}});
 })();
