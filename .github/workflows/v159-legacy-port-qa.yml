@@ -23,6 +23,7 @@ jobs:
           node --check public/v159-troll-renderer.js
           node tests/v159-troll.test.cjs
           node tests/v159-two-clients.test.cjs
+          node tests/v159-six-clients.test.cjs
           node tests/v159-lab.test.cjs
           node tests/v159-legacy-compound.test.cjs
           node tests/v159-collision-grid.test.cjs
