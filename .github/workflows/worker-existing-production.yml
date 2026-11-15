@@ -14,6 +14,7 @@ on:
       - 'tests/v160-sandbox.test.cjs'
       - 'tests/v162-boss-palette.test.cjs'
       - 'tests/v163-push-to-talk.test.cjs'
+      - 'tests/v164-level0-access.test.cjs'
       - '.github/workflows/worker-existing-production.yml'
   workflow_dispatch:
 permissions:
@@ -54,6 +55,8 @@ jobs:
         run: node tests/v163-push-to-talk.test.cjs
       - name: V162 native boss and compact live sandbox (safe release)
         run: NO_BROWSER=1 node tests/v162-boss-palette.test.cjs
+      - name: V164 verify New Zone unlocked for level 0 SOLO, co-op, READY and auto-start
+        run: node tests/v164-level0-access.test.cjs
       - name: Require Cloudflare Worker credentials (do not silently skip deployment)
         shell: bash
         run: |
