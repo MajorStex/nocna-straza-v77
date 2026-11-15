@@ -7,7 +7,7 @@ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 new Function(voice);new Function(game);
 assert.match(html,/<title>Night Watch v166/);
 assert.match(html,/v140-net-mode\.js\?v=166/);
-assert.match(game,/voiceScript\.src='\.\/v159-voice\.js\?v=163'/);
+assert.match(game,/voiceScript\.src='\.\/v159-voice\.js\?v=166'/);
 assert.match(game,/function drawArenaVoiceBadge\(g,id,x,y\)/);
 assert.match(game,/drawArenaVoiceBadge\(g,p\.id,p\.x\+38,labelY-2\)/);
 assert.match(game,/window\.NS159_VOICE\?\.badgeState\?\.\(id\)/);
