@@ -8,7 +8,7 @@ const AC=window.AudioContext||window.webkitAudioContext;
 let ctx=null,master=null,fxBus=null,musicBus=null,noise=null,timer=null,nextAt=0,index=0,activeFx=0;
 const CHORDS=[[146.83,174.61,220],[130.81,164.81,196],[116.54,146.83,174.61],[110,164.81,220]];
 const MELODY=[0,null,null,2,null,1,null,null,1,null,0,null,2,null,null,1];
-const last=new Map();
+const last=new Map(),weaponSamples=new Map();
 const safeBool=(key,fallback)=>{try{const v=localStorage.getItem(key);return v===null?fallback:v==='true'}catch{return fallback}};
 let soundOn=safeBool('ns152_sound',true),musicOn=safeBool('ns152_music',true);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -55,6 +55,66 @@ function hiss(at,duration,volume,frequency=1800){
  amp.gain.exponentialRampToValueAtTime(.0001,at+duration);
  src.connect(filter);filter.connect(amp);amp.connect(fxBus);src.start(at);src.stop(at+duration);
 }
+// V157 layered one-shot Foley sounds. Cached PCM AudioBuffers are created ONCE
+// per weapon family and event, reused across every swing and impact.
+// This sounds less like an oscillator beep: rapid low-frequency thuds,
+// filtered grit, metal partials, and a tapered air/steel swish.
+function weaponFamily(value){
+ const name=String(value||'sword').toLowerCase();
+ if(/troll|club|mace|hammer|morningstar|flail/.test(name))return 'blunt';
+ if(/axe/.test(name))return 'axe';
+ if(/spear|halberd|glaive/.test(name))return 'polearm';
+ if(/dagger|rapier/.test(name))return 'lightblade';
+ return 'blade';
+}
+const WEAPON_TONE={
+ blade:{metal:1,wood:.18,fund:480,dur:.28},lightblade:{metal:.9,wood:.06,fund:720,dur:.21},
+ axe:{metal:.65,wood:.55,fund:290,dur:.29},polearm:{metal:.48,wood:.52,fund:380,dur:.27},
+ blunt:{metal:.23,wood:1,fund:155,dur:.31}
+};
+function weaponBuffer(weapon,kind){
+ if(!ctx)return null;
+ const group=weaponFamily(weapon),key=group+':'+kind;
+ if(weaponSamples.has(key))return weaponSamples.get(key);
+ const p=WEAPON_TONE[group],dur=kind==='swing'?.19:p.dur;
+ const rate=ctx.sampleRate||44100;
+ const buffer=ctx.createBuffer(1,Math.ceil(rate*dur),rate);
+ const data=buffer.getChannelData(0);let seed=1977+key.length*997,prevNoise=0,lp=0;
+ const angular=2*Math.PI;
+ for(let i=0;i<data.length;i++){
+  const t=i/rate,u=t/dur;
+  seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+  const rand=((seed>>>8)/8388608-1);
+  const filtered=rand-prevNoise*.72;prevNoise=rand;
+  const swoosh=Math.pow(Math.sin(Math.PI*Math.min(1,u)),1.4);
+  const grain=Math.exp(-t*(kind==='swing'?16:32))*(.7*rand+.3*filtered);
+  const ring=(Math.sin(angular*p.fund*t)*Math.exp(-t*21)+
+   .46*Math.sin(angular*p.fund*2.37*t)*Math.exp(-t*32)+
+   .21*Math.sin(angular*p.fund*3.8*t)*Math.exp(-t*46));
+  const thud=Math.sin(angular*(p.fund*.37)*t)*Math.exp(-t*33);
+  const scrape=Math.sin(angular*(780-470*u)*t);
+  const sample=kind==='swing'?
+   swoosh*(.45*filtered+.24*scrape+.13*p.metal*ring+.15*p.wood*thud):
+   (grain*(.43*p.wood+.20)+ring*.35*p.metal+thud*.52*p.wood);
+  // Simple single-pole lowpass removes brittle digital white-noise edges.
+  lp=lp*.19+sample*.81;
+  const ramp=Math.min(1,t/.008,(dur-t)/.018);
+  data[i]=Math.max(-.9,Math.min(.9,lp*.52*Math.max(0,ramp)));
+ }
+ weaponSamples.set(key,buffer);return buffer;
+}
+function weaponShot(weapon,kind,at,volume,variant=0){
+ if(!ctx||activeFx>=12)return false;
+ const buffer=weaponBuffer(weapon,kind);if(!buffer)return false;
+ const source=ctx.createBufferSource(),amp=ctx.createGain();
+ activeFx++;
+ source.buffer=buffer;
+ if(source.playbackRate)source.playbackRate.value=clamp(1+((variant%5)-2)*.035,.90,1.11);
+ amp.gain.value=clamp(volume,0,.35);
+ source.connect(amp);amp.connect(fxBus);
+ source.onended=()=>{activeFx=Math.max(0,activeFx-1);try{source.disconnect();amp.disconnect()}catch{}};
+ source.start(at);return true;
+}
 function musicTick(){
  if(!ctx||ctx.state!=='running'||!musicOn||document.hidden)return;
  if(nextAt<ctx.currentTime-.2)nextAt=ctx.currentTime+.05;
@@ -92,12 +152,10 @@ function play(kind,options={}){
  if(kind==='step'){hiss(at,.04,.080*gain,570);tone(78,at,.06,.04*gain,'sine',fxBus,.73)}
  else if(kind==='goblinStep'){hiss(at,.052,.034*gain,430);tone(63,at,.1,.034*gain,'sine',fxBus,.68)}
  else if(kind==='swing'){
-  const f=weapon.includes('axe')?145:weapon.includes('spear')?275:weapon.includes('mace')?115:225;
-  hiss(at,.095,.14*gain,weapon.includes('axe')?1000:2600);
-  tone(f,at,.13,.13*gain,'sawtooth',fxBus,.52);
+  weaponShot(weapon,'swing',at,.30*gain,Number(options.variant)||0);
  }
  else if(kind==='hit'){
-  hiss(at,.065,.10*gain,1850);tone(195,at,.115,.07*gain,'triangle',fxBus,.55);
+  weaponShot(weapon,'hit',at,.32*gain,Number(options.variant)||0);
  }
  else if(kind==='hurt'){
   hiss(at,.18,.18*gain,1200);tone(145,at,.22,.18*gain,'triangle',fxBus,.52);
@@ -120,6 +178,6 @@ function set(kind,on){
  try{localStorage.setItem('ns152_'+kind,String(!!on))}catch{}
  if(ctx&&ctx.state==='running'&&kind==='music'){nextAt=ctx.currentTime+.05;}
 }
-window.NS152_AUDIO={unlock,play,stop,set,get music(){return musicOn},get sound(){return soundOn},
+window.NS152_AUDIO={unlock,play,stop,set,weaponFamily,get cachedWeaponBuffers(){return weaponSamples.size},get music(){return musicOn},get sound(){return soundOn},
  get running(){return !!ctx&&ctx.state==='running'}};
 })();
