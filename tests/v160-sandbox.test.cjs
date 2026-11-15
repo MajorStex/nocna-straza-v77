@@ -43,7 +43,7 @@ const {chromium}=require('playwright-core');
    const page=await browser.newPage({viewport,isMobile:true,hasTouch:true});
    await page.setContent('<html><body></body></html>');
    await page.addScriptTag({path:path.join(root,'v157-arena-scenery.js')});
-   await page.addScriptTag({content:'window.__NS110_BRIDGE={currentProfileLevel:()=>7,NET:null};'});
+   await page.addScriptTag({content:'window.__NS110_BRIDGE={currentProfileLevel:()=>0,NET:null};'});
    await page.addScriptTag({path:path.join(root,'v162-troll.js')});
    await page.addScriptTag({path:path.join(root,'v140-net-mode.js')});
    await page.addScriptTag({path:path.join(root,'v162-sandbox.js')});
