@@ -536,7 +536,7 @@ function soloHordePoints(){
  return N.soloSpawnCache=points;
 }
 function buildSoloWave(wave){
- const points=soloHordePoints(),count=Math.min(80,60+Math.max(0,wave-1)*10,points.length);
+ const points=soloHordePoints(),count=Math.min(LAB.customCount===null?labDefaultCount(wave):LAB.customCount,points.length);
  const alive=[...N.players.values()].filter(p=>p.hp>0&&!p.knocked);
  const shift=Math.max(1,wave)*17%points.length;
  const ranked=points.map((pt,i)=>({
@@ -552,6 +552,90 @@ function buildSoloWave(wave){
  });
 }
 
+// Test-only actions: use the existing New Zone simulation, not legacy editor logic.
+function nearSoloPoint(offset=0){
+ const me=N.me||{x:250,y:250},world=N.world;
+ const free=(x,y)=>{
+  if(x<40||x>world.w-40||y<40||y>world.h-40)return false;
+  return (world.obstacles||[]).every(o=>{
+   const px=clamp(x,o.x,o.x+o.w),py=clamp(y,o.y,o.y+o.h);
+   return (x-px)**2+(y-py)**2>=34*34
+  });
+ };
+ for(let i=0;i<32;i++){
+  const a=(i+offset)*2.39996,r=150+Math.floor(i/8)*40;
+  const x=Math.round(me.x+Math.cos(a)*r),y=Math.round(me.y+Math.sin(a)*r);
+  if(free(x,y))return {x,y};
+ }
+ return {x:450,y:450};
+}
+function soloLabAction(m){
+ if(!N.solo||N.phase!=='running')return false;
+ const a=m.action,int=(x,min,max,d)=>Number.isFinite(Number(x))?clamp(Math.round(Number(x)),min,max):d;
+ const resetWave=()=>{N.soloMobs=buildSoloWave(N.soloWave);N.soloState='play';N.soloChoice=null;N.soloBetweenUntil=0;N.choiceUiId='';N.soloCrowd.clear()};
+ const allowed=new Set(['wave','count','resetCount','resetWave','spawnMob','clearMobs','setMob','removeMob','freezeAI','godMode','enemyHp','spawnChest','clearChests','spawnAlly','clearAllies','spawnProp','clearProps','heal','damage','weapon','resetLab']);
+ if(!allowed.has(a))return false;
+ if(a==='wave'){N.soloWave=int(m.value,1,99,1);resetWave()}
+ else if(a==='count'||a==='resetCount'){LAB.customCount=a==='resetCount'?null:int(m.value,1,80,60);resetWave()}
+ else if(a==='resetWave')resetWave();
+ else if(a==='spawnMob'){
+  const qty=int(m.quantity,1,10,1),ids=new Set(N.soloMobs.map(x=>x.id));
+  for(let i=0;i<qty&&N.soloMobs.filter(q=>q.hp>0).length<80;i++){
+   let id=0;while(ids.has(id)&&id<96)id++;if(id>=96)break;
+   const p=nearSoloPoint(i+LAB.rev*7),hp=int(m.hp,1,500,35);
+   N.soloMobs.push({id,x:p.x,y:p.y,sx:p.x,sy:p.y,prevX:p.x,prevY:p.y,hp,maxHp:hp,
+    attackAt:0,attackTick:-100,deadUntil:0,hitTick:-100,vx:0,vy:0,targetId:'',
+    retargetAt:0,animDistance:0,animX:p.x,animY:p.y,facing:1,movingUntil:0});
+   ids.add(id);
+  }
+  N.soloState='play';N.soloChoice=null;N.soloCrowd.clear();
+ }else if(a==='clearMobs'){N.soloMobs=[];N.soloState='play';N.soloChoice=null;N.soloCrowd.clear()}
+ else if(a==='setMob'){const mob=N.soloMobs.find(q=>q.id===int(m.id,0,95,-1));if(mob){mob.hp=mob.maxHp=int(m.hp,1,500,35)}}
+ else if(a==='removeMob'){const id=int(m.id,0,95,-1);N.soloMobs=N.soloMobs.filter(q=>q.id!==id);N.soloCrowd.clear()}
+ else if(a==='freezeAI')LAB.freezeAI=!!m.value;
+ else if(a==='godMode')LAB.godMode=!!m.value;
+ else if(a==='enemyHp'){const hp=int(m.value,1,500,35);for(const mob of N.soloMobs)if(mob.hp>0){mob.hp=hp;mob.maxHp=hp}}
+ else if(a==='spawnChest'){
+  if(N.soloChests.length>=12)return false;
+  const p=nearSoloPoint();N.soloChests.push({id:1000+LAB.rev,x:p.x,y:p.y,opened:false});
+ }else if(a==='clearChests'){N.soloChests=[];N.soloChoice=null}
+ else if(a==='spawnAlly'){
+  if(LAB.allies.length>=3)return false;
+  const p=nearSoloPoint(LAB.allies.length);LAB.allies.push({id:++LAB.rev,x:p.x,y:p.y,hp:100,maxHp:100,lastAttack:-100});
+ }else if(a==='clearAllies')LAB.allies=[];
+ else if(a==='spawnProp'){
+  if(LAB.props.length>=20||!['torch','banner','target'].includes(m.kind))return false;
+  const p=nearSoloPoint(LAB.props.length);LAB.props.push({id:++LAB.rev,x:p.x,y:p.y,kind:m.kind});
+ }else if(a==='clearProps')LAB.props=[];
+ else if(a==='heal'){N.me.hp=N.me.maxHp}
+ else if(a==='damage')N.me.damage=int(m.value,1,250,22);
+ else if(a==='weapon'){
+  if(!LAB_WEAPONS.has(m.value))return false;
+  LAB_WEAPON=m.value;rememberLook('p1',(N.looks.get('p1')?.revision||0)+1,localArenaLook());
+ }else if(a==='resetLab'){
+  LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:LAB.rev+1};
+  LAB_WEAPON=null;rememberLook('p1',(N.looks.get('p1')?.revision||0)+1,localArenaLook());resetWave();
+ }
+ if(a!=='resetLab')LAB.enabled=true;
+ LAB.rev++;N.uiAt=0;window.NS160_LAB?.refresh();return true;
+}
+function stepSoloAllies(){
+ for(const ally of LAB.allies){
+  let nearest=null,best=380**2;
+  for(const mob of N.soloMobs)if(mob.hp>0){
+   const d=(mob.x-ally.x)**2+(mob.y-ally.y)**2;
+   if(d<best){best=d;nearest=mob}
+  }
+  const target=nearest||N.me;if(!target)continue;
+  const dx=target.x-ally.x,dy=target.y-ally.y,d=Math.hypot(dx,dy);
+  if(d>(nearest?65:90))moveLocal(ally,dx/d*2.9,dy/d*2.9);
+  if(nearest&&d<85&&N.soloTick-ally.lastAttack>=23){
+   ally.lastAttack=N.soloTick;nearest.hitTick=N.soloTick;
+   nearest.hp=Math.max(0,nearest.hp-14);
+   if(nearest.hp===0)nearest.deadUntil=N.soloTick+105;
+  }
+ }
+}
 function soloWaveDone(){
  N.soloState='between';const me=N.me;
  const chest={id:100+N.soloWave,x:clamp(me.x+62,35,N.world.w-35),
@@ -565,6 +649,7 @@ function soloWaveDone(){
 function startSolo(){
  if(B().currentProfileLevel?.()<7||B().NET?.role||!['idle','error'].includes(N.phase))return false;
  if(N.ws){try{N.ws.close()}catch{}N.ws=null}
+ LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_WEAPON=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};
  N.solo=true;N.phase='running';N.paused=false;N.id='p1';N.match='offline';N.ticket='';
  N.world={w:1680,h:1080,r:14,speed:156,decorSeed:157,obstacles:[
   {x:275,y:140,w:95,h:92},{x:585,y:330,w:102,h:94},
@@ -613,12 +698,15 @@ function stepSolo(dt){
   }
   // Fixed physics 30Hz, steering only at 15Hz, interpolation at display FPS.
   for(const mob of N.soloMobs){mob.prevX=mob.x;mob.prevY=mob.y}
-  if(N.soloTick%2===0)N.soloCrowd.step(N.soloMobs,N.players,N.soloTick);
-  N.soloCrowd.advance(N.soloMobs,N.players);
-  for(const mob of N.soloMobs){
+  if(!LAB.freezeAI){
+   if(N.soloTick%2===0)N.soloCrowd.step(N.soloMobs,N.players,N.soloTick);
+   N.soloCrowd.advance(N.soloMobs,N.players);
+  }
+  if(LAB.allies.length)stepSoloAllies();
+  if(!LAB.freezeAI)for(const mob of N.soloMobs){
    if(mob.hp<=0)continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
-   if(d2<=34**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
+   if(!LAB.godMode&&d2<=34**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
     me.hp=Math.max(0,me.hp-7);N.hurtUntil=performance.now()+290;
     A()?.play('hurt');
     mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+39+(mob.id%5)*4;
@@ -652,7 +740,7 @@ function stepSolo(dt){
     N.choiceUiId='';A()?.play('chest');
    }
   }
-  if(N.soloState==='play'&&N.soloMobs.every(m=>m.hp<=0))soloWaveDone();
+  if(!LAB.enabled&&N.soloState==='play'&&N.soloMobs.every(m=>m.hp<=0))soloWaveDone();
  }
 }
 // V151: interpolate authoritative positions on a stable tick timeline,
