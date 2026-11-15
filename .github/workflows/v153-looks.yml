@@ -1,0 +1,26 @@
+name: V153 hero skins and size synchronization QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/index.html'
+      - 'public/v140-net-mode.js'
+      - 'tests/v153-looks.test.cjs'
+      - '.github/workflows/v153-looks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  appearance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test synchronized player looks and player sizes
+        run: |
+          node --check public/v140-net-mode.js
+          node tests/current-deployment.test.cjs
+          node tests/v153-looks.test.cjs
