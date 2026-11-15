@@ -17,7 +17,7 @@ function engine(){
  if(window.NS159_VOICE)return Promise.resolve(window.NS159_VOICE);
  if(enginePromise)return enginePromise;
  enginePromise=new Promise((resolve,reject)=>{
-  const script=document.createElement('script');script.src='./v159-voice.js?v=165';script.async=true;
+  const script=document.createElement('script');script.src='./v159-voice.js?v=166';script.async=true;
   script.addEventListener('load',()=>window.NS159_VOICE?resolve(window.NS159_VOICE):reject(Error('Voice engine unavailable')),{once:true});
   script.addEventListener('error',()=>reject(Error('Voice script unavailable')),{once:true});
   document.head.append(script);
