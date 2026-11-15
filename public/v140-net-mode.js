@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 if(window.NS140_ARENA)return;
-const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,V=()=>window.NS159_VOICES||null,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Shared V152 crowd formula identical to server navigation and 30Hz movement.
 // V150: predictable, allocation-bounded movement for New Zone's PvE mobs.
 // Only the server decides positions. Each player destination gets one cached
@@ -243,7 +243,7 @@ function ui(){
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
  root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V158 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
- '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns159GateOpen" type="button" hidden>🔑 OTVORI STARU KAPIJU</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
+ '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns159MenuShare" type="button">🎙 DELI SNIMLJENE REPLIKE</button><button id="ns159MenuHear" type="button">👂 ČUJ GLASOVE SAIGRAČA</button><button id="ns159MenuVoiceTest" type="button">▶ PROBA GLASA</button><button id="ns159GateOpen" type="button" hidden>🔑 OTVORI STARU KAPIJU</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
@@ -259,9 +259,28 @@ function ui(){
   menuPanel.hidden=!menuPanel.hidden;menuButton.setAttribute('aria-expanded',String(!menuPanel.hidden));
   el('ns158MenuPause').textContent=N.paused?'▶ NASTAVI':'⏸ PAUZIRAJ';
   el('ns159GateOpen').hidden=!N.world.legacyMode||!!N.world.legacyGateOpen||N.solo;
+  const pref=V()?.settings()||{share:false,hear:false};
+  if(el('ns159MenuShare'))el('ns159MenuShare').textContent=(pref.share?'✅':'⬜')+' DELI SNIMLJENE REPLIKE';
+  if(el('ns159MenuHear'))el('ns159MenuHear').textContent=(pref.hear?'✅':'⬜')+' ČUJ GLASOVE SAIGRAČA';
+  if(el('ns159MenuVoiceTest'))el('ns159MenuVoiceTest').hidden=N.solo;
  };
  el('ns158MenuPause').onclick=()=>{closeArenaMenu();toggleArenaPause()};
  el('ns158MenuLeave').onclick=()=>{closeArenaMenu();stop(true)};
+ el('ns159MenuShare').onclick=()=>{
+  const settings=V()?.settings()||{share:false};B().coopVoiceUpdatePreference?.('share',!settings.share);
+  el('ns159MenuShare').textContent=(!settings.share?'✅':'⬜')+' DELI SNIMLJENE REPLIKE';
+ };
+ el('ns159MenuHear').onclick=()=>{
+  const settings=V()?.settings()||{hear:false};B().coopVoiceUpdatePreference?.('hear',!settings.hear);
+  el('ns159MenuHear').textContent=(!settings.hear?'✅':'⬜')+' ČUJ GLASOVE SAIGRAČA';
+ };
+ el('ns159MenuVoiceTest').onclick=()=>{
+  V()?.unlock();
+  void V()?.emit('preview').then(ok=>{
+   announceArena(ok?'🎙 Replika poslata saigračima':'Nema snimljene replike ili je deljenje isključeno');
+  });
+  closeArenaMenu();
+ };
  el('ns159GateOpen').onclick=()=>{
   closeArenaMenu();
   if(!N.world.legacyMode||N.solo||N.world.legacyGateOpen||N.ws?.readyState!==1)return;
@@ -412,7 +431,7 @@ function stop(notify=false){
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
- A()?.stop();closeArenaMenu();N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
+ V()?.stop();A()?.stop();closeArenaMenu();N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
  N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.collisionGrid=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
@@ -469,7 +488,10 @@ function snapshot(m){
  if(Array.isArray(m.chests))N.chests=m.chests.slice(0,16)
   .filter(c=>Array.isArray(c)&&Number.isInteger(c[0])&&Number.isFinite(c[1])&&Number.isFinite(c[2]))
   .map(c=>({id:c[0],x:c[1],y:c[2],opened:!!c[3]}));
- if(N.wave>priorWave)A()?.play('wave');
+ if(N.wave>priorWave){A()?.play('wave');
+  const speaker='p'+((N.wave-1)%Math.max(1,N.players.size||6)+1);
+  if(N.id===speaker)void V()?.emit(N.wave%10===0?'boss':'wave');
+ }
  if(N.choice&&N.choice.seq!==priorChoice){A()?.play('chest');N.choiceUiId=''}
  if(!N.choice&&priorChoice!==undefined)A()?.play('choose');
  if(Number.isInteger(m.totalMobs)&&m.totalMobs>=12&&m.totalMobs<=80)N.hordeTotal=m.totalMobs;
@@ -500,9 +522,10 @@ function snapshot(m){
   if(!Number.isFinite(xx)||!Number.isFinite(yy))continue;
   const x=xx/10,y=yy/10;let p=N.players.get(id);
   if(!p){p={id,x,y,tx:x,ty:y};N.players.set(id,p)}
-  const previousAttack=p.attackTick;
+  const previousAttack=p.attackTick,previousKills=p.kills??0,previousHp=p.hp;
   p.tx=x;p.ty=y;p.hp=hp;p.maxHp=Number(row[9])||100;p.kills=Number(row[10])||0;
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
+  if(id===N.id&&previousHp!==undefined&&hp>0&&previousKills<p.kills)void V()?.emit('kill');
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
    A()?.play('swing',{weapon:id===N.id?localArenaLook().weapon:N.looks.get(id)?.look?.weapon||B().getVillageHeroLook?.(id)?.weapon||'sword',variant:attackTick,
@@ -512,6 +535,7 @@ function snapshot(m){
    if(N.lastMyHp!==null&&hp<N.lastMyHp){
     N.hurtUntil=performance.now()+290;
     A()?.play('hurt',{gain:1});
+    void V()?.emit(hp<=0?'dead':'hurt');
    }
    N.lastMyHp=hp;
   }
@@ -817,6 +841,7 @@ function connect(match,id,ticket,rejoin=false){
  try{ws=new WebSocket('wss://nocna-straza-relay-v159-test.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
  N.ws=ws;
+ V()?.unlock();
  if(N.timeout)clearTimeout(N.timeout);
  N.timeout=setTimeout(()=>{
   if(N.ws!==ws||!['connecting','reconnecting'].includes(N.phase))return;
@@ -841,6 +866,7 @@ function connect(match,id,ticket,rejoin=false){
    }
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;N.collisionGrid=createArenaCollisionGrid(N.world);N.phase='waiting';
+   V()?.attach(ws,id,seat=>{const player=N.players.get(seat);return player?{x:player.x,y:player.y}:null});
     if(N.world.legacyMode)window.NS159_LEGACY_COMPOUND?.prewarm(N.world.legacyItems||[]);
     window.NS154_GOBLINS?.prewarm();window.NS159_TROLL?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
@@ -856,6 +882,7 @@ function connect(match,id,ticket,rejoin=false){
     }
    status('V158 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
+  if(V()?.receive(m))return;
   if(m.t==='look'){rememberLook(m.id,m.revision,m.look);renderPresence();return}
    if(m.t==='presence'&&Array.isArray(m.players)){
     N.presence.clear();
@@ -874,12 +901,22 @@ function connect(match,id,ticket,rejoin=false){
     return;
    }
    if(m.t==='gate'&&m.world?.legacyMode){
+    if(m.by===N.id)void V()?.emit('stage');
     N.world=m.world;N.collisionGrid=createArenaCollisionGrid(N.world);
     window.NS159_LEGACY_COMPOUND?.prewarm(N.world.legacyItems||[]);
     announceArena('STARA KAPIJA JE OTVORENA · PROLAZ SLOBODAN');return;
    }
-   if(m.t==='waveStart'){announceArena('TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
-   if(m.t==='waveEnd'){announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');return}
+   if(m.t==='waveStart'){
+    announceArena('TALAS '+m.wave+' — neprijatelji dolaze iz daljine');
+    const designated='p'+((Math.max(1,Number(m.wave)||1)-1)%Math.max(1,N.players.size||6)+1);
+    if(N.id===designated)void V()?.emit(Number(m.wave)%10===0?'boss':'wave');
+    return;
+   }
+   if(m.t==='waveEnd'){
+    announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');
+    if(Number(m.wave)%10===0&&N.id==='p1')void V()?.emit('victory');
+    return;
+   }
    if(m.t==='roster'){
    status('V158 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
@@ -888,6 +925,7 @@ function connect(match,id,ticket,rejoin=false){
    if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.lastFrame=0;
+    if(!m.rejoined&&N.id==='p1')void V()?.emit('start');
     if(N.paused&&ws.readyState===1)ws.send(JSON.stringify({t:'pause',paused:true}));
     status('V158 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
@@ -913,6 +951,7 @@ function connect(match,id,ticket,rejoin=false){
   }
  };
  ws.onclose=e=>{
+  V()?.stop();
   if(N.ws!==ws||['idle','ended','error'].includes(N.phase))return;
   if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
   N.ws=null;
