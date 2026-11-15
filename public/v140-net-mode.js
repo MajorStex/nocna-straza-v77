@@ -282,12 +282,28 @@ function moveLocal(p,dx,dy){
 function snapshot(m){
  if(!Number.isInteger(m.tick)||m.tick<=N.tick||!Array.isArray(m.players))return;
  N.tick=m.tick;N.lastState=performance.now();N.serverMs=Number(m.ms)||0;
+ if(Number.isFinite(m.serverNow))N.serverNow=m.serverNow;
+ const priorWave=N.wave,priorChoice=N.choice?.seq;
+ if(Number.isInteger(m.wave)&&m.wave>0&&m.wave<1000)N.wave=m.wave;
+ if(m.waveState==='play'||m.waveState==='between')N.waveState=m.waveState;
+ if(Number.isFinite(m.waveAt))N.waveAt=m.waveAt;
+ N.choice=m.choice&&Number.isInteger(m.choice.seq)&&typeof m.choice.owner==='string'?
+  {id:m.choice.id,owner:m.choice.owner,options:['edge','heart','boots'],seq:m.choice.seq,until:m.choice.until}:null;
+ if(Array.isArray(m.chests))N.chests=m.chests.slice(0,16)
+  .filter(c=>Array.isArray(c)&&Number.isInteger(c[0])&&Number.isFinite(c[1])&&Number.isFinite(c[2]))
+  .map(c=>({id:c[0],x:c[1],y:c[2],opened:!!c[3]}));
+ if(N.wave>priorWave)A()?.play('wave');
+ if(N.choice&&N.choice.seq!==priorChoice){A()?.play('chest');N.choiceUiId=''}
+ if(!N.choice&&priorChoice!==undefined)A()?.play('choose');
  if(Array.isArray(m.mobs)){
   const previous=new Map(N.mpMobs.map(q=>[q.id,q]));
-  N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<24&&
+  N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<64&&
    Number.isFinite(q[1])&&Number.isFinite(q[2])&&Number.isFinite(q[3])).map(q=>{
-   const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10;
-   return {id:q[0],x:prev?.x??x,y:prev?.y??y,tx:x,ty:y,hp:q[3],hitTick:Number(q[4])||0,attackTick:Number(q[5])||-100};
+   const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10,attackTick=Number(q[5])||-100;
+   if(prev&&attackTick>0&&attackTick!==prev.attackTick)
+    A()?.play('enemy',{sourceId:q[0],x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.4});
+   return {id:q[0],x:prev?.x??x,y:prev?.y??y,tx:x,ty:y,
+    hp:q[3],maxHp:Number(q[6])||35,hitTick:Number(q[4])||0,attackTick};
   });
   // Tiny fixed-size position history (6 snapshots, max 12 goblins).
   // Render two network frames behind to hide 15Hz arrivals and mild jitter.
@@ -300,7 +316,21 @@ function snapshot(m){
   if(!Number.isFinite(xx)||!Number.isFinite(yy))continue;
   const x=xx/10,y=yy/10;let p=N.players.get(id);
   if(!p){p={id,x,y,tx:x,ty:y};N.players.set(id,p)}
-  p.tx=x;p.ty=y;p.hp=hp;p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
+  const previousAttack=p.attackTick;
+  p.tx=x;p.ty=y;p.hp=hp;p.maxHp=Number(row[9])||100;p.kills=Number(row[10])||0;
+  p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
+  if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
+   const myPosition=N.me||N.players.get(N.id)||p;
+   A()?.play('swing',{weapon:B().getVillageHeroLook?.(id)?.weapon||B().heroStyle?.weapon||'sword',
+    x,y,listenerX:myPosition.x,listenerY:myPosition.y,sourceId:id,gain:id===N.id?1:.36});
+  }
+  if(id===N.id){
+   if(N.lastMyHp!==null&&hp<N.lastMyHp){
+    N.hurtUntil=performance.now()+290;
+    A()?.play('hurt',{gain:1});
+   }
+   N.lastMyHp=hp;
+  }
   // Quantized angle and attack start tick come ONLY from the server.
   // No independent "nearest enemy" target choices per phone.
   if(Number.isInteger(attackDir)&&attackDir>=0&&attackDir<=255){
@@ -507,6 +537,7 @@ function connect(match,id,ticket,rejoin=false){
  if(!rejoin){
   N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
+  N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.lastMyHp=null;N.hurtUntil=0;
  }
  N.match=match;N.id=id;N.ticket=ticket;
  N.phase=rejoin?'reconnecting':'connecting';
