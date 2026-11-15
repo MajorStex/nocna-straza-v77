@@ -7,6 +7,7 @@
 'use strict';
 if(window.NS159_VOICE)return;
 const RELAY='wss://nocna-straza-relay.stefanstevic1996.workers.dev/voice/';
+const CLASSIC_RELAY='wss://nocna-straza-relay.stefanstevic1996.workers.dev/classic-voice/';
 const RATE=12000,LOG=Math.log(256),MAX_BUFFER=.35;
 let session=null,socket=null,ready=false,context=null,master=null,limiter=null;
 let mic=null,source=null,filter=null,processor=null,silence=null,micOn=false,micPending=false;
@@ -172,7 +173,7 @@ function closeSocket(){
 function connect(){
  if(!session||document.hidden||socket)return;
  const current=session;
- let ws;try{ws=new WebSocket(RELAY+current.match)}catch{notice('Glasovni server nije dostupan.');return}
+ let ws;try{ws=new WebSocket((current.classic?CLASSIC_RELAY:RELAY)+current.match)}catch{notice('Glasovni server nije dostupan.');return}
  socket=ws;ready=false;ws.binaryType='arraybuffer';
  notice('Povezujem glasovni kanal…');
  ws.onopen=()=>{if(socket===ws&&session===current)ws.send(JSON.stringify({t:'hello',id:current.id,ticket:current.ticket}))};
@@ -227,10 +228,10 @@ function bindControl(target){
  });
 }
 function installUI(){
- const root=document.getElementById('ns140Root');if(!root)return;
+ const root=session?.classic?document.body:document.getElementById('ns140Root');if(!root)return;
  if(button&&button.isConnected)return;
  const wrap=document.createElement('div');wrap.id='ns159Voice';
- wrap.style.cssText='position:absolute;z-index:18;right:11px;bottom:calc(18px + env(safe-area-inset-bottom));display:grid;gap:4px;max-width:min(210px,52vw);padding:6px;background:#102620dc;border:1px solid #7f9b8c;border-radius:10px;pointer-events:auto';
+ wrap.style.cssText=(session?.classic?'position:fixed;z-index:100070;right:11px;bottom:calc(74px + env(safe-area-inset-bottom));':'position:absolute;z-index:18;right:11px;bottom:calc(18px + env(safe-area-inset-bottom));')+'display:grid;gap:4px;max-width:min(210px,52vw);padding:6px;background:#102620dc;border:1px solid #7f9b8c;border-radius:10px;pointer-events:auto';
  button=document.createElement('button');button.type='button';button.id='ns159Mic';
  button.style.cssText='font:700 11px system-ui;min-height:46px;border-radius:8px;border:1px solid #a8bfb0;color:#f4ebcf;padding:7px;touch-action:none;-webkit-user-select:none;user-select:none';
  bindControl(button);
@@ -241,7 +242,7 @@ function installUI(){
 }
 function mount(config){
  if(!config||!testSeat(config.id)||!(/^[a-f0-9]{24}$/).test(config.match)||typeof config.ticket!=='string'||config.ticket.length!==48)return;
- if(session?.match===config.match&&session?.id===config.id){session.position=config.position;installUI();if(!socket)connect();return}
+ if(session?.match===config.match&&session?.id===config.id&&!!session.classic===!!config.classic){session.position=config.position;installUI();if(!socket)connect();return}
  stop();session={...config};attempts=0;installUI();connect();
 }
 function stop(){
