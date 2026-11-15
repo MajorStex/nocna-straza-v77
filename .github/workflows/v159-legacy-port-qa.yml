@@ -22,12 +22,14 @@ jobs:
           node --check public/v154-goblin-renderer.js
           node --check public/v159-troll-renderer.js
           node --check public/v159-hero-voices.js
+          node --check public/v159-live-voice.js
           node tests/v159-troll.test.cjs
           node tests/v159-two-clients.test.cjs
           node tests/v159-six-clients.test.cjs
           node tests/v159-version-lock.test.cjs
           node tests/v159-legacy-mp-ui.test.cjs
           node tests/v159-hero-voices.test.cjs
+          node tests/v159-live-voice.test.cjs
           node tests/v159-lab.test.cjs
           node tests/v159-legacy-compound.test.cjs
           node tests/v159-collision-grid.test.cjs
