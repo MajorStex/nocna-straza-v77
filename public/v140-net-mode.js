@@ -332,7 +332,7 @@ function ui(){
 function sandboxState(){
  const t=N.solo?LAB:LAB_REMOTE||{},mobs=N.solo?N.soloMobs:N.mpMobs;
  return {wave:N.solo?N.soloWave:N.wave,defaultCount:labDefaultCount(N.solo?N.soloWave:N.wave),
-  alive:mobs.filter(m=>m.hp>0).length,total:mobs.length,enabled:!!t.enabled,
+  alive:mobs.filter(m=>m.hp>0).length,total:mobs.length,trollAlive:mobs.some(m=>m.kind==='troll'&&m.hp>0),enabled:!!t.enabled,
   freezeAI:!!t.freezeAI,godMode:!!t.godMode,customCount:t.customCount??null,
   allies:t.allies||[],props:t.props||[],globalPaused:N.solo?N.paused:LAB_PAUSE.paused,
   votes:LAB_PAUSE.votes,needed:LAB_PAUSE.needed,damage:N.me?.damage||22,
@@ -1045,7 +1045,7 @@ function connect(match,id,ticket,rejoin=false){
     }
     return;
    }
-   if(m.t==='waveStart'){announceArena('TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
+   if(m.t==='waveStart'){announceArena(m.wave===10?'🧌 TALAS 10 — TROL BOSS DOLAZI':'TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
    if(m.t==='waveEnd'){announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');return}
    if(m.t==='roster'){
    status('V162 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
