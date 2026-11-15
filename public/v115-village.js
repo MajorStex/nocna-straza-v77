@@ -73,7 +73,7 @@
  root.innerHTML=
   '<div id="ns109Top"><strong>🏡 NIGHT WATCH · VILLAGE</strong><span id="ns109Info" role="status" aria-live="polite">◇ OFFLINE SELO</span><button id="ns141Server" type="button">🌐 PODIGNI SERVER</button>'+
   '<button id="ns109Sound" type="button">♫</button><button id="ns109Classic" type="button">☷ CLASSIC LOBBY</button></div>'+
-  '<div id="ns109Stage"><canvas id="ns109Scene" width="960" height="540" aria-label="Village with interactive buildings"></canvas><div id="ns117Stick" class="ns109Hidden" aria-hidden="true"><span id="ns117Knob"></span></div><button id="ns117Dodge" type="button" aria-label="Dodge / Izbegni">↝<small>DODGE</small></button><button id="ns120Door" type="button" class="ns109Hidden" aria-label="Enter building / Uđi u kućicu">↳ ENTER</button>'+
+  '<div id="ns109Stage"><canvas id="ns109Scene" width="960" height="540" aria-label="Village with interactive buildings"></canvas><button id="ns159VillageTalk" class="ns109Hidden" type="button" aria-label="Uključi mikrofon uživo u selu" aria-pressed="false">🎤 PRIČAJ<small id="ns159VillageTalkInfo">Mic isključen</small></button><div id="ns117Stick" class="ns109Hidden" aria-hidden="true"><span id="ns117Knob"></span></div><button id="ns117Dodge" type="button" aria-label="Dodge / Izbegni">↝<small>DODGE</small></button><button id="ns120Door" type="button" class="ns109Hidden" aria-label="Enter building / Uđi u kućicu">↳ ENTER</button>'+
   '<button id="ns138Attack" type="button" aria-label="Attack nearby animals or players" title="Attack · J / F">⚔<small>ATTACK</small></button>'+
   '<div id="ns141Join" class="ns109Hidden" aria-live="polite"></div><div id="ns109Hint">Tap the ground to move, or a house to walk there. Enter the green gate when ready.</div></div>'+
   '<div id="ns109Bottom"><button id="ns144Fx" type="button" aria-label="Toggle village sounds">🔊 FX</button><button id="ns109Results" type="button">🏆 RESULTS</button>'+
@@ -95,6 +95,9 @@
   '#ns141Join{position:absolute;z-index:7;top:12px;left:50%;transform:translateX(-50%);max-width:min(88vw,420px);padding:8px 12px;background:#153e32f2;color:#e7f6d3;border:1px solid #86cda3;border-radius:9px;font-size:12px;font-weight:750;pointer-events:none;text-align:center}',
   '@media(max-width:580px){#ns141Server{font-size:10px!important;padding:5px 7px!important}#ns109Info{font-size:9px;min-width:90px}}',
   '#ns109Stage{flex:1;min-height:0;position:relative;overflow:hidden;background:#1c3932}',
+   '#ns159VillageTalk{position:absolute;z-index:8;right:12px;top:55px;min-width:100px;min-height:52px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;background:#245142e9;color:#f8e8cc;border:2px solid #a0d1b9;border-radius:13px!important;touch-action:manipulation;box-shadow:0 4px 14px #0008}',
+   '#ns159VillageTalk[aria-pressed=true]{background:#a43b3be9;border-color:#f3bdac}#ns159VillageTalk small{font:10px system-ui;color:#d3e8dc}',
+
   '#ns109Scene{width:100%;height:100%;display:block;touch-action:none}',
   '#ns117Stick{position:absolute;z-index:4;pointer-events:none;width:112px;height:112px;border-radius:50%;border:2px solid #bddbcb98;background:radial-gradient(circle,#a7cab02b,#122a3699);box-shadow:0 4px 20px #020e1699;transform:translate(-50%,-50%)}',
   '#ns117Knob{position:absolute;width:48px;height:48px;left:30px;top:30px;border-radius:50%;border:2px solid #d0e8da98;background:linear-gradient(130deg,#8caf9b,#355f62);box-shadow:0 4px 8px #0018}',
@@ -544,6 +547,66 @@
   lastInviteUiAt=performance.now();
   if(!SOCIAL?.peer&&!SOCIAL?.starting)startSocial?.();
  }
+ // V159: a live microphone in the Village uses the SAME isolated WebRTC
+ // module as New Zone, with only tiny ICE/SDP messages carried by existing
+ // authenticated lobby channels. No PCM audio in snapshots or 60 FPS loops.
+ let villageVoiceCode='',villageVoiceRoster='';
+ const live=()=>window.NS159_LIVE||null;
+ function villageLiveStatus(st=live()?.status()){
+  const button=$('ns159VillageTalk');
+  if(!button)return;
+  const online=opened&&isLobby();
+  button.classList.toggle('ns109Hidden',!online);
+  button.disabled=!st?.session||!st.available;
+  button.setAttribute('aria-pressed',String(!!st?.talking));
+  button.firstChild.textContent=st?.talking?'🔴 MIC UKLJUČEN':st?.connecting?'⏳ MIC...':'🎤 PRIČAJ';
+  $('ns159VillageTalkInfo').textContent=st?.error?'Glas nije povezan':
+   st?.session?(st.connected+'/'+st.possible+' saigrača'):'Čekam igrače';
+ }
+ const villageVoiceTransport={
+  get readyState(){return isLobby()&&(NET.role==='host'||NET.conn?.open)?1:0},
+  get bufferedAmount(){return NET.role==='guest'?Number(NET.conn?.bufferSize||0):0},
+  send(raw){
+   if(!isLobby())throw Error('Village nije online');
+   const data=JSON.parse(raw);if(data.t!=='rtc')return;
+   const packet={...data,t:'ns159Rtc'};
+   if(NET.role==='host'){
+    const target=NET.clients.get(data.to);
+    if(!target?.open||Number(target.bufferSize||0)>18000)throw Error('saigrač nije povezan');
+    target.send({...packet,from:NET.localId});
+   }else if(NET.role==='guest'&&NET.conn?.open){
+    if(Number(NET.conn.bufferSize||0)>18000)throw Error('glasovni kanal je zauzet');
+    NET.conn.send(packet);
+   }else throw Error('Nema servera');
+  }
+ };
+ function syncVillageLive(){
+  const voice=live();if(!voice)return;
+  if(!opened||!isLobby()){if(villageVoiceCode){voice.stop();villageVoiceCode='';villageVoiceRoster=''}villageLiveStatus();return}
+  const seats=[...new Set(getPlayers().map(p=>p.id).filter(id=>/^p[1-6]$/.test(String(id))))].sort();
+  if(!seats.includes(NET.localId))seats.push(NET.localId);
+  seats.sort();
+  if(seats.length<2){
+   if(villageVoiceCode){voice.stop();villageVoiceCode='';villageVoiceRoster=''}
+   villageLiveStatus();return;
+  }
+  const code=NET.code+':'+NET.localId;
+  if(code!==villageVoiceCode||!voice.status().session){
+   villageVoiceCode=code;villageVoiceRoster='';
+   voice.attach(villageVoiceTransport,NET.localId,seats,id=>{
+    if(id===NET.localId)return {x:my.x,y:my.y};
+    const other=smoothAvatars.get(id)||avatars.get(id);
+    return other?{x:other.x,y:other.y}:null;
+   },villageLiveStatus);
+  }
+  const signature=seats.join(',');
+  if(signature!==villageVoiceRoster){villageVoiceRoster=signature;voice.syncOnline(seats)}
+  villageLiveStatus();
+ }
+ function villageLiveSignal(frame){
+  if(!opened||!isLobby()||!frame||frame.t!=='rtc')return false;
+  return live()?.receive(frame)||false;
+ }
  function onVillageLobbyReady(){
   const expected=pendingAutoRoom;
   if(expected&&Date.now()>pendingAutoUntil){pendingAutoRoom='';pendingAutoUntil=0}
@@ -552,9 +615,10 @@
    if(!opened)showVillage();
    else if(root.classList.contains('ns109Hidden'))root.classList.remove('ns109Hidden');
    toast(tr('Connected! Welcome to the online Village.','Povezano! Dobro došli u online selo.'));
-   return;
+   syncVillageLive();return;
   }
   scheduleAutoVillage();
+  syncVillageLive();
  }
  function expectVillageJoin(room){
   if(!/^[A-HJ-NP-Z2-9]{6}$/.test(String(room||'')))return false;
@@ -1121,7 +1185,7 @@ function showAchievements(){
   if(NET.ns97Results?.players?.length&&lastResultsRoundShown!==NET.ns97Results.round){lastResultsRoundShown=NET.ns97Results.round;showMatchBoard();}
   $('ns109Hint').textContent=tr('Walk to a doorway to enter · tap a house to visit','Priđi vratima za ulaz · dodirni kućicu da priđeš');
   primeVillageAudio();startVillageAmbience();if(preferMusic())playMusic();else refreshVillageAudioButtons();
-  return true;
+  syncVillageLive();return true;
  }
  function closeVillage(){
   // Opt-out on exit (game starts, lobby closes or player leaves); no persistent arena state.
@@ -1130,7 +1194,9 @@ function showAchievements(){
    else if(NET.role==='guest'&&NET.conn?.open)try{NET.conn.send({t:'ns138PvpLeave'})}catch{}
   }
   if(!isLobby())PVP.clear();
-  const wasSolo=soloPreview;resetStick();opened=false;trainingOn=false;trainingCredit=0;villageLastTick=0;villageFrameCredit=0;soloPreview=false;walkTo=null;route=[];doorLatch=null;thenEnter=null;closePane();root.classList.add('ns109Hidden');smoothAvatars.clear();avatars.clear();limits.clear();stopMusic();stopVillageAmbience();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
+  const wasSolo=soloPreview;
+  if(villageVoiceCode){live()?.stop();villageVoiceCode='';villageVoiceRoster=''}
+  resetStick();opened=false;trainingOn=false;trainingCredit=0;villageLastTick=0;villageFrameCredit=0;soloPreview=false;walkTo=null;route=[];doorLatch=null;thenEnter=null;closePane();root.classList.add('ns109Hidden');smoothAvatars.clear();avatars.clear();limits.clear();stopMusic();stopVillageAmbience();document.body.classList.remove('ns109External');if(wasSolo&&NET.role===''&&G.mode==='menu')$('home')?.classList.remove('hidden')}
  // V144: Village SFX has its own low-cost AudioContext. No audio work runs in the render loop.
  function primeVillageAudio(){
   if(!opened||document.hidden)return null;
@@ -1320,6 +1386,12 @@ function showAchievements(){
  $('ns109Results').onclick=showMatchBoard;
  $('ns109Global').onclick=()=>{focused='leaderboard';showRankings()};
  $('ns109Sparta').onclick=showSparta;
+ $('ns159VillageTalk').onclick=()=>{
+  live()?.unlock();
+  void live()?.toggle().then(ok=>{
+   if(!ok&&live()?.status().error)toast('🎙 '+live().status().error);
+  });
+ };
  $('ns109Voices').onclick=showVoice;
  $('ns109Chat').onclick=()=>enter('chat');
  $('ns141Server').onclick=()=>startVillageOnlineRoom();
@@ -1377,7 +1449,7 @@ function showAchievements(){
    if(fpsBadge)fpsBadge.textContent=PERF.fps+' FPS · '+PERF.averageDrawMs.toFixed(1)+'ms';
   }
  }
- window.NS109_VILLAGE={open:showVillage,close:closeVillage,frame:villageFrame,onMessage,enter,onLobbyUI:onVillageLobbyReady,expectJoin:expectVillageJoin,openInvites:()=>{if(!opened&&canVisit())showVillage();if(!opened)return false;showInviteHouse();return true},
+ window.NS109_VILLAGE={open:showVillage,close:closeVillage,frame:villageFrame,onMessage,liveSignal:villageLiveSignal,enter,onLobbyUI:onVillageLobbyReady,expectJoin:expectVillageJoin,openInvites:()=>{if(!opened&&canVisit())showVillage();if(!opened)return false;showInviteHouse();return true},
  get serverUp(){return villageOnline()},get roomCode(){return isLobby()?NET.code:''},
  startServer:startVillageOnlineRoom,
  onSoloResult:run=>{if(run&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(run.kills)},
