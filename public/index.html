@@ -7463,6 +7463,7 @@ function setupConnection(c){
    netStatus('Nova veza · proveravam identitet i slobodno mesto pre ulaska u sobu.');
   }else if(NET.role==='guest'){
    clearTimeout(NET.joinRetryTimer);NET.joinRetryCount=0;$('retryJoinBtn').classList.add('hidden');$('retrySyncBtn').classList.remove('hidden');
+    NS155_LOBBY.recovered();
    netStatus(NET.phase==='playing'?'VEZA POTVRĐENA · zahtevam povratak u partiju...':(relayActive()?'RELAY KANAL OTVOREN ✓':'WEBRTC KANAL OTVOREN ✓')+' · čekam mapu i potvrdu domaćina...');guestHello();
   }
   syncTimer=setInterval(()=>{
@@ -7501,7 +7502,10 @@ function setupConnection(c){
    }
    return;
   }
-  if(window.NS109_VILLAGE?.onMessage?.(data,assigned))return;
+  if(data.t==='ns155LobbyTransfer'&&NET.role==='guest'){
+    NS155_LOBBY.receive(data);return;
+   }
+   if(window.NS109_VILLAGE?.onMessage?.(data,assigned))return;
   if(NET.role==='host'&&assigned&&NET.phase==='playing'){
    if(data.t==='ns99VoteRequest'){NS99_TEAM.request(data.kind,assigned);return}
    if(data.t==='ns99Vote'){NS99_TEAM.castVote(data.kind,assigned,data.choice,data.round);return}
@@ -7525,7 +7529,7 @@ function setupConnection(c){
      const existing=[...NET.profiles].find(([id,p])=>/^p[2-6]$/.test(id)&&p.sessionIdentity===identity&&(NET.clients.has(id)||NETLAB.tokens.has(id)));
      if(existing)takeover(existing[0]);
      else {
-      for(let n=2;n<=NS92_DIR.maxPlayers();n++)if(!NET.clients.has('p'+n)&&!NETLAB.tokens.has('p'+n)){assigned='p'+n;break}
+      for(let n=2;n<=NS92_DIR.maxPlayers();n++)if('p'+n!==NET.localId&&!NET.clients.has('p'+n)&&!NETLAB.tokens.has('p'+n)){assigned='p'+n;break}
       if(!assigned){safeSend({t:'full'});setTimeout(()=>c.close(),400);return}
       NET.clients.set(assigned,c);NETLAB.reserve(assigned);NET.remoteInputs.set(assigned,{x:0,y:0,attack:false,dash:false});
       NET.readyPlayers.set(assigned,false);NET.worldReadyPlayers.set(assigned,false);
@@ -7717,10 +7721,11 @@ function setupConnection(c){
    }
   }else if(NET.role==='guest'){
    if(NET.conn!==c)return;
-   netStatus('Domaćin je prekinuo vezu');toast('Veza prekinuta · pokušavam ponovno povezivanje');
+   netStatus('Domaćin privremeno nedostupan · čuvam mesto, pokušavam povezivanje.');
    NET.conn=null;
    if(NET.phase==='connecting'){NET.lastConnectError=rejectReason||NET.lastConnectError||(relayActive()?'Relay kanal se zatvorio':'ICE/WebRTC kanal se zatvorio');retryInitialGuestConnection(NET.lastConnectError)}
    else if(NET.phase==='lobby'){
+    NS155_LOBBY.lostHost();
     NET.phase='connecting';NET.worldReady=false;NET.roster=[];
     // Keep backgrounded Android players in the same lobby, not the JOIN menu.
     $('joinCode').value=NET.code;netStatus(rejectReason||'Privremeni prekid mreže. Mesto u sobi je sačuvano do 5 minuta; vraćam te automatski.');
