@@ -64,7 +64,7 @@ jobs:
             assert.ok(a.events.filter(e=>e.t==='s').every(e=>!('looks' in e)),
               'looks do not bloat repeated movement snapshots');
             console.log('V153 LIVE: two distinct player skin, clothing, weapon and sizes synchronized');
-            a.ws.close();
+            a.ws.send(JSON.stringify({t:'leave'}));
             await until(()=>a.closed,'creator leaves');
             const rejoin=connect('p1');
             await until(()=>rejoin.events.some(e=>e.t==='welcome'),'creator reconnect');
