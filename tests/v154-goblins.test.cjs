@@ -22,7 +22,7 @@ const obstacles=[
  {x:1230,y:650,w:140,h:110},{x:720,y:730,w:116,h:100},{x:1005,y:875,w:120,h:90},
  {x:395,y:785,w:100,h:105},{x:1460,y:410,w:110,h:104},{x:1020,y:485,w:94,h:94}
 ];
-const ctx={N:{world:{obstacles},soloSpawnCache:null},Math,
+const ctx={N:{world:{obstacles},soloSpawnCache:null,players:new Map([['p1',{id:'p1',x:130,y:250,hp:100,knocked:false}]])},Math,
  clamp:(x,a,b)=>Math.max(a,Math.min(b,x))};
 vm.createContext(ctx);vm.runInContext(client.slice(start,end),ctx,{timeout:1000});
 for(const [wave,n] of [[1,60],[2,70],[3,80],[6,80]]){
