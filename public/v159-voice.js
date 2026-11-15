@@ -159,10 +159,14 @@ function stop(){
  speakers.clear();
  const wrap=document.getElementById('ns159Voice');if(wrap)wrap.remove();button=null;info=null;
 }
+// Mobile browsers allow audible playback only after a real user gesture.
+document.addEventListener('pointerdown',()=>{if(session)audio()?.resume().catch(()=>{})},{passive:true});
+document.addEventListener('keydown',()=>{if(session)audio()?.resume().catch(()=>{})});
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden){stopMic();closeSocket()}else if(session)connect();
 });
 window.addEventListener('pagehide',()=>{stopMic();closeSocket()});
+window.addEventListener('pageshow',()=>{if(session&&!socket&&!document.hidden)connect()});
 window.NS159_VOICE={mount,stop,get connected(){return ready},get microphoneOn(){return micOn}};
 window.dispatchEvent(new Event('ns159VoiceReady'));
 })();
