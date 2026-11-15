@@ -1296,6 +1296,25 @@ window.__NS77Spatial={status:()=>({builds:ns77PropBuilds,solids:ns77PropIndex?.s
 function hash(x,y){const z=Math.sin(x*127.1+y*311.7)*43758.5453;return z-Math.floor(z)}
 let rngSeed=71381;function rnd(){rngSeed=(rngSeed*1664525+1013904223)>>>0;return rngSeed/4294967296}
 let G={blueCrystals:[],crystalSpawnClock:0,spawnClock:0,blasts:[],lootPending:null,marketPending:null,marketSeen:false,abilityDirty:true,projectiles:[],mode:'menu',paused:false,editFrom:'menu',time:0,wave:1,waveClock:0,level:1,xp:0,xpNeed:160,kills:0,players:[],mobs:[],drops:[],effects:[],bossId:0,nextId:1,camera:{x:START.x,y:START.y},pan:{x:START.x,y:START.y},tool:'rock',tab:'map',waveNotice:'',waveNoticeT:0,muted:false,fxSeq:0,relicPending:null,relicTaken:false,relicChoice:'',relicDropBonus:0,relicEnemyHaste:1,relicXpTax:1};
+function ns165VoicePosition(id){
+ const village=window.NS109_VILLAGE?.voicePosition?.(id);
+ if(village)return village;
+ if(G.mode!=='play')return null;
+ const p=G.players.find(q=>q.id===id);
+ return p&&Number.isFinite(p.x)&&Number.isFinite(p.y)?{x:p.x,y:p.y}:null;
+}
+function ns165StartClassicVoice(){
+ if(NET.role!=='host'||!NET.code)return false;
+ return !!window.NS165_CLASSIC_VOICE?.host?.({
+  code:NET.code,id:NET.localId,position:ns165VoicePosition,
+  peers:()=>[...NET.clients].filter(([,c])=>c?.open).map(([id])=>id),
+  sendTo:(id,packet)=>{
+   const conn=NET.clients.get(id);
+   if(!conn?.open)return false;
+   try{return conn.send(packet)!==false}catch{return false}
+  }
+ });
+}
 const NET={joinRetryCount:0,joinRetryTimer:null,lastConnectError:'',hostId:'p1',migrationTarget:null,migrationEpoch:0,profiles:new Map(),heroLooks:new Map(),role:'',phase:'idle',peer:null,conn:null,clients:new Map(),kickedIdentities:new Set(),remoteInputs:new Map(),pendingOffers:new Map(),readyPlayers:new Map(),worldReadyPlayers:new Map(),lobbyWaiting:[],startAcks:new Map(),localReady:false,worldReady:false,roster:[],localId:'p1',code:'',lastSnapshot:0,lastInput:0,hostProps:null,justJoined:false,round:0,snapshotSeq:0,lastSnapSeq:0,lastFxId:0,viewTarget:null,lastRoundText:'',spectateTargets:new Map(),snapshotStats:{packets:0,bytes:0}};
 // v44 connection diagnostics. Uses monotonic clocks for RTT; measured, not invented latency.
 const NETLAB=(()=>{
@@ -7060,7 +7079,7 @@ function resetLobbyUI(){
 }
 function closeNet(){
  NET.ns102InputAt?.clear();NET.ns102InputAt=null;
- NS99_TEAM.reset();if(NET.role==='host')NS92_DIR.publish(false,true);NS92_DIR.stop();NS76CHAT.reset();coopVoiceReset();NETMIG.reset();NETLAB.clear();NET.sessionToken=null;NET.lastEarned=null;clearTimeout(NET.joinRetryTimer);NET.joinRetryTimer=null;NET.joinRetryCount=0;NET.lastConnectError='';const clients=[...NET.clients.values()],connection=NET.conn,peer=NET.peer;
+ NS99_TEAM.reset();if(NET.role==='host')NS92_DIR.publish(false,true);NS92_DIR.stop();NS76CHAT.reset();coopVoiceReset();window.NS165_CLASSIC_VOICE?.leave?.();NETMIG.reset();NETLAB.clear();NET.sessionToken=null;NET.lastEarned=null;clearTimeout(NET.joinRetryTimer);NET.joinRetryTimer=null;NET.joinRetryCount=0;NET.lastConnectError='';const clients=[...NET.clients.values()],connection=NET.conn,peer=NET.peer;
  // Reset role BEFORE disconnect events fire to avoid a recursive menu change.
  NET.role='';NET.phase='idle';NET.hostId='p1';NET.migrationTarget=null;NET.migrationEpoch=0;NET.round=0;NET.lastRoundText='';NS97_POST.clear();NET.peer=null;NET.conn=null;NET.localId='p1';
  NET.clients.clear();NET.remoteInputs.clear();NET.pendingOffers.clear();NET.profiles.clear();NET.heroLooks.clear();
@@ -7183,7 +7202,7 @@ function showLobbyUI(){NS92_DIR.stop();$('ns93SpellDock')?.classList.add('hidden
  $('coopTitle').textContent='ČEKAONICA · READY';$('coopForge').classList.add('hidden');$('closeCoop').classList.add('hidden');
  $('roomCode').textContent=NET.code;sendSocialStatus();
  $('lobbyStartBtn').classList.toggle('hidden',NET.role!=='host');renderCoopForge();
- renderLobby();NS96_INVITES.render();if(!SOCIAL.peer&&!SOCIAL.starting)startSocial();queueMicrotask(()=>window.NS109_VILLAGE?.onLobbyUI?.());
+ renderLobby();window.NS165_CLASSIC_VOICE?.install?.();window.NS165_CLASSIC_VOICE?.resume?.();NS96_INVITES.render();if(!SOCIAL.peer&&!SOCIAL.starting)startSocial();queueMicrotask(()=>window.NS109_VILLAGE?.onLobbyUI?.());
 }
 function currentLobbyRoster(){
  if(NET.role==='host'){
@@ -7343,12 +7362,13 @@ function startLobbyMatch(){
  if(roster.length<2||lobbyPendingReturn().length>0||(!NET.forceRequest&&!roster.every(p=>p.ready))||roster.slice(1).some(p=>!NET.worldReadyPlayers.get(p.id))){NET.forceRequest=false;netStatus('Nisu svi spremni. Čekamo najmanje 2 igrača.');renderLobby();return false}
  if(selectedMode==='arena140'){
   NET.forceRequest=false;
+  window.NS165_CLASSIC_VOICE?.suspend?.();
   if(roster.some(p=>Number(p.level)<NS140_TEMP_UNLOCK_LEVEL)){netStatus('Nova Zona privremeno dozvoljava sve naloge od nivoa 0.');return false}
   if(!window.NS140_ARENA){netStatus('V140 modul nije učitan. Osveži igru.');return false}
   // V148: NEVER redirect players from New Zone to old co-op.
   window.NS140_ARENA.startHost().then(ok=>{
-   if(!ok)netStatus('Nova Zona se nije povezala. Svi ostaju u istoj sobi; koristi POKUŠAJ PONOVO.');
-  }).catch(()=>netStatus('Greška pokretanja Nove Zone. Ostajemo u istoj sobi.'));
+   if(!ok){window.NS165_CLASSIC_VOICE?.resume?.();netStatus('Nova Zona se nije povezala. Svi ostaju u istoj sobi; koristi POKUŠAJ PONOVO.');}
+  }).catch(()=>{window.NS165_CLASSIC_VOICE?.resume?.();netStatus('Greška pokretanja Nove Zone. Ostajemo u istoj sobi.')});
   return true;
  }
  NET.forceRequest=false;NET.lastEarned=null;NS97_POST.clear();NS99_TEAM.reset();window.NS109_VILLAGE?.close?.();NET.phase='playing';NS92_DIR.publish(true);NET.migrationEpoch=0;NETMIG.reset();NET.round++;NET.sessionToken=NET.sessionToken||('session-'+Math.floor(Math.random()*1e9).toString(36));NET.lastRoundText='';NET.startAcks.clear();NET.spectateTargets.clear();
@@ -9655,6 +9675,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   <div class="ns82-footer"><button id="ns82-guest" type="button" class="ns82-muted" data-ns82-en="PLAY LOCALLY AS GUEST" data-ns82-sr="IGRAJ LOKALNO KAO GOST">PLAY LOCALLY AS GUEST</button><button id="ns82-close" type="button" class="ns82-muted" data-ns82-en="CLOSE" data-ns82-sr="ZATVORI">CLOSE</button></div>
  </section>
 </div>
-<script src="./firebase-config.js?v=92"></script><script src="./v115-village.js?v=144"></script>
+<script src="./firebase-config.js?v=92"></script><script src="./v115-village.js?v=144"></script><script src="./v165-classic-voice.js?v=165"></script>
 <script src="./v152-arena-audio.js?v=157"></script><script src="./v154-goblin-renderer.js?v=157"></script><script src="./v157-arena-scenery.js?v=158"></script><script src="./v162-troll.js?v=162"></script><script src="./v140-net-mode.js?v=164"></script><script type="module" src="./auth-v82.js?v=92"></script>
 </body></html>
