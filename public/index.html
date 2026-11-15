@@ -7067,12 +7067,111 @@ function closeNet(){
  try{connection?.close()}catch{};try{peer?.destroy()}catch{}
  resetLobbyUI();NS96_INVITES.reset();SOCIAL.waitingJoins.clear();sendSocialStatus();
 }
+
+/* V155 lobby continuity: authenticated relay owner is transferred, not the game simulation.
+   A transient background/suspended socket is NEVER an explicit disconnected player. */
+const NS155_LOBBY=(()=>{
+ let handoff=null,lossTimer=null,promoting=false;
+ const candidates=()=>{const a=NET.role==='host'?currentLobbyRoster():NET.roster;
+  return (Array.isArray(a)?a:[]).filter(p=>/^p[1-6]$/.test(p.id)&&p.id!==NET.hostId)
+   .map(p=>p.id).sort((a,b)=>+a.slice(1)-+b.slice(1));};
+ function prepareLeave(){
+  if(NET.role!=='host'||NET.phase!=='lobby')return false;
+  const next=candidates().find(id=>NET.clients.get(id)?.open);
+  if(!next)return false;
+  const data={t:'ns155LobbyTransfer',code:NET.code,next,mode:selectedMode,
+   difficulty:NSX.opt.difficulty,reason:'host_left'};
+  for(const c of NET.clients.values())if(c?.open)try{c.send(data)}catch{}
+  // Let the ordered relay transport flush before releasing ns30-room-id.
+  setTimeout(()=>{if(NET.role==='host'&&NET.phase==='lobby')closeNet()},600);
+  return true;
+ }
+ function promote(){
+  if(!handoff||promoting||NET.role!=='guest'||!['lobby','connecting'].includes(NET.phase)||
+    NET.localId!==handoff.next||NET.code!==handoff.code)return false;
+  promoting=true;
+  const code=NET.code,id=NET.localId,mode=handoff.mode;
+  const oldPeer=NET.peer,oldConn=NET.conn;
+  if(oldConn)oldConn._nsIntentionalRetry=true;
+  NET.conn=null;clearTimeout(NET.joinRetryTimer);NET.joinRetryTimer=null;
+  NET.role='host';NET.phase='connecting';NET.hostId=id;NET.localReady=true;NET.worldReady=true;
+  NET.readyPlayers.clear();NET.readyPlayers.set(id,true);
+  NET.worldReadyPlayers.clear();NET.clients.clear();NET.profiles.clear();
+  NET.remoteInputs.clear();NET.rejoinToken='';NET.roster=[];NET.lobbyWaiting=[];
+  NET.startAcks.clear();NET.pendingOffers.clear();NETLAB.clear();
+  if(['normal','night','rush','arena140'].includes(mode))selectedMode=mode;
+  try{oldConn?.close()}catch{}try{oldPeer?.destroy()}catch{}
+  let tries=0;
+  function bind(){
+   if(NET.role!=='host'||NET.code!==code||NET.hostId!==id)return;
+   if(++tries>12){
+    promoting=false;netStatus('Rezervni domaćin ne može da preuzme sobu. Ponovo se povezujem...');
+    closeNet();$('joinCode').value=code;$('joinBtn').click();return;
+   }
+   let peer;
+   try{peer=newGamePeer('ns30-'+code.toLowerCase(),code)}catch(e){
+    netStatus('Relay rezervnog domaćina: '+String(e?.message||'greška'));promoting=false;return;
+   }
+   NET.peer=peer;
+   peer.on('open',()=>{
+    if(NET.role!=='host'||NET.peer!==peer)return;
+    promoting=false;handoff=null;
+    NET.phase='lobby';NET.readyPlayers.set(id,true);
+    NS92_DIR.publish(true);showLobbyUI();broadcastLobby();
+    netStatus('✓ POSTAO SI DOMAĆIN · kod '+code+' · ostali ulaze u istu sobu.');
+   });
+   peer.on('connection',c=>setupConnection(c));
+   peer.on('error',e=>{
+    if(NET.peer!==peer)return;
+    if(['unavailable-id','network','socket-error'].includes(e?.type)){
+     netStatus('Predaja domaćina · čekam oslobađanje sobe ('+tries+'/12).');
+     setTimeout(()=>{if(NET.peer===peer){try{peer.destroy()}catch{}bind()}},1450);
+    }else{promoting=false;netStatus('Prenos domaćina nije uspeo: '+String(e?.message||e?.type||'greška'));}
+   });
+  }
+  bind();return true;
+ }
+ function receive(data){
+  if(NET.role!=='guest'||NET.phase!=='lobby'||data?.code!==NET.code||
+   !/^p[1-6]$/.test(String(data.next||''))||data.next===NET.hostId||
+   !candidates().includes(data.next))return false;
+  handoff={code:NET.code,next:data.next,mode:data.mode,reason:data.reason};
+  if(lossTimer)clearTimeout(lossTimer);lossTimer=null;
+  netStatus(data.next===NET.localId?'Izabran si za NOVOG DOMAĆINA · isti kod sobe.':
+   'Domaćin je izašao · ulazim kod novog domaćina: igrač '+data.next.slice(1));
+  if(data.next===NET.localId)setTimeout(promote,850);
+  return true;
+ }
+ function lostHost(){
+  if(NET.role!=='guest'||NET.phase!=='lobby')return;
+  if(handoff){if(handoff.next===NET.localId)setTimeout(promote,850);return}
+  const leader=candidates()[0],code=NET.code,id=NET.localId;
+  if(!leader||lossTimer)return;
+  netStatus('Domaćin je privremeno nedostupan · moguće da je aplikacija u pozadini.');
+  // Unexpected suspension gets a full 45s grace. No false DISCONNECTED label.
+  lossTimer=setTimeout(()=>{
+   lossTimer=null;
+   if(NET.role!=='guest'||NET.localId!==id||NET.code!==code||
+      NET.conn?.open||!['connecting','lobby'].includes(NET.phase))return;
+   handoff={code,next:leader,mode:selectedMode,reason:'prolonged_absence'};
+   if(leader===id)promote();
+   else netStatus('Domaćin je duže odsutan · čekam rezervnog domaćina.');
+  },45000);
+ }
+ function recovered(){
+  if(lossTimer){clearTimeout(lossTimer);lossTimer=null}
+  if(NET.role==='guest'&&NET.conn?.open)handoff=null;
+ }
+ return {prepareLeave,promote,receive,lostHost,recovered};
+})();
 function leaveLobby(){
  NS103_PARTY.reset();if(NET.phase==='playing'){showMenu();netStatus('Napustio si partiju.');return;}
- $('reviveDock').classList.add('hidden');G.reviveHeld=false;closeNet();$('coopPanel').classList.add('hidden');
+ $('reviveDock').classList.add('hidden');G.reviveHeld=false;
+ const transferred=NS155_LOBBY.prepareLeave();if(!transferred)closeNet();
+ $('coopPanel').classList.add('hidden');
  $('home').classList.remove('hidden');$('hud').classList.add('hidden');
  $('controls').classList.add('hidden');$('pauseBtn').classList.add('hidden');
- netStatus('Napustio si sobu.');
+ netStatus(transferred?'Predao si sobu novom domaćinu.':'Napustio si sobu.');
 }
 function showLobbyUI(){NS92_DIR.stop();$('ns93SpellDock')?.classList.add('hidden');$('ns93Target')?.style.setProperty('display','none');$('ns95SpellPicker')?.classList.add('hidden');$('reviveDock').classList.add('hidden');mapHide();
  $('coopPanel').classList.remove('hidden');$('home').classList.add('hidden');
