@@ -50,7 +50,7 @@ assert.match(net,/id="ns158MenuMusic"/,'menu music action');
 assert.match(net,/id="ns158MenuSound"/,'menu effects action');
 assert.match(net,/id="ns158MenuLeave"/,'menu leave action');
 assert.match(net,/o\.kind==='tree'\|\|o\.kind==='rock'/,'decor colliders must not become painted cottages');
-assert.ok(html.includes('v140-net-mode.js?v=162')&&html.includes('v157-arena-scenery.js?v=158'),
+assert.ok(html.includes('v140-net-mode.js?v=163')&&html.includes('v157-arena-scenery.js?v=158'),
  'reloaded mobile shortcut must receive new menu and collision assets');
 const {chromium}=require('playwright-core');
 (async()=>{
