@@ -822,6 +822,12 @@ function connect(match,id,ticket,rejoin=false){
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
+   // Never join legacy live v158 relay from the experimental v159 branch.
+   if(Number(m.serverBuild)!==159){
+    N.phase='error';status('V159 TEST zahteva izdvojeni V159 multiplayer server. Stalna v158 ostaje netaknuta.');
+    try{ws.close(4002,'incompatible experimental server')}catch{}
+    return;
+   }
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;N.collisionGrid=createArenaCollisionGrid(N.world);N.phase='waiting';
     window.NS154_GOBLINS?.prewarm();window.NS159_TROLL?.prewarm();window.NS157_SCENERY?.prewarm();
@@ -876,7 +882,7 @@ function connect(match,id,ticket,rejoin=false){
   }
  };
  ws.onclose=e=>{
-  if(N.ws!==ws||['idle','ended'].includes(N.phase))return;
+  if(N.ws!==ws||['idle','ended','error'].includes(N.phase))return;
   if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
   N.ws=null;
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
