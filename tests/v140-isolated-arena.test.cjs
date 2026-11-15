@@ -17,7 +17,7 @@ assert.match(client,/\/arena\/'\+match/,'new WebSocket endpoint is not the old r
 assert.doesNotMatch(client,/sendSnapshot|ns132SendMotion|performAttack|coopXP|awardMP|localStorage\.setItem/,
  'arena client cannot accidentally use legacy combat/netcode or award saved XP');
 assert.match(client,/N\.pending=N\.pending\.filter\(e=>e\.seq>ack\)/,'ACK-based input reconciliation');
-assert.match(client,/if\(N\.ws\?\.readyState===1&&now-N\.lastInput>=50/,'bounded client input rate');
+assert.match(client,/if\(N\.ws\?\.readyState===1&&now-N\.lastInput>=\(N\.paused\?500:50\)/,'bounded client input rate and fewer packets on pause');
 assert.match(client,/Math\.hypot\(N\.me\.x-N\.me\.tx,N\.me\.y-N\.me\.ty\)/,'max prediction drift guard');
 assert.match(html,/id="ns140ModeMultiplayer"/,'separate multiplayer button available on mode chooser');
 assert.match(html,/SINGLEPLAYER — NOVA ZONA \(OFFLINE\)/,'new mode has visible solo button');
