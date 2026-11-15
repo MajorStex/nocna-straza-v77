@@ -26,9 +26,35 @@ assert.ok(!/fetch\(|new WebSocket\(|\.send\(JSON/.test(html),
    await page.locator('#amount').click();
    await page.waitForFunction(()=>document.querySelector('#stats').textContent.includes('/20'),{timeout:5000});
    await page.locator('#pause').click();
-   assert.match(await page.locator('#pause').textContent(),/Nastavi/);
+   assert.match(await page.locator('#pause').textContent(),/▶/);
    await page.locator('#pause').click();
-   assert.match(await page.locator('#pause').textContent(),/Pauza/);
+   assert.match(await page.locator('#pause').textContent(),/⏸/);
+   // The old corner compound is transferred geometrically and visually,
+   // with the historical gate solid while locked and passable when opened.
+   await page.locator('#area').click();
+   assert.equal(await page.evaluate(()=>window.__NS159_LAB_TEST.area),'legacy');
+   assert.equal(await page.evaluate(()=>window.__NS159_LAB_TEST.gateOpen),false);
+   const closed=await page.evaluate(()=>{
+    const lab=window.__NS159_LAB_TEST;
+    for(let i=0;i<48;i++)lab.move(0,4);
+    return {x:lab.playerPosition.x,y:lab.playerPosition.y,
+     blocked:lab.clearAt(548,960),builds:lab.originalArtBuilds};
+   });
+   assert.equal(closed.blocked,false,'historical gate blocks center while locked');
+   assert.ok(closed.y<=934,'character cannot walk through locked historic gate: '+closed.y);
+   assert.ok(closed.builds>0,'legacy props rendered onto cached sprites');
+   await page.locator('#gate').click();
+   assert.equal(await page.evaluate(()=>window.__NS159_LAB_TEST.gateOpen),true);
+   const opened=await page.evaluate(()=>{
+    const lab=window.__NS159_LAB_TEST;
+    for(let i=0;i<32;i++)lab.move(0,4);
+    return {y:lab.playerPosition.y,clear:lab.clearAt(548,960),builds:lab.originalArtBuilds};
+   });
+   assert.equal(opened.clear,true,'open historical gate has no fake invisible collider');
+   assert.ok(opened.y>975,'character passes through opened original gate: '+opened.y);
+   assert.ok(opened.builds<=20,'map artwork variants are cached, not redrawn for 60 FPS');
+   await page.locator('#area').click();
+   assert.equal(await page.evaluate(()=>window.__NS159_LAB_TEST.area),'new');
    const target=page.locator('canvas');
    const dims=await target.boundingBox();
    assert.ok(dims.width>=350&&dims.height>=380,'responsive full phone canvas');
