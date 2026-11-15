@@ -181,7 +181,7 @@ function connect(){
   if(e.data instanceof ArrayBuffer){playback(new Uint8Array(e.data));return}
   let msg;try{msg=JSON.parse(e.data)}catch{return}
   if(msg.t==='ready'&&msg.seat===current.id&&msg.codec==='log8'){
-   ready=true;attempts=0;remoteMics.clear();lastVoice.clear();notice('Glas povezan · mikrofon je podrazumevano isključen.');
+   ready=true;attempts=0;remoteMics.clear();lastVoice.clear();notice('Glas povezan · PTT je podrazumevano aktivan, mikrofon je utišan.');redraw();
    audio()?.resume().catch(()=>{});
   }
   if(msg.t==='mic'&&testSeat(msg.seat)&&msg.seat!==current.id&&typeof msg.on==='boolean'){
@@ -232,7 +232,7 @@ function installUI(){
  const wrap=document.createElement('div');wrap.id='ns159Voice';
  wrap.style.cssText='position:absolute;z-index:18;right:11px;bottom:calc(18px + env(safe-area-inset-bottom));display:grid;gap:4px;max-width:min(210px,52vw);padding:6px;background:#102620dc;border:1px solid #7f9b8c;border-radius:10px;pointer-events:auto';
  button=document.createElement('button');button.type='button';button.id='ns159Mic';
- button.style.cssText='font:700 11px system-ui;min-height:40px;border-radius:8px;border:1px solid #a8bfb0;color:#f4ebcf;padding:7px';
+ button.style.cssText='font:700 11px system-ui;min-height:46px;border-radius:8px;border:1px solid #a8bfb0;color:#f4ebcf;padding:7px;touch-action:none;-webkit-user-select:none;user-select:none';
  bindControl(button);
  info=document.createElement('small');info.id='ns159VoiceInfo';
  info.style.cssText='font:10px/1.3 system-ui;color:#cbd9cc;pointer-events:none';
