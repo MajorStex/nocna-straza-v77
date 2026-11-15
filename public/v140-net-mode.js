@@ -148,7 +148,7 @@ function createArenaCrowdSteering(world,move){
    if(!target?.online||target.knocked||target.hp<=0)continue;
    const d=Math.hypot(m.vx||0,m.vy||0);
    if(d<.001)continue;
-   const stride=(49+(m.id%5)*3.25)/world.speed;
+   const stride=(m.type==='troll'?39:49+(m.id%5)*3.25)/world.speed;
    move(m,m.vx/d*stride,m.vy/d*stride,1/30);
   }
  }
@@ -434,6 +434,7 @@ function snapshot(m){
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
    mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;
+   mob.type=q[7]===1?'troll':'goblin'; // trailing server type flag; backwards compatible
    return mob;
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
@@ -512,8 +513,9 @@ function buildSoloWave(wave){
  }));
  ranked.sort((a,b)=>b.dist-a.dist||((a.i+shift)%points.length)-((b.i+shift)%points.length));
  return ranked.slice(0,count).map(({pt,dist},i)=>{
-  const hp=Math.min(115,35+(wave-1)*9);
-  return {id:i,x:pt[0],y:pt[1],sx:pt[0],sy:pt[1],hp,maxHp:hp,
+  const troll=wave===10&&i===0;
+  const hp=troll?335:Math.min(115,35+(wave-1)*9);
+  return {id:i,type:troll?'troll':'goblin',x:pt[0],y:pt[1],sx:pt[0],sy:pt[1],hp,maxHp:hp,
    spawnDistance:Math.round(dist),attackAt:(i%4)*7,attackTick:-100,deadUntil:0,
    hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0,
    animDistance:0,animX:pt[0],animY:pt[1],facing:1,movingUntil:0};
@@ -556,7 +558,11 @@ function startSolo(){
  N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
- window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
+ // Only on this experimental branch: immediate solo artwork/physics test.
+ if(new URLSearchParams(location.search).has('v159-troll-preview')&&N.soloMobs[0]){
+  N.soloMobs[0].type='troll';N.soloMobs[0].hp=N.soloMobs[0].maxHp=335;
+ }
+ window.NS154_GOBLINS?.prewarm();window.NS159_TROLL?.prewarm();window.NS157_SCENERY?.prewarm();
  status('V158 · SOLO · TALASI I SANDUCI · 0 XP');
  return true;
 }
@@ -586,10 +592,10 @@ function stepSolo(dt){
   for(const mob of N.soloMobs){
    if(mob.hp<=0)continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
-   if(d2<=34**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
-    me.hp=Math.max(0,me.hp-7);N.hurtUntil=performance.now()+290;
+   if(d2<=(mob.type==='troll'?45:34)**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
+    me.hp=Math.max(0,me.hp-(mob.type==='troll'?13:7));N.hurtUntil=performance.now()+290;
     A()?.play('hurt');
-    mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+39+(mob.id%5)*4;
+    mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+(mob.type==='troll'?58:39+(mob.id%5)*4);
     N.soloInvul=N.soloTick+28;
    }
   }
@@ -1038,7 +1044,10 @@ function drawDepthSortedWorld(g,now,dt,visible){
  const opt={solo:N.solo,tick:N.solo?N.soloTick:N.tick,now,lastState:N.lastState,
   alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible};
  // Precompute visible goblins in ONE scan. They are never re-animated in sorting.
- const prepared=sprites.prepare(mobs,opt);N.visibleMobs=prepared.length;
+ const prepared=sprites.prepare(mobs,opt);
+ const originalTrolls=window.NS159_TROLL;
+ const preparedTrolls=originalTrolls?.prepare(mobs,opt)||[];
+ N.visibleMobs=prepared.length+preparedTrolls.length;
  const jobs=[];
  const obs=N.world.obstacles||[];
  for(let i=0;i<obs.length;i++){
@@ -1068,6 +1077,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   jobs.push({depth:p.y+13,kind:2,id:Number(p.id.slice(1)),p});
  }
  for(const entry of prepared)jobs.push({depth:entry.depth,kind:3,id:entry.mob.id,entry});
+ for(const entry of preparedTrolls)jobs.push({depth:entry.depth,kind:5,id:entry.mob.id,entry});
  // 80 goblins + ~12 props + six players: deterministic O(n log n),
  // far cheaper than multiple complete canvas render passes.
  jobs.sort((a,b)=>a.depth-b.depth||a.kind-b.kind||a.id-b.id);
@@ -1077,6 +1087,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   else if(item.kind===1)drawArenaChests(g,[item.chest],visible);
   else if(item.kind===2)drawArenaPlayerBody(g,item.p,now,dt);
   else if(item.kind===4)window.NS157_SCENERY?.drawOne(g,item.item);
+  else if(item.kind===5)originalTrolls?.drawOne(g,item.entry,opt);
   else sprites.drawOne(g,item.entry,opt);
  }
  // Names and HP remain legible above a large horde, even when bodies are occluded.
@@ -1159,7 +1170,7 @@ function frame(now){
  }
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,legacyTrollAtlasBuilds:window.NS159_TROLL?.builds||0,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
