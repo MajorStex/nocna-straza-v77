@@ -1,8 +1,8 @@
-name: V155 LIVE three-browser same-code lobby host transfer
+name: V155 LIVE two-browser same-code lobby host transfer
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/v155-live-lobby-handoff.yml']
+    paths: ['.github/workflows/v155-live-lobby-handoff.yml', 'tests/v155-live-lobby-handoff.test.cjs']
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,5 +17,5 @@ jobs:
           node-version: 24
       - name: Install headless Chromium runner
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
-      - name: Verify p1 leaves lobby, p2 becomes host, p3 joins same room and Start is available
+      - name: Verify p1 leaves lobby, p2 becomes host with the same code and Start control
         run: node tests/v155-live-lobby-handoff.test.cjs
