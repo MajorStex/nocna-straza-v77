@@ -165,7 +165,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
 // V160 sandbox state lives only in this isolated runtime, never in saved progression.
 let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};
 let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null;
-let LAB_SUPPORTED=false,LAB_LOOK=null,LAB_UNDO=null;
+let LAB_SUPPORTED=false,LAB_LOOK=null,LAB_UNDO=null,LAB_SERVER_BUILD=0;
 const LAB_WEAPONS=new Set(['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul']);
 const labDefaultCount=wave=>Math.min(80,60+Math.max(0,wave-1)*10);
 const el=id=>document.getElementById(id);
@@ -209,7 +209,7 @@ function ui(){
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
- root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V160 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
+ root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V162 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
  '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns160Open" type="button">🛠 SANDBOX / TEST LAB</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U MP igra teče dok svi povezani igrači ne izglasaju pauzu. Samo host uređuje Sandbox.</p></div>'+
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
@@ -229,6 +229,7 @@ function ui(){
  el('ns157PauseLeave').onclick=()=>stop(true);
  const menuButton=el('ns158MenuBtn'),menuPanel=el('ns158Menu');
  menuButton.onclick=()=>{
+  if(window.NS160_LAB?.active)window.NS160_LAB.close();
   const opening=menuPanel.hidden;
   if(opening&&N.solo&&!N.paused){
    toggleArenaPause(true);LAB_AUTO_PAUSE=true;
@@ -318,7 +319,7 @@ function ui(){
   }
  });
  window.addEventListener('keydown',e=>{
-  if(N.phase!=='running'||window.NS160_LAB?.active||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
+  if(N.phase!=='running'||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
   const k=e.key.toLowerCase();
   if(k==='escape'&&!el('ns158Menu')?.hidden){e.preventDefault();closeArenaMenu();return}
   if((k==='escape'||k==='p')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation?.();toggleArenaPause();return}
@@ -337,14 +338,17 @@ function sandboxState(){
   votes:LAB_PAUSE.votes,needed:LAB_PAUSE.needed,damage:N.me?.damage||22,
   weapon:LAB_WEAPON||localArenaLook().weapon||'sword',
   skin:localArenaLook().skin,visualSize:localArenaLook().visualSize,
-  heroClass:localArenaLook().heroClass,bodyStyle:localArenaLook().bodyStyle};
+  heroClass:localArenaLook().heroClass,bodyStyle:localArenaLook().bodyStyle,
+  bossAvailable:N.solo||LAB_SERVER_BUILD>=162};
 }
 function openSandbox(){
  if(N.phase!=='running')return;
  const activate=()=>{
   if(!window.NS160_LAB){announceArena('Sandbox modul nije dostupan');return}
   closeArenaMenu(false);
-  if(N.solo)LAB_AUTO_PAUSE=true;
+  // MENU initially pauses SOLO; entering Test Lab resumes to allow live movement.
+  if(N.solo&&N.paused)toggleArenaPause(false);
+  LAB_AUTO_PAUSE=false;
   if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
   window.NS160_LAB.open({
    solo:N.solo,host:N.solo||(N.id==='p1'&&LAB_SUPPORTED),
@@ -361,10 +365,8 @@ function openSandbox(){
    vote:()=>{if(LAB_SUPPORTED&&N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'pauseVote',vote:true}));else announceArena('Pauza zahteva server V160')},
    resumeAll:()=>{if(LAB_SUPPORTED&&N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'globalResume'}))},
    onClose:()=>{
-    if(N.phase!=='running')return;
-    el('ns158Menu').hidden=false;
-    el('ns158MenuBtn')?.setAttribute('aria-expanded','true');
-    if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
+    // Closing the Lab returns to live gameplay; MENU still pauses on click.
+    if(N.phase==='running')closeArenaMenu(false);
    }
   });
   if(!N.solo&&!LAB_SUPPORTED)announceArena('Čeka se objava V160 servera; izmene nisu dostupne');
@@ -373,7 +375,7 @@ function openSandbox(){
  let script=el('ns160LabScript');
  if(!script){
   script=document.createElement('script');script.id='ns160LabScript';
-  script.src='./v160-sandbox.js?v=160';script.async=true;
+  script.src='./v162-sandbox.js?v=162';script.async=true;
   document.head.append(script);
  }
  script.addEventListener('load',activate,{once:true});
@@ -445,7 +447,7 @@ function stop(notify=false){
  A()?.stop();window.NS160_LAB?.close();LAB_AUTO_PAUSE=false;closeArenaMenu(false);N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
  N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
- LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;LAB_SUPPORTED=false;LAB_LOOK=null;LAB_UNDO=null;
+ LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;LAB_SUPPORTED=false;LAB_LOOK=null;LAB_UNDO=null;LAB_SERVER_BUILD=0;
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
@@ -759,7 +761,7 @@ function startSolo(){
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
  window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
- status('V160 · SOLO · TALASI I SANDUCI · 0 XP');
+ status('V162 · SOLO · TALASI I SANDUCI · 0 XP');
  return true;
 }
 function stepSolo(dt){
@@ -972,14 +974,14 @@ function connect(match,id,ticket,rejoin=false){
  if(rejoin?N.phase!=='reconnecting':N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<7){N.phase='error';status('NOVA ZONA zahteva OPŠTI NIVO 7');return false}
  if(!rejoin){
-  LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;
+  LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
   N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.lastMyHp=null;N.hurtUntil=0;
  }
  N.match=match;N.id=id;N.ticket=ticket;if(!rejoin)N.paused=false;
  N.phase=rejoin?'reconnecting':'connecting';
- status('V160 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
+ status('V162 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
  try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
@@ -1006,7 +1008,7 @@ function connect(match,id,ticket,rejoin=false){
    N.world=m.world||N.world;N.phase='waiting';attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
-    LAB_SUPPORTED=Number(m.serverBuild)>=160;
+    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
     }
@@ -1017,7 +1019,7 @@ function connect(match,id,ticket,rejoin=false){
      // Skin/size metadata is sent once after the server confirms support.
      ws.send(JSON.stringify({t:'look',look}));
     }
-   status('V160 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
+   status('V162 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
   if(m.t==='look'){
    rememberLook(m.id,m.revision,m.look);
@@ -1045,7 +1047,7 @@ function connect(match,id,ticket,rejoin=false){
    if(m.t==='waveStart'){announceArena('TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
    if(m.t==='waveEnd'){announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');return}
    if(m.t==='roster'){
-   status('V160 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
+   status('V162 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
   if(m.t==='start'){
    N.phase='running';N.retry=0;N.lostSince=0;
@@ -1053,7 +1055,7 @@ function connect(match,id,ticket,rejoin=false){
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.lastFrame=0;
     if(N.paused&&ws.readyState===1)ws.send(JSON.stringify({t:'pause',paused:true}));
-    status('V160 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
+    status('V162 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
   if(m.t==='s'){snapshot(m);return}
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
@@ -1071,10 +1073,10 @@ function connect(match,id,ticket,rejoin=false){
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
   if(!N.lostSince)N.lostSince=Date.now();
   if(Date.now()-N.lostSince>=120000){
-   N.phase='error';status('V160 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
+   N.phase='error';status('V162 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
   }
   N.retry++;N.phase='reconnecting';
-  status('V160 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
+  status('V162 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
   if(N.retryTimer)clearTimeout(N.retryTimer);
   N.retryTimer=setTimeout(()=>{
    N.retryTimer=null;
@@ -1082,7 +1084,7 @@ function connect(match,id,ticket,rejoin=false){
   },Math.min(4000,650+N.retry*380));
  };
  ws.onerror=()=>{
-  if(N.ws===ws)status('V160 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
+  if(N.ws===ws)status('V162 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
  };
  return true;
 }
@@ -1092,7 +1094,7 @@ async function startHost(){
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
  if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
- N.phase='preparing';status('V160 · PRIPREMAM ZASEBAN MP SERVER...');
+ N.phase='preparing';status('V162 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
@@ -1399,7 +1401,7 @@ function frame(now){
  const dt=clamp((now-(N.lastFrame||now))/1000,0,.035);N.lastFrame=now;
  N.frames++;if(!N.fpsAt)N.fpsAt=now;if(now-N.fpsAt>1000){N.fps=Math.round(N.frames*1000/(now-N.fpsAt));N.frames=0;N.fpsAt=now}
  const v=input();
- const selecting=N.paused||!el('ns158Menu')?.hidden||!!window.NS160_LAB?.active||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
+ const selecting=N.paused||!el('ns158Menu')?.hidden||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
  if(selecting){v.x=0;v.y=0}
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
