@@ -675,19 +675,94 @@ function drawTargetedSlash(g,p,m,age){
  g.beginPath();g.moveTo(sx-Math.cos(a)*13,sy-Math.sin(a)*13);g.lineTo(sx+Math.cos(a)*7,sy+Math.sin(a)*7);g.stroke();
  g.restore();
 }
+// Original chest artwork cached once; no sprite downloads or per-frame texture builds.
+const chestSprites={};
+function drawArenaChests(g,chests,view){
+ for(const chest of chests){
+  if(view&&(chest.x<view.left-30||chest.x>view.right+30||
+    chest.y<view.top-30||chest.y>view.bottom+30))continue;
+  const key=chest.opened?'open':'closed';
+  let sprite=chestSprites[key];
+  if(!sprite){
+   sprite=document.createElement('canvas');sprite.width=52;sprite.height=46;
+   const c=sprite.getContext('2d');
+   if(!c)continue;
+   c.fillStyle='#12251f9a';c.beginPath();c.ellipse(26,34,22,7,0,0,Math.PI*2);c.fill();
+   c.fillStyle='#78502e';c.fillRect(8,16,36,21);
+   c.strokeStyle='#e0be78';c.lineWidth=3;c.strokeRect(8,16,36,21);
+   c.fillStyle='#b48246';c.fillRect(10,19,32,3);
+   c.fillStyle='#e8d18b';c.fillRect(24,20,5,12);
+   if(key==='open'){
+    c.save();c.translate(8,16);c.rotate(-.40);c.fillStyle='#4b3028';
+    c.fillRect(0,-13,36,13);c.strokeStyle='#e2bc6f';c.strokeRect(0,-13,36,13);c.restore();
+   }else{
+    c.fillStyle='#5e3627';c.fillRect(7,9,38,12);
+    c.strokeStyle='#efcd8a';c.strokeRect(7,9,38,12);
+   }
+   chestSprites[key]=sprite;
+  }
+  g.drawImage(sprite,chest.x-26,chest.y-25);
+ }
+}
+function resolveSoloChest(option){
+ if(!N.soloChoice||!['edge','heart','boots'].includes(option))return false;
+ const me=N.me,pick=option;
+ if(pick==='edge')me.damage=Math.min(65,Math.round((me.damage||22)*1.2));
+ if(pick==='heart'){me.maxHp=Math.min(240,(me.maxHp||100)+25);me.hp=Math.min(me.maxHp,me.hp+35)}
+ if(pick==='boots')me.speedMult=Math.min(1.5,(me.speedMult||1)*1.1);
+ N.soloChoice=null;N.choiceUiId='';N.soloBetweenUntil=Date.now()+1750;
+ A()?.play('choose');return true;
+}
+function sessionHud(now){
+ const wave=N.solo?N.soloWave:N.wave,state=N.solo?N.soloState:N.waveState;
+ const mobs=N.solo?N.soloMobs:N.mpMobs,choice=N.solo?N.soloChoice:N.choice;
+ const holder=el('ns152Choice'),hud=el('ns152Wave'),remaining=el('ns152Remaining');
+ if(!holder||!hud||!remaining)return;
+ if(now-N.uiAt>=140||N.choiceUiId!==(choice?.seq??'')){
+  N.uiAt=now;
+  hud.textContent='TALAS '+wave;
+  const count=mobs.filter(m=>m.hp>0).length;
+  remaining.textContent=state==='between'?'ODMOR · NOVI TALAS USKORO':'GOBLINI '+count;
+  const key=choice?(choice.seq+':'+choice.owner):'';
+  if(!choice){holder.hidden=true;N.choiceUiId=''}
+  else{
+   holder.hidden=false;
+   const mine=choice.owner===N.id;
+   if(N.choiceUiId!==key){
+    N.choiceUiId=key;
+    el('ns152ChoiceTitle').textContent=mine?'OTVORIO SI SANDUK':'IGRAČ OTVARA SANDUK';
+    el('ns152ChoiceText').textContent=mine?
+     'Izaberi nadogradnju. Ako ne stigneš, automatski se bira OŠTRICA.':
+     'Čeka se '+choice.owner.toUpperCase()+' · izbor se automatski završava.';
+    for(const btn of holder.querySelectorAll('[data-pick]')){btn.hidden=!mine;btn.disabled=false}
+   }
+   const rest=N.solo?choice.until-Date.now():
+    (choice.until-N.serverNow)-(now-N.lastState);
+   el('ns152Timer').textContent=Math.max(0,Math.ceil(rest/1000))+' s';
+  }
+ }
+ const hit=el('ns152Hurt');
+ if(hit)hit.style.opacity=N.hurtUntil>now?String(Math.min(.9,(N.hurtUntil-now)/310*.84)):'0';
+}
+
 function frame(now){
  if(N.phase!=='running'||document.hidden)return;
  const canvas=el('ns140Canvas'),g=canvas?.getContext('2d');if(!g)return;
  const dt=clamp((now-(N.lastFrame||now))/1000,0,.035);N.lastFrame=now;
  N.frames++;if(!N.fpsAt)N.fpsAt=now;if(now-N.fpsAt>1000){N.fps=Math.round(N.frames*1000/(now-N.fpsAt));N.frames=0;N.fpsAt=now}
  const v=input();
+ const selecting=N.solo?!!N.soloChoice:!!N.choice;
+ if(selecting){v.x=0;v.y=0}
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
-  moveLocal(N.me,v.x*N.world.speed*dt,v.y*N.world.speed*dt);
+  moveLocal(N.me,v.x*N.world.speed*dt*(N.me.speedMult||1),v.y*N.world.speed*dt*(N.me.speedMult||1));
   if(N.solo){stepSolo(dt)}
   else {N.delta.x+=N.me.x-oldX;N.delta.y+=N.me.y-oldY;}
   const away=Math.hypot(N.me.x-N.me.tx,N.me.y-N.me.ty);
   if(!N.solo&&away>105){N.me.x=N.me.tx+(N.me.x-N.me.tx)*105/away;N.me.y=N.me.ty+(N.me.y-N.me.ty)*105/away}
+ }
+ if(!selecting&&N.me&&Math.hypot(v.x,v.y)>.25&&now-N.lastStepSound>285){
+  N.lastStepSound=now;A()?.play('step',{gain:.8});
  }
  if(N.ws?.readyState===1&&now-N.lastInput>=50&&N.ws.bufferedAmount<4000){
   const seq=++N.seq;N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
@@ -708,7 +783,11 @@ function frame(now){
  g.fillStyle='#395443';g.fillRect(0,0,N.world.w,N.world.h);
  g.strokeStyle='#536b55';for(let x=0;x<N.world.w;x+=55){g.beginPath();g.moveTo(x,0);g.lineTo(x,N.world.h);g.stroke()}
  for(let y=0;y<N.world.h;y+=55){g.beginPath();g.moveTo(0,y);g.lineTo(N.world.w,y);g.stroke()}
+ // Viewport culling keeps the expanded map cheap on mobile GPUs.
+ const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
+  top:me.y-r.height/2/zoom-90,bottom:me.y+r.height/2/zoom+90};
  drawArenaBuildings(g,N.world.obstacles);
+ drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
  drawArenaMobs(g,now,dt);
  for(const p of N.players.values()){
   if(!p.online)continue;
@@ -730,7 +809,8 @@ function frame(now){
   g.restore();
  }
  g.setTransform(dpr,0,0,dpr,0,0);
- el('ns140Stats').textContent=N.solo?('FPS '+N.fps+' | OFFLINE · HP '+N.me.hp+' | KILOVI '+N.soloKills+' | 0 XP'):
+ sessionHud(now);
+ el('ns140Stats').textContent=N.solo?('FPS '+N.fps+' | SOLO · HP '+N.me.hp+' | KILOVI '+N.soloKills+' | 0 XP'):
   'FPS '+N.fps+' | '+Math.round(N.ping)+'ms | ACK '+N.ack+'/'+N.seq+
   ' | korekcija '+Math.round(N.correction)+'px | stanje '+Math.round(now-N.lastState)+'ms | CPU '+N.serverMs+'ms';
 }
