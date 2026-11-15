@@ -517,7 +517,7 @@ function snapshot(m){
     A()?.play('hit',{weapon:weaponHits.get(q[0])||'sword',variant:hitTick,x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
-   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;
+   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;
    return mob;
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
@@ -625,7 +625,7 @@ function soloLabAction(m){
  if(!N.solo||N.phase!=='running')return false;
  const a=m.action,int=(x,min,max,d)=>Number.isFinite(Number(x))?clamp(Math.round(Number(x)),min,max):d;
  const resetWave=()=>{N.soloMobs=buildSoloWave(N.soloWave);N.soloState='play';N.soloChoice=null;N.soloBetweenUntil=0;N.choiceUiId='';N.soloCrowd.clear()};
- const allowed=new Set(['wave','count','resetCount','resetWave','spawnMob','clearMobs','setMob','removeMob','freezeAI','godMode','enemyHp','spawnChest','clearChests','spawnAlly','clearAllies','spawnProp','clearProps','heal','damage','weapon','heroLook','undo','resetLab']);
+ const allowed=new Set(['wave','count','resetCount','resetWave','spawnMob','clearMobs','setMob','removeMob','toggleMobFreeze','freezeAI','godMode','enemyHp','spawnChest','clearChests','spawnAlly','clearAllies','spawnProp','clearProps','heal','damage','weapon','heroLook','undo','resetLab']);
  if(!allowed.has(a))return false;
  if(a==='undo'){
   if(!LAB_UNDO)return false;
@@ -658,6 +658,7 @@ function soloLabAction(m){
  }else if(a==='clearMobs'){N.soloMobs=[];N.soloState='play';N.soloChoice=null;N.soloCrowd.clear()}
  else if(a==='setMob'){const mob=N.soloMobs.find(q=>q.id===int(m.id,0,95,-1));if(mob){mob.hp=mob.maxHp=int(m.hp,1,500,35)}}
  else if(a==='removeMob'){const id=int(m.id,0,95,-1);N.soloMobs=N.soloMobs.filter(q=>q.id!==id);N.soloCrowd.clear()}
+ else if(a==='toggleMobFreeze'){const mob=N.soloMobs.find(q=>q.id===int(m.id,0,95,-1));if(mob){mob.labFrozen=!mob.labFrozen;mob.vx=mob.vy=0}}
  else if(a==='freezeAI')LAB.freezeAI=!!m.value;
  else if(a==='godMode')LAB.godMode=!!m.value;
  else if(a==='enemyHp'){const hp=int(m.value,1,500,35);for(const mob of N.soloMobs)if(mob.hp>0){mob.hp=hp;mob.maxHp=hp}}
@@ -772,12 +773,14 @@ function stepSolo(dt){
   // Fixed physics 30Hz, steering only at 15Hz, interpolation at display FPS.
   for(const mob of N.soloMobs){mob.prevX=mob.x;mob.prevY=mob.y}
   if(!LAB.freezeAI){
+   const locked=N.soloMobs.filter(m=>m.labFrozen).map(m=>[m,m.x,m.y]);
    if(N.soloTick%2===0)N.soloCrowd.step(N.soloMobs,N.players,N.soloTick);
    N.soloCrowd.advance(N.soloMobs,N.players);
+   for(const [m,x,y] of locked){m.x=x;m.y=y;m.prevX=x;m.prevY=y;m.vx=m.vy=0}
   }
   if(LAB.allies.length)stepSoloAllies();
   if(!LAB.freezeAI)for(const mob of N.soloMobs){
-   if(mob.hp<=0)continue; // no individual respawns during a wave
+   if(mob.hp<=0||mob.labFrozen)continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
    if(!LAB.godMode&&d2<=34**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
     me.hp=Math.max(0,me.hp-7);N.hurtUntil=performance.now()+290;
@@ -1301,6 +1304,12 @@ function drawDepthSortedWorld(g,now,dt,visible){
 }
 // V160 lightweight synchronized stick-figure ally + decorative test props.
 function drawLabThings(g,now,visible){
+ const frozen=N.solo?N.soloMobs:N.mpMobs;
+ for(const mob of frozen)if(mob.labFrozen&&mob.hp>0&&
+   mob.x>=visible.left-20&&mob.x<=visible.right+20&&mob.y>=visible.top-55&&mob.y<=visible.bottom+20){
+  g.save();g.fillStyle='#a7d7ff';g.font='bold 12px system-ui';
+  g.textAlign='center';g.fillText('❄',mob.x,mob.y-35);g.restore();
+ }
  const allies=N.solo?LAB.allies:LAB_REMOTE?.allies||[];
  const props=N.solo?LAB.props:LAB_REMOTE?.props||[];
  for(const p of props){
