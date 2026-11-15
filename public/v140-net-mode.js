@@ -376,21 +376,36 @@ function snapshot(m){
 
 /* Local-only entry for the SAME V140 arena. Never creates a lobby, WebSocket or
    a Cloudflare request. Practice goblins are temporary test content (0 XP). */
-const SOLO_MOB_POINTS=[
- [180,75],[365,75],[550,75],[735,75],[180,300],[365,300],
- [550,300],[735,300],[180,525],[365,525],[550,525],[735,525],
- [880,85],[1065,85],[1280,90],[1520,145],[1530,360],[1580,585],
- [1510,850],[1320,1000],[1060,1000],[870,1010],[650,960],[330,975],
- [90,900],[90,700],[950,405],[900,640],[1230,450],[1375,520],
- [590,750],[280,640],[1420,230],[1180,790],[790,920],[510,900]
-];
+// V154 solo stress-preview uses the SAME seed, safe grid and 60-80 creeps as server.
+function soloHordePoints(){
+ if(N.soloSpawnCache)return N.soloSpawnCache;
+ const points=[],inside=(x,y,r)=>N.world.obstacles.some(o=>{
+  const px=clamp(x,o.x,o.x+o.w),py=clamp(y,o.y,o.y+o.h);
+  return (x-px)**2+(y-py)**2<r*r;
+ });
+ for(let row=0;row<9;row++)for(let col=0;col<13;col++){
+  const x=70+col*126,y=66+row*118;
+  if(inside(x,y,33)||(x<365&&y>150&&y<420)||
+    [[530,465],[960,580],[1470,820]].some(([cx,cy])=>(cx-x)**2+(cy-y)**2<75**2))continue;
+  points.push([x,y]);
+ }
+ let seed=1542026;
+ for(let i=points.length-1;i>0;i--){
+  seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+  const j=seed%(i+1);[points[i],points[j]]=[points[j],points[i]];
+ }
+ return N.soloSpawnCache=points;
+}
 function buildSoloWave(wave){
- return Array.from({length:Math.min(36,9+Math.min(wave,9)*3)},(_,i)=>{
-  const point=SOLO_MOB_POINTS[(i+(wave-1)*3)%SOLO_MOB_POINTS.length],hp=Math.min(115,35+(wave-1)*9);
+ const points=soloHordePoints(),count=Math.min(80,60+Math.max(0,wave-1)*10,points.length);
+ return Array.from({length:count},(_,i)=>{
+  const point=points[(i+Math.max(0,wave-1)*11)%points.length],hp=Math.min(115,35+(wave-1)*9);
   return {id:i,x:point[0],y:point[1],sx:point[0],sy:point[1],hp,maxHp:hp,
-   attackAt:(i%4)*7,attackTick:-100,deadUntil:0,hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0};
+   attackAt:(i%4)*7,attackTick:-100,deadUntil:0,hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0,
+   animDistance:0,animX:point[0],animY:point[1],facing:1,movingUntil:0};
  });
 }
+
 function soloWaveDone(){
  N.soloState='between';const me=N.me;
  const chest={id:100+N.soloWave,x:clamp(me.x+62,35,N.world.w-35),
@@ -414,7 +429,7 @@ function startSolo(){
   {x:1460,y:410,w:110,h:104},{x:1020,y:485,w:94,h:94}
  ]};
  N.seq=N.ack=N.soloTick=N.soloKills=0;N.tick=-1;
- N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;
+ N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=60;
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
  N.soloChests=[{id:1,x:530,y:465,opened:false},{id:2,x:960,y:580,opened:false},{id:3,x:1470,y:820,opened:false}];
  N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();
