@@ -1,0 +1,76 @@
+name: V153 LIVE 2-phone skin and size synchronization
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/v153-looks-live-e2e.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  skin-size-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: One real WebSocket room with different player appearances and creator reconnect
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const base='https://nocna-straza-relay.stefanstevic1996.workers.dev';
+          const h=await (await fetch(base+'/health')).json();
+          assert.equal(h.arenaBuild,153,'V153 backend must be LIVE before allocating a test room');
+          const res=await fetch(base+'/arena/create',{method:'POST',headers:{'content-type':'application/json'},
+            body:JSON.stringify({code:'SKIN23',seats:['p1','p2']})});
+          const data=await res.json();assert.equal(res.status,200,JSON.stringify(data));
+          const looks={
+            p1:{name:'ZELENI',heroClass:'mage',skin:'#44aa77',hair:'#222222',accent:'#ffffaa',
+              weapon:'spear',visualSize:1.12,bodyStyle:'slim',
+              wardrobe:{top:'cloak',topColor:'#123456',hatColor:'#234567'}},
+            p2:{name:'PLAVI',heroClass:'warrior',skin:'#6699ff',hair:'#aaaaaa',accent:'#ffcc88',
+              weapon:'axe',visualSize:0.70,bodyStyle:'strong',
+              wardrobe:{top:'armor',topColor:'#aabbcc',hatColor:'#778899'}}
+          };
+          const peers=[];
+          const connect=(id)=>{
+            const ws=new WebSocket(data.ws),p={id,ws,events:[],closed:false};peers.push(p);
+            ws.addEventListener('open',()=>ws.send(JSON.stringify({t:'hello',protocol:140,id,ticket:data.tickets[id]})));
+            ws.addEventListener('message',e=>{
+              const msg=JSON.parse(e.data);p.events.push(msg);
+              if(msg.t==='welcome'){
+                assert.equal(msg.serverBuild,153);
+                ws.send(JSON.stringify({t:'look',look:looks[id]}));
+              }
+            });
+            ws.addEventListener('close',()=>p.closed=true);return p;
+          };
+          const until=async(test,label,limit=12000)=>{
+            const at=Date.now();while(Date.now()-at<limit){
+              if(test())return;
+              await new Promise(r=>setTimeout(r,50));
+            }
+            throw Error('Timed out: '+label);
+          };
+          try{
+            const a=connect('p1'),b=connect('p2');
+            await until(()=>[a,b].every(p=>p.events.some(e=>e.t==='welcome')),'both joined');
+            await until(()=>[a,b].every(p=>
+              p.events.some(e=>e.t==='look'&&e.id==='p1'&&e.look.visualSize===1.12&&e.look.skin==='#44aa77')&&
+              p.events.some(e=>e.t==='look'&&e.id==='p2'&&e.look.visualSize===0.70&&e.look.skin==='#6699ff')),
+              'both phones see identical independent looks');
+            await until(()=>a.events.some(e=>e.t==='s')&&b.events.some(e=>e.t==='s'),'shared movement');
+            assert.ok(a.events.filter(e=>e.t==='s').every(e=>!('looks' in e)),
+              'looks do not bloat repeated movement snapshots');
+            console.log('V153 LIVE: two distinct player skin, clothing, weapon and sizes synchronized');
+            a.ws.close();
+            await until(()=>a.closed,'creator leaves');
+            const rejoin=connect('p1');
+            await until(()=>rejoin.events.some(e=>e.t==='welcome'),'creator reconnect');
+            const manifest=rejoin.events.find(e=>e.t==='welcome').looks;
+            assert.equal(manifest.find(x=>x[0]==='p2')[2].visualSize,0.70);
+            assert.equal(manifest.find(x=>x[0]==='p2')[2].skin,'#6699ff');
+            console.log('V153 LIVE PASS: reconnect got same remote look without rejoining lobby');
+          }finally{for(const p of peers)try{p.ws.close()}catch{}}
+          JS
