@@ -9197,7 +9197,10 @@ function ns117DrawVillageHero(target,x,y,options={}){
   const look=options.look||((!NET.role||options.id===NET.localId)?heroStyle:NET.heroLooks.get(options.id))||heroStyle;
   drawUprightHero({id:'p1',nsVillagePortrait:true,x,y,r:17,frame:Number(options.frame)||0,
    walking:!!options.walking,visualSide:options.visualSide===-1?-1:1,
-   headFacing:-Math.PI/2,attackT:0,flash:0,dead:false,
+   // V150: same upright hero asset, weapon animation follows the
+   // server-authoritative attack tick on EVERY multiplayer client.
+   headFacing:Number.isFinite(options.headFacing)?options.headFacing:-Math.PI/2,
+   attackT:Math.max(0,Math.min(.30,Number(options.attackT)||0)),flash:0,dead:false,
    weapon:MEDIEVAL_WEAPONS[look.weapon]?look.weapon:(heroStyle.weapon||'sword'),look});
   return true;
  }finally{ctx=original}
