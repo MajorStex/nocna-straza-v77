@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 if(window.NS140_ARENA)return;
-const B=()=>window.__NS110_BRIDGE||{},clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Shared V150 crowd formula also runs in the offline practice map.
 // V150: predictable, allocation-bounded movement for New Zone's PvE mobs.
 // Only the server decides positions. Each player destination gets one cached
@@ -148,6 +148,8 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
  players:new Map(),me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
+ wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,uiAt:0,choiceUiId:'',
+ soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
  solo:false,soloCrowd:null,soloMobs:[],mpMobs:[],mobHistory:[],mobRenderTick:null,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 const el=id=>document.getElementById(id);
 function ui(){
@@ -159,14 +161,46 @@ function ui(){
  '#ns140Stats{font:10px monospace;color:#b8d5c6}#ns140Close{background:#714837;color:white;border:1px solid #e9b69a;padding:7px;border-radius:7px}'+
  '#ns140Retry{background:#446447;color:#fff3d9;border:1px solid #d5bf83;border-radius:7px;padding:7px;font-weight:800}#ns140Retry[hidden]{display:none!important}'+
  '#ns140Pad{position:fixed;left:0;top:0;width:112px;height:112px;display:none;transform:translate(-50%,-50%);pointer-events:none;touch-action:none;z-index:4;border:2px solid #d9eee096;background:radial-gradient(circle,#9bccaa26,#1a413e77);border-radius:50%;box-shadow:inset 0 0 23px #061a2188}'+
+ '#ns152Hud{position:absolute;right:12px;top:108px;background:#122b25de;border:1px solid #7d9c84;border-radius:11px;padding:9px 12px;text-align:right;pointer-events:none;min-width:106px}'+
+ '#ns152Hud strong{font-size:14px;display:block;color:#fce7a9}#ns152Hud small{display:block;color:#c9dccc;font-size:10px}'+
+ '#ns152Choice[hidden]{display:none!important}#ns152Choice{position:absolute;inset:0;background:#071c19b0;display:flex;align-items:center;justify-content:center;padding:18px;pointer-events:auto}'+
+ '#ns152ChoiceCard{max-width:360px;width:100%;border:2px solid #ab9068;border-radius:14px;background:#1e352b;box-shadow:0 12px 32px #06100da0;padding:17px;text-align:center}'+
+ '#ns152ChoiceCard h3{font-size:17px;margin:6px 0;color:#ffe0a0}#ns152ChoiceCard p{font-size:13px;color:#e5dfce;line-height:1.4}'+
+ '#ns152Choices{display:grid;gap:9px;margin:12px 0}#ns152Choices button{padding:11px;border:1px solid #a9ae88;background:#38594b;color:#fff7d9;border-radius:9px;font-weight:800}'+
+ '#ns152Choices button[hidden]{display:none}#ns152Timer{font-weight:900;color:#f6dc94;font-size:18px}'+
+ '#ns152Hurt{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 50%,transparent 43%,#d5202970 100%);z-index:3}'+
+ '#ns152Music,#ns152Sound{padding:5px;background:#304d40;border:1px solid #a4bb9b;color:#fff6d7;border-radius:7px}'+
  '#ns140Pad.active{display:block}'+
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
- root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V149 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
- '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>';
+ root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V152 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
+ '<div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
+ '<div id="ns152Hurt" aria-hidden="true"></div>'+
+ '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
+ '<div id="ns152Choice" hidden><div id="ns152ChoiceCard"><h3 id="ns152ChoiceTitle">OTVOREN SANDUK</h3><p id="ns152ChoiceText"></p><div id="ns152Choices"><button data-pick="edge">⚔ OŠTRIJA OŠTRICA · +20% ŠTETE</button><button data-pick="heart">♥ ČUVAROVO SRCE · +25 HP</button><button data-pick="boots">➤ BRŽE ČIZME · +10% BRZINE</button></div><span id="ns152Timer">7 s</span></div></div>';
  document.body.append(style,root);
  el('ns140Close').onclick=()=>stop(true);
+ const musicButton=el('ns152Music'),soundButton=el('ns152Sound');
+ function refreshAudioButtons(){
+  musicButton.textContent=A()?.music?'♫':'♫̸';
+  soundButton.textContent=A()?.sound?'🔊':'🔇';
+  musicButton.setAttribute('aria-label',A()?.music?'Isključi muziku':'Uključi muziku');
+  soundButton.setAttribute('aria-label',A()?.sound?'Isključi efekte':'Uključi efekte');
+ }
+ musicButton.onclick=()=>{A()?.unlock();A()?.set('music',!A()?.music);refreshAudioButtons()};
+ soundButton.onclick=()=>{A()?.unlock();A()?.set('sound',!A()?.sound);refreshAudioButtons()};
+ refreshAudioButtons();
+ for(const btn of root.querySelectorAll('[data-pick]')){
+  btn.onclick=()=>{
+   A()?.unlock();
+   const option=btn.dataset.pick;
+   if(N.solo){resolveSoloChest(option);return}
+   if(N.choice?.owner!==N.id||N.ws?.readyState!==1)return;
+   N.ws.send(JSON.stringify({t:'chestPick',option}));
+   btn.disabled=true;
+  };
+ }
  el('ns140Retry').onclick=()=>{
   if(B().NET?.role!=='host'||B().NET?.phase!=='lobby')return;
   stop();B().startLobbyMatch?.(); // retry SAME new arena, never legacy
@@ -190,7 +224,7 @@ function ui(){
  canvas.addEventListener('pointerdown',e=>{
   if(N.phase!=='running'||N.stick.ptr!==null)return;
   if(e.pointerType==='mouse')return; // Desktop steers with WASD; auto-attack never needs clicks.
-  e.preventDefault();N.stick.ptr=e.pointerId;
+  e.preventDefault();A()?.unlock();N.stick.ptr=e.pointerId;
   N.stick.startX=e.clientX;N.stick.startY=e.clientY;
   pad.style.left=e.clientX+'px';pad.style.top=e.clientY+'px';
   pad.classList.add('active');knob.style.transform='translate(0px,0px)';
@@ -209,7 +243,7 @@ function ui(){
   }
  });
  window.addEventListener('keydown',e=>{if(N.phase!=='running'||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
- const k=e.key.toLowerCase();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault()});
+ A()?.unlock();const k=e.key.toLowerCase();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault()});
  window.addEventListener('keyup',e=>N.keys.delete(e.key.toLowerCase()));
  window.addEventListener('blur',()=>{N.keys.clear();resetStick()});
 }
@@ -219,10 +253,11 @@ function status(note){
 }
 function stop(notify=false){
  const wasSolo=N.solo;
- if(notify&&N.id==='p1'&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'end'}))}catch{}
+ if(notify&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'leave'}))}catch{}
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
+ A()?.stop();N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
