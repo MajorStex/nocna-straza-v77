@@ -382,7 +382,7 @@ function ui(){
   if(k==='escape'&&!el('ns158Menu')?.hidden){e.preventDefault();closeArenaMenu();return}
   if((k==='escape'||k==='p')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation?.();toggleArenaPause();return}
   if(N.paused)return;
-  A()?.unlock();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault();
+  A()?.unlock();L()?.unlock();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault();
  });
  window.addEventListener('keyup',e=>N.keys.delete(e.key.toLowerCase()));
  window.addEventListener('blur',()=>{N.keys.clear();resetStick()});
