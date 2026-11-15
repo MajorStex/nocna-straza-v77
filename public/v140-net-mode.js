@@ -782,7 +782,7 @@ function connect(match,id,ticket,rejoin=false){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;N.phase='waiting';
-    window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
+    window.NS154_GOBLINS?.prewarm();window.NS159_TROLL?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
@@ -1170,7 +1170,7 @@ function frame(now){
  }
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,legacyTrollAtlasBuilds:window.NS159_TROLL?.builds||0,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,legacyTrollAtlasBuilds:window.NS159_TROLL?.builds||0,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloTrollCount:N.soloMobs.filter(m=>m.type==='troll'&&m.hp>0).length,soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
