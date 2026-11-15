@@ -1268,6 +1268,47 @@ function drawDepthSortedWorld(g,now,dt,visible){
  // Names and HP remain legible above a large horde, even when bodies are occluded.
  for(const p of people)drawArenaPlayerLabel(g,p);
 }
+// V160 lightweight synchronized stick-figure ally + decorative test props.
+function drawLabThings(g,now,visible){
+ const allies=N.solo?LAB.allies:LAB_REMOTE?.allies||[];
+ const props=N.solo?LAB.props:LAB_REMOTE?.props||[];
+ for(const p of props){
+  if(p.x<visible.left-28||p.x>visible.right+28||p.y<visible.top-50||p.y>visible.bottom+28)continue;
+  g.save();g.translate(p.x,p.y);
+  g.fillStyle='#13271d99';g.beginPath();g.ellipse(0,5,13,5,0,0,7);g.fill();
+  if(p.kind==='torch'){
+   g.fillStyle='#70482c';g.fillRect(-2,-26,4,30);
+   g.fillStyle='#ffbb56';g.beginPath();g.moveTo(0,-37);g.quadraticCurveTo(-13,-25,0,-18);g.quadraticCurveTo(13,-25,0,-37);g.fill();
+  }else if(p.kind==='banner'){
+   g.strokeStyle='#bda17a';g.lineWidth=3;g.beginPath();g.moveTo(-4,3);g.lineTo(-4,-39);g.stroke();
+   g.fillStyle='#9c5153';g.fillRect(-3,-37,20,19);
+  }else{
+   g.fillStyle='#6e4f36';g.fillRect(-3,-26,6,30);
+   g.fillStyle='#d1aa71';g.beginPath();g.arc(0,-29,12,0,7);g.fill();
+   g.strokeStyle='#873a32';g.lineWidth=2;g.beginPath();g.arc(0,-29,6,0,7);g.stroke();
+  }
+  g.restore();
+ }
+ for(const ally of allies){
+  if(ally.hp<=0||ally.x<visible.left-40||ally.x>visible.right+40||ally.y<visible.top-70||ally.y>visible.bottom+40)continue;
+  g.save();g.translate(ally.x,ally.y);
+  const swing=now/500+ally.id;
+  g.fillStyle='#11261b99';g.beginPath();g.ellipse(0,9,16,6,0,0,7);g.fill();
+  g.strokeStyle='#b2c8aa';g.lineWidth=5;g.lineCap='round';
+  g.beginPath();g.moveTo(-5,-13);g.lineTo(-7,5);g.moveTo(5,-13);g.lineTo(8,5);g.stroke();
+  g.fillStyle='#718e86';g.fillRect(-10,-35,20,23);
+  g.fillStyle='#c8d4bd';g.fillRect(-8,-35,16,4);
+  g.fillStyle='#e0bf93';g.beginPath();g.arc(0,-45,10,0,7);g.fill();
+  g.fillStyle='#4d6b5f';g.fillRect(-11,-52,22,6);
+  g.strokeStyle='#9fc0af';g.lineWidth=4;g.beginPath();g.moveTo(-10,-27);g.lineTo(-20,-14);g.moveTo(10,-27);g.lineTo(19,-16);g.stroke();
+  g.fillStyle='#769f86';g.beginPath();g.ellipse(-20,-13,9,13,-.1,0,7);g.fill();
+  g.strokeStyle='#dedbd1';g.lineWidth=3;
+  g.beginPath();g.moveTo(19,-16);g.lineTo(25+Math.sin(swing)*6,-41);g.stroke();
+  g.fillStyle='#9fefab';g.font='bold 10px system-ui';g.textAlign='center';
+  g.fillText('SAVEZNIK '+ally.id,0,-64);
+  g.restore();
+ }
+}
 function frame(now){
  if(N.phase!=='running'||document.hidden)return;
  const canvas=el('ns140Canvas'),g=canvas?.getContext('2d');if(!g)return;
