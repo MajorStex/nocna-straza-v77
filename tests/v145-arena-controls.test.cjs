@@ -5,8 +5,8 @@ const path=require('node:path');
 const {chromium}=require('playwright-core');
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8');
 const source=fs.readFileSync(path.resolve(__dirname,'../public/v140-net-mode.js'),'utf8');
-assert.match(html,/<title>Night Watch v149 — Noćna Straža<\/title>/);
-assert.match(html,/v140-net-mode\.js\?v=149/);
+assert.match(html,/<title>Night Watch v150 — Noćna Straža<\/title>/);
+assert.match(html,/v140-net-mode\.js\?v=150/);
 assert.match(source,/const resetStick=\(\)=>/);
 assert.match(source,/canvas\.addEventListener\('pointerdown'/);
 assert.match(source,/pad\.style\.left=e\.clientX\+'px'/);
@@ -16,7 +16,10 @@ assert.match(source,/function updateHeroMotion\(p,dt\)/);
 assert.match(source,/walking:motion\.walking/);
 assert.doesNotMatch(source,/frame:now\/110,walking:true,visualSide:1/);
 assert.match(source,/me\.attackAngle=Math\.atan2\(target\.y-me\.y,target\.x-me\.x\)/);
-assert.match(source,/function drawTargetedSlash\(g,p,m\)/);
+assert.match(source,/function drawTargetedSlash\(g,p,m,age\)/);
+assert.match(source,/function swordAge\(p,now\)/);
+assert.match(source,/attackT:age>=0&&age<=9/);
+assert.match(html,/attackT:Math\.max\(0,Math\.min\(\.30,Number\(options\.attackT\)\|\|0\)\)/);
 assert.match(source,/g\.arc\(0,0,53,from,to\)/);
 assert.doesNotMatch(source,/g\.arc\(p\.x,p\.y,54,-\.8,\.7\)/);
 assert.doesNotMatch(source,/coopXP|awardMP|localStorage\.setItem/);
@@ -33,7 +36,7 @@ new Function(source);
    await page.evaluate(()=>{
     window.__draws=[];
     window.__NS110_BRIDGE={currentProfileLevel:()=>7,NET:{role:'',phase:'idle'},drawVillageHero:(g,x,y,o)=>{
-     window.__draws.push({walking:o.walking,side:o.visualSide,frame:o.frame});
+     window.__draws.push({walking:o.walking,side:o.visualSide,frame:o.frame,attackT:o.attackT,headFacing:o.headFacing});
      g.fillRect(x-5,y-10,10,20);
     }};
    });
@@ -57,7 +60,7 @@ new Function(source);
     const moved={x:api.diagnostics.stickX,y:api.diagnostics.stickY,
       knob:document.getElementById('ns140Knob').style.transform};
     api.frame(1052);api.frame(1086);
-    const walking={x:api.diagnostics.playerX,flag:api.diagnostics.walking,render:window.__draws.at(-1),autoHit:api.diagnostics.soloGoblinHp.some(h=>h<35),auto:api.diagnostics.autoAttack,angle:api.diagnostics.attackAngle};
+    const walking={x:api.diagnostics.playerX,flag:api.diagnostics.walking,render:window.__draws.at(-1),autoHit:api.diagnostics.soloGoblinHp.some(h=>h<35),auto:api.diagnostics.autoAttack,angle:api.diagnostics.attackAngle,animatedSword:window.__draws.some(x=>x.attackT>0&&Number.isFinite(x.headFacing))};
     ev(canvas,'pointerup',21,px+80,py+9);
     api.frame(1102);
     const release={active:api.diagnostics.joystickActive,flag:api.diagnostics.walking,render:window.__draws.at(-1),
@@ -97,6 +100,7 @@ new Function(source);
    assert.equal(out.respawn.left,Math.round(w*.62)+'px','next gesture reanchors pad anywhere on arena');
    assert.ok(out.left.direction<-.85&&out.left.side===-1,'walking left flips the character');
    assert.ok(out.walking.auto&&out.walking.autoHit&&Number.isFinite(out.walking.angle),'moving near goblins automatically attacks and aims at them');
+   assert.ok(out.walking.animatedSword,'same upright hero gets an actual moving sword, not only a slash particle');
    assert.ok(out.attack.buttonAbsent&&out.attack.automatic,'New Zone has no Attack button');
    assert.ok(!out.mouse.joystick&&out.mouse.buttonAbsent,'desktop has automatic attack and no click controls');
    assert.equal(out.stopped.padVisible,false,'cleanup removes floating joystick');
@@ -104,5 +108,5 @@ new Function(source);
    await page.close();
   }
  }finally{await browser.close()}
- console.log('PASS V149: floating joystick, idle/walk, auto goblin hits without Attack button, targeted slash, 3 viewports.');
+ console.log('PASS V150: synchronized hero sword animation, no Attack button, mobile joystick and 3 viewports.');
 })().catch(e=>{console.error(e);process.exit(1)});
