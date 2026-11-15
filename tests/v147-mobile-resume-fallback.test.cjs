@@ -39,5 +39,5 @@ assert.ok(arena.includes('function drawArenaMobs(g,now,dt)'),'shared goblins ren
 assert.ok(arena.includes('function connect(match,id,ticket,rejoin=false)'),'same session rejoin');
 assert.ok(arena.includes("N.phase='waiting'"),'all-ready wait no 24 second timeout');
 assert.ok(arena.includes('N.retryTimer=setTimeout'),'Android resume retry');
-assert.ok(html.includes('<title>Night Watch v150 — Noćna Straža</title>'));
-console.log('V150 PASS: reconnect reservation, strict New Zone, shared goblins and cached medieval buildings');
+assert.ok(html.includes('<title>Night Watch v152 — Noćna Straža</title>'));
+console.log('V152 PASS: reconnect reservation, strict New Zone, shared goblins and cached medieval buildings');
