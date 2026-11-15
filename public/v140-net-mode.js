@@ -757,6 +757,17 @@ function connect(match,id,ticket,rejoin=false){
       N.presence.set(row[0],row[1]);
     renderPresence();return;
    }
+   if(m.t==='event'&&/^p[1-6]$/.test(m.id)){
+    if(m.id!==N.id||m.kind==='returned'){
+     const who=String(N.looks.get(m.id)?.look?.name||m.id.toUpperCase()).slice(0,24);
+     const words={joined:who+' has joined the game',returned:who+' se vratio u partiju',
+      left:who+' has left the game',paused:who+' je na pauzi',resumed:who+' se vratio iz pauze'};
+     announceArena(words[m.kind]);
+    }
+    return;
+   }
+   if(m.t==='waveStart'){announceArena('TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
+   if(m.t==='waveEnd'){announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');return}
    if(m.t==='roster'){
    status('V156 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
@@ -764,7 +775,9 @@ function connect(match,id,ticket,rejoin=false){
    N.phase='running';N.retry=0;N.lostSince=0;
    if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.lastFrame=0;status('V156 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
+   N.lastFrame=0;
+    if(N.paused&&ws.readyState===1)ws.send(JSON.stringify({t:'pause',paused:true}));
+    status('V156 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
   if(m.t==='s'){snapshot(m);return}
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
@@ -1033,12 +1046,12 @@ function frame(now){
  const dt=clamp((now-(N.lastFrame||now))/1000,0,.035);N.lastFrame=now;
  N.frames++;if(!N.fpsAt)N.fpsAt=now;if(now-N.fpsAt>1000){N.fps=Math.round(N.frames*1000/(now-N.fpsAt));N.frames=0;N.fpsAt=now}
  const v=input();
- const selecting=N.solo?!!N.soloChoice:!!N.choice;
+ const selecting=N.paused||(N.solo?!!N.soloChoice:!!N.choice);
  if(selecting){v.x=0;v.y=0}
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
   moveLocal(N.me,v.x*N.world.speed*dt*(N.me.speedMult||1),v.y*N.world.speed*dt*(N.me.speedMult||1));
-  if(N.solo){stepSolo(dt)}
+  if(N.solo){if(!N.paused)stepSolo(dt)}
   else {N.delta.x+=N.me.x-oldX;N.delta.y+=N.me.y-oldY;}
   const away=Math.hypot(N.me.x-N.me.tx,N.me.y-N.me.ty);
   if(!N.solo&&away>105){N.me.x=N.me.tx+(N.me.x-N.me.tx)*105/away;N.me.y=N.me.ty+(N.me.y-N.me.ty)*105/away}
@@ -1056,7 +1069,7 @@ function frame(now){
     N.ws.send(JSON.stringify({t:'look',look}));
    }
   }
-  if(N.ws?.readyState===1&&now-N.lastInput>=50&&N.ws.bufferedAmount<4000){
+  if(N.ws?.readyState===1&&now-N.lastInput>=(N.paused?500:50)&&N.ws.bufferedAmount<4000){
   const seq=++N.seq;N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
   if(N.pending.length>26)N.pending.shift();
   N.delta={x:0,y:0};N.lastInput=now;
