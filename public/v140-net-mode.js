@@ -204,13 +204,19 @@ function ui(){
  '#ns158Menu button{padding:11px;border-radius:9px;border:1px solid #8da993;background:#2b4b3e;color:#fff4ce;text-align:left;font-weight:800;min-height:42px}#ns158Menu .danger{background:#6c453b;border-color:#c88d79}'+
  '#ns158Menu p{font:11px/1.4 system-ui;color:#c3d4ca;margin:2px 0 1px}'+
  '#ns160Open{background:#315b53!important;border-color:#c9d099!important}'+
+ '#ns158Menu{max-height:calc(100dvh - 77px);overflow-y:auto;overscroll-behavior:contain}'+
+ '#ns163VoiceSettings{display:grid;gap:6px;border:1px solid #5e9d82;padding:8px;border-radius:9px;background:#183b33}'+
+ '#ns163VoiceSettings strong{font:800 11px system-ui;color:#c9efcc}'+
+ '#ns163VoiceSettings p{margin:0;font:10px/1.3 system-ui;color:#c8dbce}'+
+ '#ns163VoiceMic{touch-action:none;user-select:none;-webkit-user-select:none;background:#275a45!important}'+
+ '#ns163VoiceMode{font-size:11px}'+
  '@media(max-width:780px){#ns140Bar{flex-wrap:nowrap;min-height:47px;padding:5px 8px}#ns140Status{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}#ns140Stats{max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ns152Music,#ns152Sound,#ns157Pause,#ns140Close{display:none}}'+
  '#ns140Pad.active{display:block}'+
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
  root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V162 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
- '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns160Open" type="button">🛠 SANDBOX / TEST LAB</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U MP igra teče dok svi povezani igrači ne izglasaju pauzu. Samo host uređuje Sandbox.</p></div>'+
+ '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><div id="ns163VoiceSettings"><strong>🎙 GLASOVNI CHAT · MULTIPLAYER</strong><button id="ns163VoiceMode" type="button">🎙 REŽIM: PTT · DRŽI</button><button id="ns163VoiceMic" type="button">🎙 DRŽI DA PRIČAŠ</button><button id="ns163VoiceOff" type="button">🔇 UGASI MIKROFON</button><p id="ns163VoiceHint">Drži dugme ili V · pusti da se utiša. Zvučnik je iznad heroja.</p></div><button id="ns160Open" type="button">🛠 SANDBOX / TEST LAB</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U MP igra teče dok svi povezani igrači ne izglasaju pauzu. Samo host uređuje Sandbox.</p></div>'+
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
@@ -240,6 +246,7 @@ function ui(){
   menuButton.setAttribute('aria-expanded',String(opening));
   if(opening&&el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
   el('ns158MenuPause').textContent=N.solo?'▶ NASTAVI':LAB_PAUSE.paused?'▶ NASTAVI SVIMA':'🗳 GLASAJ ZA PAUZU';
+  refreshVoiceMenu();
  };
  el('ns158MenuPause').onclick=()=>{
   if(N.solo){closeArenaMenu();if(N.paused)toggleArenaPause(false)}
@@ -261,6 +268,30 @@ function ui(){
  el('ns158MenuMusic').onclick=()=>{A()?.unlock();A()?.set('music',!A()?.music);refreshAudioButtons()};
  el('ns158MenuSound').onclick=()=>{A()?.unlock();A()?.set('sound',!A()?.sound);refreshAudioButtons()};
  refreshAudioButtons();
+ const pttMode=el('ns163VoiceMode'),pttMic=el('ns163VoiceMic'),pttOff=el('ns163VoiceOff');
+ function refreshVoiceMenu(){
+  const voice=window.NS159_VOICE,disabled=N.solo||N.phase==='idle';
+  const kind=voice?.mode||'ptt';
+  pttMode.textContent=kind==='ptt'?'🎙 REŽIM: PTT · DRŽI':'🎙 REŽIM: TOGGLE · KLIK';
+  pttMode.disabled=disabled||!voice;
+  pttMic.textContent=kind==='ptt'?(voice?.transmitting?'🟢 GOVORIŠ — PUSTI':'🎙 DRŽI DA PRIČAŠ (V)'):
+   (voice?.microphoneOn?'🎙 UGASI MIC':'🎙 UKLJUČI MIC');
+  pttMic.disabled=disabled||!voice?.connected;
+  pttOff.disabled=disabled||!voice?.microphoneOn;
+  el('ns163VoiceHint').textContent=disabled?'Glasovni chat radi u multiplayer Novoj Zoni.':
+   !voice?.connected?'Povezujem glasovni server…':
+   kind==='ptt'?'Drži na telefonu ili slovo V na PC-ju. Ikonica iznad glave svetli dok govoriš.':
+   'Jedan klik uključi mikrofon, sledeći ga isključi. Zvučnik je iznad heroja.';
+ }
+ pttMode.onclick=()=>{
+  const voice=window.NS159_VOICE;if(!voice)return;
+  voice.setMode(voice.mode==='ptt'?'toggle':'ptt');refreshVoiceMenu();
+ };
+ pttOff.onclick=()=>{window.NS159_VOICE?.disableMic();refreshVoiceMenu()};
+ window.NS159_VOICE?.bindControl(pttMic);
+ window.addEventListener('ns159VoiceReady',()=>{window.NS159_VOICE?.bindControl(pttMic);refreshVoiceMenu()});
+ window.addEventListener('nsVoiceChanged',refreshVoiceMenu);
+ refreshVoiceMenu();
  for(const btn of root.querySelectorAll('[data-pick]')){
   btn.onclick=()=>{
    A()?.unlock();
