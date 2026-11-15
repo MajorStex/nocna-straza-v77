@@ -48,7 +48,7 @@ assert.ok(pauseStart>=0&&pauseEnd>pauseStart);
 let now=1000;const packets=[];
 const N={phase:'running',paused:false,solo:false,ws:{readyState:1,send:x=>packets.push(JSON.parse(x))},
  delta:{x:0,y:0},pending:[1,2],keys:new Set(['w']),stick:{x:1,y:0,ptr:3}};
-const ui={N,LAB_AUTO_PAUSE:false,window:{NS160_LAB:{active:false}},el:()=>null,Date:{now:()=>now},setTimeout:()=>1,Math};
+const ui={N,LAB_AUTO_PAUSE:false,window:{NS160_LAB:{active:false}},closeArenaMenu:()=>{},el:()=>null,Date:{now:()=>now},setTimeout:()=>1,Math};
 vm.createContext(ui);vm.runInContext(client.slice(pauseStart,pauseEnd)+';this.pause=toggleArenaPause;',ui);
 ui.pause();assert.equal(N.paused,true);assert.equal(N.pending.length,0);
 assert.deepEqual(packets[0],{t:'pause',paused:true});
