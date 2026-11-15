@@ -10,7 +10,7 @@ assert.match(client,/N\.lookSyncEnabled=Number\(m\.serverBuild\)>=153/,
  'appearance sync is enabled only on V153 server');
 assert.match(client,/ws\.send\(JSON\.stringify\(\{t:'look',look\}\)\)/,
  'appearance is sent once after capability negotiation');
-assert.match(client,/if\(m\.t==='look'\)\{rememberLook\(m\.id,m\.revision,m\.look\);return\}/);
+assert.match(client,/if\(m\.t==='look'\)\{rememberLook\(m\.id,m\.revision,m\.look\);renderPresence\(\);return\}/);
 assert.match(client,/N\.looks\.get\(p\.id\)\?\.look/);
 assert.match(client,/N\.lastLookCheck>=850/,'cosmetics not transmitted on every frame');
 assert.match(client,/p\.hp\/\(p\.maxHp\|\|100\)/,'scaled look does not change health');
