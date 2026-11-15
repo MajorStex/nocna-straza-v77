@@ -1,0 +1,46 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'../public'),read=name=>fs.readFileSync(path.join(root,name),'utf8');
+const html=read('index.html'),game=read('v140-net-mode.js'),village=read('v115-village.js'),
+ controller=read('v165-classic-voice.js'),voice=read('v159-voice.js');
+assert.match(html,/<title>Night Watch v166/);
+assert.match(html,/v165-classic-voice\.js\?v=166/);
+assert.match(html,/v115-village\.js\?v=166/);
+assert.match(html,/v140-net-mode\.js\?v=166/);
+assert(html.indexOf('v115-village.js')<html.indexOf('v165-classic-voice.js'));
+assert(html.indexOf('v165-classic-voice.js')<html.indexOf('v140-net-mode.js'));
+assert.match(html,/function ns165StartClassicVoice\(\)/);
+assert.match(html,/window\.NS165_CLASSIC_VOICE\?\.host/);
+assert.match(html,/window\.NS165_CLASSIC_VOICE\?\.receive/);
+assert.match(html,/window\.NS165_CLASSIC_VOICE\?\.syncGuest/);
+assert.match(html,/window\.NS165_CLASSIC_VOICE\?\.decorateLobby/);
+assert.match(html,/window\.NS165_CLASSIC_VOICE\?\.drawBadge/);
+assert.match(html,/window\.NS165_CLASSIC_VOICE\?\.suspend/);
+assert.match(html,/window\.NS165_CLASSIC_VOICE\?\.leave/);
+assert.match(village,/voicePosition:id=>/);
+assert.match(village,/NS165_CLASSIC_VOICE\?\.drawBadge/);
+assert.match(controller,/const API='https:\/\/nocna-straza-relay/);
+assert.match(controller,/classic-voice\/create/);
+assert.match(controller,/v159-voice\.js\?v=166/);
+assert.match(controller,/function toggleMode/);
+assert.match(controller,/function syncAll/);
+assert.match(controller,/const ownVoice=/);
+assert.match(controller,/mode='toggle'/);
+assert.match(voice,/const CLASSIC_RELAY=/);
+assert.match(voice,/current\.classic\?CLASSIC_RELAY:RELAY/);
+assert.match(voice,/get classic\(\)/);
+assert.match(voice,/get activeMatch\(\)/);
+assert.match(game,/v159-voice\.js\?v=166/);
+assert.match(html,/function sendSnapshot\(\)/,'original classic battle networking remains installed');
+assert.match(html,/function ns132SendMotion\(\)/,'original movement and model renderer remain installed');
+assert.match(html,/function draw\(\)/,'original campaign renderer remains installed');
+assert.match(html,/function startLobbyMatch\(\)/,'normal classical READY flow remains intact');
+assert.doesNotMatch(controller,/localStorage|sessionStorage|indexedDB|awardMP|coopXP/);
+for(const src of [village,controller,voice,game])new Function(src);
+let inline=0;
+for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)){
+ if(/\bsrc=/.test(m[1]))continue;
+ new Function(m[2]);inline++;
+}
+assert(inline>=4);
+console.log('V166 CLASSIC PASS: old visuals and lobby unchanged, voice in lobby/Village/battle, separate authenticated audio and New Zone mic ownership');
