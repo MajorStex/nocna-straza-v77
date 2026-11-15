@@ -52,7 +52,7 @@ const players=[['p1',5480,8950,100,-100,1,0,0,-1,100,0],
    assert.equal(initial.legacyMode,true);
    assert.equal(initial.legacyProps,67);
    assert.equal(initial.closed,false);
-   assert.ok(initial.grid>50);
+   assert.equal(initial.grid,48,'original corner obstacles occupy exactly 48 indexed cells');
    assert.match(initial.connection,/nocna-straza-relay-v159-test/,'must not contact stable Worker');
    assert.ok(initial.artCache>0,'old hand-drawn props prewarmed');
    pages.push(page);
