@@ -14,7 +14,7 @@ assert.match(html,/if\(selectedMode==='arena140'\)[\s\S]{0,450}NS140_ARENA\.star
  'new arena branches before legacy startGame call');
 assert.match(html,/data\.t==='arena140Offer'/,'guests receive transfer over old lobby');
 assert.match(html,/window\.NS140_ARENA\?\.active/,'single shared requestAnimationFrame loop');
-assert.match(html,/src="\.\/v140-net-mode\.js\?v=163"/,'V140 module must be served by frontend');
+assert.match(html,/src="\.\/v140-net-mode\.js\?v=164"/,'V140 module must be served by frontend');
 assert.match(client,/\/arena\/create/,'host reserves independent server');
 assert.match(client,/\/arena\/'\+match/,'new WebSocket endpoint is not the old room path');
 assert.doesNotMatch(client,/sendSnapshot|ns132SendMotion|performAttack|coopXP|awardMP|localStorage\.setItem/,
