@@ -323,7 +323,9 @@ function toggleArenaPause(force){
   if(N.soloChoice)N.soloChoice.until+=spent;
   if(N.soloState==='between')N.soloBetweenUntil+=spent;
  }
- closeArenaMenu();
+ // Keep isolated pause tests independent of menu-UI helpers.
+ if(el('ns158Menu'))el('ns158Menu').hidden=true;
+ el('ns158MenuBtn')?.setAttribute?.('aria-expanded','false');
  N.paused=paused;N.pausedAt=paused?Date.now():0;N.delta={x:0,y:0};N.pending.length=0;
  N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  el('ns140Pad')?.classList.remove('active');
