@@ -25,6 +25,7 @@ assert.match(html,/NS140_ARENA\?\.startSolo\?\.\(\)/,'solo starts from the mode 
 assert.match(client,/function startSolo\(\)/,'client provides independent solo entry');
 const soloSource=client.slice(client.indexOf('function startSolo()'),client.indexOf('function stepSolo('));
 assert.ok(!/fetch\(|new WebSocket|\.send\(/.test(soloSource),'solo must not connect to Cloudflare or send remote commands');
-assert.match(client,/function stepSolo\(dt,attackHeld\)/,'offline movement and combat have a local simulation');
+assert.match(client,/function stepSolo\(dt\)/,'offline movement and automatic combat have a local simulation');
+assert.doesNotMatch(client,/ns140Hit|attackHeld|N\.attack/,'New Zone must never require a manual Attack control');
 assert.match(client,/if\(wasSolo\).*showPreRun/,'back to solo choose-mode, not multiplayer lobby');
 console.log('V140 frontend + solo QA PASS: account-level 7 gate, isolated lobby handoff, no old gameplay, syntax and input bounds');
