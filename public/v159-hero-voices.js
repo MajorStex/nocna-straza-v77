@@ -16,12 +16,13 @@ const B=()=>window.__NS110_BRIDGE||{};
 let positions=()=>null;
 const settings=()=>B().getHeroVoicePreference?.()||{share:false,hear:false,volume:.52};
 const enabled=()=>window.NS152_AUDIO?.sound!==false&&!document.hidden;
+const volume=()=>{const n=Number(settings().volume);return clamp(Number.isFinite(n)?n:.52,0,1)};
 const attenuation=distance=>.11+.89*Math.exp(-Math.max(0,distance)/490);
 function sourcePosition(id){return positions(id)||null}
 function gainFrom(source){
  const me=sourcePosition(seat),other=sourcePosition(source);
  const d=me&&other?Math.hypot(other.x-me.x,other.y-me.y):1200;
- return {gain:attenuation(d)*clamp(Number(settings().volume)||.52,0,1)*.86,
+ return {gain:attenuation(d)*volume()*.86,
   pan:me&&other?clamp((other.x-me.x)/780,-.55,.55):0};
 }
 function unlock(){
@@ -66,7 +67,7 @@ async function play(state,source){
  if(!enabled()||playing>=3)return false;
  const self=source===seat;
  if(!self&&!settings().hear)return false;
- const {gain,pan}=self?{gain:clamp(Number(settings().volume)||.52,0,1)*.86,pan:0}:gainFrom(source);
+ const {gain,pan}=self?{gain:volume()*.86,pan:0}:gainFrom(source);
  if(gain<.001)return false;
  const media=await decode(state);
  if(!enabled()||(!self&&!settings().hear)||playing>=3)return false;
@@ -99,7 +100,7 @@ function ready(key,state,owner){
  if(state.queuedAt&&now()-state.queuedAt<4500)void play(state,owner);
 }
 function onPart(msg){
- if(!settings().hear||!enabled()||!valid(msg.id)||!KINDS.has(msg.kind)||
+ if(!settings().hear||!valid(msg.id)||!KINDS.has(msg.kind)||
   !/^p[1-6]$/.test(msg.from)||msg.from===seat||
   !Number.isInteger(msg.part)||!Number.isInteger(msg.total)||msg.total<1||
   msg.total>MAX_PARTS||msg.part<0||msg.part>=msg.total||
@@ -137,7 +138,19 @@ function onCue(msg){
  const key=stateKey(msg.from,msg.id),clip=cache.get(key);
  if(clip){void play(clip,msg.from);return}
  const inflight=incoming.get(key);
- if(inflight){inflight.queuedAt=now();return}
+ if(inflight){
+  inflight.queuedAt=now();
+  // Missing UDP-like behavior isn't assumed: WebSocket is ordered, but a
+  // mobile reconnect can interrupt chunk transfer. Request the full cached
+  // clip again only when one-time transfer remained incomplete after 900 ms.
+  const want=session;
+  setTimeout(()=>{
+   if(want!==session||cache.has(key)||!incoming.has(key)||!settings().hear)return;
+   if(now()-(asked.get(key)||-100000)<4800)return;
+   asked.set(key,now());send({t:'vn',owner:msg.from,id:msg.id,kind:msg.kind});
+  },900);
+  return;
+ }
  if(now()-(asked.get(key)||-100000)<4800)return;
  asked.set(key,now());
  send({t:'vn',owner:msg.from,id:msg.id,kind:msg.kind});
