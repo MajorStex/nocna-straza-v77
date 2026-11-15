@@ -220,7 +220,7 @@ function ui(){
  // Lazy-load independent voice client only when entering New Zone.
  if(!window.NS159_VOICE&&!document.getElementById('ns159VoiceScript')){
   const voiceScript=document.createElement('script');voiceScript.id='ns159VoiceScript';
-  voiceScript.src='./v159-voice.js?v=159';voiceScript.async=true;
+  voiceScript.src='./v159-voice.js?v=161';voiceScript.async=true;
   document.head.append(voiceScript);
  }
  el('ns140Close').onclick=()=>stop(true);
@@ -1233,6 +1233,24 @@ function drawArenaPlayerBody(g,p,now,dt){
  drawTargetedSlash(g,p,motion,age);
  g.restore();
 }
+// V161: one tiny cached-Canvas overlay per visible hero; no DOM nodes or game packets.
+function drawArenaVoiceBadge(g,id,x,y){
+ const mode=window.NS159_VOICE?.badgeState?.(id);
+ if(!mode)return;
+ // Muted speech activity = grey-green; real voice frames = bright green with waves.
+ g.save();
+ g.translate(x,y);
+ g.fillStyle=mode===2?'#1e613f':'#273c34';
+ g.strokeStyle=mode===2?'#b7f1a8':'#7faaa0';g.lineWidth=1.5;
+ g.beginPath();g.roundRect(-11,-9,22,18,5);g.fill();g.stroke();
+ g.fillStyle=mode===2?'#f3ffe3':'#b1c7bd';
+ g.beginPath();g.moveTo(-7,-3);g.lineTo(-4,-3);g.lineTo(0,-7);
+ g.lineTo(0,7);g.lineTo(-4,3);g.lineTo(-7,3);g.closePath();g.fill();
+ g.strokeStyle=mode===2?'#ecffbb':'#8eaea3';g.lineWidth=1.5;g.lineCap='round';
+ g.beginPath();g.arc(0,0,4.5,-.85,.85);g.stroke();
+ if(mode===2){g.beginPath();g.arc(0,0,7,-.85,.85);g.stroke()}
+ g.restore();
+}
 function drawArenaPlayerLabel(g,p){
  const look=N.looks.get(p.id)?.look||(p.id===N.id?localArenaLook():B().getVillageHeroLook?.(p.id));
  const visualSize=clamp(Number(look?.visualSize)||.79,.7,1.12),labelY=p.y-72-(visualSize-.79)*35;
@@ -1241,6 +1259,7 @@ function drawArenaPlayerLabel(g,p){
  g.fillStyle='#a8e2a6';g.fillRect(p.x-22,labelY+8,44*clamp(p.hp/(p.maxHp||100),0,1),3);
  g.fillStyle='#f0dfb6';g.font='bold 11px sans-serif';g.textAlign='center';
  g.fillText(p.id===N.id?'TI':(look?.name||p.id),p.x,labelY);
+ drawArenaVoiceBadge(g,p.id,p.x+38,labelY-2);
  g.restore();
 }
 function drawDepthSortedWorld(g,now,dt,visible){
