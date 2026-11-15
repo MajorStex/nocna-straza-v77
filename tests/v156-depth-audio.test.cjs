@@ -5,9 +5,9 @@ const client=fs.readFileSync(path.join(base,'v140-net-mode.js'),'utf8');
 const sprite=fs.readFileSync(path.join(base,'v154-goblin-renderer.js'),'utf8');
 const audio=fs.readFileSync(path.join(base,'v152-arena-audio.js'),'utf8');
 const html=fs.readFileSync(path.join(base,'index.html'),'utf8');
-assert.match(html,/<title>Night Watch v157 — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v158 — Noćna Straža<\/title>/);
 for(const asset of ['v140-net-mode.js','v154-goblin-renderer.js','v152-arena-audio.js'])
- assert.ok(html.includes(asset+'?v=157'),'mobile PWA must refresh '+asset);
+ assert.ok(html.includes(asset+'?v='+(asset==='v140-net-mode.js'?158:157)),'mobile PWA must refresh '+asset);
 assert.match(sprite,/function prepare\(mobs,opt\)/);
 assert.match(sprite,/function drawOne\(g,entry,opt\)/);
 assert.match(client,/jobs\.sort\(\(a,b\)=>a\.depth-b\.depth\|\|a\.kind-b\.kind/);
