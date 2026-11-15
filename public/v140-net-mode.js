@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 if(window.NS140_ARENA)return;
-const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,V=()=>window.NS159_VOICES||null,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,V=()=>window.NS159_VOICES||null,L=()=>window.NS159_LIVE||null,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Shared V152 crowd formula identical to server navigation and 30Hz movement.
 // V150: predictable, allocation-bounded movement for New Zone's PvE mobs.
 // Only the server decides positions. Each player destination gets one cached
@@ -237,14 +237,17 @@ function ui(){
  '#ns158Menu button{padding:11px;border-radius:9px;border:1px solid #8da993;background:#2b4b3e;color:#fff4ce;text-align:left;font-weight:800;min-height:42px}#ns158Menu .danger{background:#6c453b;border-color:#c88d79}'+
  '#ns158Menu p{font:11px/1.4 system-ui;color:#c3d4ca;margin:2px 0 1px}'+
  '#ns159GateOpen[hidden]{display:none!important}'+
+ '#ns159TalkBtn{position:absolute;right:max(12px,env(safe-area-inset-right));bottom:max(132px,calc(env(safe-area-inset-bottom) + 123px));z-index:7;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:98px;min-height:49px;padding:9px;border:2px solid #92c6af;border-radius:13px;background:#234e42e8;color:#f9e9c2;font:800 12px system-ui;touch-action:manipulation;box-shadow:0 4px 14px #041613a8}'+
+ '#ns159TalkBtn[hidden]{display:none!important}#ns159TalkBtn[aria-pressed=true]{background:#a13232e9;border-color:#ffb1a1}'+
+ '#ns159TalkBtn small{font:10px system-ui;color:#d4e7d4}#ns159LiveHear[hidden]{display:none!important}'+
  '@media(max-width:780px){#ns140Bar{flex-wrap:nowrap;min-height:47px;padding:5px 8px}#ns140Status{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}#ns140Stats{max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ns152Music,#ns152Sound,#ns157Pause,#ns140Close{display:none}}'+
  '#ns140Pad.active{display:block}'+
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
  root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V158 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
- '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns159MenuShare" type="button">🎙 DELI SNIMLJENE REPLIKE</button><button id="ns159MenuHear" type="button">👂 ČUJ GLASOVE SAIGRAČA</button><button id="ns159MenuVoiceTest" type="button">▶ PROBA GLASA</button><button id="ns159GateOpen" type="button" hidden>🔑 OTVORI STARU KAPIJU</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
- '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
+ '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns159MenuShare" type="button">🎙 DELI SNIMLJENE REPLIKE</button><button id="ns159MenuHear" type="button">👂 ČUJ GLASOVE SAIGRAČA</button><button id="ns159MenuVoiceTest" type="button">▶ PROBA GLASA</button><button id="ns159LiveHear" type="button">🎧 ČUJ GLAS UŽIVO</button><button id="ns159GateOpen" type="button" hidden>🔑 OTVORI STARU KAPIJU</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
+ '<button id="ns159TalkBtn" type="button" aria-label="Uključi ili isključi mikrofon uživo" aria-pressed="false" hidden>🎤 PRIČAJ<small id="ns159TalkStatus">Mic isključen</small></button><div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
@@ -259,6 +262,7 @@ function ui(){
   menuPanel.hidden=!menuPanel.hidden;menuButton.setAttribute('aria-expanded',String(!menuPanel.hidden));
   el('ns158MenuPause').textContent=N.paused?'▶ NASTAVI':'⏸ PAUZIRAJ';
   el('ns159GateOpen').hidden=!N.world.legacyMode||!!N.world.legacyGateOpen||N.solo;
+  if(el('ns159LiveHear'))el('ns159LiveHear').textContent=L()?.status().listen?'✅ ČUJ GLAS UŽIVO':'⬜ ČUJ GLAS UŽIVO';
   const pref=V()?.settings()||{share:false,hear:false};
   if(el('ns159MenuShare'))el('ns159MenuShare').textContent=(pref.share?'✅':'⬜')+' DELI SNIMLJENE REPLIKE';
   if(el('ns159MenuHear'))el('ns159MenuHear').textContent=(pref.hear?'✅':'⬜')+' ČUJ GLASOVE SAIGRAČA';
@@ -273,6 +277,17 @@ function ui(){
  el('ns159MenuHear').onclick=()=>{
   const settings=V()?.settings()||{hear:false};B().coopVoiceUpdatePreference?.('hear',!settings.hear);
   el('ns159MenuHear').textContent=(!settings.hear?'✅':'⬜')+' ČUJ GLASOVE SAIGRAČA';
+ };
+ el('ns159LiveHear').onclick=()=>{
+  const enable=!(L()?.status().listen??true);
+  L()?.setListening(enable);L()?.unlock();
+  el('ns159LiveHear').textContent=enable?'✅ ČUJ GLAS UŽIVO':'⬜ ČUJ GLAS UŽIVO';
+ };
+ el('ns159TalkBtn').onclick=()=>{
+  L()?.unlock();
+  void L()?.toggle().then(ok=>{
+   if(!ok){const error=L()?.status().error;if(error)announceArena('🎙 '+error)}
+  });
  };
  el('ns159MenuVoiceTest').onclick=()=>{
   V()?.unlock();
@@ -425,13 +440,22 @@ function status(note){
  ui();el('ns140Root').hidden=false;el('ns140Status').textContent=note;
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
+function refreshLiveTalk(st=L()?.status()){
+ const button=el('ns159TalkBtn');if(!button)return;
+ button.hidden=N.solo||!st?.session||!['waiting','running','connecting','reconnecting'].includes(N.phase);
+ button.disabled=!st?.available||!st.session;
+ button.setAttribute('aria-pressed',String(!!st.talking));
+ button.firstChild.textContent=st.talking?'🔴 MIC UKLJUČEN':st.connecting?'⏳ MIC...':'🎤 PRIČAJ';
+ const line=el('ns159TalkStatus');
+ if(line)line.textContent=st.error?'Glas nije povezan':st.connected+'/'+st.possible+' saigrača';
+}
 function stop(notify=false){
  const wasSolo=N.solo;
  if(notify&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'leave'}))}catch{}
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
- V()?.stop();A()?.stop();closeArenaMenu();N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
+ L()?.stop();V()?.stop();A()?.stop();closeArenaMenu();N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
  N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.collisionGrid=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
@@ -842,6 +866,7 @@ function connect(match,id,ticket,rejoin=false){
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
  N.ws=ws;
  V()?.unlock();
+ L()?.unlock();
  if(N.timeout)clearTimeout(N.timeout);
  N.timeout=setTimeout(()=>{
   if(N.ws!==ws||!['connecting','reconnecting'].includes(N.phase))return;
@@ -867,6 +892,9 @@ function connect(match,id,ticket,rejoin=false){
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;N.collisionGrid=createArenaCollisionGrid(N.world);N.phase='waiting';
    V()?.attach(ws,id,seat=>{const player=N.players.get(seat);return player?{x:player.x,y:player.y}:null});
+   L()?.attach(ws,id,m.seats||[],seat=>{
+    const player=N.players.get(seat);return player?{x:player.x,y:player.y}:null;
+   },refreshLiveTalk);
     if(N.world.legacyMode)window.NS159_LEGACY_COMPOUND?.prewarm(N.world.legacyItems||[]);
     window.NS154_GOBLINS?.prewarm();window.NS159_TROLL?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
@@ -882,6 +910,7 @@ function connect(match,id,ticket,rejoin=false){
     }
    status('V158 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
+  if(m.t==='rtc'){L()?.receive(m);return;}
   if(V()?.receive(m))return;
   if(m.t==='look'){rememberLook(m.id,m.revision,m.look);renderPresence();return}
    if(m.t==='presence'&&Array.isArray(m.players)){
@@ -889,7 +918,8 @@ function connect(match,id,ticket,rejoin=false){
     for(const row of m.players)if(Array.isArray(row)&&/^p[1-6]$/.test(row[0])&&
        ['online','joining','background','reconnecting','disconnected','paused'].includes(row[1]))
       N.presence.set(row[0],row[1]);
-    renderPresence();return;
+    renderPresence();
+    L()?.syncOnline(m.players.filter(r=>Array.isArray(r)&&r[1]==='online').map(r=>r[0]));return;
    }
    if(m.t==='event'&&/^p[1-6]$/.test(m.id)){
     if(m.id!==N.id||m.kind==='returned'){
@@ -919,6 +949,7 @@ function connect(match,id,ticket,rejoin=false){
     return;
    }
    if(m.t==='roster'){
+   L()?.syncOnline(m.ready||[]);
    status('V158 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
   if(m.t==='start'){
@@ -953,7 +984,7 @@ function connect(match,id,ticket,rejoin=false){
  };
  ws.onclose=e=>{
   if(N.ws!==ws||['idle','ended','error'].includes(N.phase))return;
-  V()?.stop();
+  L()?.stop();V()?.stop();
   if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
   N.ws=null;
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
