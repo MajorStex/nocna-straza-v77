@@ -351,28 +351,56 @@ function snapshot(m){
 
 /* Local-only entry for the SAME V140 arena. Never creates a lobby, WebSocket or
    a Cloudflare request. Practice goblins are temporary test content (0 XP). */
+const SOLO_MOB_POINTS=[
+ [180,75],[365,75],[550,75],[735,75],[180,300],[365,300],
+ [550,300],[735,300],[180,525],[365,525],[550,525],[735,525],
+ [880,85],[1065,85],[1280,90],[1520,145],[1530,360],[1580,585],
+ [1510,850],[1320,1000],[1060,1000],[870,1010],[650,960],[330,975],
+ [90,900],[90,700],[950,405],[900,640],[1230,450],[1375,520],
+ [590,750],[280,640],[1420,230],[1180,790],[790,920],[510,900]
+];
+function buildSoloWave(wave){
+ return Array.from({length:Math.min(36,9+Math.min(wave,9)*3)},(_,i)=>{
+  const point=SOLO_MOB_POINTS[(i+(wave-1)*3)%SOLO_MOB_POINTS.length],hp=Math.min(115,35+(wave-1)*9);
+  return {id:i,x:point[0],y:point[1],sx:point[0],sy:point[1],hp,maxHp:hp,
+   attackAt:(i%4)*7,attackTick:-100,deadUntil:0,hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0};
+ });
+}
+function soloWaveDone(){
+ N.soloState='between';const me=N.me;
+ const chest={id:100+N.soloWave,x:clamp(me.x+62,35,N.world.w-35),
+  y:clamp(me.y+62,35,N.world.h-35),opened:true};
+ N.soloChests.push(chest);
+ if(N.soloChests.length>12)N.soloChests=N.soloChests.slice(-12);
+ N.soloChoice={id:chest.id,seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
+ N.choiceUiId='';A()?.play('chest');
+}
+
 function startSolo(){
  if(B().currentProfileLevel?.()<7||B().NET?.role||!['idle','error'].includes(N.phase))return false;
  if(N.ws){try{N.ws.close()}catch{}N.ws=null}
  N.solo=true;N.phase='running';N.id='p1';N.match='offline';N.ticket='';
- N.world={w:960,h:600,r:14,speed:156,obstacles:[
+ N.world={w:1680,h:1080,r:14,speed:156,obstacles:[
   {x:275,y:140,w:95,h:92},{x:585,y:330,w:102,h:94},
-  {x:435,y:245,w:75,h:84},{x:165,y:350,w:87,h:58}
+  {x:435,y:245,w:75,h:84},{x:165,y:350,w:87,h:58},
+  {x:790,y:170,w:126,h:104},{x:1120,y:275,w:106,h:110},
+  {x:1230,y:650,w:140,h:110},{x:720,y:730,w:116,h:100},
+  {x:1005,y:875,w:120,h:90},{x:395,y:785,w:100,h:105},
+  {x:1460,y:410,w:110,h:104},{x:1020,y:485,w:94,h:94}
  ]};
  N.seq=N.ack=N.soloTick=N.soloKills=0;N.tick=-1;
  N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;
+ N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
+ N.soloChests=[{id:1,x:530,y:465,opened:false},{id:2,x:960,y:580,opened:false},{id:3,x:1470,y:820,opened:false}];
+ N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();
  N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt,y*N.world.speed*dt));
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.stick.ptr=null;N.stick.x=N.stick.y=0;
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
- N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,attackTick:-100,online:true,knocked:false};
+ N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
  N.players.set('p1',N.me);
- N.soloMobs=Array.from({length:12},(_,i)=>({
-  id:i,x:180+(i%4)*185,y:75+Math.floor(i/4)*225,
-  sx:180+(i%4)*185,sy:75+Math.floor(i/4)*225,
-  hp:35,attackAt:(i%4)*7,attackTick:-100,deadUntil:0,hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0
- }));
- status('V149 · SOLO · AUTO NAPAD · TEST GOBLINI · 0 XP');
+ N.soloMobs=buildSoloWave(1);
+ status('V152 · SOLO · TALASI I SANDUCI · 0 XP');
  return true;
 }
 function stepSolo(dt){
