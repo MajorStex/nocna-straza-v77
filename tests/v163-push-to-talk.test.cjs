@@ -78,7 +78,7 @@ const micSignals=()=>ws.sent.filter(v=>typeof v==='string').map(v=>JSON.parse(v)
  assert(processor?.onaudioprocess,'browser audio pipeline ready');
  processor.onaudioprocess({inputBuffer:{getChannelData:()=>new Float32Array(4096).fill(.18)}});
  assert.equal(voice.badgeState('p1'),2,'speaker glows on actual speaking audio');
- assert(ws.sent.some(v=>v instanceof Uint8Array),'real encoded frames sent on voice-only socket');
+ assert(ws.sent.some(v=>ArrayBuffer.isView(v)),'real encoded frames sent on voice-only socket');
  hud.fire('pointerup',{pointerId:13});
  assert.equal(voice.transmitting,false);
  assert.equal(track.enabled,false);
