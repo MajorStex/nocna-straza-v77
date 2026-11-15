@@ -161,7 +161,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
  wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,uiAt:0,choiceUiId:'',
  soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
- solo:false,soloCrowd:null,soloMobs:[],mpMobs:[],mobHistory:[],mobRenderTick:null,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
+ solo:false,soloCrowd:null,soloMobs:[],mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -317,17 +317,20 @@ function snapshot(m){
  if(N.wave>priorWave)A()?.play('wave');
  if(N.choice&&N.choice.seq!==priorChoice){A()?.play('chest');N.choiceUiId=''}
  if(!N.choice&&priorChoice!==undefined)A()?.play('choose');
+ if(Number.isInteger(m.totalMobs)&&m.totalMobs>=12&&m.totalMobs<=80)N.hordeTotal=m.totalMobs;
  if(Array.isArray(m.mobs)){
   const previous=new Map(N.mpMobs.map(q=>[q.id,q]));
-  N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<64&&
+  N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<96&&
    Number.isFinite(q[1])&&Number.isFinite(q[2])&&Number.isFinite(q[3])).map(q=>{
    const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10,attackTick=Number(q[5])||-100;
    if(prev&&attackTick>0&&attackTick!==prev.attackTick)
     A()?.play('enemy',{sourceId:q[0],x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.4});
-   return {id:q[0],x:prev?.x??x,y:prev?.y??y,tx:x,ty:y,
-    hp:q[3],maxHp:Number(q[6])||35,hitTick:Number(q[4])||0,attackTick};
+   const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
+   mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
+   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;
+   return mob;
   });
-  // Tiny fixed-size position history (6 snapshots, max 12 goblins).
+  // Fixed-size position history: up to 80 goblins, six small network snapshots.
   // Render two network frames behind to hide 15Hz arrivals and mild jitter.
   N.mobHistory.push({tick:m.tick,positions:new Map(N.mpMobs.map(q=>[q.id,[q.tx,q.ty]]))});
   if(N.mobHistory.length>6)N.mobHistory.shift();
