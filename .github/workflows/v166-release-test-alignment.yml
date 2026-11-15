@@ -1,0 +1,34 @@
+name: V166 deploy gate regression version alignment
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/v159-voice.test.cjs'
+      - 'tests/v161-voice-badges.test.cjs'
+      - 'tests/v163-push-to-talk.test.cjs'
+      - 'tests/v138-village-pvp-animals.test.cjs'
+      - '.github/workflows/v166-release-test-alignment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - run: |
+          node tests/v159-voice.test.cjs
+          node tests/v161-voice-badges.test.cjs
+          node tests/v163-push-to-talk.test.cjs
+          node tests/v166-classic-sync.test.cjs
+          node tests/v166-lobby-mobile-width.test.cjs
+  village:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v138-village-pvp-animals.test.cjs
