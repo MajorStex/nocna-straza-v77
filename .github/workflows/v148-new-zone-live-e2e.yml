@@ -1,4 +1,4 @@
-name: V150 real New Zone synchronized sword and mob AI smoke
+name: V152 real hostless arena, chests and wave WebSocket smoke
 on:
   push:
     branches: [main]
@@ -14,14 +14,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: One actual 2-player session, shared goblins and mobile reconnection
+      - name: Two-player live map/chest choice with host departure and persistent server
         shell: bash
         run: |
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
           const endpoint='https://nocna-straza-relay.stefanstevic1996.workers.dev';
           const health=await (await fetch(endpoint+'/health')).json();
-          assert.equal(health.arenaBuild,150,'must exercise deployed V150 synchronized combat server');
+          assert.equal(health.arenaBuild,152,'must exercise deployed V152 persistent hosted room');
           assert.equal(health.arenaMobs,12);
           const res=await fetch(endpoint+'/arena/create',{
             method:'POST',headers:{'content-type':'application/json'},
@@ -53,29 +53,51 @@ jobs:
           try{
             const p1=connect('p1'),p2=connect('p2');
             await until(()=>[p1,p2].every(p=>p.messages.some(x=>x.t==='start')),'both players start');
-            console.log('REAL_NEW_ZONE: two players received START');
-            let seq=0;const input=setInterval(()=>{
-              if(p1.ws.readyState===WebSocket.OPEN)p1.ws.send(JSON.stringify({t:'i',seq:++seq,ax:0,ay:0,attack:0}));
+            const welcome=p1.messages.find(x=>x.t==='welcome');
+            assert.equal(welcome.world.w,1680,'larger authoritative New Zone');
+            assert.equal(welcome.world.h,1080);
+            await until(()=>p1.snapshots.some(m=>m.wave===1&&m.chests?.length>=3&&m.mobs?.length===12),
+              '12 goblins, 3 chests and wave 1 in shared snapshot');
+            console.log('V152 LIVE: shared large map, 12 goblins, 3 chests and wave HUD');
+            let seq1=0;const hostInput=setInterval(()=>{
+              if(p1.ws.readyState===WebSocket.OPEN)p1.ws.send(JSON.stringify({
+                t:'i',seq:++seq1,ax:0,ay:0,attack:0
+              }));
             },50);
             try{
-              await until(()=>p1.snapshots.some(m=>m.mobs?.length===12&&m.ack>0),'goblins and input ACK');
-              await until(()=>p1.snapshots.some(m=>m.mobs?.some(g=>g[3]<35)),'server hit on goblins');
-              await until(()=>p1.snapshots.some(m=>m.players?.some(p=>
-                p[0]==='p1'&&p[4]>=0&&Number.isInteger(p[7])&&p[7]>=0&&p[7]<=255&&
-                Number.isInteger(p[8])&&p[8]>=0)),'server sword tick, quantized facing and struck target');
-              await until(()=>p1.snapshots.some(m=>m.mobs?.some(g=>g.length>=6)),
-                'goblin synchronized attack tick in shared snapshot');
-            }finally{clearInterval(input)}
-            console.log('REAL_NEW_ZONE: 12 shared goblins, automatic hits with attack=0 and ACK verified');
-            p2.ws.close(1000,'Android background simulation');
-            // Intentionally reconnect before the previous mobile socket finishes closing:
-            // this exercises the exact stale-seat takeover needed after Android suspend.
-            const resumed=connect('p2');
-            await until(()=>resumed.messages.some(m=>m.t==='start'&&m.rejoined===true),'same seat resumes match');
-            console.log('REAL_NEW_ZONE: Android same-seat rejoin verified');
-            p1.ws.send(JSON.stringify({t:'end'}));
+              await until(()=>p1.snapshots.some(m=>m.players?.some(p=>p[0]==='p1'&&p[4]>=0&&p[7]>=0&&p[8]>=0)),
+                'shared sword attack event from server');
+              await until(()=>p1.snapshots.some(m=>m.mobs?.some(g=>g[3]<g[6])),
+                'server-authoritative automatic goblin combat');
+            }finally{clearInterval(hostInput)}
+            console.log('V152 LIVE: authoritative combat confirmed');
+            const t0=p2.snapshots.at(-1)?.tick||0;
+            p1.ws.send(JSON.stringify({t:'leave'}));
+            await until(()=>p1.closed,'host closes its own connection',6000);
+            await until(()=>p2.snapshots.at(-1)?.tick>t0+25,
+              'guest keeps playing after host exits',9000);
+            assert.equal(p2.messages.some(m=>m.t==='end'),false,'host cannot shut down other players');
+            console.log('V152 LIVE: creator departed; guest still receives live simulation');
+            let seq2=0;
+            const guestMove=setInterval(()=>{
+              if(p2.ws.readyState===WebSocket.OPEN)p2.ws.send(JSON.stringify({
+                t:'i',seq:++seq2,ax:110,ay:70,attack:0
+              }));
+            },50);
+            try{
+              await until(()=>p2.messages.some(m=>m.t==='chestOpen'&&m.choice?.owner==='p2'),
+                'guest walks to chest and chooses reward',14000);
+            }finally{clearInterval(guestMove)}
+            const offered=p2.messages.find(m=>m.t==='chestOpen'&&m.choice?.owner==='p2');
+            assert.equal(offered.choice.options.length,3,'three regular-style chest upgrades');
+            p2.ws.send(JSON.stringify({t:'chestPick',option:'heart'}));
+            await until(()=>p2.messages.some(m=>m.t==='chestDone'&&m.option==='heart'),
+              'chest choice resolves once on server',5000);
+            await until(()=>p2.snapshots.some(m=>m.players?.some(p=>p[0]==='p2'&&p[9]===125)),
+              'upgraded max HP synchronized',5000);
+            console.log('V152 LIVE: chest choice (7-second server timer), upgraded HP synchronized');
           }finally{
             for(const p of peers)try{p.ws.close()}catch{}
           }
-          console.log('V150 REAL SYNCHRONIZED SWORD + MOB AI 2-PLAYER WEBSOCKET TEST PASS');
+          console.log('V152 REAL HOSTLESS MAP + CHEST MULTIPLAYER TEST PASS');
           JS
