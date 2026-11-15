@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const src=fs.readFileSync(path.join(__dirname,'../public/v140-net-mode.js'),'utf8');
-const start=src.indexOf('function sampleOnlineMobs(now,dt){'),end=src.indexOf('function drawArenaMobs(g,now,dt){',start);
+const start=src.indexOf('function sampleOnlineMobs(now,dt){'),end=src.indexOf('function drawArenaMobs(g,now,dt,visible){',start);
 assert.ok(start>0&&end>start,'V151 has dedicated online mob snapshot interpolator');
 assert.ok(src.includes('N.soloCrowd.advance(N.soloMobs,N.players);'),'solo enemies move at fixed 30Hz');
 assert.ok(src.includes('mob.prevX=mob.x;mob.prevY=mob.y'),'solo keeps previous physics positions');
