@@ -159,7 +159,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
  players:new Map(),looks:new Map(),lastLookSignature:'',lastLookCheck:0,lookSyncEnabled:false,me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
- wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,uiAt:0,choiceUiId:'',
+ wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,hordeStepAt:0,uiAt:0,choiceUiId:'',
  soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
  solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 const el=id=>document.getElementById(id);
@@ -348,6 +348,9 @@ function snapshot(m){
    const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10,attackTick=Number(q[5])||-100;
    if(prev&&attackTick>0&&attackTick!==prev.attackTick)
     A()?.play('enemy',{sourceId:q[0],x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.4});
+   const hitTick=Number(q[4])||0;
+   if(prev&&hitTick>0&&hitTick!==prev.hitTick)
+    A()?.play('hit',{x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
    mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;
@@ -514,7 +517,8 @@ function stepSolo(dt){
     me.facingAngle=me.attackAngle;
     target.hitTick=N.soloTick;
     target.hp=Math.max(0,target.hp-(me.damage||22));
-    A()?.play('swing',{weapon:B().heroStyle?.weapon||'sword'});
+    A()?.play('swing',{weapon:localArenaLook().weapon||'sword'});
+    A()?.play('hit',{gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
     if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++;me.kills++}
    }
   }
@@ -1018,6 +1022,19 @@ function frame(now){
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
   top:me.y-r.height/2/zoom-90,bottom:me.y+r.height/2/zoom+90};
  drawDepthSortedWorld(g,now,dt,visible);
+ // Grouped horde steps. One sound per nearby crowd per 720ms, not 80 voices.
+ if(N.visibleMobs>1&&N.me&&now-N.hordeStepAt>=720){
+  N.hordeStepAt=now;
+  let nearest=null,distSq=155*155;
+  const nearby=N.solo?N.soloMobs:N.mpMobs;
+  for(const mob of nearby){
+   if(mob.hp<=0)continue;
+   const dx=mob.x-N.me.x,dy=mob.y-N.me.y,d2=dx*dx+dy*dy;
+   if(d2<distSq){nearest=mob;distSq=d2}
+  }
+  if(nearest)A()?.play('goblinStep',{x:nearest.x,y:nearest.y,
+   listenerX:N.me.x,listenerY:N.me.y,gain:.38});
+ }
  g.setTransform(dpr,0,0,dpr,0,0);
  sessionHud(now);
  // Avoid updating live DOM HUD sixty times per second on mid-range phones.
