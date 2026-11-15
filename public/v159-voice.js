@@ -9,7 +9,7 @@ if(window.NS159_VOICE)return;
 const RELAY='wss://nocna-straza-relay.stefanstevic1996.workers.dev/voice/';
 const RATE=12000,LOG=Math.log(256),MAX_BUFFER=.35;
 let session=null,socket=null,ready=false,context=null,master=null,limiter=null;
-let mic=null,source=null,filter=null,processor=null,silence=null,micOn=false;
+let mic=null,source=null,filter=null,processor=null,silence=null,micOn=false,micPending=false;
 let reconnectTimer=null,attempts=0,button=null,info=null,lastPacketAt=0;
 const speakers=new Map();
 const testSeat=x=>/^p[1-6]$/.test(String(x||''));
@@ -86,9 +86,11 @@ function capture(event){
  try{socket.send(bytes)}catch{}
 }
 async function startMic(){
+ if(micOn||micPending)return;
  if(!session||!ready||socket?.readyState!==WebSocket.OPEN){notice('Glasovni server još nije povezan.');return}
  const ctx=audio();
  if(!ctx||!navigator.mediaDevices?.getUserMedia||!ctx.createScriptProcessor){notice('Mikrofon nije podržan u ovom pregledaču.');return}
+ micPending=true;
  try{
   await ctx.resume();
   const stream=await navigator.mediaDevices.getUserMedia({audio:{
@@ -103,6 +105,7 @@ async function startMic(){
   for(const track of stream.getTracks())track.onended=stopMic;
   redraw();notice('Pričaš dok je mikrofon uključen · klikni ponovo za gašenje.');
  }catch{stopMic();notice('Mikrofon nije dozvoljen ili nije dostupan.')}
+ finally{micPending=false}
 }
 function closeSocket(){
  if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}
