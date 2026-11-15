@@ -67,7 +67,7 @@ function distanceGain(id){
 }
 function playback(packet){
  if(!session||document.hidden||!ready||packet.length<121)return;
- const seat='p'+packet[0];if(!testSeat(seat)||seat===session.id)return;
+ const seat='p'+String.fromCharCode(packet[0]);if(!testSeat(seat)||seat===session.id)return;
  // A received audio frame drives the icon; it does not touch game snapshots.
  lastVoice.set(seat,performance.now());
  const ctx=audio();if(!ctx||ctx.state!=='running')return;
