@@ -1242,7 +1242,7 @@ function drawArenaVoiceBadge(g,id,x,y){
  g.translate(x,y);
  g.fillStyle=mode===2?'#1e613f':'#273c34';
  g.strokeStyle=mode===2?'#b7f1a8':'#7faaa0';g.lineWidth=1.5;
- g.beginPath();g.roundRect(-11,-9,22,18,5);g.fill();g.stroke();
+ g.beginPath();g.rect(-11,-9,22,18);g.fill();g.stroke();
  g.fillStyle=mode===2?'#f3ffe3':'#b1c7bd';
  g.beginPath();g.moveTo(-7,-3);g.lineTo(-4,-3);g.lineTo(0,-7);
  g.lineTo(0,7);g.lineTo(-4,3);g.lineTo(-7,3);g.closePath();g.fill();
