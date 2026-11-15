@@ -12,7 +12,7 @@ assert.match(html,/<title>Night Watch v166/);
 assert.match(html,/v140-net-mode\.js\?v=166/);
 for(const id of ['ns163VoiceMode','ns163VoiceMic','ns163VoiceOff','ns163VoiceHint'])
  assert(gameSource.includes('id="'+id+'"'),'missing actual in-menu microphone setting: '+id);
-assert.match(gameSource,/voiceScript\.src='\.\/v159-voice\.js\?v=163'/);
+assert.match(gameSource,/voiceScript\.src='\.\/v159-voice\.js\?v=166'/);
 assert.match(gameSource,/drawArenaVoiceBadge\(g,p\.id,p\.x\+38,labelY-2\)/);
 assert.match(voiceSource,/let mode='ptt'/);
 assert.match(voiceSource,/if\(!transmitting\(\)\|\|!ready/);
