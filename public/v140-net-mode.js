@@ -353,7 +353,7 @@ function ui(){
   if(!el('ns158Menu')?.hidden){closeArenaMenu();return}
   if(N.phase!=='running'||N.paused||N.stick.ptr!==null)return;
   if(e.pointerType==='mouse')return; // Desktop steers with WASD; auto-attack never needs clicks.
-  e.preventDefault();A()?.unlock();N.stick.ptr=e.pointerId;
+  e.preventDefault();A()?.unlock();L()?.unlock();N.stick.ptr=e.pointerId;
   N.stick.startX=e.clientX;N.stick.startY=e.clientY;
   pad.style.left=e.clientX+'px';pad.style.top=e.clientY+'px';
   pad.classList.add('active');knob.style.transform='translate(0px,0px)';
