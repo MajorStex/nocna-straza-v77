@@ -7,6 +7,7 @@ on:
       - 'public/v140-net-mode.js'
       - 'tests/v155-colors-lobby-transfer.test.cjs'
       - 'tests/v153-looks.test.cjs'
+      - 'tests/v155-appearance-browser.test.cjs'
       - '.github/workflows/v155-colors-host-qa.yml'
   workflow_dispatch:
 permissions:
@@ -20,6 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Install mobile browser test dependency
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
       - name: Test the real renderer identity and same-code host transfer
         run: |
           node --check public/v140-net-mode.js
@@ -27,3 +30,4 @@ jobs:
           node tests/v155-colors-lobby-transfer.test.cjs
           node tests/v153-looks.test.cjs
           node tests/v140-isolated-arena.test.cjs
+          node tests/v155-appearance-browser.test.cjs
