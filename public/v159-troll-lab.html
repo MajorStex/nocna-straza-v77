@@ -573,7 +573,7 @@ window.__NS159_LAB_TEST=Object.freeze({
 const buffer=[];
 const draw=now=>{
  const dt=clamp((now-last)/1000||0,0,.05);last=now;
- frames++;if(!fpsT)fpsT=now;if(now-fpsT>800){fps=Math.round(frames*1000/(now-fpsT));frames=0;fpsT=now}
+ frames++;if(!fpsT)fpsT=now;if(now-fpsT>=350){fps=Math.round(frames*1000/(now-fpsT));frames=0;fpsT=now}
  const start=performance.now();
  const dpr=Math.min(devicePixelRatio||1,1.5),cw=cvs.clientWidth,ch=cvs.clientHeight;
  if(cvs.width!==Math.round(cw*dpr)||cvs.height!==Math.round(ch*dpr)){
