@@ -34,6 +34,7 @@ jobs:
         run: |
           node tests/v140-isolated-arena.test.cjs
           node tests/v151-mob-motion.test.cjs
+          node tests/v152-arena-features.test.cjs
           node tests/v153-looks.test.cjs
           node tests/v154-goblins.test.cjs
           node tests/v155-colors-lobby-transfer.test.cjs
