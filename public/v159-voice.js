@@ -273,6 +273,6 @@ document.addEventListener('keydown',event=>{
 });
 window.addEventListener('pageshow',()=>{if(session&&!socket&&!document.hidden)connect()});
 window.NS159_VOICE={mount,stop,badgeState,setMode,toggleMic,beginPTT,endPTT,bindControl,disableMic:stopMic,
- get connected(){return ready},get microphoneOn(){return micOn},get transmitting(){return transmitting()},get mode(){return mode}};
+ get connected(){return ready},get microphoneOn(){return micOn},get transmitting(){return transmitting()},get mode(){return mode},get activeMatch(){return session?.match||''},get classic(){return !!session?.classic}};
 window.dispatchEvent(new Event('ns159VoiceReady'));
 })();
