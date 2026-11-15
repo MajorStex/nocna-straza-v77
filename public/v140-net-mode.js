@@ -657,10 +657,14 @@ function buildSoloWave(wave){
    hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0,
    animDistance:0,animX:pt[0],animY:pt[1],facing:1,movingUntil:0};
  });
- if(wave===10&&spawnList.length){
-  const pos=spawnList.pop();
-  spawnList.push({...pos,id:95,kind:'troll',hp:900,maxHp:900,
-   attackAt:0,attackTick:-100,hitTick:-100,targetId:''});
+ if(wave>=10&&wave%10===0&&spawnList.length){
+  const n=Math.min(4,Math.floor(wave/10),spawnList.length);
+  const replaced=spawnList.splice(-n);
+  for(let i=0;i<n;i++){
+   const pos=replaced[i],hp=900+Math.floor(wave/10-1)*150;
+   spawnList.push({...pos,id:95-i,kind:'troll',hp,maxHp:hp,
+    attackAt:0,attackTick:-100,hitTick:-100,targetId:''});
+  }
  }
  return spawnList;
 }
@@ -1098,7 +1102,7 @@ function connect(match,id,ticket,rejoin=false){
     }
     return;
    }
-   if(m.t==='waveStart'){announceArena(m.wave===10?'🧌 TALAS 10 — TROL BOSS DOLAZI':'TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
+   if(m.t==='waveStart'){announceArena(m.wave%10===0?'🧌 TALAS '+m.wave+' — TROL BOSS!':'TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
    if(m.t==='waveEnd'){announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');return}
    if(m.t==='roster'){
    status('V166 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
@@ -1304,7 +1308,7 @@ function sessionHud(now){
  }
  const button=el('ns167Revive');
  if(button){
-  const me=N.me,near=me&&!N.solo&&me.hp>0&&!me.knocked&&!me.finalDead?
+  const me=N.me,near=me&&!N.solo&&LAB_SERVER_BUILD>=167&&me.hp>0&&!me.knocked&&!me.finalDead?
    [...N.players.values()].find(p=>p.id!==N.id&&p.knocked&&p.online&&
     (p.x-me.x)**2+(p.y-me.y)**2<=78**2):null;
   if(!near&&N.reviveHeld){
