@@ -8,7 +8,7 @@ const client=fs.readFileSync(path.resolve(__dirname,'../public/v140-net-mode.js'
 const audio=fs.readFileSync(path.resolve(__dirname,'../public/v152-arena-audio.js'),'utf8');
 assert.match(html,/<title>Night Watch v160 — Noćna Straža<\/title>/);
 assert.match(html,/v152-arena-audio\.js\?v=157/);
-assert.match(html,/v140-net-mode\.js\?v=158/);
+assert.match(html,/v140-net-mode\.js\?v=160/);
 assert.ok(html.indexOf('v152-arena-audio.js')<html.indexOf('v140-net-mode.js'),
  'audio must load before New Zone client');
 assert.doesNotMatch(client,/arena\.stop\(\);selectedMode='normal'/,
