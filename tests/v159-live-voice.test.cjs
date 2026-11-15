@@ -45,7 +45,12 @@ const server=http.createServer((req,res)=>{
    });
    await page.goto(origin);
    await page.evaluate(id=>{
-    window.NS152_AUDIO={sound:true};
+    window.rtcPeers=[];
+    const Native=window.RTCPeerConnection;
+    window.RTCPeerConnection=class extends Native{
+     constructor(...args){super(...args);window.rtcPeers.push(this)}
+    };
+        window.NS152_AUDIO={sound:true};
     window.fakeSocket={readyState:1,bufferedAmount:0,
      send(raw){void window.relaySignal(JSON.parse(raw))}};
     window.NS159_LIVE.attach(window.fakeSocket,id,['p1','p2'],who=>
@@ -56,9 +61,20 @@ const server=http.createServer((req,res)=>{
   for(const [id,page] of pages){
    await page.waitForFunction(()=>window.NS159_LIVE.status().connected===1,
     null,{timeout:25000});
+   await page.waitForFunction(()=>window.NS159_LIVE.stats.remoteStreams>0,null,
+    {timeout:3000}).catch(()=>{});
    const state=await page.evaluate(()=>({
-    stats:window.NS159_LIVE.stats,state:window.NS159_LIVE.status()
+    stats:window.NS159_LIVE.stats,state:window.NS159_LIVE.status(),
+    peers:window.rtcPeers.map(pc=>({
+     conn:pc.connectionState,signal:pc.signalingState,
+     remoteSdp:pc.remoteDescription?.sdp?.match(/a=(sendrecv|sendonly|recvonly|inactive)/g),
+     localSdp:pc.localDescription?.sdp?.match(/a=(sendrecv|sendonly|recvonly|inactive)/g),
+     transceivers:pc.getTransceivers().map(t=>({
+      local:t.direction,actual:t.currentDirection,sender:!!t.sender.track,receiver:!!t.receiver.track,
+      remoteMuted:t.receiver.track?.muted}))
+    }))
    }));
+   console.log('V159 RTC DEBUG '+id+': '+JSON.stringify(state));
    assert.equal(state.state.micCaptured,false,'no microphone opens without tapping '+id);
    assert.equal(state.state.talking,false);
    assert.equal(state.stats.remoteStreams,1,'one remote media track '+id);
