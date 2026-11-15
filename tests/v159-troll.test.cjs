@@ -16,6 +16,7 @@ assert.match(goblins,/mob\.type==='troll'/,'do not mistake troll for a goblin');
 assert.match(arena,/mob\.type=q\[7\]===1\?'troll':'goblin'/);
 assert.match(arena,/const troll=wave===10&&i===0/);
 assert.match(arena,/window\.NS159_TROLL\?\.prewarm\(\)/);
+(async()=>{
 const browser=await chromium.launch({headless:true,
  executablePath:['/usr/bin/google-chrome','/usr/bin/chromium','/opt/google/chrome/chrome'].find(fs.existsSync),
  args:['--no-sandbox','--disable-dev-shm-usage']});
@@ -56,3 +57,4 @@ try{
  }
  console.log('V159 CLIENT PASS: exact original troll art, 22 prebuilt poses, no frame rebuild, mobile portrait/landscape, wave-10 type');
 }finally{await browser.close()}
+})().catch(e=>{console.error(e);process.exitCode=1});
