@@ -1,4 +1,4 @@
-name: V148 real New Zone 2-player WebSocket smoke
+name: V149 real New Zone automatic combat WebSocket smoke
 on:
   push:
     branches: [main]
@@ -21,7 +21,7 @@ jobs:
           import assert from 'node:assert/strict';
           const endpoint='https://nocna-straza-relay.stefanstevic1996.workers.dev';
           const health=await (await fetch(endpoint+'/health')).json();
-          assert.equal(health.arenaBuild,148,'must exercise deployed V148 server');
+          assert.equal(health.arenaBuild,149,'must exercise deployed V148 server');
           assert.equal(health.arenaMobs,12);
           const res=await fetch(endpoint+'/arena/create',{
             method:'POST',headers:{'content-type':'application/json'},
@@ -55,13 +55,13 @@ jobs:
             await until(()=>[p1,p2].every(p=>p.messages.some(x=>x.t==='start')),'both players start');
             console.log('REAL_NEW_ZONE: two players received START');
             let seq=0;const input=setInterval(()=>{
-              if(p1.ws.readyState===WebSocket.OPEN)p1.ws.send(JSON.stringify({t:'i',seq:++seq,ax:0,ay:0,attack:1}));
+              if(p1.ws.readyState===WebSocket.OPEN)p1.ws.send(JSON.stringify({t:'i',seq:++seq,ax:0,ay:0,attack:0}));
             },50);
             try{
               await until(()=>p1.snapshots.some(m=>m.mobs?.length===12&&m.ack>0),'goblins and input ACK');
               await until(()=>p1.snapshots.some(m=>m.mobs?.some(g=>g[3]<35)),'server hit on goblins');
             }finally{clearInterval(input)}
-            console.log('REAL_NEW_ZONE: 12 shared goblins, attack damage and ACK verified');
+            console.log('REAL_NEW_ZONE: 12 shared goblins, automatic hits with attack=0 and ACK verified');
             p2.ws.close(1000,'Android background simulation');
             // Intentionally reconnect before the previous mobile socket finishes closing:
             // this exercises the exact stale-seat takeover needed after Android suspend.
@@ -72,5 +72,5 @@ jobs:
           }finally{
             for(const p of peers)try{p.ws.close()}catch{}
           }
-          console.log('V148 REAL 2-PLAYER WEBSOCKET TEST PASS');
+          console.log('V149 REAL AUTO-ATTACK 2-PLAYER WEBSOCKET TEST PASS');
           JS
