@@ -18,10 +18,17 @@ function spriteAtlas(){
   // Shadow, boots and individually animated legs.
   ctx.fillStyle='#192b22a8';ctx.beginPath();ctx.ellipse(0,13,17,4,0,0,TAU);ctx.fill();
   for(const side of [-1,1]){
-   const step=phase*side*6;
-   ctx.strokeStyle='#36512e';ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();
-   ctx.moveTo(side*6,0);ctx.lineTo(side*6+step,10);ctx.stroke();
-   ctx.fillStyle='#283627';ctx.beginPath();ctx.ellipse(side*6+step+side,12,6,3.5,0,0,TAU);ctx.fill();
+   // Clearly articulated opposite legs. The feet lift out of phase while
+   // running; all 8 walk poses are cached in one atlas, not built each frame.
+   const stride=phase*side*9,kneeX=side*6+stride*.48;
+   const footX=side*7+stride,footY=16-Math.max(0,phase*side)*3;
+   ctx.strokeStyle='#476537';ctx.lineWidth=6.6;ctx.lineCap='round';
+   ctx.beginPath();ctx.moveTo(side*6,-1);ctx.lineTo(kneeX,9);
+   ctx.lineTo(footX,footY);ctx.stroke();
+   ctx.strokeStyle='#2c442b';ctx.lineWidth=2;ctx.beginPath();
+   ctx.moveTo(kneeX-2,9);ctx.lineTo(footX,footY-1);ctx.stroke();
+   ctx.fillStyle='#202f23';ctx.beginPath();
+   ctx.ellipse(footX+side*2,footY,6.5,3.8,side*.12,0,TAU);ctx.fill();
   }
   // Arms counter-swing while walking; a raised claw marks authoritative attack ticks.
   for(const side of [-1,1]){
@@ -57,7 +64,7 @@ function prepare(mobs,opt){
   if(x<visible.left-36||x>visible.right+36||y<visible.top-42||y>visible.bottom+35){
    mob.animX=x;mob.animY=y;continue;
   }
-  shown.push({mob,x,y,depth:y+13}); // contact shadow/feet, NOT the top of the head
+  shown.push({mob,x,y,depth:y+16}); // contact shadow/feet, NOT the top of the head
  }
  return shown;
 }
