@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright-core');
-const commit='b9ed2047ffe3e8eb29b6f7c5c8ff2a59641db39f';
+const commit='dc8e29ebe18699cec575422d36d2dd6989e22c7b';
 const url='https://rawcdn.githack.com/MajorStex/nocna-straza-v77/'+commit+'/public/v159-troll-lab.html';
 (async()=>{
  const response=await fetch(url,{headers:{'accept':'text/html','user-agent':'NightWatch-V159-Test/1.0'}});
