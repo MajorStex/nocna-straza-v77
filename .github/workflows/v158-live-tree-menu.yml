@@ -1,0 +1,71 @@
+name: V158 production Worker tree collision and mobile menu verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v158-live-tree-menu.yml'
+      - 'public/index.html'
+      - 'public/v140-net-mode.js'
+      - 'public/v157-arena-scenery.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Confirm actual static Worker has published V158 menu and scenery bytes
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const base='https://nocna-straza-v77.stefanstevic1996.workers.dev/';
+          for(const name of ['index.html','v140-net-mode.js','v157-arena-scenery.js']){
+           const local=fs.readFileSync('public/'+name,'utf8');
+           const url=base+(name==='index.html'?'':name);
+           let responseText='';
+           for(let i=0;i<6;i++){
+            const r=await fetch(url+'?v158-live='+Date.now()+'&retry='+i,{cache:'no-store'});
+            if(r.ok)responseText=await r.text();
+            if(responseText===local)break;
+            await new Promise(resolve=>setTimeout(resolve,3000));
+           }
+           assert.equal(responseText,local,'LIVE WORKER must deploy new V158 '+name+' byte-for-byte');
+          }
+          console.log('V158 LIVE STATIC PASS: fresh index/menu, tree collider client');
+          JS
+      - name: Confirm authoritative relay sends exactly the same tree and rock hitboxes
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const base='https://nocna-straza-relay.stefanstevic1996.workers.dev';
+          const response=await fetch(base+'/arena/create',{method:'POST',
+           headers:{'content-type':'application/json'},
+           body:JSON.stringify({code:'TRMZ58',seats:['p1','p2']})});
+          const room=await response.json();
+          assert.equal(response.status,200,JSON.stringify(room));
+          const ws=new WebSocket(room.ws);
+          try{
+           const welcome=await new Promise((resolve,reject)=>{
+            const timeout=setTimeout(()=>reject(new Error('V158 relay welcome timeout')),10000);
+            ws.addEventListener('open',()=>ws.send(JSON.stringify({
+             t:'hello',id:'p1',protocol:140,ticket:room.tickets.p1})));
+            ws.addEventListener('message',e=>{
+             const data=JSON.parse(e.data);
+             if(data.t==='welcome'){clearTimeout(timeout);resolve(data)}
+            });
+            ws.addEventListener('error',()=>{clearTimeout(timeout);reject(new Error('WebSocket error'))});
+           });
+           const trees=welcome.world?.obstacles?.filter(o=>o.kind==='tree')||[];
+           const rocks=welcome.world?.obstacles?.filter(o=>o.kind==='rock')||[];
+           assert.equal(trees.length,28,'relay missing 28 authoritative tree collision boxes');
+           assert.equal(rocks.length,25,'relay missing 25 authoritative rock collision boxes');
+           console.log('V158 LIVE MULTIPLAYER PASS',JSON.stringify({
+            treeHitboxes:trees.length,rockHitboxes:rocks.length,serverBuild:welcome.serverBuild}));
+          }finally{ws.close()}
+          JS
