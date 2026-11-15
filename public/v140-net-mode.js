@@ -165,7 +165,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
 // V160 sandbox state lives only in this isolated runtime, never in saved progression.
 let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};
 let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null;
-let LAB_SUPPORTED=false;
+let LAB_SUPPORTED=false,LAB_LOOK=null,LAB_UNDO=null;
 const LAB_WEAPONS=new Set(['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul']);
 const labDefaultCount=wave=>Math.min(80,60+Math.max(0,wave-1)*10);
 const el=id=>document.getElementById(id);
@@ -335,7 +335,9 @@ function sandboxState(){
   freezeAI:!!t.freezeAI,godMode:!!t.godMode,customCount:t.customCount??null,
   allies:t.allies||[],props:t.props||[],globalPaused:N.solo?N.paused:LAB_PAUSE.paused,
   votes:LAB_PAUSE.votes,needed:LAB_PAUSE.needed,damage:N.me?.damage||22,
-  weapon:LAB_WEAPON||localArenaLook().weapon||'sword'};
+  weapon:LAB_WEAPON||localArenaLook().weapon||'sword',
+  skin:localArenaLook().skin,visualSize:localArenaLook().visualSize,
+  heroClass:localArenaLook().heroClass,bodyStyle:localArenaLook().bodyStyle};
 }
 function openSandbox(){
  if(N.phase!=='running')return;
@@ -351,6 +353,8 @@ function openSandbox(){
     if(N.solo){soloLabAction(packet);return}
     if(LAB_SUPPORTED&&N.id==='p1'&&N.ws?.readyState===1&&N.ws.bufferedAmount<8000){
      if(packet.action==='weapon'&&LAB_WEAPONS.has(packet.value))LAB_WEAPON=packet.value;
+     if(packet.action==='heroLook'&&packet.look)LAB_LOOK={...(LAB_LOOK||{}),...packet.look};
+     if(packet.action==='resetLab'||packet.action==='undo'){LAB_LOOK=null;LAB_WEAPON=null}
      N.ws.send(JSON.stringify({t:'lab',...packet}));
     }else announceArena('Sandbox zahteva server V160; promena nije poslata');
    },
@@ -441,7 +445,7 @@ function stop(notify=false){
  A()?.stop();window.NS160_LAB?.close();LAB_AUTO_PAUSE=false;closeArenaMenu(false);N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
  N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
- LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;LAB_SUPPORTED=false;
+ LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;LAB_SUPPORTED=false;LAB_LOOK=null;LAB_UNDO=null;
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
@@ -453,7 +457,7 @@ function stop(notify=false){
 function localArenaLook(){
  const game=window.__nightWatch;
  const base=game?.networkHeroStyle?.(game.heroStyle)||B().getVillageHeroLook?.(B().NET?.localId)||B().heroStyle||{};
- return LAB_WEAPON?{...base,weapon:LAB_WEAPON}:base;
+ return {...base,...(LAB_LOOK||{}),...(LAB_WEAPON?{weapon:LAB_WEAPON}:{})};
 }
 function rememberLook(id,revision,look){
  if(!/^p[1-6]$/.test(id)||!look||typeof look!=='object'||Array.isArray(look)||
@@ -697,7 +701,7 @@ function soloWaveDone(){
 function startSolo(){
  if(B().currentProfileLevel?.()<7||B().NET?.role||!['idle','error'].includes(N.phase))return false;
  if(N.ws){try{N.ws.close()}catch{}N.ws=null}
- LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_WEAPON=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};
+ LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_WEAPON=null;LAB_LOOK=null;LAB_UNDO=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};
  N.solo=true;N.phase='running';N.paused=false;N.id='p1';N.match='offline';N.ticket='';
  N.world={w:1680,h:1080,r:14,speed:156,decorSeed:157,obstacles:[
   {x:275,y:140,w:95,h:92},{x:585,y:330,w:102,h:94},
@@ -927,7 +931,7 @@ function connect(match,id,ticket,rejoin=false){
  if(rejoin?N.phase!=='reconnecting':N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<7){N.phase='error';status('NOVA ZONA zahteva OPŠTI NIVO 7');return false}
  if(!rejoin){
-  LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;
+  LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;
   N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.lastMyHp=null;N.hurtUntil=0;
@@ -953,7 +957,7 @@ function connect(match,id,ticket,rejoin=false){
  };
  ws.onmessage=e=>{
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
-  if(m.t==='labState'){LAB_REMOTE={...m};window.NS160_LAB?.refresh();return}
+  if(m.t==='labState'){LAB_REMOTE={...m};if(!m.enabled){LAB_WEAPON=null;LAB_LOOK=null}window.NS160_LAB?.refresh();return}
   if(m.t==='pauseState'){LAB_PAUSE={paused:!!m.paused,votes:Array.isArray(m.votes)?m.votes:[],needed:m.needed||1,expires:m.expires||0};window.NS160_LAB?.refresh();return}
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
@@ -974,7 +978,13 @@ function connect(match,id,ticket,rejoin=false){
     }
    status('V159 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
-  if(m.t==='look'){rememberLook(m.id,m.revision,m.look);renderPresence();return}
+  if(m.t==='look'){
+   rememberLook(m.id,m.revision,m.look);
+   if(LAB_SUPPORTED&&m.id===N.id&&(LAB_WEAPON||LAB_LOOK)&&m.look){
+    LAB_WEAPON=m.look.weapon||null;
+    LAB_LOOK={skin:m.look.skin,heroClass:m.look.heroClass,bodyStyle:m.look.bodyStyle,visualSize:m.look.visualSize};
+   }
+   renderPresence();return}
    if(m.t==='presence'&&Array.isArray(m.players)){
     N.presence.clear();
     for(const row of m.players)if(Array.isArray(row)&&/^p[1-6]$/.test(row[0])&&
