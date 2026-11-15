@@ -155,13 +155,52 @@ function createArenaCrowdSteering(world,move){
  return {step,advance,field,nearestOpen,walkable,get cachedFields(){return flows.size},clear(){flows.clear()}};
 }
 
+// V159: static arena geometry is indexed ONCE. Look up only grid cells
+// overlapping the 14px collision circle; retain exact circle/AABB physics.
+function createArenaCollisionGrid(world){
+ const CELL=96,items=world.obstacles||[],buckets=new Map();
+ for(let i=0;i<items.length;i++){
+  const o=items[i];if(!o||!Number.isFinite(o.x)||!Number.isFinite(o.y)||
+   !Number.isFinite(o.w)||!Number.isFinite(o.h)||o.w<0||o.h<0)continue;
+  const lx=Math.floor(o.x/CELL),rx=Math.floor((o.x+o.w)/CELL);
+  const ty=Math.floor(o.y/CELL),by=Math.floor((o.y+o.h)/CELL);
+  for(let cy=ty;cy<=by;cy++)for(let cx=lx;cx<=rx;cx++){
+   const key=cx+','+cy;
+   let bucket=buckets.get(key);if(!bucket){bucket=[];buckets.set(key,bucket)}
+   bucket.push(i);
+  }
+ }
+ const marks=new Uint32Array(items.length);let serial=0;
+ const counts={calls:0,candidates:0};
+ function free(x,y,r){
+  if(++serial===0xffffffff){marks.fill(0);serial=1}
+  const lx=Math.floor((x-r)/CELL),rx=Math.floor((x+r)/CELL);
+  const ty=Math.floor((y-r)/CELL),by=Math.floor((y+r)/CELL);
+  counts.calls++;
+  for(let cy=ty;cy<=by;cy++)for(let cx=lx;cx<=rx;cx++){
+   const bucket=buckets.get(cx+','+cy);if(!bucket)continue;
+   for(let k=0;k<bucket.length;k++){
+    const index=bucket[k];if(marks[index]===serial)continue;
+    marks[index]=serial;counts.candidates++;
+    const o=items[index];
+    if(x+r<o.x||x-r>o.x+o.w||y+r<o.y||y-r>o.y+o.h)continue;
+    const nx=Math.max(o.x,Math.min(x,o.x+o.w));
+    const ny=Math.max(o.y,Math.min(y,o.y+o.h));
+    if((x-nx)**2+(y-ny)**2<r*r)return false;
+   }
+  }
+  return true;
+ }
+ return {world,count:items.length,free,counts,get cells(){return buckets.size}};
+}
+
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
  players:new Map(),looks:new Map(),lastLookSignature:'',lastLookCheck:0,lookSyncEnabled:false,me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
  wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,hordeStepAt:0,uiAt:0,choiceUiId:'',paused:false,pausedAt:0,
  soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
- solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
+ solo:false,soloCrowd:null,collisionGrid:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -365,7 +404,7 @@ function stop(notify=false){
  A()?.stop();closeArenaMenu();N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
  N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
- N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
+ N.phase='idle';N.solo=false;N.soloCrowd=null;N.collisionGrid=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
  if(wasSolo)try{window.__nightWatch?.showPreRun?.()}catch{}
@@ -390,7 +429,9 @@ function input(){
  return {x,y};
 }
 function moveLocal(p,dx,dy){
- const w=N.world,r=w.r||14,free=(x,y)=>(w.obstacles||[]).every(o=>{
+ const w=N.world,r=w.r||14,grid=N.collisionGrid;
+ const free=(x,y)=>grid?.world===w&&grid.count===(w.obstacles||[]).length?
+  grid.free(x,y,r):(w.obstacles||[]).every(o=>{
   if(x+r<o.x||x-r>o.x+o.w||y+r<o.y||y-r>o.y+o.h)return true;
   const qx=clamp(x,o.x,o.x+o.w),qy=clamp(y,o.y,o.y+o.h);
   return (x-qx)**2+(y-qy)**2>=r*r;
@@ -546,6 +587,7 @@ function startSolo(){
  ]};
  // Solo uses precisely the same seeded trunks/rocks as the multiplayer server.
  N.world.obstacles.push(...(window.NS157_SCENERY?.colliders?.(N.world)||[]));
+ N.collisionGrid=createArenaCollisionGrid(N.world);
  N.seq=N.ack=N.soloTick=N.soloKills=0;N.tick=-1;
  N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=60;
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
@@ -781,7 +823,7 @@ function connect(match,id,ticket,rejoin=false){
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.world=m.world||N.world;N.phase='waiting';
+   N.world=m.world||N.world;N.collisionGrid=createArenaCollisionGrid(N.world);N.phase='waiting';
     window.NS154_GOBLINS?.prewarm();window.NS159_TROLL?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
     if(Array.isArray(m.looks))for(const item of m.looks){
@@ -1170,7 +1212,7 @@ function frame(now){
  }
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,legacyTrollAtlasBuilds:window.NS159_TROLL?.builds||0,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloTrollCount:N.soloMobs.filter(m=>m.type==='troll'&&m.hp>0).length,soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,legacyTrollAtlasBuilds:window.NS159_TROLL?.builds||0,collisionGridCells:N.collisionGrid?.cells||0,collisionChecks:N.collisionGrid?.counts.candidates||0,collisionCalls:N.collisionGrid?.counts.calls||0,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloTrollCount:N.soloMobs.filter(m=>m.type==='troll'&&m.hp>0).length,soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
