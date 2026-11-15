@@ -156,7 +156,7 @@ function createArenaCrowdSteering(world,move){
 }
 
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
- players:new Map(),me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
+ players:new Map(),looks:new Map(),lastLookSignature:'',lastLookCheck:0,me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
  wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,uiAt:0,choiceUiId:'',
@@ -185,7 +185,7 @@ function ui(){
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
- root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V152 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
+ root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V153 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
  '<div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
@@ -269,12 +269,23 @@ function stop(notify=false){
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
  A()?.stop();N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
- N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
+ N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.lastLookSignature='';N.lastLookCheck=0;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
  if(wasSolo)try{window.__nightWatch?.showPreRun?.()}catch{}
  else if(B().NET?.phase==='lobby')try{B().renderLobby?.()}catch{}
  return true;
+}
+// V153: cosmetics are rare reliable metadata, not frame-by-frame movement packets.
+function localArenaLook(){
+ const game=window.__nightWatch;
+ return game?.networkHeroStyle?.(game.heroStyle) || B().getVillageHeroLook?.(B().NET?.localId) || B().heroStyle || {};
+}
+function rememberLook(id,revision,look){
+ if(!/^p[1-6]$/.test(id)||!look||typeof look!=='object'||Array.isArray(look)||
+  !Number.isSafeInteger(revision)||revision<0)return false;
+ const old=N.looks.get(id);if(old&&revision<old.revision)return false;
+ N.looks.set(id,{revision,look});return true;
 }
 function input(){
  const k=N.keys;let x=N.stick.x+(k.has('d')||k.has('arrowright')?1:0)-(k.has('a')||k.has('arrowleft')?1:0);
@@ -332,7 +343,7 @@ function snapshot(m){
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
-   A()?.play('swing',{weapon:B().getVillageHeroLook?.(id)?.weapon||B().heroStyle?.weapon||'sword',
+   A()?.play('swing',{weapon:N.looks.get(id)?.look?.weapon||B().getVillageHeroLook?.(id)?.weapon||'sword',
     x,y,listenerX:myPosition.x,listenerY:myPosition.y,sourceId:id,gain:id===N.id?1:.36});
   }
   if(id===N.id){
@@ -406,12 +417,12 @@ function startSolo(){
  N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();
  N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt,y*N.world.speed*dt));
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
- N.delta={x:0,y:0};N.pending=[];N.players.clear();N.stick.ptr=null;N.stick.x=N.stick.y=0;
+ N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.lastLookSignature='';N.lastLookCheck=0;N.stick.ptr=null;N.stick.x=N.stick.y=0;
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
  N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
- N.players.set('p1',N.me);
+ N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
- status('V152 · SOLO · TALASI I SANDUCI · 0 XP');
+ status('V153 · SOLO · TALASI I SANDUCI · 0 XP');
  return true;
 }
 function stepSolo(dt){
@@ -591,12 +602,12 @@ function connect(match,id,ticket,rejoin=false){
  if(B().currentProfileLevel?.()<7){N.phase='error';status('NOVA ZONA zahteva OPŠTI NIVO 7');return false}
  if(!rejoin){
   N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
-  N.players.clear();N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
+  N.players.clear();N.looks.clear();N.lastLookSignature='';N.lastLookCheck=0;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.lastMyHp=null;N.hurtUntil=0;
  }
  N.match=match;N.id=id;N.ticket=ticket;
  N.phase=rejoin?'reconnecting':'connecting';
- status('V152 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
+ status('V153 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
  try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
@@ -606,23 +617,32 @@ function connect(match,id,ticket,rejoin=false){
   if(N.ws!==ws||!['connecting','reconnecting'].includes(N.phase))return;
   try{ws.close(4000,'handshake timeout')}catch{}
  },18000);
- ws.onopen=()=>{if(N.ws===ws)ws.send(JSON.stringify({t:'hello',id,ticket,protocol:140}))};
+ ws.onopen=()=>{
+  if(N.ws!==ws)return;
+  const look=localArenaLook();N.lastLookSignature=JSON.stringify(look);N.lastLookCheck=performance.now();
+  rememberLook(id,0,look);
+  ws.send(JSON.stringify({t:'hello',id,ticket,protocol:140,look}));
+ };
  ws.onmessage=e=>{
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;N.phase='waiting';
-   status('V152 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
+    if(Array.isArray(m.looks))for(const item of m.looks){
+     if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
+    }
+   status('V153 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
-  if(m.t==='roster'){
-   status('V152 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
+  if(m.t==='look'){rememberLook(m.id,m.revision,m.look);return}
+   if(m.t==='roster'){
+   status('V153 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
   if(m.t==='start'){
    N.phase='running';N.retry=0;N.lostSince=0;
    if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.lastFrame=0;status('V152 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
+   N.lastFrame=0;status('V153 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
   if(m.t==='s'){snapshot(m);return}
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
@@ -638,10 +658,10 @@ function connect(match,id,ticket,rejoin=false){
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
   if(!N.lostSince)N.lostSince=Date.now();
   if(Date.now()-N.lostSince>=120000){
-   N.phase='error';status('V152 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
+   N.phase='error';status('V153 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
   }
   N.retry++;N.phase='reconnecting';
-  status('V152 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
+  status('V153 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
   if(N.retryTimer)clearTimeout(N.retryTimer);
   N.retryTimer=setTimeout(()=>{
    N.retryTimer=null;
@@ -649,7 +669,7 @@ function connect(match,id,ticket,rejoin=false){
   },Math.min(4000,650+N.retry*380));
  };
  ws.onerror=()=>{
-  if(N.ws===ws)status('V152 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
+  if(N.ws===ws)status('V153 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
  };
  return true;
 }
@@ -659,7 +679,7 @@ async function startHost(){
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
  if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
- N.phase='preparing';status('V152 · PRIPREMAM ZASEBAN MP SERVER...');
+ N.phase='preparing';status('V153 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
@@ -819,7 +839,17 @@ function frame(now){
  if(!selecting&&N.me&&Math.hypot(v.x,v.y)>.25&&now-N.lastStepSound>285){
   N.lastStepSound=now;A()?.play('step',{gain:.8});
  }
- if(N.ws?.readyState===1&&now-N.lastInput>=50&&N.ws.bufferedAmount<4000){
+ if(!N.solo&&N.ws?.readyState===1&&now-N.lastLookCheck>=850){
+   N.lastLookCheck=now;
+   const look=localArenaLook(),signature=JSON.stringify(look);
+   if(signature!==N.lastLookSignature&&N.ws.bufferedAmount<4000){
+    N.lastLookSignature=signature;
+    // Update my own drawing without waiting for the server round-trip.
+    rememberLook(N.id,N.looks.get(N.id)?.revision||0,look);
+    N.ws.send(JSON.stringify({t:'look',look}));
+   }
+  }
+  if(N.ws?.readyState===1&&now-N.lastInput>=50&&N.ws.bufferedAmount<4000){
   const seq=++N.seq;N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
   if(N.pending.length>26)N.pending.shift();
   N.delta={x:0,y:0};N.lastInput=now;
@@ -849,17 +879,18 @@ function frame(now){
   if(p.id!==N.id){const k=1-Math.exp(-Math.min(dt,.05)*13);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
   g.save();if(p.hp<=0)g.globalAlpha=.38;
   const motion=updateHeroMotion(p,dt),age=swordAge(p,now);
-  const b=B();if(typeof b.drawVillageHero==='function'){
+  const b=B(),look=N.looks.get(p.id)?.look||(p.id===N.id?localArenaLook():b.getVillageHeroLook?.(p.id));if(typeof b.drawVillageHero==='function'){
    if(!motion.walking)g.translate(0,Math.sin(now/900+(p.id==='p1'?0:1))*.85);
    b.drawVillageHero(g,p.x,p.y,{id:p.id,
-    look:b.getVillageHeroLook?.(p.id)||b.heroStyle,frame:motion.phase,walking:motion.walking,
+    look:look||b.heroStyle,frame:motion.phase,walking:motion.walking,
     visualSide:motion.side,
     attackT:age>=0&&age<=9?Math.max(.005,.30-age/30):0,
     headFacing:Number.isFinite(p.attackAngle)?p.attackAngle:motion.angle});
   }
   else{g.fillStyle=p.id===N.id?'#b2ddb6':'#d5b591';g.beginPath();g.arc(p.x,p.y,17,0,7);g.fill()}
-  g.fillStyle='#17251c';g.fillRect(p.x-23,p.y-65,46,5);g.fillStyle='#a8e2a6';g.fillRect(p.x-22,p.y-64,44*clamp(p.hp/100,0,1),3);
-  g.fillStyle='#f0dfb6';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText(p.id===N.id?'TI':p.id,p.x,p.y-72);
+  const visualSize=clamp(Number(look?.visualSize)||.79,.7,1.12),labelY=p.y-72-(visualSize-.79)*35;
+  g.fillStyle='#17251c';g.fillRect(p.x-23,labelY+7,46,5);g.fillStyle='#a8e2a6';g.fillRect(p.x-22,labelY+8,44*clamp(p.hp/(p.maxHp||100),0,1),3);
+  g.fillStyle='#f0dfb6';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText(p.id===N.id?'TI':(look?.name||p.id),p.x,labelY);
   drawTargetedSlash(g,p,motion,age);
   g.restore();
  }
