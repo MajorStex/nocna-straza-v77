@@ -68,7 +68,8 @@ function musicTick(){
 function play(kind,options={}){
  if(!soundOn||!ctx||ctx.state!=='running'||document.hidden)return false;
  const now=performance.now(),cool={step:250,swing:150,hurt:190,enemy:210,chest:600,wave:900,choose:200,click:160};
- const key=kind+(options.sourceId??'');
+ // A large 80-goblin wave must not spawn dozens of audio oscillators together.
+ const key=kind==='enemy'?'enemy-nearby':kind+(options.sourceId??'');
  if(now-(last.get(key)||-100000)<(cool[kind]||180))return false;
  last.set(key,now);
  // Distance attenuation is LOCAL, never a WebSocket/audio stream.
