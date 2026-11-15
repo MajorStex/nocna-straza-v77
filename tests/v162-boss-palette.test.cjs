@@ -50,7 +50,7 @@ const {chromium}=require('playwright-core');
    const page=await browser.newPage({viewport,isMobile:true,hasTouch:true});
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.setContent('<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body></body></html>');
-   await page.evaluate(()=>window.__NS110_BRIDGE={currentProfileLevel:()=>7,NET:{role:'',phase:'idle'},
+   await page.evaluate(()=>window.__NS110_BRIDGE={currentProfileLevel:()=>0,NET:{role:'',phase:'idle'},
      drawVillageHero:(g,x,y)=>{g.fillRect(x-4,y-12,8,24)},heroStyle:{weapon:'sword'}});
    for(const file of ['v154-goblin-renderer.js','v157-arena-scenery.js','v162-troll.js','v140-net-mode.js','v162-sandbox.js'])
     await page.addScriptTag({path:path.join(root,file)});
