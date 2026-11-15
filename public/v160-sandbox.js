@@ -41,6 +41,7 @@
     '<p>Za detaljno podešavanje pojedinačnog neprijatelja koristi identifikator:</p>'+
     row(input('ns160MobId','ID goblina (0–95)',0,0,95)+input('ns160SingleHp','Njegov HP',35,1,500))+
     row(button('Primeni na jednog','setMob')+button('Obriši jednog','removeMob'))+
+    row(button('❄ Zamrzni / odmrzni izabranog','toggleMobFreeze'))+
     '<p>Prilikom zamrzavanja goblini prestaju da se kreću i napadaju. Saveznik i igrač i dalje mogu da testiraju udarce.</p>';
   }else if(tab==='allies'){
    content='<h3>🛡 Saveznici</h3><p>Jednostavan testni čovečuljak sa štitom i mačem, server ga vodi, prati saigrača i napada gobline. Najviše 3.</p>'+
@@ -91,6 +92,7 @@
   else if(cmd==='enemyHp'||cmd==='damage')packet.value=val(cmd==='enemyHp'?'ns160EnemyHp':'ns160Damage',35);
   else if(cmd==='setMob'){packet.id=val('ns160MobId',0);packet.hp=val('ns160SingleHp',35)}
   else if(cmd==='removeMob')packet.id=val('ns160MobId',0);
+  else if(cmd==='toggleMobFreeze')packet.id=val('ns160MobId',0);
   else if(cmd==='weapon')packet.value=$('ns160Weapon')?.value;
   else if(cmd==='heroLook')packet.look={skin:$('ns160Skin')?.value,heroClass:$('ns160HeroClass')?.value,bodyStyle:$('ns160BodyStyle')?.value,visualSize:val('ns160Size',79)/100};
   else if(cmd==='spawnProp')packet.kind=$('ns160Prop')?.value;
