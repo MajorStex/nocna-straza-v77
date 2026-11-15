@@ -403,19 +403,20 @@ function snapshot(m){
 /* Local-only entry for the SAME V140 arena. Never creates a lobby, WebSocket or
    a Cloudflare request. Practice goblins are temporary test content (0 XP). */
 // V154 solo stress-preview uses the SAME seed, safe grid and 60-80 creeps as server.
+// V157 mirror the server's safe spawn grid and distance ranking.
 function soloHordePoints(){
  if(N.soloSpawnCache)return N.soloSpawnCache;
  const points=[],inside=(x,y,r)=>N.world.obstacles.some(o=>{
   const px=clamp(x,o.x,o.x+o.w),py=clamp(y,o.y,o.y+o.h);
   return (x-px)**2+(y-py)**2<r*r;
  });
- for(let row=0;row<9;row++)for(let col=0;col<13;col++){
-  const x=70+col*126,y=66+row*118;
-  if(inside(x,y,33)||(x<365&&y>150&&y<420)||
-    [[530,465],[960,580],[1470,820]].some(([cx,cy])=>(cx-x)**2+(cy-y)**2<75**2))continue;
+ for(let row=0;row<11;row++)for(let col=0;col<15;col++){
+  const x=64+col*108,y=46+row*97;
+  if(inside(x,y,33)||(x<355&&y>145&&y<420)||
+   [[530,465],[960,580],[1470,820]].some(([cx,cy])=>(cx-x)**2+(cy-y)**2<70**2))continue;
   points.push([x,y]);
  }
- let seed=1542026;
+ let seed=1572026;
  for(let i=points.length-1;i>0;i--){
   seed=(Math.imul(seed,1664525)+1013904223)>>>0;
   const j=seed%(i+1);[points[i],points[j]]=[points[j],points[i]];
@@ -424,11 +425,18 @@ function soloHordePoints(){
 }
 function buildSoloWave(wave){
  const points=soloHordePoints(),count=Math.min(80,60+Math.max(0,wave-1)*10,points.length);
- return Array.from({length:count},(_,i)=>{
-  const point=points[(i+Math.max(0,wave-1)*11)%points.length],hp=Math.min(115,35+(wave-1)*9);
-  return {id:i,x:point[0],y:point[1],sx:point[0],sy:point[1],hp,maxHp:hp,
-   attackAt:(i%4)*7,attackTick:-100,deadUntil:0,hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0,
-   animDistance:0,animX:point[0],animY:point[1],facing:1,movingUntil:0};
+ const alive=[...N.players.values()].filter(p=>p.hp>0&&!p.knocked);
+ const shift=Math.max(1,wave)*17%points.length;
+ const ranked=points.map((pt,i)=>({
+  pt,i,dist:alive.length?Math.min(...alive.map(p=>Math.hypot(pt[0]-p.x,pt[1]-p.y))):9999
+ }));
+ ranked.sort((a,b)=>b.dist-a.dist||((a.i+shift)%points.length)-((b.i+shift)%points.length));
+ return ranked.slice(0,count).map(({pt,dist},i)=>{
+  const hp=Math.min(115,35+(wave-1)*9);
+  return {id:i,x:pt[0],y:pt[1],sx:pt[0],sy:pt[1],hp,maxHp:hp,
+   spawnDistance:Math.round(dist),attackAt:(i%4)*7,attackTick:-100,deadUntil:0,
+   hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0,
+   animDistance:0,animX:pt[0],animY:pt[1],facing:1,movingUntil:0};
  });
 }
 
@@ -446,7 +454,7 @@ function startSolo(){
  if(B().currentProfileLevel?.()<7||B().NET?.role||!['idle','error'].includes(N.phase))return false;
  if(N.ws){try{N.ws.close()}catch{}N.ws=null}
  N.solo=true;N.phase='running';N.id='p1';N.match='offline';N.ticket='';
- N.world={w:1680,h:1080,r:14,speed:156,obstacles:[
+ N.world={w:1680,h:1080,r:14,speed:156,decorSeed:157,obstacles:[
   {x:275,y:140,w:95,h:92},{x:585,y:330,w:102,h:94},
   {x:435,y:245,w:75,h:84},{x:165,y:350,w:87,h:58},
   {x:790,y:170,w:126,h:104},{x:1120,y:275,w:106,h:110},
@@ -466,7 +474,7 @@ function startSolo(){
  N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
- window.NS154_GOBLINS?.prewarm();
+ window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
  status('V156 · SOLO · TALASI I SANDUCI · 0 XP');
  return true;
 }
@@ -685,7 +693,7 @@ function connect(match,id,ticket,rejoin=false){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;N.phase='waiting';
-    window.NS154_GOBLINS?.prewarm();
+    window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
@@ -947,6 +955,12 @@ function drawDepthSortedWorld(g,now,dt,visible){
  for(const chest of chests)if(chest.x>=visible.left-35&&chest.x<=visible.right+35&&
    chest.y>=visible.top-35&&chest.y<=visible.bottom+35)
   jobs.push({depth:chest.y+13,kind:1,id:chest.id,chest});
+ const decor=window.NS157_SCENERY?.generate(N.world)||[];
+ for(const item of decor){
+  if(item.x<visible.left-66||item.x>visible.right+66||
+     item.y<visible.top-148||item.y>visible.bottom+26)continue;
+  jobs.push({depth:item.depth,kind:4,id:item.id,item});
+ }
  const people=[];
  for(const p of N.players.values()){
   if(!p.online)continue;
@@ -965,6 +979,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
    if(sprite)g.drawImage(sprite,item.o.x-13,item.o.y-16)}
   else if(item.kind===1)drawArenaChests(g,[item.chest],visible);
   else if(item.kind===2)drawArenaPlayerBody(g,item.p,now,dt);
+  else if(item.kind===4)window.NS157_SCENERY?.drawOne(g,item.item);
   else sprites.drawOne(g,item.entry,opt);
  }
  // Names and HP remain legible above a large horde, even when bodies are occluded.
