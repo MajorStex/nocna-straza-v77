@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright-core');
-const commit='0bef4120056ee45b0c49bd5bd62fc6d3414c81b4';
+const commit='b9ed2047ffe3e8eb29b6f7c5c8ff2a59641db39f';
 const url='https://rawcdn.githack.com/MajorStex/nocna-straza-v77/'+commit+'/public/v159-troll-lab.html';
 (async()=>{
  const response=await fetch(url,{headers:{'accept':'text/html','user-agent':'NightWatch-V159-Test/1.0'}});
@@ -26,6 +26,12 @@ const url='https://rawcdn.githack.com/MajorStex/nocna-straza-v77/'+commit+'/publ
    {timeout:15000});
   assert.deepEqual(errors,[],'CDN preview must run without JS errors');
   assert.ok((await page.title()).includes('v159'),'expected v159 title');
+  await page.locator('#area').click();
+  assert.equal(await page.evaluate(()=>window.__NS159_LAB_TEST.area),'legacy','original map toggle on CDN');
+  assert.equal(await page.evaluate(()=>window.__NS159_LAB_TEST.clearAt(548,960)),false,'locked gate CDN');
+  await page.locator('#gate').click();
+  assert.equal(await page.evaluate(()=>window.__NS159_LAB_TEST.clearAt(548,960)),true,'opened gate CDN');
+
   console.log('V159 PREVIEW LINK PASS: '+url);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
