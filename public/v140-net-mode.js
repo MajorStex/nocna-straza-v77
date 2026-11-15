@@ -162,6 +162,11 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
  wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,hordeStepAt:0,uiAt:0,choiceUiId:'',paused:false,pausedAt:0,
  soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
  solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
+// V160 sandbox state lives only in this isolated runtime, never in saved progression.
+let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};
+let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null;
+const LAB_WEAPONS=new Set(['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul']);
+const labDefaultCount=wave=>Math.min(80,60+Math.max(0,wave-1)*10);
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -197,13 +202,14 @@ function ui(){
  '#ns158Menu[hidden]{display:none!important}#ns158Menu{position:absolute;z-index:13;right:9px;top:calc(max(9px,env(safe-area-inset-top)) + 57px);display:grid;gap:7px;width:min(250px,calc(100vw - 18px));padding:12px;background:#142f28f5;border:1px solid #abc39d;border-radius:13px;box-shadow:0 12px 30px #0009}'+
  '#ns158Menu button{padding:11px;border-radius:9px;border:1px solid #8da993;background:#2b4b3e;color:#fff4ce;text-align:left;font-weight:800;min-height:42px}#ns158Menu .danger{background:#6c453b;border-color:#c88d79}'+
  '#ns158Menu p{font:11px/1.4 system-ui;color:#c3d4ca;margin:2px 0 1px}'+
+ '#ns160Open{background:#315b53!important;border-color:#c9d099!important}'+
  '@media(max-width:780px){#ns140Bar{flex-wrap:nowrap;min-height:47px;padding:5px 8px}#ns140Status{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}#ns140Stats{max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ns152Music,#ns152Sound,#ns157Pause,#ns140Close{display:none}}'+
  '#ns140Pad.active{display:block}'+
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
  root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V159 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
- '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
+ '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns160Open" type="button">🛠 SANDBOX / TEST LAB</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
@@ -222,10 +228,22 @@ function ui(){
  el('ns157PauseLeave').onclick=()=>stop(true);
  const menuButton=el('ns158MenuBtn'),menuPanel=el('ns158Menu');
  menuButton.onclick=()=>{
-  menuPanel.hidden=!menuPanel.hidden;menuButton.setAttribute('aria-expanded',String(!menuPanel.hidden));
-  el('ns158MenuPause').textContent=N.paused?'▶ NASTAVI':'⏸ PAUZIRAJ';
+  const opening=menuPanel.hidden;
+  if(opening&&N.solo&&!N.paused){
+   toggleArenaPause(true);LAB_AUTO_PAUSE=true;
+  }else if(!opening&&LAB_AUTO_PAUSE){
+   closeArenaMenu();return;
+  }
+  menuPanel.hidden=!opening;
+  menuButton.setAttribute('aria-expanded',String(opening));
+  if(opening&&el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
+  el('ns158MenuPause').textContent=N.solo?'▶ NASTAVI':LAB_PAUSE.paused?'▶ NASTAVI SVIMA':'🗳 GLASAJ ZA PAUZU';
  };
- el('ns158MenuPause').onclick=()=>{closeArenaMenu();toggleArenaPause()};
+ el('ns158MenuPause').onclick=()=>{
+  if(N.solo){closeArenaMenu();if(N.paused)toggleArenaPause(false)}
+  else {if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:LAB_PAUSE.paused?'globalResume':'pauseVote',vote:true}));closeArenaMenu()}
+ };
+ el('ns160Open').onclick=()=>openSandbox();
  el('ns158MenuLeave').onclick=()=>{closeArenaMenu();stop(true)};
  const musicButton=el('ns152Music'),soundButton=el('ns152Sound');
  function refreshAudioButtons(){
@@ -299,7 +317,7 @@ function ui(){
   }
  });
  window.addEventListener('keydown',e=>{
-  if(N.phase!=='running'||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
+  if(N.phase!=='running'||window.NS160_LAB?.active||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
   const k=e.key.toLowerCase();
   if(k==='escape'&&!el('ns158Menu')?.hidden){e.preventDefault();closeArenaMenu();return}
   if((k==='escape'||k==='p')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation?.();toggleArenaPause();return}
@@ -309,9 +327,13 @@ function ui(){
  window.addEventListener('keyup',e=>N.keys.delete(e.key.toLowerCase()));
  window.addEventListener('blur',()=>{N.keys.clear();resetStick()});
 }
-function closeArenaMenu(){
+function closeArenaMenu(resumeAuto=true){
  if(el('ns158Menu'))el('ns158Menu').hidden=true;
  el('ns158MenuBtn')?.setAttribute('aria-expanded','false');
+ const auto=LAB_AUTO_PAUSE;LAB_AUTO_PAUSE=false;
+ if(auto&&resumeAuto&&N.solo&&N.phase==='running'&&N.paused)toggleArenaPause(false);
+ else if(el('ns157PauseOverlay')&&!window.NS160_LAB?.active)
+  el('ns157PauseOverlay').hidden=!N.paused;
 }
 function announceArena(message){
  const container=el('ns157Events');if(!container||!message)return;
@@ -330,8 +352,7 @@ function toggleArenaPause(force){
   if(N.soloState==='between')N.soloBetweenUntil+=spent;
  }
  // Keep isolated pause tests independent of menu-UI helpers.
- if(el('ns158Menu'))el('ns158Menu').hidden=true;
- el('ns158MenuBtn')?.setAttribute?.('aria-expanded','false');
+ closeArenaMenu(false);
  N.paused=paused;N.pausedAt=paused?Date.now():0;N.delta={x:0,y:0};N.pending.length=0;
  N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  el('ns140Pad')?.classList.remove('active');
@@ -369,9 +390,10 @@ function stop(notify=false){
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
- A()?.stop();closeArenaMenu();N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
+ A()?.stop();window.NS160_LAB?.close();LAB_AUTO_PAUSE=false;closeArenaMenu(false);N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
  N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
+ LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
@@ -382,7 +404,8 @@ function stop(notify=false){
 // V153: cosmetics are rare reliable metadata, not frame-by-frame movement packets.
 function localArenaLook(){
  const game=window.__nightWatch;
- return game?.networkHeroStyle?.(game.heroStyle) || B().getVillageHeroLook?.(B().NET?.localId) || B().heroStyle || {};
+ const base=game?.networkHeroStyle?.(game.heroStyle)||B().getVillageHeroLook?.(B().NET?.localId)||B().heroStyle||{};
+ return LAB_WEAPON?{...base,weapon:LAB_WEAPON}:base;
 }
 function rememberLook(id,revision,look){
  if(!/^p[1-6]$/.test(id)||!look||typeof look!=='object'||Array.isArray(look)||
@@ -409,6 +432,8 @@ function snapshot(m){
  if(!Number.isInteger(m.tick)||m.tick<=N.tick||!Array.isArray(m.players))return;
  N.tick=m.tick;N.lastState=performance.now();N.serverMs=Number(m.ms)||0;
  if(Number.isFinite(m.serverNow))N.serverNow=m.serverNow;
+ if(typeof m.globalPaused==='boolean')LAB_PAUSE.paused=m.globalPaused;
+ if(Array.isArray(m.allies))LAB_REMOTE={...(LAB_REMOTE||{}),allies:m.allies.slice(0,3).map(a=>({id:a[0],x:a[1]/10,y:a[2]/10,hp:a[3],lastAttack:a[4]}))};
  const priorWave=N.wave,priorChoice=N.choice?.seq;
  const weaponHits=new Map();
  for(const row of m.players){
@@ -427,7 +452,7 @@ function snapshot(m){
  if(N.wave>priorWave)A()?.play('wave');
  if(N.choice&&N.choice.seq!==priorChoice){A()?.play('chest');N.choiceUiId=''}
  if(!N.choice&&priorChoice!==undefined)A()?.play('choose');
- if(Number.isInteger(m.totalMobs)&&m.totalMobs>=12&&m.totalMobs<=80)N.hordeTotal=m.totalMobs;
+ if(Number.isInteger(m.totalMobs)&&m.totalMobs>=0&&m.totalMobs<=80)N.hordeTotal=m.totalMobs;
  if(Array.isArray(m.mobs)){
   const previous=new Map(N.mpMobs.map(q=>[q.id,q]));
   N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<96&&
@@ -791,6 +816,8 @@ function connect(match,id,ticket,rejoin=false){
  };
  ws.onmessage=e=>{
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
+  if(m.t==='labState'){LAB_REMOTE={...m};window.NS160_LAB?.refresh();return}
+  if(m.t==='pauseState'){LAB_PAUSE={paused:!!m.paused,votes:Array.isArray(m.votes)?m.votes:[],needed:m.needed||1,expires:m.expires||0};window.NS160_LAB?.refresh();return}
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
@@ -1109,7 +1136,7 @@ function frame(now){
  const dt=clamp((now-(N.lastFrame||now))/1000,0,.035);N.lastFrame=now;
  N.frames++;if(!N.fpsAt)N.fpsAt=now;if(now-N.fpsAt>1000){N.fps=Math.round(N.frames*1000/(now-N.fpsAt));N.frames=0;N.fpsAt=now}
  const v=input();
- const selecting=N.paused||(N.solo?!!N.soloChoice:!!N.choice);
+ const selecting=N.paused||!el('ns158Menu')?.hidden||!!window.NS160_LAB?.active||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
  if(selecting){v.x=0;v.y=0}
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
