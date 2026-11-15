@@ -13,7 +13,7 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const attenuation=distance=>.11+.89*Math.exp(-Math.max(0,distance)/490);
 const safeGet=()=>{try{return localStorage.getItem('ns159_live_listen')!=='false'}catch{return true}};
 let listening=safeGet(),ws=null,seat='',allowed=[],getPosition=()=>null,onStatus=()=>{};
-let micStream=null,micTrack=null,talking=false,busy=false,ctx=null,timer=null,epoch=0;
+let micStream=null,micTrack=null,talking=false,busy=false,ctx=null,timer=null,epoch=0,silentDest=null,silentTrack=null;
 let sessionId='',lastError='',rtcAvailable=!!window.RTCPeerConnection,connections=new Map(),captureGen=0;
 const stats={offers:0,answers:0,ice:0,sentAudioBytesViaGameSocket:0,micStarts:0,micStops:0,signalDrops:0};
 function status(){
@@ -29,6 +29,18 @@ function ensureAudio(){
  if(!ctx){try{ctx=new AC({latencyHint:'interactive'})}catch{return null}}
  if(ctx.state==='suspended')ctx.resume().catch(()=>{});
  return ctx;
+}
+function silentSource(){
+ // MediaStreamDestination creates a muted synthetic AUDIO track, never a
+ // microphone. Its presence negotiates sendrecv ONCE before anyone talks.
+ // Later track replacement does not renegotiate or stall gameplay.
+ if(silentTrack?.readyState==='live')return silentTrack;
+ const ac=ensureAudio();
+ if(!ac?.createMediaStreamDestination)return null;
+ silentDest=ac.createMediaStreamDestination();
+ silentTrack=silentDest.stream.getAudioTracks()[0]||null;
+ if(silentTrack)silentTrack.enabled=false;
+ return silentTrack;
 }
 function send(message){
  if(!ws||ws.readyState!==1||ws.bufferedAmount>24000)return false;
@@ -95,7 +107,9 @@ function peerFor(id){
   remoteSession:'',pending:[],busy:false,negotiated:false,offerSent:false,retries:0};
  connections.set(id,peer);
  try{
-  peer.transceiver=pc.addTransceiver('audio',{direction:'sendrecv'});
+  const silent=silentSource();
+  peer.transceiver=pc.addTransceiver(silent||'audio',{direction:'sendrecv',
+   ...(silentDest?{streams:[silentDest.stream]}:{})});
   const codecs=window.RTCRtpReceiver?.getCapabilities?.('audio')?.codecs||[];
   const opus=codecs.filter(c=>c.mimeType?.toLowerCase()==='audio/opus');
   if(opus.length&&peer.transceiver.setCodecPreferences)peer.transceiver.setCodecPreferences(opus);
@@ -214,7 +228,7 @@ function stopCapture(){
  if(micTrack){try{micTrack.enabled=false} catch{}}
  const track=micTrack;micTrack=null;
  for(const peer of connections.values())
-  peer.transceiver?.sender.replaceTrack(null).catch(()=>{});
+  peer.transceiver?.sender.replaceTrack(silentTrack?.readyState==='live'?silentTrack:null).catch(()=>{});
  if(micStream){try{micStream.getTracks().forEach(t=>t.stop())}catch{}micStream=null}
  if(track)stats.micStops++;
  talking=false;busy=false;publish();
@@ -273,6 +287,8 @@ function stop(){
  if(timer)clearInterval(timer);timer=null;
  for(const id of [...connections.keys()])dropPeer(id);
  ws=null;seat='';allowed=[];sessionId='';getPosition=()=>null;
+ if(silentTrack){try{silentTrack.stop()}catch{}}silentTrack=null;silentDest=null;
+ if(ctx){try{ctx.close().catch(()=>{})}catch{}ctx=null}
  publish();
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopCapture()});
