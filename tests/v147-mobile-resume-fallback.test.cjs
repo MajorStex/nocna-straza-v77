@@ -35,7 +35,7 @@ assert.ok(!html.includes("arena.stop();selectedMode='normal'"),'new arena cannot
 assert.ok(!html.includes('fallbackAllowed'),'legacy multiplayer fallback removed');
 assert.ok(html.includes('NEVER redirect players from New Zone to old co-op'));
 assert.ok(arena.includes('function drawArenaBuildings(g,obstacles)'),'cached medieval houses');
-assert.ok(arena.includes('function drawArenaMobs(g,now)'),'shared goblins rendered in MP');
+assert.ok(arena.includes('function drawArenaMobs(g,now,dt)'),'shared goblins rendered in MP');
 assert.ok(arena.includes('function connect(match,id,ticket,rejoin=false)'),'same session rejoin');
 assert.ok(arena.includes("N.phase='waiting'"),'all-ready wait no 24 second timeout');
 assert.ok(arena.includes('N.retryTimer=setTimeout'),'Android resume retry');
