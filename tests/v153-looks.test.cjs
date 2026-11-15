@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const client=fs.readFileSync(path.join(__dirname,'../public/v140-net-mode.js'),'utf8');
-assert.match(html,/<title>Night Watch v158 — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v160 — Noćna Straža<\/title>/);
 assert.match(html,/v140-net-mode\.js\?v=158/,'fresh client asset on PWA homescreen');
 assert.match(client,/ws\.send\(JSON\.stringify\(\{t:'hello',id,ticket,protocol:140\}\)\)/,
  'legacy-compatible handshake is small');
@@ -19,7 +19,7 @@ const start=client.indexOf('function localArenaLook(){'),end=client.indexOf('fun
 assert.ok(start>=0&&end>start);
 const hero={skin:'#334455',weapon:'spear',visualSize:1.08,wardrobe:{topColor:'#223344'}};
 const game={heroStyle:hero,networkHeroStyle:look=>({...look})};
-const context={window:{__nightWatch:game},B:()=>({}),N:{looks:new Map()},Number};
+const context={window:{__nightWatch:game},B:()=>({}),N:{looks:new Map()},Number,LAB_WEAPON:null,LAB_LOOK:null};
 vm.createContext(context);
 vm.runInContext(client.slice(start,end),context,{timeout:1000});
 assert.equal(context.localArenaLook().visualSize,1.08);
