@@ -29,7 +29,7 @@ const ctx={
     me:p,id:'p1',solo:true,soloMobs:[behind,front],soloChests:[{id:1,x:140,y:190,opened:false}],
     soloTick:10,soloAcc:0,lastState:0,visibleMobs:0},
  window:{NS154_GOBLINS:{
-   prepare(mobs)=>mobs.map(mob=>({mob,x:mob.x,y:mob.y,depth:mob.y+13})),
+   prepare:(mobs)=>mobs.map(mob=>({mob,x:mob.x,y:mob.y,depth:mob.y+13})),
    drawOne:(g,item)=>trace.push('mob'+item.mob.id)}},
  B:()=>({drawVillageHero:(g,x,y,options)=>trace.push('hero'+options.id),heroStyle:{}}),
  updateHeroMotion:()=>({walking:true,phase:0,side:1}),
