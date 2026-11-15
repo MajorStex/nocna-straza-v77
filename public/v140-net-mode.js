@@ -1111,7 +1111,8 @@ function drawArenaPlayerLabel(g,p){
 function drawDepthSortedWorld(g,now,dt,visible){
  const sprites=window.NS154_GOBLINS;
  if(!sprites?.prepare||!sprites?.drawOne){
-  drawArenaBuildings(g,N.world.obstacles,visible);
+  if(!N.world.legacyMode)drawArenaBuildings(g,N.world.obstacles,visible);
+  else if(window.NS159_LEGACY_COMPOUND)for(const it of window.NS159_LEGACY_COMPOUND.prepare(N.world.legacyItems||[],visible))window.NS159_LEGACY_COMPOUND.drawOne(g,it);
   drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
   drawArenaMobs(g,now,dt,visible);
   for(const p of N.players.values())if(p.online)drawArenaPlayerBody(g,p,now,dt);
@@ -1131,7 +1132,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
  const obs=N.world.obstacles||[];
  for(let i=0;i<obs.length;i++){
   const o=obs[i];
-  if(o.kind==='tree'||o.kind==='rock')continue;
+  if(N.world.legacyMode||o.kind==='tree'||o.kind==='rock')continue;
   if(o.x>visible.right+14||o.x+o.w<visible.left-14||
      o.y>visible.bottom+17||o.y+o.h<visible.top-17)continue;
   jobs.push({depth:o.y+o.h+12,kind:0,id:i,o});
@@ -1140,11 +1141,16 @@ function drawDepthSortedWorld(g,now,dt,visible){
  for(const chest of chests)if(chest.x>=visible.left-35&&chest.x<=visible.right+35&&
    chest.y>=visible.top-35&&chest.y<=visible.bottom+35)
   jobs.push({depth:chest.y+13,kind:1,id:chest.id,chest});
- const decor=window.NS157_SCENERY?.generate(N.world)||[];
+ const decor=N.world.legacyMode?[]:window.NS157_SCENERY?.generate(N.world)||[];
  for(const item of decor){
   if(item.x<visible.left-66||item.x>visible.right+66||
      item.y<visible.top-148||item.y>visible.bottom+26)continue;
   jobs.push({depth:item.depth,kind:4,id:item.id,item});
+ }
+ if(N.world.legacyMode){
+  const originalMap=window.NS159_LEGACY_COMPOUND;
+  if(originalMap)for(const item of originalMap.prepare(N.world.legacyItems||[],visible))
+   jobs.push({depth:item.depth,kind:6,id:0,entry:item});
  }
  const people=[];
  for(const p of N.players.values()){
@@ -1167,6 +1173,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   else if(item.kind===2)drawArenaPlayerBody(g,item.p,now,dt);
   else if(item.kind===4)window.NS157_SCENERY?.drawOne(g,item.item);
   else if(item.kind===5)originalTrolls?.drawOne(g,item.entry,opt);
+  else if(item.kind===6)window.NS159_LEGACY_COMPOUND?.drawOne(g,item.entry);
   else sprites.drawOne(g,item.entry,opt);
  }
  // Names and HP remain legible above a large horde, even when bodies are occluded.
