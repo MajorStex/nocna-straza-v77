@@ -59,14 +59,18 @@
     row(button('⚔ Opremi oružje','weapon')+button('❤️ Izleči sve igrače','heal'))+
     row(input('ns160Damage','Test šteta napada',n(s.damage,22),1,250)+button('Primeni štetu','damage'))+
     row(button(s.godMode?'🛡 Isključi besmrtnost':'🛡 Uključi besmrtnost','godMode'))+
-    '<p>Boje, kosa i kompletna garderoba uređuju se postojećim Hero Editorom; ovde se menjaju samo testne vrednosti trenutne partije.</p>';
+    '<label class="ns160Field">Boja kože <input id="ns160Skin" type="color" value="'+esc(/^#[a-fA-F0-9]{6}$/.test(s.skin||'')?s.skin:'#d7b28f')+'"></label>'+
+    '<label class="ns160Field">Test klasa<select id="ns160HeroClass">'+['warrior','ranger','mage','support'].map(c=>'<option value="'+c+'"'+(s.heroClass===c?' selected':'')+'>'+c+'</option>').join('')+'</select></label>'+
+    '<label class="ns160Field">Građa<select id="ns160BodyStyle">'+['classic','slim','strong'].map(c=>'<option value="'+c+'"'+(s.bodyStyle===c?' selected':'')+'>'+c+'</option>').join('')+'</select></label>'+
+    row(input('ns160Size','Veličina izgleda (%)',n((s.visualSize||.79)*100),70,112)+button('🎨 Presvuci heroja','heroLook'))+
+    '<p>Boje i garderoba u trajnom Hero Editoru ostaju nepromenjene. Sve gore je samo testni izgled ove partije.</p>';
   }else if(tab==='pause'){
    content='<h3>⏸ Kontrola simulacije</h3>'+(adapter.solo?
      '<div class="ns160Default">SOLO · simulacija je zaustavljena dok je Test Lab otvoren. Zatvori meni za nastavak.</div>':
      '<div class="ns160Default">'+(s.globalPaused?'SVI IGRAČI SU PAUZIRANI':'IGRA U POZADINI NASTAVLJA DA RADI')+
      '<small>Glasovi: '+n(s.votes?.length)+' / '+n(s.needed,1)+' · za pauzu je potrebna saglasnost svih povezanih igrača.</small></div>'+
      row(button('🗳 Glasaj ZA pauzu','pauseVote')+button('▶ Nastavi svima','resumeAll')))+
-    row(button('↩ Vrati standardna podešavanja','resetLab'))+
+    row(button('↶ Poništi poslednju izmenu','undo')+button('↩ Vrati standardna podešavanja','resetLab'))+
     '<p>Izmene ne utiču na nalog, XP, stare modove ni stalna podešavanja talasa.</p>';
   }
   if(!editable()){
@@ -88,6 +92,7 @@
   else if(cmd==='setMob'){packet.id=val('ns160MobId',0);packet.hp=val('ns160SingleHp',35)}
   else if(cmd==='removeMob')packet.id=val('ns160MobId',0);
   else if(cmd==='weapon')packet.value=$('ns160Weapon')?.value;
+  else if(cmd==='heroLook')packet.look={skin:$('ns160Skin')?.value,heroClass:$('ns160HeroClass')?.value,bodyStyle:$('ns160BodyStyle')?.value,visualSize:val('ns160Size',79)/100};
   else if(cmd==='spawnProp')packet.kind=$('ns160Prop')?.value;
   else if(cmd==='freezeAI')packet.value=!s.freezeAI;
   else if(cmd==='godMode')packet.value=!s.godMode;
