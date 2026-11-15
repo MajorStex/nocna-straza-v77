@@ -124,6 +124,25 @@ function install(){
    '.ns165LobbySpeaker{display:inline-block;min-width:15px;margin-left:6px;font:11px system-ui;color:#9eaea1}.ns165LobbySpeaker.speaking{color:#b4ffad;text-shadow:0 0 6px #a7f18b}'+
    '#ns165VillagePopup{position:fixed;z-index:100085;right:10px;top:56px;width:min(290px,87vw);max-height:70dvh;overflow:auto;box-shadow:0 14px 30px #0009}'+
    '#ns165VillageVoice{min-height:32px;padding:5px 7px;font:700 10px system-ui}';
+
+  // V166 mobile lobby width fix: constrain nested CSS grid min-content sizing.
+  // Never scale the game's viewport or alter networking/audio semantics.
+  st.textContent+=`@media (max-width:600px){
+   #coopPanel{min-width:0;max-width:100dvw;overflow-x:hidden}
+   #coopPanel .lobbyBox{min-width:0!important;width:100%!important;max-width:100%!important;grid-template-columns:minmax(0,1fr)!important;padding:14px 12px!important;overflow-x:hidden!important}
+   #coopPanel .lobbyBox>*,#coopPanel #lobbyArea>*{min-width:0!important;max-width:100%!important;box-sizing:border-box}
+   #coopPanel #lobbyArea,#coopPanel #coopSetup{min-width:0!important;width:100%;grid-template-columns:minmax(0,1fr)!important}
+   #coopPanel .settingRow{display:grid!important;grid-template-columns:minmax(92px,.85fr) minmax(0,1.35fr)!important;gap:8px!important;align-items:center}
+   #coopPanel .settingRow select{min-width:0!important;width:100%!important;max-width:100%!important;overflow:hidden;text-overflow:ellipsis}
+   #coopPanel .ns142MpModes{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;padding:0!important;margin:8px 0!important}
+   #coopPanel .ns142MpModes button{min-width:0!important;width:100%;max-width:100%;white-space:normal!important;overflow-wrap:anywhere;font-size:11px!important;padding:9px 7px!important;line-height:1.25}
+   #coopPanel button:not(.navBack){max-width:100%;white-space:normal;overflow-wrap:anywhere}
+   #coopPanel .ns165VoiceCard{min-width:0!important;max-width:100%;width:100%;padding:10px 8px!important;overflow:hidden}
+   #coopPanel .ns165VoiceCard .ns165VoiceActions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px!important}
+   #coopPanel .ns165VoiceCard .ns165VoiceActions>*{min-width:0!important;width:100%;flex:none!important;font-size:11px!important;line-height:1.2;overflow-wrap:anywhere}
+   #coopPanel .ns165VoiceCard .ns165Off{grid-column:1/-1}
+  }
+  @media (max-width:340px){#coopPanel .ns142MpModes{grid-template-columns:minmax(0,1fr)!important}}`;
   document.head.append(st);
  }
  const create=(parent,id)=>{
