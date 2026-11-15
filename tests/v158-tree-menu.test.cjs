@@ -52,4 +52,32 @@ assert.match(net,/id="ns158MenuLeave"/,'menu leave action');
 assert.match(net,/o\.kind==='tree'\|\|o\.kind==='rock'/,'decor colliders must not become painted cottages');
 assert.ok(html.includes('v140-net-mode.js?v=158')&&html.includes('v157-arena-scenery.js?v=158'),
  'reloaded mobile shortcut must receive new menu and collision assets');
+const {chromium}=require('playwright-core');
+(async()=>{
+ const browser=await chromium.launch({headless:true,
+  executablePath:['/usr/bin/google-chrome','/usr/bin/chromium','/opt/google/chrome/chrome'].find(fs.existsSync),
+  args:['--no-sandbox','--disable-dev-shm-usage']});
+ try{
+  for(const viewport of [{width:360,height:780},{width:832,height:394}]){
+   const page=await browser.newPage({viewport,isMobile:true,hasTouch:true});
+   await page.setContent('<html><body></body></html>');
+   await page.addScriptTag({path:path.join(folder,'v157-arena-scenery.js')});
+   await page.addScriptTag({content:'window.__NS110_BRIDGE={currentProfileLevel:()=>7,NET:null};'});
+   await page.addScriptTag({path:path.join(folder,'v140-net-mode.js')});
+   assert.equal(await page.evaluate(()=>window.NS140_ARENA.startSolo()),true,'offline arena opens');
+   assert.equal(await page.locator('#ns158MenuBtn').isVisible(),true,'top menu touch target visible');
+   await page.locator('#ns158MenuBtn').click();
+   assert.equal(await page.locator('#ns158Menu').isVisible(),true,'menu opens on tap');
+   await page.locator('#ns158MenuPause').click();
+   assert.equal(await page.locator('#ns157PauseOverlay').isVisible(),true,'menu opens genuine pause');
+   await page.locator('#ns157Resume').click();
+   assert.equal(await page.locator('#ns157PauseOverlay').isVisible(),false,'resume restores game');
+   await page.locator('#ns158MenuBtn').click();
+   await page.locator('#ns158MenuLeave').click();
+   assert.equal(await page.locator('#ns140Root').isVisible(),false,'menu leaves without stuck overlay');
+   await page.close();
+  }
+  console.log('V158 MOBILE MENU PASS: 360px and landscape taps, pause/resume/leave');
+ }finally{await browser.close()}
+})().catch(error=>{console.error(error);process.exitCode=1});
 console.log('V158 PASS: '+hitboxes.filter(o=>o.kind==='tree').length+' solid trunks, '+hitboxes.filter(o=>o.kind==='rock').length+' rocks, no pass-through, shared cached layout, visible mobile menu');
