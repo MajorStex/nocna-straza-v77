@@ -7138,7 +7138,7 @@ const NS155_LOBBY=(()=>{
     if(NET.role!=='host'||NET.peer!==peer)return;
     promoting=false;handoff=null;
     NET.phase='lobby';NET.readyPlayers.set(id,true);
-    NS92_DIR.publish(true);showLobbyUI();broadcastLobby();
+    NS92_DIR.publish(true);showLobbyUI();broadcastLobby();ns165StartClassicVoice();
     netStatus('✓ POSTAO SI DOMAĆIN · kod '+code+' · ostali ulaze u istu sobu.');
    });
    peer.on('connection',c=>setupConnection(c));
@@ -7417,7 +7417,10 @@ function retryInitialGuestConnection(reason=''){
 function setupConnection(c){
  let assigned=null,presentedIdentity='',rejectReason='',syncTimer=null,worldSend=null,worldReceive=null,guestCanZip=false,worldRetryCount=0,welcomeAcknowledged=false,ns107RateAt=performance.now(),ns107PacketCount=0;
  const safeSend=data=>{if(!c.open)return false;try{return c.send(data)!==false}catch(err){return false}};
- const sendWelcome=()=>{if(assigned&&NET.role==='host'&&NET.phase==='lobby')safeSend({t:'welcome',id:assigned,code:NET.code,round:NET.round,post:NET.ns97Results||null,v:107,rejoinToken:NETLAB.tokens.get(assigned)?.token})};
+ const sendWelcome=()=>{if(assigned&&NET.role==='host'&&NET.phase==='lobby'){
+  safeSend({t:'welcome',id:assigned,code:NET.code,round:NET.round,post:NET.ns97Results||null,v:107,rejoinToken:NETLAB.tokens.get(assigned)?.token});
+  window.NS165_CLASSIC_VOICE?.syncGuest?.(assigned,safeSend);
+ }};
  // WebRTC channels can open before both sides have attached data handlers. Explicit
  // request/ack retries prevent a lost initial host packet from trapping a guest.
  const sendWorldPart=()=>{
@@ -7503,8 +7506,14 @@ function setupConnection(c){
  c.on('data',data=>{
   if(!data||typeof data!=='object'||typeof data.t!=='string'||data.t.length>40)return;
   if(data.t==='arena140Offer'&&NET.role==='guest'&&NET.phase==='lobby'){
+   window.NS165_CLASSIC_VOICE?.suspend?.();
    if(window.NS140_ARENA?.acceptOffer)window.NS140_ARENA.acceptOffer(data);
    else netStatus('Novi MP modul nije učitan. Osveži igru.');
+   return;
+  }
+  if(data.t==='ns165VoiceRoom'){
+   if(NET.role==='guest'&&['lobby','playing'].includes(NET.phase)&&NET.conn===c)
+    window.NS165_CLASSIC_VOICE?.receive?.(data,{code:NET.code,id:NET.localId,position:ns165VoicePosition});
    return;
   }
   if(NET.role==='host'){
@@ -8274,9 +8283,9 @@ $('hostBtn').onclick=async()=>{
    if(NET.role!=='host')return;
    NS92_DIR.publish(true);
    if(NET.phase==='playing'){netStatus('Relay ponovo povezan. Igrači mogu ponovo da se pridruže.');return;}
-   if(NET.phase==='lobby'){netStatus('Relay ponovo povezan. Soba '+NET.code+' je dostupna.');broadcastLobby();return;}
+   if(NET.phase==='lobby'){netStatus('Relay ponovo povezan. Soba '+NET.code+' je dostupna.');broadcastLobby();ns165StartClassicVoice();return;}
    NET.phase='lobby';NET.localReady=true;NET.readyPlayers.set(NET.localId,true);NS92_DIR.publish(true);
-   showLobbyUI();broadcastLobby();sendSocialStatus();NS103_PARTY.onLobbyReady();if(SOCIAL.pendingInvite){const target=SOCIAL.pendingInvite;SOCIAL.pendingInvite=null;sendFriendInvite(target)}
+   showLobbyUI();broadcastLobby();ns165StartClassicVoice();sendSocialStatus();NS103_PARTY.onLobbyReady();if(SOCIAL.pendingInvite){const target=SOCIAL.pendingInvite;SOCIAL.pendingInvite=null;sendFriendInvite(target)}
    netStatus('SOBA SPREMNA ✓ Kod: '+NET.code+' · sada drugi igrači mogu da kliknu JOIN.');
   });
   NET.peer.on('connection',c=>setupConnection(c));
