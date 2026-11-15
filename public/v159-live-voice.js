@@ -14,7 +14,7 @@ const attenuation=distance=>.11+.89*Math.exp(-Math.max(0,distance)/490);
 const safeGet=()=>{try{return localStorage.getItem('ns159_live_listen')!=='false'}catch{return true}};
 let listening=safeGet(),ws=null,seat='',allowed=[],getPosition=()=>null,onStatus=()=>{};
 let micStream=null,micTrack=null,talking=false,busy=false,ctx=null,timer=null,epoch=0;
-let sessionId='',lastError='',rtcAvailable=!!window.RTCPeerConnection,connections=new Map();
+let sessionId='',lastError='',rtcAvailable=!!window.RTCPeerConnection,connections=new Map(),captureGen=0;
 const stats={offers:0,answers:0,ice:0,sentAudioBytesViaGameSocket:0,micStarts:0,micStops:0,signalDrops:0};
 function status(){
  const connected=[...connections.values()].filter(p=>p.pc.connectionState==='connected').length;
@@ -138,7 +138,7 @@ async function drain(peer){
   try{await peer.pc.addIceCandidate(candidate)}catch{}
  }
 }
-async function receive(msg){
+async function handleRtc(msg){
  if(!msg||msg.t!=='rtc')return false;
  const from=msg.from;
  if(!SEAT.test(from)||from===seat||!allowed.includes(from))return true;
@@ -150,6 +150,7 @@ async function receive(msg){
   const p=peerFor(from);if(!p)return true;
   p.remoteSession=msg.sid;
   if(seat<from)void offer(from);
+  else signal(from,'ready'); // remote reconnect completes the same mesh safely
   return true;
  }
  let peer=connections.get(from);
@@ -187,6 +188,11 @@ async function receive(msg){
  publish();
  return true;
 }
+function receive(msg){
+ if(!msg||msg.t!=='rtc')return false;
+ void handleRtc(msg).catch(()=>{stats.signalDrops++});
+ return true;
+}
 function announce(){signalAll('ready')}
 function signalAll(kind){for(const id of allowed)if(id!==seat)signal(id,kind)}
 function syncOnline(ids){
@@ -198,6 +204,7 @@ function syncOnline(ids){
  for(const id of next)signal(id,'ready');
 }
 function stopCapture(){
+ captureGen++;
  if(micTrack){try{micTrack.enabled=false} catch{}}
  const track=micTrack;micTrack=null;
  for(const peer of connections.values())
@@ -211,17 +218,17 @@ async function toggle(){
  if(talking||busy){stopCapture();return false}
  if(!navigator.mediaDevices?.getUserMedia){lastError='Za mikrofon otvori igru preko HTTPS-a i omogući pristup mikrofonu';publish();return false}
  lastError='';busy=true;publish();
- const capturedEpoch=epoch;
+ const capturedEpoch=epoch,capturedGen=captureGen;
  // getUserMedia is called directly from the user click, before first await.
  try{
   const stream=await navigator.mediaDevices.getUserMedia({audio:{
    echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:{ideal:1}},video:false});
-  if(capturedEpoch!==epoch||!ws){stream.getTracks().forEach(t=>t.stop());return false}
+  if(capturedEpoch!==epoch||capturedGen!==captureGen||!ws){stream.getTracks().forEach(t=>t.stop());return false}
   const track=stream.getAudioTracks()[0];if(!track)throw Error('Nije pronađen audio track');
   track.contentHint='speech';track.enabled=true;track.onended=()=>stopCapture();
   micStream=stream;micTrack=track;
   await Promise.all([...connections.values()].map(p=>p.transceiver.sender.replaceTrack(track).catch(()=>{})));
-  if(capturedEpoch!==epoch){stopCapture();return false}
+  if(capturedEpoch!==epoch||capturedGen!==captureGen){stopCapture();return false}
   ensureAudio();talking=true;stats.micStarts++;
   return true;
  }catch(err){
