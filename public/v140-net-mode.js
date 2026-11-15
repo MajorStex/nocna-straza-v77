@@ -3,7 +3,7 @@
 'use strict';
 if(window.NS140_ARENA)return;
 const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-// Shared V150 crowd formula also runs in the offline practice map.
+// Shared V152 crowd formula identical to server navigation and 30Hz movement.
 // V150: predictable, allocation-bounded movement for New Zone's PvE mobs.
 // Only the server decides positions. Each player destination gets one cached
 // navigation field; 48px spatial buckets bound nearby separation work.
@@ -76,7 +76,8 @@ function createArenaCrowdSteering(world,move){
   return buckets;
  }
  function step(mobs,players,tick){
-  // 15 Hz steer tick: deterministic strafe, no wandering RNG or path spam.
+  // Steering only at 15Hz. Physics is advanced in 30Hz fixed steps below.
+  // Never teleport a creep by two ticks' worth in a single steering frame.
   const buckets=bucketsFor(mobs),pressure=new Map();
   for(const m of mobs){
    if(m.hp<=0)continue;
@@ -137,11 +138,21 @@ function createArenaCrowdSteering(world,move){
    mag=Math.hypot(dx,dy)||1;dx/=mag;dy/=mag;
    m.vx=(m.vx||0)*.54+dx*.46;m.vy=(m.vy||0)*.54+dy*.46;
    mag=Math.hypot(m.vx,m.vy)||1;
-   const stride=(49+(m.id%5)*3.25)/world.speed;
-   move(m,m.vx/mag*stride,m.vy/mag*stride,2/30);
   }
  }
- return {step,field,nearestOpen,walkable,get cachedFields(){return flows.size},clear(){flows.clear()}};
+ function advance(mobs,players){
+  // Fixed 30Hz movement: no 66ms position jumps, even while retargeting.
+  for(const m of mobs){
+   if(m.hp<=0||!m.targetId)continue;
+   const target=players.get(m.targetId);
+   if(!target?.online||target.knocked||target.hp<=0)continue;
+   const d=Math.hypot(m.vx||0,m.vy||0);
+   if(d<.001)continue;
+   const stride=(49+(m.id%5)*3.25)/world.speed;
+   move(m,m.vx/d*stride,m.vy/d*stride,1/30);
+  }
+ }
+ return {step,advance,field,nearestOpen,walkable,get cachedFields(){return flows.size},clear(){flows.clear()}};
 }
 
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
