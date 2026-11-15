@@ -6,9 +6,9 @@ const client=fs.readFileSync(path.join(root,'v140-net-mode.js'),'utf8');
 const audio=fs.readFileSync(path.join(root,'v152-arena-audio.js'),'utf8');
 const scene=fs.readFileSync(path.join(root,'v157-arena-scenery.js'),'utf8');
 const sprites=fs.readFileSync(path.join(root,'v154-goblin-renderer.js'),'utf8');
-assert.match(html,/<title>Night Watch v158 — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v160 — Noćna Straža<\/title>/);
 for(const file of ['v140-net-mode.js','v152-arena-audio.js','v154-goblin-renderer.js','v157-arena-scenery.js'])
- assert.ok(html.includes(file+'?v='+(['v140-net-mode.js','v157-arena-scenery.js'].includes(file)?158:157)),'versioned asset missing '+file);
+ assert.ok(html.includes(file+'?v='+(file==='v140-net-mode.js'?160:file==='v157-arena-scenery.js'?158:157)),'versioned asset missing '+file);
 assert.ok(html.indexOf('v157-arena-scenery.js')<html.indexOf('v140-net-mode.js'));
 for(const code of [client,audio,scene,sprites])new Function(code);
 assert.match(client,/m\.t==='event'/);
@@ -29,7 +29,7 @@ const obstacles=[
  {x:395,y:785,w:100,h:105},{x:1460,y:410,w:110,h:104},{x:1020,y:485,w:94,h:94}
 ];
 const hero={id:'p1',x:130,y:250,hp:100,knocked:false};
-const solo={N:{world:{w:1680,h:1080,decorSeed:157,obstacles},
+const solo={LAB:{customCount:null},labDefaultCount:w=>Math.min(80,60+Math.max(0,w-1)*10),N:{world:{w:1680,h:1080,decorSeed:157,obstacles},
  players:new Map([['p1',hero]]),soloSpawnCache:null},Math,
  clamp:(x,a,b)=>Math.max(a,Math.min(b,x))};
 vm.createContext(solo);vm.runInContext(client.slice(start,end),solo,{timeout:1000});
@@ -48,7 +48,7 @@ assert.ok(pauseStart>=0&&pauseEnd>pauseStart);
 let now=1000;const packets=[];
 const N={phase:'running',paused:false,solo:false,ws:{readyState:1,send:x=>packets.push(JSON.parse(x))},
  delta:{x:0,y:0},pending:[1,2],keys:new Set(['w']),stick:{x:1,y:0,ptr:3}};
-const ui={N,el:()=>null,Date:{now:()=>now},setTimeout:()=>1,Math};
+const ui={N,el:()=>null,closeArenaMenu:()=>{},Date:{now:()=>now},setTimeout:()=>1,Math};
 vm.createContext(ui);vm.runInContext(client.slice(pauseStart,pauseEnd)+';this.pause=toggleArenaPause;',ui);
 ui.pause();assert.equal(N.paused,true);assert.equal(N.pending.length,0);
 assert.deepEqual(packets[0],{t:'pause',paused:true});
