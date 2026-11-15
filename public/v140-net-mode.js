@@ -162,7 +162,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
  wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,hordeStepAt:0,uiAt:0,choiceUiId:'',paused:false,pausedAt:0,
- soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
+ soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,drops:[],reviveHeld:'',reviveAt:0,
  solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 // V160 sandbox state lives only in this isolated runtime, never in saved progression.
 let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};
@@ -212,6 +212,7 @@ function ui(){
  '#ns163VoiceSettings p{margin:0;font:10px/1.3 system-ui;color:#c8dbce}'+
  '#ns163VoiceMic{touch-action:none;user-select:none;-webkit-user-select:none;background:#275a45!important}'+
  '#ns163VoiceMode{font-size:11px}'+
+ '#ns167Revive{position:fixed;right:15px;bottom:max(20px,env(safe-area-inset-bottom));z-index:7;background:#326e62;border:2px solid #b4e5ca;color:#f2ffda;font-weight:900;border-radius:20px;padding:15px;min-height:55px;touch-action:none;user-select:none;box-shadow:0 5px 22px #0009}#ns167Revive[hidden]{display:none!important}'+
  '@media(max-width:780px){#ns140Bar{flex-wrap:nowrap;min-height:47px;padding:5px 8px}#ns140Status{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}#ns140Stats{max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ns152Music,#ns152Sound,#ns157Pause,#ns140Close{display:none}}'+
  '#ns140Pad.active{display:block}'+
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
@@ -222,7 +223,7 @@ function ui(){
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
- '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
+ '<button id="ns167Revive" type="button" hidden aria-label="Drži za oživljavanje prijatelja">🩺 DRŽI ZA REVIVE</button><div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
  '<div id="ns152Choice" hidden><div id="ns152ChoiceCard"><h3 id="ns152ChoiceTitle">OTVOREN SANDUK</h3><p id="ns152ChoiceText"></p><div id="ns152Choices"><button data-pick="edge">⚔ OŠTRIJA OŠTRICA · +20% ŠTETE</button><button data-pick="heart">♥ ČUVAROVO SRCE · +25 HP</button><button data-pick="boots">➤ BRŽE ČIZME · +10% BRZINE</button></div><span id="ns152Timer">7 s</span></div></div>';
  document.body.append(style,root);
  // Lazy-load independent voice client only when entering New Zone.
@@ -231,6 +232,21 @@ function ui(){
   voiceScript.src='./v159-voice.js?v=166';voiceScript.async=true;
   document.head.append(voiceScript);
  }
+ const reviveButton=el('ns167Revive');
+ const releaseRevive=()=>{
+  const target=N.reviveHeld;N.reviveHeld='';N.reviveAt=0;
+  if(target&&N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'revive',target,hold:0}));
+ };
+ reviveButton.addEventListener('pointerdown',event=>{
+  if(N.solo||!N.me||N.me.hp<=0||N.phase!=='running')return;
+  const target=[...N.players.values()].filter(p=>p.id!==N.id&&p.knocked&&p.online&&
+   (p.x-N.me.x)**2+(p.y-N.me.y)**2<=78**2)
+   .sort((a,b)=>((a.x-N.me.x)**2+(a.y-N.me.y)**2)-((b.x-N.me.x)**2+(b.y-N.me.y)**2))[0];
+  if(!target)return;
+  event.preventDefault();N.reviveHeld=target.id;N.reviveAt=0;
+  try{reviveButton.setPointerCapture(event.pointerId)}catch{}
+ });
+ for(const action of ['pointerup','pointercancel','lostpointercapture'])reviveButton.addEventListener(action,releaseRevive);
  el('ns140Close').onclick=()=>stop(true);
  el('ns157Pause').onclick=()=>toggleArenaPause();
  el('ns157Resume').onclick=()=>toggleArenaPause(false);
@@ -479,7 +495,7 @@ function stop(notify=false){
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
  A()?.stop();window.NS160_LAB?.close();LAB_AUTO_PAUSE=false;closeArenaMenu(false);N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
- N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
+ N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];N.drops=[];N.reviveHeld='';N.reviveAt=0;
  LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;LAB_SUPPORTED=false;LAB_LOOK=null;LAB_UNDO=null;LAB_SERVER_BUILD=0;
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
@@ -533,7 +549,10 @@ function snapshot(m){
  if(Number.isFinite(m.waveAt))N.waveAt=m.waveAt;
  N.choice=m.choice&&Number.isInteger(m.choice.seq)&&typeof m.choice.owner==='string'?
   {id:m.choice.id,owner:m.choice.owner,options:['edge','heart','boots'],seq:m.choice.seq,until:m.choice.until}:null;
- if(Array.isArray(m.chests))N.chests=m.chests.slice(0,16)
+ if(Array.isArray(m.drops))N.drops=m.drops.slice(0,64)
+   .filter(d=>Array.isArray(d)&&Number.isInteger(d[0])&&Number.isFinite(d[1])&&Number.isFinite(d[2]))
+   .map(d=>({id:d[0],x:d[1]/10,y:d[2]/10,value:Number(d[3])||1}));
+  if(Array.isArray(m.chests))N.chests=m.chests.slice(0,16)
   .filter(c=>Array.isArray(c)&&Number.isInteger(c[0])&&Number.isFinite(c[1])&&Number.isFinite(c[2]))
   .map(c=>({id:c[0],x:c[1],y:c[2],opened:!!c[3]}));
  if(N.wave>priorWave)A()?.play('wave');
@@ -568,6 +587,7 @@ function snapshot(m){
   if(!p){p={id,x,y,tx:x,ty:y};N.players.set(id,p)}
   const previousAttack=p.attackTick;
   p.tx=x;p.ty=y;p.hp=hp;p.maxHp=Number(row[9])||100;p.kills=Number(row[10])||0;
+   p.revivesUsed=Number(row[11])||0;p.reviveProgress=Number(row[12])||0;p.finalDead=row[13]===1;p.gems=Number(row[14])||0;p.downedUntil=Number(row[15])||0;
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
@@ -637,10 +657,14 @@ function buildSoloWave(wave){
    hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0,
    animDistance:0,animX:pt[0],animY:pt[1],facing:1,movingUntil:0};
  });
- if(wave===10&&spawnList.length){
-  const pos=spawnList.pop();
-  spawnList.push({...pos,id:95,kind:'troll',hp:900,maxHp:900,
-   attackAt:0,attackTick:-100,hitTick:-100,targetId:''});
+ if(wave>=10&&wave%10===0&&spawnList.length){
+  const n=Math.min(4,Math.floor(wave/10),spawnList.length);
+  const replaced=spawnList.splice(-n);
+  for(let i=0;i<n;i++){
+   const pos=replaced[i],hp=900+Math.floor(wave/10-1)*150;
+   spawnList.push({...pos,id:95-i,kind:'troll',hp,maxHp:hp,
+    attackAt:0,attackTick:-100,hitTick:-100,targetId:''});
+  }
  }
  return spawnList;
 }
@@ -1011,7 +1035,7 @@ function connect(match,id,ticket,rejoin=false){
   LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
   N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
-  N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.lastMyHp=null;N.hurtUntil=0;
+  N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.lastMyHp=null;N.hurtUntil=0;N.drops=[];N.reviveHeld='';N.reviveAt=0;
  }
  N.match=match;N.id=id;N.ticket=ticket;if(!rejoin)N.paused=false;
  N.phase=rejoin?'reconnecting':'connecting';
@@ -1072,13 +1096,13 @@ function connect(match,id,ticket,rejoin=false){
    if(m.t==='event'&&/^p[1-6]$/.test(m.id)){
     if(m.id!==N.id||m.kind==='returned'){
      const who=String(N.looks.get(m.id)?.look?.name||m.id.toUpperCase()).slice(0,24);
-     const words={joined:who+' has joined the game',returned:who+' se vratio u partiju',
+     const words={downed:'🩹 '+who+' je oboren — priđi i drži REVIVE',revived:'💚 '+who+' je podignut',eliminated:'☠ '+who+' je eliminisan',joined:who+' has joined the game',returned:who+' se vratio u partiju',
       left:who+' has left the game',paused:who+' je na pauzi',resumed:who+' se vratio iz pauze'};
      announceArena(words[m.kind]);
     }
     return;
    }
-   if(m.t==='waveStart'){announceArena(m.wave===10?'🧌 TALAS 10 — TROL BOSS DOLAZI':'TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
+   if(m.t==='waveStart'){announceArena(m.wave%10===0?'🧌 TALAS '+m.wave+' — TROL BOSS!':'TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
    if(m.t==='waveEnd'){announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');return}
    if(m.t==='roster'){
    status('V166 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
@@ -1237,6 +1261,18 @@ function resolveSoloChest(option){
  N.soloChoice=null;N.choiceUiId='';N.soloBetweenUntil=Date.now()+1750;
  A()?.play('choose');return true;
 }
+function drawArenaDiamonds(g,now,view){
+ if(N.solo||!N.drops.length)return;
+ for(const d of N.drops){
+  if(d.x<view.left-22||d.x>view.right+22||d.y<view.top-22||d.y>view.bottom+22)continue;
+  const pulse=.77+.23*Math.sin(now/250+d.id),r=d.value>1?9:6;
+  g.save();g.translate(d.x,d.y);g.globalAlpha=pulse;
+  g.fillStyle='#22527f88';g.beginPath();g.arc(0,0,r+8,0,Math.PI*2);g.fill();
+  g.fillStyle='#70d8ff';g.strokeStyle='#d5f5ff';g.lineWidth=1.4;
+  g.beginPath();g.moveTo(0,-r);g.lineTo(r*.72,0);g.lineTo(0,r);g.lineTo(-r*.72,0);g.closePath();g.fill();g.stroke();
+  g.restore();
+ }
+}
 function sessionHud(now){
  const wave=N.solo?N.soloWave:N.wave,state=N.solo?N.soloState:N.waveState;
  const mobs=N.solo?N.soloMobs:N.mpMobs,choice=N.solo?N.soloChoice:N.choice;
@@ -1248,7 +1284,10 @@ function sessionHud(now){
   const count=mobs.filter(m=>m.hp>0).length;
   const bosses=mobs.filter(m=>m.kind==='troll'&&m.hp>0).length;
   remaining.textContent=state==='between'?'ODMOR · NOVI TALAS USKORO':
-   (bosses?'🧌 BOSS TROL · ':'')+'NEPRIJATELJI '+count+'/'+(N.solo?mobs.length:N.hordeTotal);
+   (bosses?'🧌 BOSS TROL · ':'')+'NEPRIJATELJI '+count+'/'+(N.solo?mobs.length:N.hordeTotal)+
+   (!N.solo?' · 💎 '+(N.me?.gems||0):'');
+  if(!N.solo&&N.me?.knocked)remaining.textContent='🩹 OBORAN · čeka se REVIVE (maks. 3)';
+  if(!N.solo&&N.me?.finalDead)remaining.textContent='☠ ELIMINISAN · gledaj saigrače';
   const key=choice?(choice.seq+':'+choice.owner):'';
   if(!choice){holder.hidden=true;N.choiceUiId=''}
   else{
@@ -1266,6 +1305,19 @@ function sessionHud(now){
     (choice.until-N.serverNow)-(now-N.lastState);
    el('ns152Timer').textContent=Math.max(0,Math.ceil(rest/1000))+' s';
   }
+ }
+ const button=el('ns167Revive');
+ if(button){
+  const me=N.me,near=me&&!N.solo&&LAB_SERVER_BUILD>=167&&me.hp>0&&!me.knocked&&!me.finalDead?
+   [...N.players.values()].find(p=>p.id!==N.id&&p.knocked&&p.online&&
+    (p.x-me.x)**2+(p.y-me.y)**2<=78**2):null;
+  if(!near&&N.reviveHeld){
+   if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'revive',target:N.reviveHeld,hold:0}));
+   N.reviveHeld='';N.reviveAt=0;
+  }
+  button.hidden=!near||N.paused||LAB_PAUSE.paused;
+  if(near)button.textContent=(N.reviveHeld?'🩹 PODIŽEM… ':'🩺 DRŽI ZA REVIVE · ')+
+   Math.round(near.reviveProgress/75*100)+'%';
  }
  const hit=el('ns152Hurt');
  if(hit)hit.style.opacity=N.hurtUntil>now?String(Math.min(.9,(N.hurtUntil-now)/310*.84)):'0';
@@ -1313,7 +1365,7 @@ function drawArenaPlayerLabel(g,p){
  g.fillStyle='#17251c';g.fillRect(p.x-23,labelY+7,46,5);
  g.fillStyle='#a8e2a6';g.fillRect(p.x-22,labelY+8,44*clamp(p.hp/(p.maxHp||100),0,1),3);
  g.fillStyle='#f0dfb6';g.font='bold 11px sans-serif';g.textAlign='center';
- g.fillText(p.id===N.id?'TI':(look?.name||p.id),p.x,labelY);
+ g.fillText(p.knocked?'🩹 REVIVE '+Math.max(0,3-(p.revivesUsed||0))+'/3':p.finalDead?'☠ ELIMINISAN':p.id===N.id?'TI':(look?.name||p.id),p.x,labelY);
  drawArenaVoiceBadge(g,p.id,p.x+38,labelY-2);
  g.restore();
 }
@@ -1468,6 +1520,10 @@ function frame(now){
    (m.x-N.me.x)**2+(m.y-N.me.y)**2<83**2);
   N.ws.send(JSON.stringify({t:'i',seq,ax:Math.round(v.x*127),ay:Math.round(v.y*127),attack:autoTarget?1:0}));
  }
+ if(!N.solo&&N.reviveHeld&&N.ws?.readyState===1&&now-N.reviveAt>=100){
+  N.reviveAt=now;
+  N.ws.send(JSON.stringify({t:'revive',target:N.reviveHeld,hold:1}));
+ }
  if(N.ws?.readyState===1&&now-N.lastPing>2000){N.lastPing=now;N.ws.send(JSON.stringify({t:'ping',sent:now}))}
  const r=canvas.getBoundingClientRect(),dpr=Math.min(1.5,devicePixelRatio||1);
  const ww=Math.round(r.width*dpr),hh=Math.round(r.height*dpr);if(canvas.width!==ww||canvas.height!==hh){canvas.width=ww;canvas.height=hh}
@@ -1481,6 +1537,7 @@ function frame(now){
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
   top:me.y-r.height/2/zoom-90,bottom:me.y+r.height/2/zoom+90};
  drawDepthSortedWorld(g,now,dt,visible);
+ drawArenaDiamonds(g,now,visible);
  drawLabThings(g,now,visible);
  // Grouped horde steps. One sound per nearby crowd per 720ms, not 80 voices.
  if(N.visibleMobs>1&&N.me&&now-N.hordeStepAt>=720){

@@ -1,0 +1,21 @@
+name: V167 New Zone client pre-release QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/v140-net-mode.js'
+      - 'tests/v167-client-revive-gems.test.cjs'
+      - '.github/workflows/v167-client-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: V167 browser JS syntax and co-op compatibility
+        run: node tests/v167-client-revive-gems.test.cjs
