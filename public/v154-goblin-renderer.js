@@ -58,7 +58,7 @@ function spriteAtlas(){
 function prepare(mobs,opt){
  const {solo,alpha,visible}=opt,shown=[];
  for(const mob of mobs){
-  if(mob.hp<=0)continue;
+  if(mob.hp<=0||mob.type==='troll')continue; // V159: original troll has its own cached atlas
   const x=solo?(mob.prevX??mob.x)+(mob.x-(mob.prevX??mob.x))*alpha:mob.x;
   const y=solo?(mob.prevY??mob.y)+(mob.y-(mob.prevY??mob.y))*alpha:mob.y;
   if(x<visible.left-36||x>visible.right+36||y<visible.top-42||y>visible.bottom+35){
