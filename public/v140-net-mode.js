@@ -189,7 +189,7 @@ function ui(){
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
- root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V155 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
+ root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V156 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
@@ -464,7 +464,7 @@ function startSolo(){
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
  window.NS154_GOBLINS?.prewarm();
- status('V155 · SOLO · TALASI I SANDUCI · 0 XP');
+ status('V156 · SOLO · TALASI I SANDUCI · 0 XP');
  return true;
 }
 function stepSolo(dt){
@@ -658,7 +658,7 @@ function connect(match,id,ticket,rejoin=false){
  }
  N.match=match;N.id=id;N.ticket=ticket;
  N.phase=rejoin?'reconnecting':'connecting';
- status('V155 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
+ status('V156 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
  try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
@@ -693,7 +693,7 @@ function connect(match,id,ticket,rejoin=false){
      // Skin/size metadata is sent once after the server confirms support.
      ws.send(JSON.stringify({t:'look',look}));
     }
-   status('V155 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
+   status('V156 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
   if(m.t==='look'){rememberLook(m.id,m.revision,m.look);renderPresence();return}
    if(m.t==='presence'&&Array.isArray(m.players)){
@@ -704,13 +704,13 @@ function connect(match,id,ticket,rejoin=false){
     renderPresence();return;
    }
    if(m.t==='roster'){
-   status('V155 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
+   status('V156 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
   if(m.t==='start'){
    N.phase='running';N.retry=0;N.lostSince=0;
    if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.lastFrame=0;status('V155 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
+   N.lastFrame=0;status('V156 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
   if(m.t==='s'){snapshot(m);return}
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
@@ -726,10 +726,10 @@ function connect(match,id,ticket,rejoin=false){
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
   if(!N.lostSince)N.lostSince=Date.now();
   if(Date.now()-N.lostSince>=120000){
-   N.phase='error';status('V155 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
+   N.phase='error';status('V156 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
   }
   N.retry++;N.phase='reconnecting';
-  status('V155 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
+  status('V156 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
   if(N.retryTimer)clearTimeout(N.retryTimer);
   N.retryTimer=setTimeout(()=>{
    N.retryTimer=null;
@@ -737,7 +737,7 @@ function connect(match,id,ticket,rejoin=false){
   },Math.min(4000,650+N.retry*380));
  };
  ws.onerror=()=>{
-  if(N.ws===ws)status('V155 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
+  if(N.ws===ws)status('V156 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
  };
  return true;
 }
@@ -747,7 +747,7 @@ async function startHost(){
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
  if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
- N.phase='preparing';status('V155 · PRIPREMAM ZASEBAN MP SERVER...');
+ N.phase='preparing';status('V156 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
@@ -888,6 +888,84 @@ function sessionHud(now){
  if(hit)hit.style.opacity=N.hurtUntil>now?String(Math.min(.9,(N.hurtUntil-now)/310*.84)):'0';
 }
 
+
+// V156: the physical feet/shadow determine depth, not sprite drawing order.
+// Static buildings, chests, goblins and heroes share ONE painter queue.
+function drawArenaPlayerBody(g,p,now,dt){
+ g.save();if(p.hp<=0)g.globalAlpha=.38;
+ const motion=updateHeroMotion(p,dt),age=swordAge(p,now);
+ const b=B(),look=N.looks.get(p.id)?.look||(p.id===N.id?localArenaLook():b.getVillageHeroLook?.(p.id));
+ if(typeof b.drawVillageHero==='function'){
+  if(!motion.walking)g.translate(0,Math.sin(now/900+(p.id==='p1'?0:1))*.85);
+  b.drawVillageHero(g,p.x,p.y,{id:p.id,look:look||b.heroStyle,netArena:true,
+   frame:motion.phase,walking:motion.walking,visualSide:motion.side,
+   attackT:age>=0&&age<=9?Math.max(.005,.30-age/30):0,
+   headFacing:Number.isFinite(p.attackAngle)?p.attackAngle:motion.angle});
+ }else{g.fillStyle=p.id===N.id?'#b2ddb6':'#d5b591';g.beginPath();g.arc(p.x,p.y,17,0,7);g.fill()}
+ drawTargetedSlash(g,p,motion,age);
+ g.restore();
+}
+function drawArenaPlayerLabel(g,p){
+ const look=N.looks.get(p.id)?.look||(p.id===N.id?localArenaLook():B().getVillageHeroLook?.(p.id));
+ const visualSize=clamp(Number(look?.visualSize)||.79,.7,1.12),labelY=p.y-72-(visualSize-.79)*35;
+ g.save();
+ g.fillStyle='#17251c';g.fillRect(p.x-23,labelY+7,46,5);
+ g.fillStyle='#a8e2a6';g.fillRect(p.x-22,labelY+8,44*clamp(p.hp/(p.maxHp||100),0,1),3);
+ g.fillStyle='#f0dfb6';g.font='bold 11px sans-serif';g.textAlign='center';
+ g.fillText(p.id===N.id?'TI':(look?.name||p.id),p.x,labelY);
+ g.restore();
+}
+function drawDepthSortedWorld(g,now,dt,visible){
+ const sprites=window.NS154_GOBLINS;
+ if(!sprites?.prepare||!sprites?.drawOne){
+  drawArenaBuildings(g,N.world.obstacles,visible);
+  drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
+  drawArenaMobs(g,now,dt,visible);
+  for(const p of N.players.values())if(p.online)drawArenaPlayerBody(g,p,now,dt);
+  for(const p of N.players.values())if(p.online)drawArenaPlayerLabel(g,p);
+  return;
+ }
+ if(!N.solo)sampleOnlineMobs(now,dt);
+ const mobs=N.solo?N.soloMobs:N.mpMobs;
+ const opt={solo:N.solo,tick:N.solo?N.soloTick:N.tick,now,lastState:N.lastState,
+  alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible};
+ // Precompute visible goblins in ONE scan. They are never re-animated in sorting.
+ const prepared=sprites.prepare(mobs,opt);N.visibleMobs=prepared.length;
+ const jobs=[];
+ const obs=N.world.obstacles||[];
+ for(let i=0;i<obs.length;i++){
+  const o=obs[i];
+  if(o.x>visible.right+14||o.x+o.w<visible.left-14||
+     o.y>visible.bottom+17||o.y+o.h<visible.top-17)continue;
+  jobs.push({depth:o.y+o.h+12,kind:0,id:i,o});
+ }
+ const chests=N.solo?N.soloChests:N.chests;
+ for(const chest of chests)if(chest.x>=visible.left-35&&chest.x<=visible.right+35&&
+   chest.y>=visible.top-35&&chest.y<=visible.bottom+35)
+  jobs.push({depth:chest.y+13,kind:1,id:chest.id,chest});
+ const people=[];
+ for(const p of N.players.values()){
+  if(!p.online)continue;
+  if(p.id!==N.id){const k=1-Math.exp(-Math.min(dt,.05)*13);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
+  if(p.x<visible.left-75||p.x>visible.right+75||
+     p.y<visible.top-95||p.y>visible.bottom+50)continue;
+  people.push(p);
+  jobs.push({depth:p.y+13,kind:2,id:Number(p.id.slice(1)),p});
+ }
+ for(const entry of prepared)jobs.push({depth:entry.depth,kind:3,id:entry.mob.id,entry});
+ // 80 goblins + ~12 props + six players: deterministic O(n log n),
+ // far cheaper than multiple complete canvas render passes.
+ jobs.sort((a,b)=>a.depth-b.depth||a.kind-b.kind||a.id-b.id);
+ for(const item of jobs){
+  if(item.kind===0){const sprite=cottageSprite(item.o,item.id);
+   if(sprite)g.drawImage(sprite,item.o.x-13,item.o.y-16)}
+  else if(item.kind===1)drawArenaChests(g,[item.chest],visible);
+  else if(item.kind===2)drawArenaPlayerBody(g,item.p,now,dt);
+  else sprites.drawOne(g,item.entry,opt);
+ }
+ // Names and HP remain legible above a large horde, even when bodies are occluded.
+ for(const p of people)drawArenaPlayerLabel(g,p);
+}
 function frame(now){
  if(N.phase!=='running'||document.hidden)return;
  const canvas=el('ns140Canvas'),g=canvas?.getContext('2d');if(!g)return;
@@ -939,29 +1017,7 @@ function frame(now){
  // Viewport culling keeps the expanded map cheap on mobile GPUs.
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
   top:me.y-r.height/2/zoom-90,bottom:me.y+r.height/2/zoom+90};
- drawArenaBuildings(g,N.world.obstacles,visible);
- drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
- drawArenaMobs(g,now,dt,visible);
- for(const p of N.players.values()){
-  if(!p.online)continue;
-  if(p.id!==N.id){const k=1-Math.exp(-Math.min(dt,.05)*13);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
-  g.save();if(p.hp<=0)g.globalAlpha=.38;
-  const motion=updateHeroMotion(p,dt),age=swordAge(p,now);
-  const b=B(),look=N.looks.get(p.id)?.look||(p.id===N.id?localArenaLook():b.getVillageHeroLook?.(p.id));if(typeof b.drawVillageHero==='function'){
-   if(!motion.walking)g.translate(0,Math.sin(now/900+(p.id==='p1'?0:1))*.85);
-   b.drawVillageHero(g,p.x,p.y,{id:p.id,
-    look:look||b.heroStyle,netArena:true,frame:motion.phase,walking:motion.walking,
-    visualSide:motion.side,
-    attackT:age>=0&&age<=9?Math.max(.005,.30-age/30):0,
-    headFacing:Number.isFinite(p.attackAngle)?p.attackAngle:motion.angle});
-  }
-  else{g.fillStyle=p.id===N.id?'#b2ddb6':'#d5b591';g.beginPath();g.arc(p.x,p.y,17,0,7);g.fill()}
-  const visualSize=clamp(Number(look?.visualSize)||.79,.7,1.12),labelY=p.y-72-(visualSize-.79)*35;
-  g.fillStyle='#17251c';g.fillRect(p.x-23,labelY+7,46,5);g.fillStyle='#a8e2a6';g.fillRect(p.x-22,labelY+8,44*clamp(p.hp/(p.maxHp||100),0,1),3);
-  g.fillStyle='#f0dfb6';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText(p.id===N.id?'TI':(look?.name||p.id),p.x,labelY);
-  drawTargetedSlash(g,p,motion,age);
-  g.restore();
- }
+ drawDepthSortedWorld(g,now,dt,visible);
  g.setTransform(dpr,0,0,dpr,0,0);
  sessionHud(now);
  // Avoid updating live DOM HUD sixty times per second on mid-range phones.
