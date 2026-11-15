@@ -5,9 +5,9 @@ const game=fs.readFileSync(path.join(root,'v140-net-mode.js'),'utf8');
 const lab=fs.readFileSync(path.join(root,'v162-sandbox.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 new Function(game);new Function(lab);
-assert.match(html,/<title>Night Watch v164/);
-assert.match(html,/VERZIJA V164/);
-assert(html.includes('v140-net-mode.js?v=164'));
+assert.match(html,/<title>Night Watch v166/);
+assert.match(html,/VERZIJA V166/);
+assert(html.includes('v140-net-mode.js?v=166'));
 for(const token of ['ns160Open','ns160LabScript','v162-sandbox.js?v=162','function soloLabAction(m)','function stepSoloAllies()','function sandboxState()','function drawLabThings('])
  assert(game.includes(token.replace('ns160-sandbox','ns160')),'Missing client lab integration '+token);
 assert.match(game,/if\(opening&&N\.solo&&!N\.paused\)\{\s*toggleArenaPause\(true\)/,
