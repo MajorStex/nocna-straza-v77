@@ -1257,6 +1257,18 @@ function resolveSoloChest(option){
  N.soloChoice=null;N.choiceUiId='';N.soloBetweenUntil=Date.now()+1750;
  A()?.play('choose');return true;
 }
+function drawArenaDiamonds(g,now,view){
+ if(N.solo||!N.drops.length)return;
+ for(const d of N.drops){
+  if(d.x<view.left-22||d.x>view.right+22||d.y<view.top-22||d.y>view.bottom+22)continue;
+  const pulse=.77+.23*Math.sin(now/250+d.id),r=d.value>1?9:6;
+  g.save();g.translate(d.x,d.y);g.globalAlpha=pulse;
+  g.fillStyle='#22527f88';g.beginPath();g.arc(0,0,r+8,0,Math.PI*2);g.fill();
+  g.fillStyle='#70d8ff';g.strokeStyle='#d5f5ff';g.lineWidth=1.4;
+  g.beginPath();g.moveTo(0,-r);g.lineTo(r*.72,0);g.lineTo(0,r);g.lineTo(-r*.72,0);g.closePath();g.fill();g.stroke();
+  g.restore();
+ }
+}
 function sessionHud(now){
  const wave=N.solo?N.soloWave:N.wave,state=N.solo?N.soloState:N.waveState;
  const mobs=N.solo?N.soloMobs:N.mpMobs,choice=N.solo?N.soloChoice:N.choice;
@@ -1268,7 +1280,10 @@ function sessionHud(now){
   const count=mobs.filter(m=>m.hp>0).length;
   const bosses=mobs.filter(m=>m.kind==='troll'&&m.hp>0).length;
   remaining.textContent=state==='between'?'ODMOR · NOVI TALAS USKORO':
-   (bosses?'🧌 BOSS TROL · ':'')+'NEPRIJATELJI '+count+'/'+(N.solo?mobs.length:N.hordeTotal);
+   (bosses?'🧌 BOSS TROL · ':'')+'NEPRIJATELJI '+count+'/'+(N.solo?mobs.length:N.hordeTotal)+
+   (!N.solo?' · 💎 '+(N.me?.gems||0):'');
+  if(!N.solo&&N.me?.knocked)remaining.textContent='🩹 OBORAN · čeka se REVIVE (maks. 3)';
+  if(!N.solo&&N.me?.finalDead)remaining.textContent='☠ ELIMINISAN · gledaj saigrače';
   const key=choice?(choice.seq+':'+choice.owner):'';
   if(!choice){holder.hidden=true;N.choiceUiId=''}
   else{
@@ -1286,6 +1301,19 @@ function sessionHud(now){
     (choice.until-N.serverNow)-(now-N.lastState);
    el('ns152Timer').textContent=Math.max(0,Math.ceil(rest/1000))+' s';
   }
+ }
+ const button=el('ns167Revive');
+ if(button){
+  const me=N.me,near=me&&!N.solo&&me.hp>0&&!me.knocked&&!me.finalDead?
+   [...N.players.values()].find(p=>p.id!==N.id&&p.knocked&&p.online&&
+    (p.x-me.x)**2+(p.y-me.y)**2<=78**2):null;
+  if(!near&&N.reviveHeld){
+   if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'revive',target:N.reviveHeld,hold:0}));
+   N.reviveHeld='';N.reviveAt=0;
+  }
+  button.hidden=!near||N.paused||LAB_PAUSE.paused;
+  if(near)button.textContent=(N.reviveHeld?'🩹 PODIŽEM… ':'🩺 DRŽI ZA REVIVE · ')+
+   Math.round(near.reviveProgress/75*100)+'%';
  }
  const hit=el('ns152Hurt');
  if(hit)hit.style.opacity=N.hurtUntil>now?String(Math.min(.9,(N.hurtUntil-now)/310*.84)):'0';
@@ -1488,6 +1516,10 @@ function frame(now){
    (m.x-N.me.x)**2+(m.y-N.me.y)**2<83**2);
   N.ws.send(JSON.stringify({t:'i',seq,ax:Math.round(v.x*127),ay:Math.round(v.y*127),attack:autoTarget?1:0}));
  }
+ if(!N.solo&&N.reviveHeld&&N.ws?.readyState===1&&now-N.reviveAt>=100){
+  N.reviveAt=now;
+  N.ws.send(JSON.stringify({t:'revive',target:N.reviveHeld,hold:1}));
+ }
  if(N.ws?.readyState===1&&now-N.lastPing>2000){N.lastPing=now;N.ws.send(JSON.stringify({t:'ping',sent:now}))}
  const r=canvas.getBoundingClientRect(),dpr=Math.min(1.5,devicePixelRatio||1);
  const ww=Math.round(r.width*dpr),hh=Math.round(r.height*dpr);if(canvas.width!==ww||canvas.height!==hh){canvas.width=ww;canvas.height=hh}
@@ -1501,6 +1533,7 @@ function frame(now){
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
   top:me.y-r.height/2/zoom-90,bottom:me.y+r.height/2/zoom+90};
  drawDepthSortedWorld(g,now,dt,visible);
+ drawArenaDiamonds(g,now,visible);
  drawLabThings(g,now,visible);
  // Grouped horde steps. One sound per nearby crowd per 720ms, not 80 voices.
  if(N.visibleMobs>1&&N.me&&now-N.hordeStepAt>=720){
