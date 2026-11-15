@@ -1,0 +1,23 @@
+name: V159 separate playable preview link smoke check (NO DEPLOY)
+on:
+  push:
+    branches: ['experiment/v159-original-troll']
+    paths:
+      - 'tests/v159-preview-link.test.cjs'
+      - '.github/workflows/v159-preview-url.yml'
+      - 'public/v159-troll-lab.html'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview-link:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Check immutable preview URL and actual mobile Chromium rendering
+        run: node tests/v159-preview-link.test.cjs

@@ -7514,6 +7514,39 @@ function setupConnection(c){
   if(data.t==='ns97Vote'&&NET.role==='host'&&assigned&&NET.phase==='lobby'){NS97_POST.receiveVote(assigned,data);return;}
   if(data.t==='ns76ChatSend'){if(NET.role==='host'&&assigned&&NET.phase==='lobby')NS76CHAT.acceptFromGuest(data,assigned);return;}
   if(data.t==='ns76ChatMsg'){if(NET.role==='guest'&&NET.phase==='lobby')NS76CHAT.receive(data);return;}
+  // V159 live microphone: WebRTC SDP/ICE only. The old Village host
+  // authenticates guest seats and relays one addressed signaling message;
+  // the actual encrypted microphone audio remains peer-to-peer.
+  if(data.t==='ns159Rtc'){
+   if(!/^p[1-6]$/.test(String(data.to||''))||
+      !['ready','offer','answer','ice'].includes(data.kind)||
+      typeof data.sid!=='string'||data.sid.length<5||data.sid.length>48||
+      !/^[A-Za-z0-9_-]+$/.test(data.sid))return;
+   if(data.kind==='offer'||data.kind==='answer'){
+    if(typeof data.sdp!=='string'||data.sdp.length>12000||
+       !/^v=0\r?\n/.test(data.sdp))return;
+   }
+   if(data.kind==='ice'&&(!data.candidate||
+      typeof data.candidate.candidate!=='string'||
+      data.candidate.candidate.length>1800))return;
+   if(NET.role==='host'){
+    if(!/^p[2-6]$/.test(String(assigned||''))||
+       NET.clients.get(assigned)!==c||data.to===assigned)return;
+    const clean={t:'ns159Rtc',from:assigned,to:data.to,kind:data.kind,sid:data.sid};
+    if(data.kind==='offer'||data.kind==='answer')clean.sdp=data.sdp;
+    if(data.kind==='ice')clean.candidate=data.candidate;
+    if(data.to===NET.localId)window.NS109_VILLAGE?.liveSignal?.({...clean,t:'rtc'});
+    else {
+     const target=NET.clients.get(data.to);
+     if(target?.open&&Number(target.bufferSize||0)<18000)try{target.send(clean)}catch{}
+    }
+   }else if(NET.role==='guest'){
+    if(!/^p[1-6]$/.test(String(data.from||''))||
+       data.from===NET.localId||data.to!==NET.localId)return;
+    window.NS109_VILLAGE?.liveSignal?.({...data,t:'rtc'});
+   }
+   return;
+  }
   if(data.t==='nsV63Part'||data.t==='nsV63Play'||data.t==='nsV66Repeat'){coopVoiceHandleNetwork(data,NET.role==='host'?assigned:data.from);return;}
   if(data.t==='nsV63Cue'&&NET.role==='guest'&&NET.phase==='playing'&&CV63_KINDS.has(data.kind)){voiceLine(data.kind,true);return;}
   if(NET.role==='host'){
@@ -9313,7 +9346,12 @@ function ns117DrawVillageHero(target,x,y,options={}){
 }
 const ns117VillageLook=id=>(!NET.role||id===NET.localId)?networkHeroStyle(heroStyle):NET.heroLooks.get(id)||networkHeroStyle(FACTORY_HERO);
 window.__NS110_BRIDGE={NET,G,NSX,NS91,NS97_POST,NS76CHAT,CoopVoice,renderCoopForge,renderPreRun,
- currentLobbyRoster,currentProfileLevel,getActiveAccount,coopVoiceUpdatePreference,unlockSound,voiceLine,toast,meta,heroStyle,
+ currentLobbyRoster,currentProfileLevel,getActiveAccount,coopVoiceUpdatePreference,
+ // V159: read-only bridge to the user's ORIGINAL IndexedDB Hero Editor recordings.
+ getHeroVoiceClip:kind=>VoiceClips.clips.get(kind)||null,
+ prepareHeroVoiceClip:coopVoicePreparedBlob,
+ getHeroVoicePreference:()=>({share:CoopVoice.share,hear:CoopVoice.hear,volume:clamp(Number(cfgSettings.sfxVolume)||.52,0,1)}),
+ unlockSound,voiceLine,toast,meta,heroStyle,
  NS103_PARTY,NS96_INVITES,SOCIAL,startSocial,socialCheckFriends,showFriends,ensureSocialIdentity,safePlayerName,sendSocialStatus,NS92_DIR,
  drawVillageHero:ns117DrawVillageHero,getVillageHeroLook:ns117VillageLook,broadcastLobby,renderLobby,startLobbyMatch};
 window.__nightWatch={NS103_PARTY,NS95_CAGE,NS95_PROGRESS,NETMIG,NSX,NETLAB,updateHUD,draw,bossPhaseOf,bossTarget,bossSummonWave,bossStartCast,bossResolveCast,updateBossPhases,drawBossTelegraphs,WEAPON_EVOLUTIONS,checkWeaponEvolution,currentEvolution,triggerEvolutionAttack,renderEvolutionGuide,openEvolutionGuide,updateEvolutionHud,sosRequest,sosRegister,sosEligible,sosActive,sosCompassTarget,updateSOSHUD,sosObserveSnapshot,REVIVE_RANGE,REVIVE_SECONDS,REVIVE_MAX,REVIVE_HP_RATIO,REVIVE_INVUL,teamColor,drawTeamTriangle,drawTeamEdgeMarkers,reviveCandidate,setReviveHeld,interruptRevive,updateRevives,updateReviveHUD,miniMap,mapReset,mapReveal,mapDraw,mapMarkers,mapGateUnlocked,mapOpen,mapClose,mapSeen,mapFocus,completeNightRun,finishNetworkRound,startLobbyMatch,sendSnapshot,receiveSnapshot,selectPlayerAccount,performAttack,settleRun,awardMP,levelHeroAfterRun,giveSoloLifetimeRewards,earnMPReward,createArchetype,heroLevelStats,heroFreePoints,getHeroTrack,improveChosenHero,renderPreRun,showPreRun,selectPreHero,buildNightTowers,nightDark,lightAt,towerAttack,get selectedMode(){return selectedMode},get mpProgress(){return mpProgress},portableDiagnostics,exportLocalSave,importLocalSave,SOCIAL,get socialId(){return ensureSocialIdentity()},get socialFriends(){return SOCIAL.db?.friends||{}},startSocial,showFriends,socialConnectTo,socialHandlePacket,acceptSocialAction,joinFriendRoom,sendFriendInvite,requestFriendJoin,sendSocialStatus,renderFriends,mpProgress,get playerAccounts(){return playerAccounts},get activeAccount(){return getActiveAccount()},avatarFace,safeAvatarId,safeAvatarImage,saveCurrentAvatar,renderMPAvatarPreview,profileLevelStats,currentProfileLevel,safePlayerName,renderPlayerProfile,selectPlayerAccount,createPlayerAccount,commitMPName,MP_SKILLS,mpCost,buyCoopSkill,earnMPReward,awardMP,applyCoopBonuses,networkHeroStyle,showQuickChoice,coopXP,applyQuickPower,goBack,renderLobby,broadcastLobby,setMyReady,startLobbyMatch,showLobbyUI,leaveLobby,closeNet,damagePlayer,killMob,meta,calculateRunReward,settleRun,showStats,showBase,buyMetaUpgrade,applyMetaBonuses,openGuildShop,closeGuildShop,buyGuildItem,tryGuildShop,get guildItems(){return GUILD_ITEMS},renderRelicChoices,openRelicPanel,chooseRelic,tryRelicShrine,G,NET,configs,VoiceClips,CoopVoice,coopVoiceSendClip,coopVoicePreparedBlob,coopVoiceReceive,coopVoiceHandleNetwork,coopVoicePlayReceived,coopVoiceUpdatePreference,microphoneDiagnostics,FACTORY_HERO,get activeHeroProfile(){return activeHeroProfile},get heroProfiles(){return heroProfiles},applyHeroProfile,createHeroProfile,deleteActiveHero,MEDIEVAL_WEAPONS,drawMedievalWeapon,drawWardrobeExtras,recordVoice,stopVoiceRecording,checkMicPermission,microphoneDiagnostics,exportVoiceClip,saveVoiceClip,removeVoiceClip,playClip,refreshVoiceUI,WARD_CONTROLS,get props(){return props},get defaultPlayMap(){return defaultPlayMap},get levels(){return levelCollection},get editorLevelId(){return editorLevelId},get heroStyle(){return heroStyle},get settings(){return cfgSettings},get projectiles(){return G.projectiles},updateProjectiles,spawnAmbientCrystal,collectBlueCrystals,drawAmbientCrystals,Music,startMusic,stopMusic,tryLootChests,tryMarkets,showLootChoice,lootOptions,grantTreasure,updateAbilities,spawnRotfiend,spawnEnemy,addMob,selectMobTarget,availableTargets,nextSpawnTarget,TREASURES,separateMobBodies,spawnAcid,setupConnection,addRemotePlayer,sendSnapshot,receiveSnapshot,isSolidProp,turnToward,ensureLootAndHouses,saveCurrentLevel,openLevel,addLevel,deleteLevel,saveCharacter,sfx,voiceLine,command,startGame,spawnBoss,generateMap,update,updateMobs,flowDirection,obstacleInPath,invalidateNavigation,draw,move:movingCircle,worldPoint,showMenu,save:persist,xpRequirement};
@@ -9654,5 +9692,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  </section>
 </div>
 <script src="./firebase-config.js?v=92"></script><script src="./v115-village.js?v=144"></script>
-<script src="./v152-arena-audio.js?v=157"></script><script src="./v154-goblin-renderer.js?v=157"></script><script src="./v157-arena-scenery.js?v=158"></script><script src="./v140-net-mode.js?v=158"></script><script type="module" src="./auth-v82.js?v=92"></script>
+<script src="./v152-arena-audio.js?v=157"></script><script src="./v154-goblin-renderer.js?v=157"></script><script src="./v159-troll-renderer.js?v=159"></script><script src="./v157-arena-scenery.js?v=158"></script><script src="./v159-legacy-compound.js?v=159"></script><script src="./v159-hero-voices.js?v=159"></script><script src="./v159-live-voice.js?v=159"></script><script src="./v140-net-mode.js?v=158"></script><script type="module" src="./auth-v82.js?v=92"></script>
 </body></html>

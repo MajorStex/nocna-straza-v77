@@ -1,0 +1,45 @@
+name: V159 experimental legacy troll integration QA (NO DEPLOY)
+on:
+  push:
+    branches: ['experiment/v159-original-troll']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile-and-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Prepare headless mobile browser
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Original troll artwork and mobile performance checks
+        run: |
+          node --check public/v140-net-mode.js
+          node --check public/v154-goblin-renderer.js
+          node --check public/v159-troll-renderer.js
+          node --check public/v159-hero-voices.js
+          node --check public/v159-live-voice.js
+          node tests/v159-troll.test.cjs
+          node tests/v159-two-clients.test.cjs
+          node tests/v159-six-clients.test.cjs
+          node tests/v159-version-lock.test.cjs
+          node tests/v159-legacy-mp-ui.test.cjs
+          node tests/v159-hero-voices.test.cjs
+          node tests/v159-live-voice.test.cjs
+          node tests/v159-lab.test.cjs
+          node tests/v159-legacy-compound.test.cjs
+          node tests/v159-collision-grid.test.cjs
+      - name: Confirm old stable game mode is not broken
+        run: |
+          node tests/current-deployment.test.cjs
+          node tests/v140-isolated-arena.test.cjs
+          node tests/v151-mob-motion.test.cjs
+          node tests/v157-client-features.test.cjs
+          node tests/v158-tree-menu.test.cjs
+          node tests/v153-looks.test.cjs
+          node tests/v154-goblins.test.cjs
+          node tests/v156-depth-audio.test.cjs

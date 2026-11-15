@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 if(window.NS140_ARENA)return;
-const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,V=()=>window.NS159_VOICES||null,L=()=>window.NS159_LIVE||null,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Shared V152 crowd formula identical to server navigation and 30Hz movement.
 // V150: predictable, allocation-bounded movement for New Zone's PvE mobs.
 // Only the server decides positions. Each player destination gets one cached
@@ -148,11 +148,50 @@ function createArenaCrowdSteering(world,move){
    if(!target?.online||target.knocked||target.hp<=0)continue;
    const d=Math.hypot(m.vx||0,m.vy||0);
    if(d<.001)continue;
-   const stride=(49+(m.id%5)*3.25)/world.speed;
+   const stride=(m.type==='troll'?39:49+(m.id%5)*3.25)/world.speed;
    move(m,m.vx/d*stride,m.vy/d*stride,1/30);
   }
  }
  return {step,advance,field,nearestOpen,walkable,get cachedFields(){return flows.size},clear(){flows.clear()}};
+}
+
+// V159: static arena geometry is indexed ONCE. Look up only grid cells
+// overlapping the 14px collision circle; retain exact circle/AABB physics.
+function createArenaCollisionGrid(world){
+ const CELL=96,items=world.obstacles||[],buckets=new Map();
+ for(let i=0;i<items.length;i++){
+  const o=items[i];if(!o||!Number.isFinite(o.x)||!Number.isFinite(o.y)||
+   !Number.isFinite(o.w)||!Number.isFinite(o.h)||o.w<0||o.h<0)continue;
+  const lx=Math.floor(o.x/CELL),rx=Math.floor((o.x+o.w)/CELL);
+  const ty=Math.floor(o.y/CELL),by=Math.floor((o.y+o.h)/CELL);
+  for(let cy=ty;cy<=by;cy++)for(let cx=lx;cx<=rx;cx++){
+   const key=cx+','+cy;
+   let bucket=buckets.get(key);if(!bucket){bucket=[];buckets.set(key,bucket)}
+   bucket.push(i);
+  }
+ }
+ const marks=new Uint32Array(items.length);let serial=0;
+ const counts={calls:0,candidates:0};
+ function free(x,y,r){
+  if(++serial===0xffffffff){marks.fill(0);serial=1}
+  const lx=Math.floor((x-r)/CELL),rx=Math.floor((x+r)/CELL);
+  const ty=Math.floor((y-r)/CELL),by=Math.floor((y+r)/CELL);
+  counts.calls++;
+  for(let cy=ty;cy<=by;cy++)for(let cx=lx;cx<=rx;cx++){
+   const bucket=buckets.get(cx+','+cy);if(!bucket)continue;
+   for(let k=0;k<bucket.length;k++){
+    const index=bucket[k];if(marks[index]===serial)continue;
+    marks[index]=serial;counts.candidates++;
+    const o=items[index];
+    if(x+r<o.x||x-r>o.x+o.w||y+r<o.y||y-r>o.y+o.h)continue;
+    const nx=Math.max(o.x,Math.min(x,o.x+o.w));
+    const ny=Math.max(o.y,Math.min(y,o.y+o.h));
+    if((x-nx)**2+(y-ny)**2<r*r)return false;
+   }
+  }
+  return true;
+ }
+ return {world,count:items.length,free,counts,get cells(){return buckets.size}};
 }
 
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
@@ -161,7 +200,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
  wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,hordeStepAt:0,uiAt:0,choiceUiId:'',paused:false,pausedAt:0,
  soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
- solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
+ solo:false,soloCrowd:null,collisionGrid:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -197,14 +236,18 @@ function ui(){
  '#ns158Menu[hidden]{display:none!important}#ns158Menu{position:absolute;z-index:13;right:9px;top:calc(max(9px,env(safe-area-inset-top)) + 57px);display:grid;gap:7px;width:min(250px,calc(100vw - 18px));padding:12px;background:#142f28f5;border:1px solid #abc39d;border-radius:13px;box-shadow:0 12px 30px #0009}'+
  '#ns158Menu button{padding:11px;border-radius:9px;border:1px solid #8da993;background:#2b4b3e;color:#fff4ce;text-align:left;font-weight:800;min-height:42px}#ns158Menu .danger{background:#6c453b;border-color:#c88d79}'+
  '#ns158Menu p{font:11px/1.4 system-ui;color:#c3d4ca;margin:2px 0 1px}'+
+ '#ns159GateOpen[hidden]{display:none!important}'+
+ '#ns159TalkBtn{position:absolute;right:max(12px,env(safe-area-inset-right));bottom:max(132px,calc(env(safe-area-inset-bottom) + 123px));z-index:7;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:98px;min-height:49px;padding:9px;border:2px solid #92c6af;border-radius:13px;background:#234e42e8;color:#f9e9c2;font:800 12px system-ui;touch-action:manipulation;box-shadow:0 4px 14px #041613a8}'+
+ '#ns159TalkBtn[hidden]{display:none!important}#ns159TalkBtn[aria-pressed=true]{background:#a13232e9;border-color:#ffb1a1}'+
+ '#ns159TalkBtn small{font:10px system-ui;color:#d4e7d4}#ns159LiveHear[hidden]{display:none!important}'+
  '@media(max-width:780px){#ns140Bar{flex-wrap:nowrap;min-height:47px;padding:5px 8px}#ns140Status{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}#ns140Stats{max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ns152Music,#ns152Sound,#ns157Pause,#ns140Close{display:none}}'+
  '#ns140Pad.active{display:block}'+
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
  root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V158 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
- '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
- '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
+ '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns159MenuShare" type="button">🎙 DELI SNIMLJENE REPLIKE</button><button id="ns159MenuHear" type="button">👂 ČUJ GLASOVE SAIGRAČA</button><button id="ns159MenuVoiceTest" type="button">▶ PROBA GLASA</button><button id="ns159LiveHear" type="button">🎧 ČUJ GLAS UŽIVO</button><button id="ns159GateOpen" type="button" hidden>🔑 OTVORI STARU KAPIJU</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
+ '<button id="ns159TalkBtn" type="button" aria-label="Uključi ili isključi mikrofon uživo" aria-pressed="false" hidden>🎤 PRIČAJ<small id="ns159TalkStatus">Mic isključen</small></button><div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
@@ -218,9 +261,50 @@ function ui(){
  menuButton.onclick=()=>{
   menuPanel.hidden=!menuPanel.hidden;menuButton.setAttribute('aria-expanded',String(!menuPanel.hidden));
   el('ns158MenuPause').textContent=N.paused?'▶ NASTAVI':'⏸ PAUZIRAJ';
+  el('ns159GateOpen').hidden=!N.world.legacyMode||!!N.world.legacyGateOpen||N.solo;
+  if(el('ns159LiveHear'))el('ns159LiveHear').textContent=L()?.status().listen?'✅ ČUJ GLAS UŽIVO':'⬜ ČUJ GLAS UŽIVO';
+  const pref=V()?.settings()||{share:false,hear:false};
+  if(el('ns159MenuShare'))el('ns159MenuShare').textContent=(pref.share?'✅':'⬜')+' DELI SNIMLJENE REPLIKE';
+  if(el('ns159MenuHear'))el('ns159MenuHear').textContent=(pref.hear?'✅':'⬜')+' ČUJ GLASOVE SAIGRAČA';
+  if(el('ns159MenuVoiceTest'))el('ns159MenuVoiceTest').hidden=N.solo;
  };
  el('ns158MenuPause').onclick=()=>{closeArenaMenu();toggleArenaPause()};
  el('ns158MenuLeave').onclick=()=>{closeArenaMenu();stop(true)};
+ el('ns159MenuShare').onclick=()=>{
+  const settings=V()?.settings()||{share:false};B().coopVoiceUpdatePreference?.('share',!settings.share);
+  el('ns159MenuShare').textContent=(!settings.share?'✅':'⬜')+' DELI SNIMLJENE REPLIKE';
+ };
+ el('ns159MenuHear').onclick=()=>{
+  const settings=V()?.settings()||{hear:false};B().coopVoiceUpdatePreference?.('hear',!settings.hear);
+  el('ns159MenuHear').textContent=(!settings.hear?'✅':'⬜')+' ČUJ GLASOVE SAIGRAČA';
+ };
+ el('ns159LiveHear').onclick=()=>{
+  const enable=!(L()?.status().listen??true);
+  L()?.setListening(enable);L()?.unlock();
+  el('ns159LiveHear').textContent=enable?'✅ ČUJ GLAS UŽIVO':'⬜ ČUJ GLAS UŽIVO';
+ };
+ el('ns159TalkBtn').onclick=()=>{
+  L()?.unlock();
+  void L()?.toggle().then(ok=>{
+   if(!ok){const error=L()?.status().error;if(error)announceArena('🎙 '+error)}
+  });
+ };
+ el('ns159MenuVoiceTest').onclick=()=>{
+  V()?.unlock();
+  void V()?.emit('preview').then(ok=>{
+   announceArena(ok?'🎙 Replika poslata saigračima':'Nema snimljene replike ili je deljenje isključeno');
+  });
+  closeArenaMenu();
+ };
+ el('ns159GateOpen').onclick=()=>{
+  closeArenaMenu();
+  if(!N.world.legacyMode||N.solo||N.world.legacyGateOpen||N.ws?.readyState!==1)return;
+  if(!N.me||Math.hypot(N.me.x-548,N.me.y-960)>145){
+   status('PRIĐI STAROJ KAPIJI, PA OTVORI MENI');return;
+  }
+  // Only a request: server checks the player's real position and unlocks.
+  N.ws.send(JSON.stringify({t:'gateOpen'}));
+ };
  const musicButton=el('ns152Music'),soundButton=el('ns152Sound');
  function refreshAudioButtons(){
   musicButton.textContent=A()?.music?'♫':'♫̸';
@@ -269,7 +353,7 @@ function ui(){
   if(!el('ns158Menu')?.hidden){closeArenaMenu();return}
   if(N.phase!=='running'||N.paused||N.stick.ptr!==null)return;
   if(e.pointerType==='mouse')return; // Desktop steers with WASD; auto-attack never needs clicks.
-  e.preventDefault();A()?.unlock();N.stick.ptr=e.pointerId;
+  e.preventDefault();A()?.unlock();L()?.unlock();N.stick.ptr=e.pointerId;
   N.stick.startX=e.clientX;N.stick.startY=e.clientY;
   pad.style.left=e.clientX+'px';pad.style.top=e.clientY+'px';
   pad.classList.add('active');knob.style.transform='translate(0px,0px)';
@@ -298,7 +382,7 @@ function ui(){
   if(k==='escape'&&!el('ns158Menu')?.hidden){e.preventDefault();closeArenaMenu();return}
   if((k==='escape'||k==='p')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation?.();toggleArenaPause();return}
   if(N.paused)return;
-  A()?.unlock();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault();
+  A()?.unlock();L()?.unlock();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault();
  });
  window.addEventListener('keyup',e=>N.keys.delete(e.key.toLowerCase()));
  window.addEventListener('blur',()=>{N.keys.clear();resetStick()});
@@ -356,16 +440,25 @@ function status(note){
  ui();el('ns140Root').hidden=false;el('ns140Status').textContent=note;
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
+function refreshLiveTalk(st=L()?.status()){
+ const button=el('ns159TalkBtn');if(!button)return;
+ button.hidden=N.solo||!st?.session||!['waiting','running','connecting','reconnecting'].includes(N.phase);
+ button.disabled=!st?.available||!st.session;
+ button.setAttribute('aria-pressed',String(!!st.talking));
+ button.firstChild.textContent=st.talking?'🔴 MIC UKLJUČEN':st.connecting?'⏳ MIC...':'🎤 PRIČAJ';
+ const line=el('ns159TalkStatus');
+ if(line)line.textContent=st.error?'Glas nije povezan':st.connected+'/'+st.possible+' saigrača';
+}
 function stop(notify=false){
  const wasSolo=N.solo;
  if(notify&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'leave'}))}catch{}
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
- A()?.stop();closeArenaMenu();N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
+ L()?.stop();V()?.stop();A()?.stop();closeArenaMenu();N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
  N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
- N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
+ N.phase='idle';N.solo=false;N.soloCrowd=null;N.collisionGrid=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
  if(wasSolo)try{window.__nightWatch?.showPreRun?.()}catch{}
@@ -390,7 +483,9 @@ function input(){
  return {x,y};
 }
 function moveLocal(p,dx,dy){
- const w=N.world,r=w.r||14,free=(x,y)=>(w.obstacles||[]).every(o=>{
+ const w=N.world,r=w.r||14,grid=N.collisionGrid;
+ const free=(x,y)=>grid?.world===w&&grid.count===(w.obstacles||[]).length?
+  grid.free(x,y,r):(w.obstacles||[]).every(o=>{
   if(x+r<o.x||x-r>o.x+o.w||y+r<o.y||y-r>o.y+o.h)return true;
   const qx=clamp(x,o.x,o.x+o.w),qy=clamp(y,o.y,o.y+o.h);
   return (x-qx)**2+(y-qy)**2>=r*r;
@@ -417,7 +512,10 @@ function snapshot(m){
  if(Array.isArray(m.chests))N.chests=m.chests.slice(0,16)
   .filter(c=>Array.isArray(c)&&Number.isInteger(c[0])&&Number.isFinite(c[1])&&Number.isFinite(c[2]))
   .map(c=>({id:c[0],x:c[1],y:c[2],opened:!!c[3]}));
- if(N.wave>priorWave)A()?.play('wave');
+ if(N.wave>priorWave){A()?.play('wave');
+  const seats=[...N.players.keys()].sort();const speaker=seats[(N.wave-1)%Math.max(1,seats.length)]||'p1';
+  if(N.id===speaker)void V()?.emit(N.wave%10===0?'boss':'wave');
+ }
  if(N.choice&&N.choice.seq!==priorChoice){A()?.play('chest');N.choiceUiId=''}
  if(!N.choice&&priorChoice!==undefined)A()?.play('choose');
  if(Number.isInteger(m.totalMobs)&&m.totalMobs>=12&&m.totalMobs<=80)N.hordeTotal=m.totalMobs;
@@ -434,6 +532,7 @@ function snapshot(m){
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
    mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;
+   mob.type=q[7]===1?'troll':'goblin'; // trailing server type flag; backwards compatible
    return mob;
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
@@ -447,9 +546,10 @@ function snapshot(m){
   if(!Number.isFinite(xx)||!Number.isFinite(yy))continue;
   const x=xx/10,y=yy/10;let p=N.players.get(id);
   if(!p){p={id,x,y,tx:x,ty:y};N.players.set(id,p)}
-  const previousAttack=p.attackTick;
+  const previousAttack=p.attackTick,previousKills=p.kills??0,previousHp=p.hp;
   p.tx=x;p.ty=y;p.hp=hp;p.maxHp=Number(row[9])||100;p.kills=Number(row[10])||0;
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
+  if(id===N.id&&previousHp!==undefined&&hp>0&&previousKills<p.kills)void V()?.emit('kill');
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
    A()?.play('swing',{weapon:id===N.id?localArenaLook().weapon:N.looks.get(id)?.look?.weapon||B().getVillageHeroLook?.(id)?.weapon||'sword',variant:attackTick,
@@ -459,6 +559,7 @@ function snapshot(m){
    if(N.lastMyHp!==null&&hp<N.lastMyHp){
     N.hurtUntil=performance.now()+290;
     A()?.play('hurt',{gain:1});
+    void V()?.emit(hp<=0?'dead':'hurt');
    }
    N.lastMyHp=hp;
   }
@@ -512,8 +613,9 @@ function buildSoloWave(wave){
  }));
  ranked.sort((a,b)=>b.dist-a.dist||((a.i+shift)%points.length)-((b.i+shift)%points.length));
  return ranked.slice(0,count).map(({pt,dist},i)=>{
-  const hp=Math.min(115,35+(wave-1)*9);
-  return {id:i,x:pt[0],y:pt[1],sx:pt[0],sy:pt[1],hp,maxHp:hp,
+  const troll=wave===10&&i===0;
+  const hp=troll?335:Math.min(115,35+(wave-1)*9);
+  return {id:i,type:troll?'troll':'goblin',x:pt[0],y:pt[1],sx:pt[0],sy:pt[1],hp,maxHp:hp,
    spawnDistance:Math.round(dist),attackAt:(i%4)*7,attackTick:-100,deadUntil:0,
    hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0,
    animDistance:0,animX:pt[0],animY:pt[1],facing:1,movingUntil:0};
@@ -544,6 +646,7 @@ function startSolo(){
  ]};
  // Solo uses precisely the same seeded trunks/rocks as the multiplayer server.
  N.world.obstacles.push(...(window.NS157_SCENERY?.colliders?.(N.world)||[]));
+ N.collisionGrid=createArenaCollisionGrid(N.world);
  N.seq=N.ack=N.soloTick=N.soloKills=0;N.tick=-1;
  N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=60;
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
@@ -556,7 +659,11 @@ function startSolo(){
  N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
- window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
+ // Only on this experimental branch: immediate solo artwork/physics test.
+ if(new URLSearchParams(location.search).has('v159-troll-preview')&&N.soloMobs[0]){
+  N.soloMobs[0].type='troll';N.soloMobs[0].hp=N.soloMobs[0].maxHp=335;
+ }
+ window.NS154_GOBLINS?.prewarm();window.NS159_TROLL?.prewarm();window.NS157_SCENERY?.prewarm();
  status('V158 · SOLO · TALASI I SANDUCI · 0 XP');
  return true;
 }
@@ -586,10 +693,10 @@ function stepSolo(dt){
   for(const mob of N.soloMobs){
    if(mob.hp<=0)continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
-   if(d2<=34**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
-    me.hp=Math.max(0,me.hp-7);N.hurtUntil=performance.now()+290;
+   if(d2<=(mob.type==='troll'?45:34)**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
+    me.hp=Math.max(0,me.hp-(mob.type==='troll'?13:7));N.hurtUntil=performance.now()+290;
     A()?.play('hurt');
-    mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+39+(mob.id%5)*4;
+    mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+(mob.type==='troll'?58:39+(mob.id%5)*4);
     N.soloInvul=N.soloTick+28;
    }
   }
@@ -755,9 +862,11 @@ function connect(match,id,ticket,rejoin=false){
  N.phase=rejoin?'reconnecting':'connecting';
  status('V158 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
- try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
+ try{ws=new WebSocket('wss://nocna-straza-relay-v159-test.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
  N.ws=ws;
+ V()?.unlock();
+ L()?.unlock();
  if(N.timeout)clearTimeout(N.timeout);
  N.timeout=setTimeout(()=>{
   if(N.ws!==ws||!['connecting','reconnecting'].includes(N.phase))return;
@@ -774,9 +883,20 @@ function connect(match,id,ticket,rejoin=false){
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
+   // Never join legacy live v158 relay from the experimental v159 branch.
+   if(Number(m.serverBuild)!==159){
+    N.phase='error';status('V159 TEST zahteva izdvojeni V159 multiplayer server. Stalna v158 ostaje netaknuta.');
+    try{ws.close(4002,'incompatible experimental server')}catch{}
+    return;
+   }
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.world=m.world||N.world;N.phase='waiting';
-    window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
+   N.world=m.world||N.world;N.collisionGrid=createArenaCollisionGrid(N.world);N.phase='waiting';
+   V()?.attach(ws,id,seat=>{const player=N.players.get(seat);return player?{x:player.x,y:player.y}:null});
+   L()?.attach(ws,id,m.seats||[],seat=>{
+    const player=N.players.get(seat);return player?{x:player.x,y:player.y}:null;
+   },refreshLiveTalk);
+    if(N.world.legacyMode)window.NS159_LEGACY_COMPOUND?.prewarm(N.world.legacyItems||[]);
+    window.NS154_GOBLINS?.prewarm();window.NS159_TROLL?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
@@ -790,13 +910,16 @@ function connect(match,id,ticket,rejoin=false){
     }
    status('V158 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
+  if(m.t==='rtc'){L()?.receive(m);return;}
+  if(V()?.receive(m))return;
   if(m.t==='look'){rememberLook(m.id,m.revision,m.look);renderPresence();return}
    if(m.t==='presence'&&Array.isArray(m.players)){
     N.presence.clear();
     for(const row of m.players)if(Array.isArray(row)&&/^p[1-6]$/.test(row[0])&&
        ['online','joining','background','reconnecting','disconnected','paused'].includes(row[1]))
       N.presence.set(row[0],row[1]);
-    renderPresence();return;
+    renderPresence();
+    L()?.syncOnline(m.players.filter(r=>Array.isArray(r)&&r[1]==='online').map(r=>r[0]));return;
    }
    if(m.t==='event'&&/^p[1-6]$/.test(m.id)){
     if(m.id!==N.id||m.kind==='returned'){
@@ -807,9 +930,26 @@ function connect(match,id,ticket,rejoin=false){
     }
     return;
    }
-   if(m.t==='waveStart'){announceArena('TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
-   if(m.t==='waveEnd'){announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');return}
+   if(m.t==='gate'&&m.world?.legacyMode){
+    if(m.by===N.id)void V()?.emit('stage');
+    N.world=m.world;N.collisionGrid=createArenaCollisionGrid(N.world);
+    window.NS159_LEGACY_COMPOUND?.prewarm(N.world.legacyItems||[]);
+    announceArena('STARA KAPIJA JE OTVORENA · PROLAZ SLOBODAN');return;
+   }
+   if(m.t==='waveStart'){
+    announceArena('TALAS '+m.wave+' — neprijatelji dolaze iz daljine');
+    const seats=[...N.players.keys()].sort();
+    const designated=seats[(Math.max(1,Number(m.wave)||1)-1)%Math.max(1,seats.length)]||'p1';
+    if(N.id===designated)void V()?.emit(Number(m.wave)%10===0?'boss':'wave');
+    return;
+   }
+   if(m.t==='waveEnd'){
+    announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');
+    if(Number(m.wave)%10===0&&N.id==='p1')void V()?.emit('victory');
+    return;
+   }
    if(m.t==='roster'){
+   L()?.syncOnline(m.ready||[]);
    status('V158 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
   if(m.t==='start'){
@@ -817,10 +957,25 @@ function connect(match,id,ticket,rejoin=false){
    if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.lastFrame=0;
+    if(!m.rejoined&&N.id==='p1')void V()?.emit('start');
     if(N.paused&&ws.readyState===1)ws.send(JSON.stringify({t:'pause',paused:true}));
     status('V158 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
-  if(m.t==='s'){snapshot(m);return}
+  if(m.t==='s'){
+   // A missed one-time gate event also heals from authoritative snapshots.
+   if(N.world.legacyMode&&typeof m.gateOpen==='boolean'&&
+      m.gateOpen!==!!N.world.legacyGateOpen){
+    const art=window.NS159_LEGACY_COMPOUND;
+    if(art){
+     N.world.legacyGateOpen=m.gateOpen;
+     N.world.legacyItems=art.create(m.gateOpen);
+     N.world.obstacles=art.colliders(N.world.legacyItems);
+     N.collisionGrid=createArenaCollisionGrid(N.world);
+     art.prewarm(N.world.legacyItems);
+    }
+   }
+   snapshot(m);return;
+  }
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
   if(m.t==='end'){
    N.phase='ended';status('TEST ZAVRŠEN: '+String(m.reason||'kraj'));
@@ -828,7 +983,8 @@ function connect(match,id,ticket,rejoin=false){
   }
  };
  ws.onclose=e=>{
-  if(N.ws!==ws||['idle','ended'].includes(N.phase))return;
+  if(N.ws!==ws||['idle','ended','error'].includes(N.phase))return;
+  L()?.stop();V()?.stop();
   if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
   N.ws=null;
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
@@ -857,9 +1013,9 @@ async function startHost(){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
  N.phase='preparing';status('V158 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
-  const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
+  const req=await fetch('https://nocna-straza-relay-v159-test.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({code:net.code,seats:roster.map(p=>p.id)})});
+   body:JSON.stringify({code:net.code,seats:roster.map(p=>p.id),zone:'legacy_corner'})});
   const data=await req.json().catch(()=>null);
   if(!req.ok||data?.protocol!==140||!data.ok||!data.tickets)throw Error(data?.error||'server_not_deployed');
   for(const peer of roster){
@@ -1026,7 +1182,8 @@ function drawArenaPlayerLabel(g,p){
 function drawDepthSortedWorld(g,now,dt,visible){
  const sprites=window.NS154_GOBLINS;
  if(!sprites?.prepare||!sprites?.drawOne){
-  drawArenaBuildings(g,N.world.obstacles,visible);
+  if(!N.world.legacyMode)drawArenaBuildings(g,N.world.obstacles,visible);
+  else if(window.NS159_LEGACY_COMPOUND)for(const it of window.NS159_LEGACY_COMPOUND.prepare(N.world.legacyItems||[],visible))window.NS159_LEGACY_COMPOUND.drawOne(g,it);
   drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
   drawArenaMobs(g,now,dt,visible);
   for(const p of N.players.values())if(p.online)drawArenaPlayerBody(g,p,now,dt);
@@ -1038,12 +1195,15 @@ function drawDepthSortedWorld(g,now,dt,visible){
  const opt={solo:N.solo,tick:N.solo?N.soloTick:N.tick,now,lastState:N.lastState,
   alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible};
  // Precompute visible goblins in ONE scan. They are never re-animated in sorting.
- const prepared=sprites.prepare(mobs,opt);N.visibleMobs=prepared.length;
+ const prepared=sprites.prepare(mobs,opt);
+ const originalTrolls=window.NS159_TROLL;
+ const preparedTrolls=originalTrolls?.prepare(mobs,opt)||[];
+ N.visibleMobs=prepared.length+preparedTrolls.length;
  const jobs=[];
  const obs=N.world.obstacles||[];
  for(let i=0;i<obs.length;i++){
   const o=obs[i];
-  if(o.kind==='tree'||o.kind==='rock')continue;
+  if(N.world.legacyMode||o.kind==='tree'||o.kind==='rock')continue;
   if(o.x>visible.right+14||o.x+o.w<visible.left-14||
      o.y>visible.bottom+17||o.y+o.h<visible.top-17)continue;
   jobs.push({depth:o.y+o.h+12,kind:0,id:i,o});
@@ -1052,11 +1212,16 @@ function drawDepthSortedWorld(g,now,dt,visible){
  for(const chest of chests)if(chest.x>=visible.left-35&&chest.x<=visible.right+35&&
    chest.y>=visible.top-35&&chest.y<=visible.bottom+35)
   jobs.push({depth:chest.y+13,kind:1,id:chest.id,chest});
- const decor=window.NS157_SCENERY?.generate(N.world)||[];
+ const decor=N.world.legacyMode?[]:window.NS157_SCENERY?.generate(N.world)||[];
  for(const item of decor){
   if(item.x<visible.left-66||item.x>visible.right+66||
      item.y<visible.top-148||item.y>visible.bottom+26)continue;
   jobs.push({depth:item.depth,kind:4,id:item.id,item});
+ }
+ if(N.world.legacyMode){
+  const originalMap=window.NS159_LEGACY_COMPOUND;
+  if(originalMap)for(const item of originalMap.prepare(N.world.legacyItems||[],visible))
+   jobs.push({depth:item.depth,kind:6,id:0,entry:item});
  }
  const people=[];
  for(const p of N.players.values()){
@@ -1068,6 +1233,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   jobs.push({depth:p.y+13,kind:2,id:Number(p.id.slice(1)),p});
  }
  for(const entry of prepared)jobs.push({depth:entry.depth,kind:3,id:entry.mob.id,entry});
+ for(const entry of preparedTrolls)jobs.push({depth:entry.depth,kind:5,id:entry.mob.id,entry});
  // 80 goblins + ~12 props + six players: deterministic O(n log n),
  // far cheaper than multiple complete canvas render passes.
  jobs.sort((a,b)=>a.depth-b.depth||a.kind-b.kind||a.id-b.id);
@@ -1077,6 +1243,8 @@ function drawDepthSortedWorld(g,now,dt,visible){
   else if(item.kind===1)drawArenaChests(g,[item.chest],visible);
   else if(item.kind===2)drawArenaPlayerBody(g,item.p,now,dt);
   else if(item.kind===4)window.NS157_SCENERY?.drawOne(g,item.item);
+  else if(item.kind===5)originalTrolls?.drawOne(g,item.entry,opt);
+  else if(item.kind===6)window.NS159_LEGACY_COMPOUND?.drawOne(g,item.entry);
   else sprites.drawOne(g,item.entry,opt);
  }
  // Names and HP remain legible above a large horde, even when bodies are occluded.
@@ -1159,7 +1327,7 @@ function frame(now){
  }
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,legacyTrollAtlasBuilds:window.NS159_TROLL?.builds||0,legacyMode:!!N.world.legacyMode,legacyGateOpen:!!N.world.legacyGateOpen,legacyProps:N.world.legacyItems?.length||0,collisionGridCells:N.collisionGrid?.cells||0,collisionChecks:N.collisionGrid?.counts.candidates||0,collisionCalls:N.collisionGrid?.counts.calls||0,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloTrollCount:N.soloMobs.filter(m=>m.type==='troll'&&m.hp>0).length,soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
