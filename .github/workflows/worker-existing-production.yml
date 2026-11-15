@@ -13,6 +13,7 @@ on:
       - 'tests/v161-voice-badges.test.cjs'
       - 'tests/v160-sandbox.test.cjs'
       - 'tests/v162-boss-palette.test.cjs'
+      - 'tests/v163-push-to-talk.test.cjs'
       - '.github/workflows/worker-existing-production.yml'
   workflow_dispatch:
 permissions:
@@ -49,6 +50,8 @@ jobs:
         run: node tests/v161-voice-badges.test.cjs
       - name: V160 sandbox safe-release checks (no browser required)
         run: NO_BROWSER=1 node tests/v160-sandbox.test.cjs
+      - name: V163 Push-to-Talk, Android touch release and microphone privacy tests
+        run: node tests/v163-push-to-talk.test.cjs
       - name: V162 native boss and compact live sandbox (safe release)
         run: NO_BROWSER=1 node tests/v162-boss-palette.test.cjs
       - name: Require Cloudflare Worker credentials (do not silently skip deployment)
