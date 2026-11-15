@@ -20,7 +20,7 @@ assert.ok(!/fetch\(|new WebSocket\(|\.send\(JSON/.test(html),
    const issues=[];page.on('pageerror',err=>issues.push(err.message));
    await page.goto(pathToFileURL(file).href);
    await page.waitForFunction(()=>document.querySelector('#stats').textContent.includes('FPS'),{timeout:10000});
-   await page.waitForFunction(()=>/FPS [1-9]\\d*/.test(document.querySelector('#stats').textContent),{timeout:7000});
+   await page.waitForFunction(()=>/FPS [1-9][0-9]*/.test(document.querySelector('#stats').textContent),null,{timeout:7000});
    let status=await page.locator('#stats').textContent();
    assert.ok(status.includes('80'),'all 80 mobs available for test');
    assert.ok(status.includes('trol-atlas 1×'),'no repeated atlas rebuild');
