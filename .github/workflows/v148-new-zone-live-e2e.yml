@@ -63,7 +63,8 @@ jobs:
             }finally{clearInterval(input)}
             console.log('REAL_NEW_ZONE: 12 shared goblins, attack damage and ACK verified');
             p2.ws.close(1000,'Android background simulation');
-            await until(()=>p2.closed,'p2 disconnect');
+            // Intentionally reconnect before the previous mobile socket finishes closing:
+            // this exercises the exact stale-seat takeover needed after Android suspend.
             const resumed=connect('p2');
             await until(()=>resumed.messages.some(m=>m.t==='start'&&m.rejoined===true),'same seat resumes match');
             console.log('REAL_NEW_ZONE: Android same-seat rejoin verified');
