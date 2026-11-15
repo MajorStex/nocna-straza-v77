@@ -1,0 +1,23 @@
+name: V166 narrow Android lobby layout QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/v165-classic-voice.js'
+      - 'tests/v166-lobby-mobile-width.test.cjs'
+      - '.github/workflows/v166-lobby-mobile-width.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile-css:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Narrow lobby responsive CSS/JS syntax and unchanged voice
+        run: |
+          node tests/v166-lobby-mobile-width.test.cjs
+          node tests/v166-classic-sync.test.cjs
