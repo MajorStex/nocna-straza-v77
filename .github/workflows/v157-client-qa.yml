@@ -11,6 +11,9 @@ on:
       - 'tests/v157-client-features.test.cjs'
       - 'tests/v158-tree-menu.test.cjs'
       - 'public/v160-sandbox.js'
+      - 'public/v162-sandbox.js'
+      - 'public/v162-troll.js'
+      - 'tests/v162-boss-palette.test.cjs'
       - 'tests/v160-sandbox.test.cjs'
       - 'tests/v161-voice-badges.test.cjs'
       - 'tests/v140-isolated-arena.test.cjs'
@@ -36,6 +39,9 @@ jobs:
           node --check public/v159-voice.js
           node tests/v161-voice-badges.test.cjs
           node --check public/v160-sandbox.js
+          node --check public/v162-sandbox.js
+          node --check public/v162-troll.js
+          NO_BROWSER=1 node tests/v162-boss-palette.test.cjs
           node --check public/v152-arena-audio.js
           node --check public/v154-goblin-renderer.js
           node --check public/v157-arena-scenery.js
@@ -43,6 +49,7 @@ jobs:
           node tests/v157-client-features.test.cjs
           node tests/v158-tree-menu.test.cjs
           node tests/v160-sandbox.test.cjs
+          node tests/v162-boss-palette.test.cjs
       - name: Original gameplay, skins, 60FPS jitter, depth and full Chromium regressions
         run: |
           node tests/v140-isolated-arena.test.cjs
