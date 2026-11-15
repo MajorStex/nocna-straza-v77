@@ -23,7 +23,7 @@ jobs:
           const h=await (await fetch(base+'/health')).json();
           assert.equal(h.arenaBuild,153,'V153 backend must be LIVE before allocating a test room');
           const res=await fetch(base+'/arena/create',{method:'POST',headers:{'content-type':'application/json'},
-            body:JSON.stringify({code:'SKIN23',seats:['p1','p2']})});
+            body:JSON.stringify({code:'SKJN23',seats:['p1','p2']})});
           const data=await res.json();assert.equal(res.status,200,JSON.stringify(data));
           const looks={
             p1:{name:'ZELENI',heroClass:'mage',skin:'#44aa77',hair:'#222222',accent:'#ffffaa',
