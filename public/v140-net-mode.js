@@ -489,7 +489,7 @@ function snapshot(m){
   .filter(c=>Array.isArray(c)&&Number.isInteger(c[0])&&Number.isFinite(c[1])&&Number.isFinite(c[2]))
   .map(c=>({id:c[0],x:c[1],y:c[2],opened:!!c[3]}));
  if(N.wave>priorWave){A()?.play('wave');
-  const speaker='p'+((N.wave-1)%Math.max(1,N.players.size||6)+1);
+  const seats=[...N.players.keys()].sort();const speaker=seats[(N.wave-1)%Math.max(1,seats.length)]||'p1';
   if(N.id===speaker)void V()?.emit(N.wave%10===0?'boss':'wave');
  }
  if(N.choice&&N.choice.seq!==priorChoice){A()?.play('chest');N.choiceUiId=''}
@@ -908,7 +908,8 @@ function connect(match,id,ticket,rejoin=false){
    }
    if(m.t==='waveStart'){
     announceArena('TALAS '+m.wave+' — neprijatelji dolaze iz daljine');
-    const designated='p'+((Math.max(1,Number(m.wave)||1)-1)%Math.max(1,N.players.size||6)+1);
+    const seats=[...N.players.keys()].sort();
+    const designated=seats[(Math.max(1,Number(m.wave)||1)-1)%Math.max(1,seats.length)]||'p1';
     if(N.id===designated)void V()?.emit(Number(m.wave)%10===0?'boss':'wave');
     return;
    }
@@ -951,8 +952,8 @@ function connect(match,id,ticket,rejoin=false){
   }
  };
  ws.onclose=e=>{
-  V()?.stop();
   if(N.ws!==ws||['idle','ended','error'].includes(N.phase))return;
+  V()?.stop();
   if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
   N.ws=null;
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
