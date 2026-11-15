@@ -9,6 +9,7 @@ on:
       - 'public/v157-arena-scenery.js'
       - 'public/index.html'
       - 'tests/v157-client-features.test.cjs'
+      - 'tests/v140-isolated-arena.test.cjs'
       - '.github/workflows/v157-client-qa.yml'
   workflow_dispatch:
 permissions:
