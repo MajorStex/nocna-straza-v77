@@ -410,27 +410,33 @@ function stepSolo(dt){
  while(N.soloAcc>=1/30&&iterations++<5){
   N.soloAcc-=1/30;N.soloTick++;N.tick=N.soloTick;
   const me=N.me;
-  if(me.hp<=0){N.phase='solo_ended';status('STRAŽAR JE PAO · SOLO TEST ZAVRŠEN · NAZAD ZA PONOVNO');break}
-  // Offline preview uses exactly the same deterministic crowd steering
-  // as multiplayer: 15 Hz cached paths, 9-bucket separation, flanking.
-  // Save previous fixed-step positions for 60/90/120FPS render interpolation.
+  if(me.hp<=0){N.phase='solo_ended';status('STRAŽAR JE PAO · SOLO TEST ZAVRŠEN');break}
+  if(N.soloChoice){
+   if(Date.now()>=N.soloChoice.until)resolveSoloChest('edge');
+   continue;
+  }
+  if(N.soloState==='between'){
+   if(Date.now()>=N.soloBetweenUntil){
+    N.soloWave++;N.soloMobs=buildSoloWave(N.soloWave);
+    N.soloState='play';N.soloCrowd.clear();A()?.play('wave');
+   }
+   continue;
+  }
+  // Fixed physics 30Hz, steering only at 15Hz, interpolation at display FPS.
   for(const mob of N.soloMobs){mob.prevX=mob.x;mob.prevY=mob.y}
   if(N.soloTick%2===0)N.soloCrowd.step(N.soloMobs,N.players,N.soloTick);
   N.soloCrowd.advance(N.soloMobs,N.players);
   for(const mob of N.soloMobs){
-   if(mob.hp<=0){
-    if(N.soloTick>=mob.deadUntil){mob.hp=35;mob.x=mob.prevX=mob.sx;mob.y=mob.prevY=mob.sy;mob.vx=mob.vy=0}
-    continue;
-   }
+   if(mob.hp<=0)continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
    if(d2<=34**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
-    me.hp=Math.max(0,me.hp-7);
+    me.hp=Math.max(0,me.hp-7);N.hurtUntil=performance.now()+290;
+    A()?.play('hurt');
     mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+39+(mob.id%5)*4;
     N.soloInvul=N.soloTick+28;
    }
   }
-  // V149: attack the nearest goblin automatically, including while moving.
-  // No empty-air slashes; only real hits trigger animations and cooldown.
+  // Auto-attack the nearest living enemy only when in 83px weapon range.
   if(N.soloTick-N.soloSwing>=19){
    let target=null,distSq=83**2;
    for(const mob of N.soloMobs){
@@ -443,10 +449,20 @@ function stepSolo(dt){
     me.attackAngle=Math.atan2(target.y-me.y,target.x-me.x);
     me.facingAngle=me.attackAngle;
     target.hitTick=N.soloTick;
-    target.hp=Math.max(0,target.hp-22);
-    if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++}
+    target.hp=Math.max(0,target.hp-(me.damage||22));
+    A()?.play('swing',{weapon:B().heroStyle?.weapon||'sword'});
+    if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++;me.kills++}
    }
   }
+  // As in the regular game, chest proximity opens a timed reward choice.
+  if(!N.soloChoice){
+   const chest=N.soloChests.find(c=>!c.opened&&(c.x-me.x)**2+(c.y-me.y)**2<=64**2);
+   if(chest){
+    chest.opened=true;N.soloChoice={id:chest.id,seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
+    N.choiceUiId='';A()?.play('chest');
+   }
+  }
+  if(N.soloState==='play'&&N.soloMobs.every(m=>m.hp<=0))soloWaveDone();
  }
 }
 // V151: interpolate authoritative positions on a stable tick timeline,
