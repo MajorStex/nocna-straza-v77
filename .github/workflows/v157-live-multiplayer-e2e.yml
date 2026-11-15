@@ -71,17 +71,21 @@ jobs:
             const a=connect('p1','RATNIK','axe'),b=connect('p2','MAGE','spear');
             await until(()=>[a,b].every(p=>p.messages.some(x=>x.t==='start')&&p.snapshots.length>=4),
               'both phones share running horde');
-            await until(()=>[a,b].every(p=>p.messages.some(x=>x.t==='event'&&x.kind==='joined'&&
-              x.id==='p1'&&x.name==='RATNIK')&&p.messages.some(x=>x.t==='event'&&
-              x.kind==='joined'&&x.id==='p2'&&x.name==='MAGE')),'joined names are owner-verified');
+            // An arriving player gets existing members in welcome.looks; old join
+            // events are not replayed retroactively. Everyone sees later joins.
+            await until(()=>a.messages.some(x=>x.t==='event'&&x.kind==='joined'&&x.id==='p2'&&x.name==='MAGE')&&
+              b.messages.some(x=>x.t==='welcome'&&x.looks.some(row=>row[0]==='p1')),
+              'future joins broadcast correct names; late joins get past members in manifest');
             const initial=b.snapshots.find(x=>x.mobs.length===60);
             assert.ok(initial,'full 60 goblins must appear in the first wave');
             const players=new Map(initial.players.map(x=>[x[0],[x[1]/10,x[2]/10]]));
             const nearest=Math.min(...initial.mobs.flatMap(m=>
              [...players.values()].map(([x,y])=>Math.hypot(m[1]/10-x,m[2]/10-y))));
             assert.ok(nearest>=350,'no wave goblin next to players: '+nearest);
-            assert.ok(a.messages.some(x=>x.t==='look'&&x.id==='p2'&&x.look.weapon==='spear'));
-            assert.ok(b.messages.some(x=>x.t==='look'&&x.id==='p1'&&x.look.weapon==='axe'));
+            const hasAppearance=(p,id,weapon)=>p.messages.some(x=>x.t==='look'&&x.id===id&&x.look.weapon===weapon)||
+              p.messages.some(x=>x.t==='welcome'&&x.looks.some(row=>row[0]===id&&row[2].weapon===weapon));
+            assert.ok(hasAppearance(a,'p2','spear'),'host sees guest spear');
+            assert.ok(hasAppearance(b,'p1','axe'),'late guest sees host axe in updates or join manifest');
             a.ws.send(JSON.stringify({t:'pause',paused:true}));
             await until(()=>b.messages.some(x=>x.t==='presence'&&x.players.some(y=>y[0]==='p1'&&y[1]==='paused')),
               'pause shared to other player without disconnecting');
