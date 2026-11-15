@@ -132,7 +132,7 @@ function install(){
   const modeBtn=document.createElement('button');modeBtn.type='button';modeBtn.className='ns165VoiceMode';
   modeBtn.onclick=toggleMode;
   const mic=document.createElement('button');mic.type='button';mic.className='ns165Mic';
-  mic.addEventListener('click',()=>{if(mode==='toggle')window.NS159_VOICE?.toggleMic()});
+  // The shared audio engine binds exactly one click/hold handler per button.
   const off=document.createElement('button');off.type='button';off.className='ns165Off';
   off.textContent='🔇 UGASI';off.onclick=micOff;
   const note=document.createElement('small');note.className='ns165VoiceNote';
