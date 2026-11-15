@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const root=path.resolve(__dirname,'../public'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const client=fs.readFileSync(path.join(root,'v140-net-mode.js'),'utf8');
 const renderer=fs.readFileSync(path.join(root,'v154-goblin-renderer.js'),'utf8');
-assert.match(html,/<title>Night Watch v158 — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v160 — Noćna Straža<\/title>/);
 assert.ok(html.indexOf('v154-goblin-renderer.js')<html.indexOf('v140-net-mode.js'));
 assert.match(client,/q\[0\]<96/,'all 80 goblins are accepted from server');
 assert.match(client,/NS154_GOBLINS\.draw/,'cached renderer is actually used');
@@ -22,7 +22,7 @@ const obstacles=[
  {x:1230,y:650,w:140,h:110},{x:720,y:730,w:116,h:100},{x:1005,y:875,w:120,h:90},
  {x:395,y:785,w:100,h:105},{x:1460,y:410,w:110,h:104},{x:1020,y:485,w:94,h:94}
 ];
-const ctx={N:{world:{obstacles},soloSpawnCache:null,players:new Map([['p1',{id:'p1',x:130,y:250,hp:100,knocked:false}]])},Math,
+const ctx={LAB:{customCount:null},labDefaultCount:w=>Math.min(80,60+Math.max(0,w-1)*10),N:{world:{obstacles},soloSpawnCache:null,players:new Map([['p1',{id:'p1',x:130,y:250,hp:100,knocked:false}]])},Math,
  clamp:(x,a,b)=>Math.max(a,Math.min(b,x))};
 vm.createContext(ctx);vm.runInContext(client.slice(start,end),ctx,{timeout:1000});
 for(const [wave,n] of [[1,60],[2,70],[3,80],[6,80]]){
