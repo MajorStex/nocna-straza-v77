@@ -51,8 +51,8 @@ jobs:
           health=json.loads(get(relay+'/health'))
           if health.get('ok') is not True:raise SystemExit('Legacy relay health unavailable')
           print('LIVE RELAY BUILD',health.get('arenaBuild','UNKNOWN'),'MOBS',health.get('arenaMobs','UNKNOWN'),flush=True)
-          if health.get('arenaBuild')!=155 or health.get('arenaMobs')!=60:
-            raise SystemExit('New Zone V155 accurate cosmetic colors, presence and horde synchronization is not LIVE; do not claim multiplayer ready')
+          if health.get('arenaBuild')!=157 or health.get('arenaMobs')!=60:
+            raise SystemExit('New Zone V157 safe horde spawn, player events, per-seat pause and weapon audio synchronization is not LIVE; do not claim multiplayer ready')
           req=urllib.request.Request(relay+'/arena/create',method='POST',data=json.dumps({'code':'BAD','seats':['p1']}).encode('utf-8'),headers={'Content-Type':'application/json','Origin':game.rstrip('/'),'Accept':'application/json','User-Agent':'Mozilla/5.0 (Linux; Android 16; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36'})
           try:
             with urllib.request.urlopen(req,timeout=20) as res:
