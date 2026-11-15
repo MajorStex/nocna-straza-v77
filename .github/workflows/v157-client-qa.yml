@@ -10,6 +10,8 @@ on:
       - 'public/index.html'
       - 'tests/v157-client-features.test.cjs'
       - 'tests/v158-tree-menu.test.cjs'
+      - 'public/v160-sandbox.js'
+      - 'tests/v160-sandbox.test.cjs'
       - 'tests/v140-isolated-arena.test.cjs'
       - 'tests/v154-goblins.test.cjs'
       - '.github/workflows/v157-client-qa.yml'
@@ -30,12 +32,14 @@ jobs:
       - name: Test cached weapon waveforms, pause, scenery and 80 safe spawns
         run: |
           node --check public/v140-net-mode.js
+          node --check public/v160-sandbox.js
           node --check public/v152-arena-audio.js
           node --check public/v154-goblin-renderer.js
           node --check public/v157-arena-scenery.js
           node tests/current-deployment.test.cjs
           node tests/v157-client-features.test.cjs
           node tests/v158-tree-menu.test.cjs
+          node tests/v160-sandbox.test.cjs
       - name: Original gameplay, skins, 60FPS jitter, depth and full Chromium regressions
         run: |
           node tests/v140-isolated-arena.test.cjs
