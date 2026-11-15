@@ -8,7 +8,7 @@ new Function(voice);new Function(game);
 assert.match(html,/<title>Night Watch v166/);
 assert.match(html,/VERZIJA V166/);
 assert(html.includes('v140-net-mode.js?v=166'));
-assert(game.includes("voiceScript.src='./v159-voice.js?v=163'"));
+assert(game.includes("voiceScript.src='./v159-voice.js?v=166'"));
 assert.match(game,/function attachVoiceToArena\(/);
 assert.match(game,/window\.NS159_VOICE\?\.stop\(\)/);
 assert.match(game,/position:seat=>seat===N\.id/);
