@@ -328,6 +328,53 @@ function ui(){
  window.addEventListener('keyup',e=>N.keys.delete(e.key.toLowerCase()));
  window.addEventListener('blur',()=>{N.keys.clear();resetStick()});
 }
+function sandboxState(){
+ const t=N.solo?LAB:LAB_REMOTE||{},mobs=N.solo?N.soloMobs:N.mpMobs;
+ return {wave:N.solo?N.soloWave:N.wave,defaultCount:labDefaultCount(N.solo?N.soloWave:N.wave),
+  alive:mobs.filter(m=>m.hp>0).length,total:mobs.length,enabled:!!t.enabled,
+  freezeAI:!!t.freezeAI,godMode:!!t.godMode,customCount:t.customCount??null,
+  allies:t.allies||[],props:t.props||[],globalPaused:N.solo?N.paused:LAB_PAUSE.paused,
+  votes:LAB_PAUSE.votes,needed:LAB_PAUSE.needed,damage:N.me?.damage||22,
+  weapon:LAB_WEAPON||localArenaLook().weapon||'sword'};
+}
+function openSandbox(){
+ if(N.phase!=='running')return;
+ const activate=()=>{
+  if(!window.NS160_LAB){announceArena('Sandbox modul nije dostupan');return}
+  closeArenaMenu(false);
+  if(N.solo)LAB_AUTO_PAUSE=true;
+  if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
+  window.NS160_LAB.open({
+   solo:N.solo,host:N.solo||(N.id==='p1'&&LAB_SUPPORTED),
+   getState:sandboxState,
+   command:packet=>{
+    if(N.solo){soloLabAction(packet);return}
+    if(LAB_SUPPORTED&&N.id==='p1'&&N.ws?.readyState===1&&N.ws.bufferedAmount<8000){
+     if(packet.action==='weapon'&&LAB_WEAPONS.has(packet.value))LAB_WEAPON=packet.value;
+     N.ws.send(JSON.stringify({t:'lab',...packet}));
+    }else announceArena('Sandbox zahteva server V160; promena nije poslata');
+   },
+   vote:()=>{if(LAB_SUPPORTED&&N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'pauseVote',vote:true}));else announceArena('Pauza zahteva server V160')},
+   resumeAll:()=>{if(LAB_SUPPORTED&&N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'globalResume'}))},
+   onClose:()=>{
+    if(N.phase!=='running')return;
+    el('ns158Menu').hidden=false;
+    el('ns158MenuBtn')?.setAttribute('aria-expanded','true');
+    if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
+   }
+  });
+  if(!N.solo&&!LAB_SUPPORTED)announceArena('Čeka se objava V160 servera; izmene nisu dostupne');
+ };
+ if(window.NS160_LAB){activate();return}
+ let script=el('ns160LabScript');
+ if(!script){
+  script=document.createElement('script');script.id='ns160LabScript';
+  script.src='./v160-sandbox.js?v=160';script.async=true;
+  document.head.append(script);
+ }
+ script.addEventListener('load',activate,{once:true});
+ script.addEventListener('error',()=>announceArena('Sandbox modul nije učitan'),{once:true});
+}
 function closeArenaMenu(resumeAuto=true){
  if(el('ns158Menu'))el('ns158Menu').hidden=true;
  el('ns158MenuBtn')?.setAttribute('aria-expanded','false');
