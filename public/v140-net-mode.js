@@ -625,8 +625,22 @@ function soloLabAction(m){
  if(!N.solo||N.phase!=='running')return false;
  const a=m.action,int=(x,min,max,d)=>Number.isFinite(Number(x))?clamp(Math.round(Number(x)),min,max):d;
  const resetWave=()=>{N.soloMobs=buildSoloWave(N.soloWave);N.soloState='play';N.soloChoice=null;N.soloBetweenUntil=0;N.choiceUiId='';N.soloCrowd.clear()};
- const allowed=new Set(['wave','count','resetCount','resetWave','spawnMob','clearMobs','setMob','removeMob','freezeAI','godMode','enemyHp','spawnChest','clearChests','spawnAlly','clearAllies','spawnProp','clearProps','heal','damage','weapon','resetLab']);
+ const allowed=new Set(['wave','count','resetCount','resetWave','spawnMob','clearMobs','setMob','removeMob','freezeAI','godMode','enemyHp','spawnChest','clearChests','spawnAlly','clearAllies','spawnProp','clearProps','heal','damage','weapon','heroLook','undo','resetLab']);
  if(!allowed.has(a))return false;
+ if(a==='undo'){
+  if(!LAB_UNDO)return false;
+  const old=LAB_UNDO;LAB_UNDO=null;
+  LAB=old.lab;LAB_WEAPON=old.weapon;LAB_LOOK=old.look;
+  N.soloWave=old.wave;N.soloState=old.state;N.soloMobs=old.mobs;
+  N.soloChests=old.chests;N.soloChoice=old.choice;N.soloBetweenUntil=old.between;
+  N.me.hp=old.hp;N.me.maxHp=old.maxHp;N.me.damage=old.damage;N.me.speedMult=old.speedMult;
+  N.soloCrowd.clear();N.soloAcc=0;N.uiAt=0;
+  rememberLook('p1',(N.looks.get('p1')?.revision||0)+1,localArenaLook());
+  window.NS160_LAB?.refresh();return true;
+ }
+ const previous=JSON.parse(JSON.stringify({lab:LAB,weapon:LAB_WEAPON,look:LAB_LOOK,
+  wave:N.soloWave,state:N.soloState,mobs:N.soloMobs,chests:N.soloChests,choice:N.soloChoice,
+  between:N.soloBetweenUntil,hp:N.me.hp,maxHp:N.me.maxHp,damage:N.me.damage,speedMult:N.me.speedMult}));
  if(a==='wave'){N.soloWave=int(m.value,1,99,1);resetWave()}
  else if(a==='count'||a==='resetCount'){LAB.customCount=a==='resetCount'?null:int(m.value,1,80,60);resetWave()}
  else if(a==='resetWave')resetWave();
@@ -664,12 +678,19 @@ function soloLabAction(m){
  else if(a==='weapon'){
   if(!LAB_WEAPONS.has(m.value))return false;
   LAB_WEAPON=m.value;rememberLook('p1',(N.looks.get('p1')?.revision||0)+1,localArenaLook());
+ }else if(a==='heroLook'){
+  const appearance=m.look||{},skin=/^#[a-fA-F0-9]{6}$/.test(appearance.skin||'')?appearance.skin:'#d7b28f';
+  LAB_LOOK={...LAB_LOOK,skin,
+   heroClass:['warrior','ranger','mage','support'].includes(appearance.heroClass)?appearance.heroClass:'warrior',
+   bodyStyle:['classic','slim','strong'].includes(appearance.bodyStyle)?appearance.bodyStyle:'classic',
+   visualSize:clamp(Number(appearance.visualSize)||.79,.7,1.12)};
+  rememberLook('p1',(N.looks.get('p1')?.revision||0)+1,localArenaLook());
  }else if(a==='resetLab'){
   LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:LAB.rev+1};
   LAB_WEAPON=null;rememberLook('p1',(N.looks.get('p1')?.revision||0)+1,localArenaLook());resetWave();
  }
  if(a!=='resetLab')LAB.enabled=true;
- LAB.rev++;N.uiAt=0;window.NS160_LAB?.refresh();return true;
+ LAB_UNDO=previous;LAB.rev++;N.uiAt=0;window.NS160_LAB?.refresh();return true;
 }
 function stepSoloAllies(){
  for(const ally of LAB.allies){
