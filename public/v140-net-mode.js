@@ -202,7 +202,7 @@ function ui(){
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
- root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V158 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
+ root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V159 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
  '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
@@ -210,6 +210,12 @@ function ui(){
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
  '<div id="ns152Choice" hidden><div id="ns152ChoiceCard"><h3 id="ns152ChoiceTitle">OTVOREN SANDUK</h3><p id="ns152ChoiceText"></p><div id="ns152Choices"><button data-pick="edge">⚔ OŠTRIJA OŠTRICA · +20% ŠTETE</button><button data-pick="heart">♥ ČUVAROVO SRCE · +25 HP</button><button data-pick="boots">➤ BRŽE ČIZME · +10% BRZINE</button></div><span id="ns152Timer">7 s</span></div></div>';
  document.body.append(style,root);
+ // Lazy-load independent voice client only when entering New Zone.
+ if(!window.NS159_VOICE&&!document.getElementById('ns159VoiceScript')){
+  const voiceScript=document.createElement('script');voiceScript.id='ns159VoiceScript';
+  voiceScript.src='./v159-voice.js?v=159';voiceScript.async=true;
+  document.head.append(voiceScript);
+ }
  el('ns140Close').onclick=()=>stop(true);
  el('ns157Pause').onclick=()=>toggleArenaPause();
  el('ns157Resume').onclick=()=>toggleArenaPause(false);
@@ -357,6 +363,7 @@ function status(note){
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
 function stop(notify=false){
+ window.NS159_VOICE?.stop();
  const wasSolo=N.solo;
  if(notify&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'leave'}))}catch{}
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
@@ -557,7 +564,7 @@ function startSolo(){
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
  window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
- status('V158 · SOLO · TALASI I SANDUCI · 0 XP');
+ status('V159 · SOLO · TALASI I SANDUCI · 0 XP');
  return true;
 }
 function stepSolo(dt){
@@ -743,6 +750,18 @@ function drawArenaBuildings(g,obstacles,visible){
  }
 }
 
+function attachVoiceToArena(){
+ const expectedMatch=N.match,expectedId=N.id;
+ const start=()=>{
+  if(N.match!==expectedMatch||N.id!==expectedId||!['waiting','running'].includes(N.phase))return;
+  window.NS159_VOICE?.mount({
+   match:N.match,id:N.id,ticket:N.ticket,
+   position:seat=>seat===N.id?(N.me||N.players.get(seat)):N.players.get(seat)
+  });
+ };
+ if(window.NS159_VOICE)start();
+ else window.addEventListener('ns159VoiceReady',start,{once:true});
+}
 function connect(match,id,ticket,rejoin=false){
  if(rejoin?N.phase!=='reconnecting':N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<7){N.phase='error';status('NOVA ZONA zahteva OPŠTI NIVO 7');return false}
@@ -753,7 +772,7 @@ function connect(match,id,ticket,rejoin=false){
  }
  N.match=match;N.id=id;N.ticket=ticket;if(!rejoin)N.paused=false;
  N.phase=rejoin?'reconnecting':'connecting';
- status('V158 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
+ status('V159 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
  try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
@@ -775,7 +794,7 @@ function connect(match,id,ticket,rejoin=false){
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.world=m.world||N.world;N.phase='waiting';
+   N.world=m.world||N.world;N.phase='waiting';attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
     if(Array.isArray(m.looks))for(const item of m.looks){
@@ -788,7 +807,7 @@ function connect(match,id,ticket,rejoin=false){
      // Skin/size metadata is sent once after the server confirms support.
      ws.send(JSON.stringify({t:'look',look}));
     }
-   status('V158 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
+   status('V159 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
   if(m.t==='look'){rememberLook(m.id,m.revision,m.look);renderPresence();return}
    if(m.t==='presence'&&Array.isArray(m.players)){
@@ -810,7 +829,7 @@ function connect(match,id,ticket,rejoin=false){
    if(m.t==='waveStart'){announceArena('TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
    if(m.t==='waveEnd'){announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');return}
    if(m.t==='roster'){
-   status('V158 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
+   status('V159 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
   if(m.t==='start'){
    N.phase='running';N.retry=0;N.lostSince=0;
@@ -818,26 +837,28 @@ function connect(match,id,ticket,rejoin=false){
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.lastFrame=0;
     if(N.paused&&ws.readyState===1)ws.send(JSON.stringify({t:'pause',paused:true}));
-    status('V158 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
+    status('V159 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
   if(m.t==='s'){snapshot(m);return}
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
   if(m.t==='end'){
+   window.NS159_VOICE?.stop();
    N.phase='ended';status('TEST ZAVRŠEN: '+String(m.reason||'kraj'));
    setTimeout(()=>{if(N.ws===ws)stop()},1200);
   }
  };
  ws.onclose=e=>{
   if(N.ws!==ws||['idle','ended'].includes(N.phase))return;
+  window.NS159_VOICE?.stop();
   if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
   N.ws=null;
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
   if(!N.lostSince)N.lostSince=Date.now();
   if(Date.now()-N.lostSince>=120000){
-   N.phase='error';status('V158 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
+   N.phase='error';status('V159 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
   }
   N.retry++;N.phase='reconnecting';
-  status('V158 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
+  status('V159 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
   if(N.retryTimer)clearTimeout(N.retryTimer);
   N.retryTimer=setTimeout(()=>{
    N.retryTimer=null;
@@ -845,7 +866,7 @@ function connect(match,id,ticket,rejoin=false){
   },Math.min(4000,650+N.retry*380));
  };
  ws.onerror=()=>{
-  if(N.ws===ws)status('V158 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
+  if(N.ws===ws)status('V159 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
  };
  return true;
 }
@@ -855,7 +876,7 @@ async function startHost(){
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
  if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
- N.phase='preparing';status('V158 · PRIPREMAM ZASEBAN MP SERVER...');
+ N.phase='preparing';status('V159 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
