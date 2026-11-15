@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const root=path.resolve(__dirname,'../public'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const client=fs.readFileSync(path.join(root,'v140-net-mode.js'),'utf8');
 const renderer=fs.readFileSync(path.join(root,'v154-goblin-renderer.js'),'utf8');
-assert.match(html,/<title>Night Watch v160 — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v161 — Noćna Straža<\/title>/);
 assert.ok(html.indexOf('v154-goblin-renderer.js')<html.indexOf('v140-net-mode.js'));
 assert.match(client,/q\[0\]<96/,'all 80 goblins are accepted from server');
 assert.match(client,/NS154_GOBLINS\.draw/,'cached renderer is actually used');
