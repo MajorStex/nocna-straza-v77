@@ -5,7 +5,7 @@
 'use strict';
 if(window.NS152_AUDIO)return;
 const AC=window.AudioContext||window.webkitAudioContext;
-let ctx=null,master=null,fxBus=null,musicBus=null,noise=null,timer=null,nextAt=0,index=0;
+let ctx=null,master=null,fxBus=null,musicBus=null,noise=null,timer=null,nextAt=0,index=0,activeFx=0;
 const CHORDS=[[146.83,174.61,220],[130.81,164.81,196],[116.54,146.83,174.61],[110,164.81,220]];
 const MELODY=[0,null,null,2,null,1,null,null,1,null,0,null,2,null,null,1];
 const last=new Map();
@@ -34,7 +34,11 @@ function unlock(){
 }
 function tone(frequency,at,duration,volume,shape,bus,slide=1){
  if(!ctx||ctx.state!=='running'||!Number.isFinite(frequency))return;
+ // Cap simultaneously sounding one-shot oscillators, not the ambient music.
+ const isFx=bus===fxBus;if(isFx&&activeFx>=12)return;
  const osc=ctx.createOscillator(),amp=ctx.createGain();
+ if(isFx)activeFx++;
+ osc.onended=()=>{if(isFx)activeFx=Math.max(0,activeFx-1);try{osc.disconnect();amp.disconnect()}catch{}};
  osc.type=shape;osc.frequency.setValueAtTime(Math.max(28,frequency),at);
  if(slide!==1)osc.frequency.exponentialRampToValueAtTime(Math.max(28,frequency*slide),at+duration);
  amp.gain.setValueAtTime(.0001,at);
@@ -43,8 +47,9 @@ function tone(frequency,at,duration,volume,shape,bus,slide=1){
  osc.connect(amp);amp.connect(bus);osc.start(at);osc.stop(at+duration+.03);
 }
 function hiss(at,duration,volume,frequency=1800){
- if(!noise||!ctx||ctx.state!=='running')return;
+ if(!noise||!ctx||ctx.state!=='running'||activeFx>=12)return;
  const src=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),amp=ctx.createGain();
+ activeFx++;src.onended=()=>{activeFx=Math.max(0,activeFx-1);try{src.disconnect();filter.disconnect();amp.disconnect()}catch{}};
  src.buffer=noise;filter.type='lowpass';filter.frequency.value=frequency;
  amp.gain.setValueAtTime(Math.max(.0001,volume),at);
  amp.gain.exponentialRampToValueAtTime(.0001,at+duration);
@@ -67,35 +72,44 @@ function musicTick(){
 }
 function play(kind,options={}){
  if(!soundOn||!ctx||ctx.state!=='running'||document.hidden)return false;
- const now=performance.now(),cool={step:250,swing:150,hurt:190,enemy:210,chest:600,wave:900,choose:200,click:160};
- // A large 80-goblin wave must not spawn dozens of audio oscillators together.
- const key=kind==='enemy'?'enemy-nearby':kind+(options.sourceId??'');
- if(now-(last.get(key)||-100000)<(cool[kind]||180))return false;
- last.set(key,now);
- // Distance attenuation is LOCAL, never a WebSocket/audio stream.
- const d=Number.isFinite(options.x)&&Number.isFinite(options.listenerX)?
+ // Most sounds are entirely local. No network streams, MP audio packets or
+ // per-goblin looping voices: one shared near-horde tread per 620 ms.
+ const d=Number.isFinite(options.x)&&Number.isFinite(options.y)&&
+  Number.isFinite(options.listenerX)&&Number.isFinite(options.listenerY)?
   Math.hypot(options.x-options.listenerX,options.y-options.listenerY):0;
  const spatial=clamp(1-d/430,0,1);
  if(spatial<=.015)return false;
- const g=spatial*clamp(options.gain??1,0,1);
- const at=ctx.currentTime+.003;
- const weapon=String(options.weapon||'sword');
- if(kind==='step'){hiss(at,.042,.085*g,620);tone(75,at,.065,.05*g,'sine',fxBus,.7)}
+ const gain=spatial*clamp(options.gain??1,0,1);
+ if(gain<.018)return false;
+ const now=performance.now(),cool={step:250,swing:170,hurt:240,enemy:380,
+  goblinStep:620,hit:135,chest:600,wave:900,choose:200};
+ const key=['enemy','hit','goblinStep'].includes(kind)?kind:kind+(options.sourceId??'');
+ if(now-(last.get(key)||-100000)<(cool[kind]||180))return false;
+ // Don't create any new voices once the small FX pool is occupied.
+ if(activeFx>=12)return false;
+ last.set(key,now);
+ const at=ctx.currentTime+.003,weapon=String(options.weapon||'sword');
+ if(kind==='step'){hiss(at,.04,.080*gain,570);tone(78,at,.06,.04*gain,'sine',fxBus,.73)}
+ else if(kind==='goblinStep'){hiss(at,.052,.034*gain,430);tone(63,at,.1,.034*gain,'sine',fxBus,.68)}
  else if(kind==='swing'){
   const f=weapon.includes('axe')?145:weapon.includes('spear')?275:weapon.includes('mace')?115:225;
-  hiss(at,.11,.17*g,weapon.includes('axe')?1000:2800);
-  tone(f,at,.16,.15*g,'sawtooth',fxBus,.52);
+  hiss(at,.095,.14*gain,weapon.includes('axe')?1000:2600);
+  tone(f,at,.13,.13*gain,'sawtooth',fxBus,.52);
+ }
+ else if(kind==='hit'){
+  hiss(at,.065,.10*gain,1850);tone(195,at,.115,.07*gain,'triangle',fxBus,.55);
  }
  else if(kind==='hurt'){
-  hiss(at,.18,.20*g,1200);tone(145,at,.25,.2*g,'triangle',fxBus,.52);
+  hiss(at,.18,.18*gain,1200);tone(145,at,.22,.18*gain,'triangle',fxBus,.52);
  }
- else if(kind==='enemy'){tone(95,at,.11,.08*g,'sawtooth',fxBus,.65)}
- else if(kind==='chest'){tone(392,at,.17,.16*g,'triangle',fxBus);tone(587.3,at+.10,.27,.13*g,'sine',fxBus)}
- else if(kind==='wave'){tone(220,at,.21,.13*g,'triangle',fxBus);tone(293.66,at+.12,.3,.10*g,'sine',fxBus)}
- else if(kind==='choose'){tone(494,at,.13,.12*g,'triangle',fxBus);tone(659.25,at+.07,.21,.07*g,'sine',fxBus)}
+ else if(kind==='enemy')tone(95,at,.11,.075*gain,'sawtooth',fxBus,.65);
+ else if(kind==='chest'){tone(392,at,.17,.16*gain,'triangle',fxBus);tone(587.3,at+.10,.27,.13*gain,'sine',fxBus)}
+ else if(kind==='wave'){tone(220,at,.21,.13*gain,'triangle',fxBus);tone(293.66,at+.12,.3,.10*gain,'sine',fxBus)}
+ else if(kind==='choose'){tone(494,at,.13,.12*gain,'triangle',fxBus);tone(659.25,at+.07,.21,.07*gain,'sine',fxBus)}
  else return false;
  return true;
 }
+
 function stop(){
  if(timer){clearInterval(timer);timer=null}
  last.clear();
