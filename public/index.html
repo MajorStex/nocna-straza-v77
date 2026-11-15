@@ -7514,6 +7514,39 @@ function setupConnection(c){
   if(data.t==='ns97Vote'&&NET.role==='host'&&assigned&&NET.phase==='lobby'){NS97_POST.receiveVote(assigned,data);return;}
   if(data.t==='ns76ChatSend'){if(NET.role==='host'&&assigned&&NET.phase==='lobby')NS76CHAT.acceptFromGuest(data,assigned);return;}
   if(data.t==='ns76ChatMsg'){if(NET.role==='guest'&&NET.phase==='lobby')NS76CHAT.receive(data);return;}
+  // V159 live microphone: WebRTC SDP/ICE only. The old Village host
+  // authenticates guest seats and relays one addressed signaling message;
+  // the actual encrypted microphone audio remains peer-to-peer.
+  if(data.t==='ns159Rtc'){
+   if(!/^p[1-6]$/.test(String(data.to||''))||
+      !['ready','offer','answer','ice'].includes(data.kind)||
+      typeof data.sid!=='string'||data.sid.length<5||data.sid.length>48||
+      !/^[A-Za-z0-9_-]+$/.test(data.sid))return;
+   if(data.kind==='offer'||data.kind==='answer'){
+    if(typeof data.sdp!=='string'||data.sdp.length>12000||
+       !/^v=0\r?\n/.test(data.sdp))return;
+   }
+   if(data.kind==='ice'&&(!data.candidate||
+      typeof data.candidate.candidate!=='string'||
+      data.candidate.candidate.length>1800))return;
+   if(NET.role==='host'){
+    if(!/^p[2-6]$/.test(String(assigned||''))||
+       NET.clients.get(assigned)!==c||data.to===assigned)return;
+    const clean={t:'ns159Rtc',from:assigned,to:data.to,kind:data.kind,sid:data.sid};
+    if(data.kind==='offer'||data.kind==='answer')clean.sdp=data.sdp;
+    if(data.kind==='ice')clean.candidate=data.candidate;
+    if(data.to===NET.localId)window.NS109_VILLAGE?.liveSignal?.({...clean,t:'rtc'});
+    else {
+     const target=NET.clients.get(data.to);
+     if(target?.open&&Number(target.bufferSize||0)<18000)try{target.send(clean)}catch{}
+    }
+   }else if(NET.role==='guest'){
+    if(!/^p[1-6]$/.test(String(data.from||''))||
+       data.from===NET.localId||data.to!==NET.localId)return;
+    window.NS109_VILLAGE?.liveSignal?.({...data,t:'rtc'});
+   }
+   return;
+  }
   if(data.t==='nsV63Part'||data.t==='nsV63Play'||data.t==='nsV66Repeat'){coopVoiceHandleNetwork(data,NET.role==='host'?assigned:data.from);return;}
   if(data.t==='nsV63Cue'&&NET.role==='guest'&&NET.phase==='playing'&&CV63_KINDS.has(data.kind)){voiceLine(data.kind,true);return;}
   if(NET.role==='host'){
