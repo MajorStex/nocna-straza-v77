@@ -349,13 +349,15 @@ function stepSolo(dt){
   }
  }
 }
-function drawArenaMobs(g,now){
+function drawArenaMobs(g,now,dt){
  const mobs=N.solo?N.soloMobs:N.mpMobs,tick=N.solo?N.soloTick:N.tick;
  for(const mob of mobs){
   if(mob.hp<=0)continue;
-  if(!N.solo){const t=.16;mob.x+=(mob.tx-mob.x)*t;mob.y+=(mob.ty-mob.y)*t;}
+  if(!N.solo){const t=1-Math.exp(-Math.min(dt,.05)*17);mob.x+=(mob.tx-mob.x)*t;mob.y+=(mob.ty-mob.y)*t;}
   const pulse=Math.sin(now/250+mob.id)*1.4;
-  g.save();g.translate(mob.x,mob.y+pulse);
+  const attackAge=(N.tick-mob.attackTick)+(N.solo?0:clamp((now-N.lastState)/33.333,0,2));
+  const lunge=attackAge>=0&&attackAge<10?Math.sin(attackAge/10*Math.PI)*2.5:0;
+  g.save();g.translate(mob.x,mob.y+pulse-lunge);
   g.fillStyle=tick-(mob.hitTick||-100)>0&&tick-(mob.hitTick||-100)<6?'#506b39':'#2c3e29';g.beginPath();g.ellipse(0,6,17,13,0,0,Math.PI*2);g.fill();
   g.fillStyle='#6a8954';g.beginPath();g.moveTo(-13,0);g.lineTo(-15,-13);g.lineTo(-6,-8);
   g.quadraticCurveTo(0,-22,8,-8);g.lineTo(15,-14);g.lineTo(12,0);
@@ -547,9 +549,13 @@ function slashHeading(p,m){
  }
  return angle;
 }
-function drawTargetedSlash(g,p,m){
- if(!Number.isFinite(p.attackTick))return;
- const age=N.tick-p.attackTick;if(age<0||age>11)return;
+// All clients render the attack pose from the same server attack tick.
+function swordAge(p,now){
+ if(!Number.isFinite(p.attackTick))return Infinity;
+ return N.tick-p.attackTick+(N.solo?0:clamp((now-N.lastState)/33.333,0,2));
+}
+function drawTargetedSlash(g,p,m,age){
+ if(age<0||age>11)return;
  const t=clamp(age/11,0,1),alpha=Math.pow(1-t,1.25),a=slashHeading(p,m);
  const from=a-1.03+t*.52,to=from+.34+t*1.35;
  g.save();g.translate(p.x,p.y);g.globalAlpha*=alpha;
@@ -597,22 +603,24 @@ function frame(now){
  g.strokeStyle='#536b55';for(let x=0;x<N.world.w;x+=55){g.beginPath();g.moveTo(x,0);g.lineTo(x,N.world.h);g.stroke()}
  for(let y=0;y<N.world.h;y+=55){g.beginPath();g.moveTo(0,y);g.lineTo(N.world.w,y);g.stroke()}
  drawArenaBuildings(g,N.world.obstacles);
- drawArenaMobs(g,now);
+ drawArenaMobs(g,now,dt);
  for(const p of N.players.values()){
   if(!p.online)continue;
-  if(p.id!==N.id){const k=clamp(dt*10,0,1);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
+  if(p.id!==N.id){const k=1-Math.exp(-Math.min(dt,.05)*13);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
   g.save();if(p.hp<=0)g.globalAlpha=.38;
-  const motion=updateHeroMotion(p,dt);
+  const motion=updateHeroMotion(p,dt),age=swordAge(p,now);
   const b=B();if(typeof b.drawVillageHero==='function'){
    if(!motion.walking)g.translate(0,Math.sin(now/900+(p.id==='p1'?0:1))*.85);
    b.drawVillageHero(g,p.x,p.y,{id:p.id,
     look:b.getVillageHeroLook?.(p.id)||b.heroStyle,frame:motion.phase,walking:motion.walking,
-    visualSide:motion.side});
+    visualSide:motion.side,
+    attackT:age>=0&&age<=9?Math.max(.005,.30-age/30):0,
+    headFacing:Number.isFinite(p.attackAngle)?p.attackAngle:motion.angle});
   }
   else{g.fillStyle=p.id===N.id?'#b2ddb6':'#d5b591';g.beginPath();g.arc(p.x,p.y,17,0,7);g.fill()}
   g.fillStyle='#17251c';g.fillRect(p.x-23,p.y-65,46,5);g.fillStyle='#a8e2a6';g.fillRect(p.x-22,p.y-64,44*clamp(p.hp/100,0,1),3);
   g.fillStyle='#f0dfb6';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText(p.id===N.id?'TI':p.id,p.x,p.y-72);
-  drawTargetedSlash(g,p,motion);
+  drawTargetedSlash(g,p,motion,age);
   g.restore();
  }
  g.setTransform(dpr,0,0,dpr,0,0);
@@ -621,7 +629,7 @@ function frame(now){
   ' | korekcija '+Math.round(N.correction)+'px | stanje '+Math.round(now-N.lastState)+'ms | CPU '+N.serverMs+'ms';
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  playerX:N.me?.x,playerY:N.me?.y,walking:!!N.me?.motion?.walking,
  facing:N.me?.motion?.side||1,attackAngle:N.me?.attackAngle??null}}};
