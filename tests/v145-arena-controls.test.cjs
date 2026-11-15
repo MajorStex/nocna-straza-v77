@@ -5,8 +5,8 @@ const path=require('node:path');
 const {chromium}=require('playwright-core');
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8');
 const source=fs.readFileSync(path.resolve(__dirname,'../public/v140-net-mode.js'),'utf8');
-assert.match(html,/<title>Night Watch v148 — Noćna Straža<\/title>/);
-assert.match(html,/v140-net-mode\.js\?v=148/);
+assert.match(html,/<title>Night Watch v149 — Noćna Straža<\/title>/);
+assert.match(html,/v140-net-mode\.js\?v=149/);
 assert.match(source,/const resetStick=\(\)=>/);
 assert.match(source,/canvas\.addEventListener\('pointerdown'/);
 assert.match(source,/pad\.style\.left=e\.clientX\+'px'/);
@@ -15,7 +15,7 @@ assert.match(source,/canvas\.setPointerCapture\(e\.pointerId\)/);
 assert.match(source,/function updateHeroMotion\(p,dt\)/);
 assert.match(source,/walking:motion\.walking/);
 assert.doesNotMatch(source,/frame:now\/110,walking:true,visualSide:1/);
-assert.match(source,/me\.attackAngle=Math\.atan2\(visualTarget\.y-me\.y,visualTarget\.x-me\.x\)/);
+assert.match(source,/me\.attackAngle=Math\.atan2\(target\.y-me\.y,target\.x-me\.x\)/);
 assert.match(source,/function drawTargetedSlash\(g,p,m\)/);
 assert.match(source,/g\.arc\(0,0,53,from,to\)/);
 assert.doesNotMatch(source,/g\.arc\(p\.x,p\.y,54,-\.8,\.7\)/);
@@ -57,7 +57,7 @@ new Function(source);
     const moved={x:api.diagnostics.stickX,y:api.diagnostics.stickY,
       knob:document.getElementById('ns140Knob').style.transform};
     api.frame(1052);api.frame(1086);
-    const walking={x:api.diagnostics.playerX,flag:api.diagnostics.walking,render:window.__draws.at(-1)};
+    const walking={x:api.diagnostics.playerX,flag:api.diagnostics.walking,render:window.__draws.at(-1),autoHit:api.diagnostics.soloGoblinHp.some(h=>h<35),auto:api.diagnostics.autoAttack,angle:api.diagnostics.attackAngle};
     ev(canvas,'pointerup',21,px+80,py+9);
     api.frame(1102);
     const release={active:api.diagnostics.joystickActive,flag:api.diagnostics.walking,render:window.__draws.at(-1),
@@ -70,17 +70,14 @@ new Function(source);
     api.frame(1136);api.frame(1170);
     const left={direction:api.diagnostics.stickX,side:window.__draws.at(-1).side};
     ev(canvas,'pointerup',23,x2-75,y2);
-    // Press attack; it must target a nearby enemy and never force walking.
-    const hit=document.getElementById('ns140Hit');
-    ev(hit,'pointerdown',35,innerWidth-60,innerHeight-85);
-    api.frame(1204);api.frame(1238);
-    const attack={angle:api.diagnostics.attackAngle,walk:api.diagnostics.walking};
-    ev(hit,'pointerup',35,innerWidth-60,innerHeight-85);
-    // Desktop mouse should still attack rather than create a joystick.
+    // Auto-attack is always enabled near goblins; there is NO Attack control.
+    const attack={buttonAbsent:!document.getElementById('ns140Hit'),
+      automatic:api.diagnostics.autoAttack,
+      angle:api.diagnostics.attackAngle};
+    // Mouse click cannot start an attack or create the touch joystick.
     ev(canvas,'pointerdown',77,55,240,'mouse');
-    const mouse={attack:api.diagnostics.attackHeld,joystick:api.diagnostics.joystickActive};
+    const mouse={joystick:api.diagnostics.joystickActive,buttonAbsent:!document.getElementById('ns140Hit')};
     ev(canvas,'pointerup',77,55,240,'mouse');
-    mouse.released=!api.diagnostics.attackHeld;
     api.stop();
     const stopped={active:api.diagnostics.joystickActive,padVisible:pad.classList.contains('active')};
     return {started,idle,down,moved,walking,release,respawn,left,attack,mouse,stopped,draws:window.__draws.length};
@@ -99,12 +96,13 @@ new Function(source);
    assert.equal(out.release.render.walking,false,'idle animation returns immediately');
    assert.equal(out.respawn.left,Math.round(w*.62)+'px','next gesture reanchors pad anywhere on arena');
    assert.ok(out.left.direction<-.85&&out.left.side===-1,'walking left flips the character');
-   assert.ok(Number.isFinite(out.attack.angle),'hit effect has a direction');
-   assert.ok(out.mouse.attack&&!out.mouse.joystick&&out.mouse.released,'desktop left click attacks without opening stick');
+   assert.ok(out.walking.auto&&out.walking.autoHit&&Number.isFinite(out.walking.angle),'moving near goblins automatically attacks and aims at them');
+   assert.ok(out.attack.buttonAbsent&&out.attack.automatic,'New Zone has no Attack button');
+   assert.ok(!out.mouse.joystick&&out.mouse.buttonAbsent,'desktop has automatic attack and no click controls');
    assert.equal(out.stopped.padVisible,false,'cleanup removes floating joystick');
    assert.deepEqual(errors.filter(e=>/SyntaxError|ReferenceError|TypeError/.test(e)),[],'no runtime exceptions');
    await page.close();
   }
  }finally{await browser.close()}
- console.log('PASS V145: dynamic anywhere touch joystick, correct idle/walk, facing and target-aimed slash.');
+ console.log('PASS V149: floating joystick, idle/walk, auto goblin hits without Attack button, targeted slash, 3 viewports.');
 })().catch(e=>{console.error(e);process.exit(1)});
