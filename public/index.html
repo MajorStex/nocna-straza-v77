@@ -6346,7 +6346,8 @@ for(const a of actors){let s=screenPoint(a.x,a.y);if(s.x<-165||s.x>vw+165||s.y<-
   const w=Math.min(158,ctx.measureText(tag).width+18),y=-Math.max(75,(a.r||15)+55);
   ctx.fillStyle=a.id===NET.localId?'#153d38e8':'#111f29dc';ctx.strokeStyle=teamColor(a.id);ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(-w/2,y-12,w,24,9);ctx.fill();ctx.stroke();
-  ctx.fillStyle='#f5ead0';ctx.fillText(tag,0,y);drawTeamTriangle(ctx,0,y+17,a.id,5,-Math.PI/2,!!a.sosUsed&&a.dead);ctx.restore();
+  ctx.fillStyle='#f5ead0';ctx.fillText(tag,0,y);drawTeamTriangle(ctx,0,y+17,a.id,5,-Math.PI/2,!!a.sosUsed&&a.dead);
+  window.NS165_CLASSIC_VOICE?.drawBadge?.(ctx,a.id,w/2+15,y-3);ctx.restore();
  }
  if(a.hero&&a.id==='p1'&&NSX.permanent.cosmetics.length){ctx.save();ctx.fillStyle='#f3c77e';ctx.shadowColor='#eab56b';ctx.shadowBlur=6;ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.fillText(({bronze_badge:'✦',moon_badge:'☾',ember_badge:'◆'})[NSX.permanent.cosmetics[NSX.permanent.cosmetics.length-1]]||'✦',0,-75);ctx.restore()}if(a.nsExploreBoss){ctx.save();ctx.shadowColor='#e58b77';ctx.shadowBlur=16;ctx.strokeStyle='#ffad7d';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,-8,a.r+12,0,TAU);ctx.stroke();ctx.font='bold 12px sans-serif';ctx.fillStyle='#ffe9cc';ctx.textAlign='center';ctx.fillText(mapText('CURSED KEEPER','UKLETI ČUVAR'),0,-a.r-32);ctx.restore()}if(a.flash>0){ctx.save();ctx.globalAlpha=Math.min(.35,a.flash*1.2);ellipse(0,-a.r*.43,a.r*.95,a.r*1.22,'#c94848');ctx.restore()}ctx.restore()}
 drawReviveMarkers();drawTeamEdgeMarkers();drawProjectiles();drawAbilityEffects();drawEffects();drawDarknessOverlay();if(G.mode==='editor'){ctx.fillStyle='#e4c382c8';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText('DODIRNI TEREN DA POSTAVIŠ OBJEKAT',vw/2,Math.min(vh*.36,vh-350));ctx.strokeStyle='#f0d39366';ctx.setLineDash([4,5]);ctx.beginPath();ctx.arc(vw/2,vh/2,17,0,TAU);ctx.stroke();ctx.setLineDash([])}ctx.setTransform(dpr,0,0,dpr,0,0)}
@@ -7242,8 +7243,10 @@ function renderLobby(){NSX&&NSX.opt&&document.getElementById('nsLobbyRole')&&(do
    add.onclick=()=>requestLobbyFriend(friendId,p.name);row.append(add);
   }
   if(NET.role==='host'&&p.id!==NET.localId){const kick=document.createElement('button');kick.type='button';kick.className='ns106KickBtn';kick.textContent=lang('KICK','IZBACI');kick.onclick=()=>{if(window.confirm(lang('Remove '+safePlayerName(p.name)+'?','Izbaciti '+safePlayerName(p.name)+'?')))ns106Kick(p.id)};row.append(kick)}
+  window.NS165_CLASSIC_VOICE?.decorateLobby?.(row,p.id);
   root.append(row);
  }
+ window.NS165_CLASSIC_VOICE?.refresh?.();
  for(const waiting of returning){
   const row=document.createElement('div');row.className='lobbyPlayer';
   const who=document.createElement('span');who.className='lobbyPerson';
@@ -7308,6 +7311,7 @@ function broadcastLobby(){
  NS92_DIR.publish();
  const roster=currentLobbyRoster(),packet={t:'lobby',code:NET.code,hostId:NET.localId,round:NET.round,specialMode:selectedMode,difficulty:NSX.opt.difficulty,result:NET.lastRoundText,players:roster,waiting:lobbyPendingReturn(),chat:NS76CHAT.items(),post:NET.ns97Results||null};
  for(const c of NET.clients.values())if(c.open)try{c.send(packet)}catch{}
+ window.NS165_CLASSIC_VOICE?.syncAll?.();
  renderLobby();scheduleLobbyAutoStart();
 }
 function setMyReady(){
