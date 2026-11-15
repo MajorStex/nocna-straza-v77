@@ -867,7 +867,7 @@ function sampleOnlineMobs(now,dt){
  }
 }
 function drawArenaMobs(g,now,dt,visible){
- const mobs=N.solo?N.soloMobs:N.mpMobs,tick=N.solo?N.soloTick:N.tick;
+ const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll'),tick=N.solo?N.soloTick:N.tick;
  if(!N.solo)sampleOnlineMobs(now,dt);
  // V154: cached sprite sheet + viewport culling; fallback retains old graphics in isolated QA.
  if(window.NS154_GOBLINS){
@@ -1210,7 +1210,9 @@ function sessionHud(now){
   N.uiAt=now;
   hud.textContent='TALAS '+wave;
   const count=mobs.filter(m=>m.hp>0).length;
-  remaining.textContent=state==='between'?'ODMOR · NOVI TALAS USKORO':'GOBLINI '+count+'/'+(N.solo?mobs.length:N.hordeTotal);
+  const bosses=mobs.filter(m=>m.kind==='troll'&&m.hp>0).length;
+  remaining.textContent=state==='between'?'ODMOR · NOVI TALAS USKORO':
+   (bosses?'🧌 BOSS TROL · ':'')+'NEPRIJATELJI '+count+'/'+(N.solo?mobs.length:N.hordeTotal);
   const key=choice?(choice.seq+':'+choice.owner):'';
   if(!choice){holder.hidden=true;N.choiceUiId=''}
   else{
@@ -1287,10 +1289,11 @@ function drawDepthSortedWorld(g,now,dt,visible){
   drawArenaMobs(g,now,dt,visible);
   for(const p of N.players.values())if(p.online)drawArenaPlayerBody(g,p,now,dt);
   for(const p of N.players.values())if(p.online)drawArenaPlayerLabel(g,p);
+  for(const boss of (N.solo?N.soloMobs:N.mpMobs))if(boss.kind==='troll')window.NS162_TROLL?.drawOne(g,boss,{now,tick:N.solo?N.soloTick:N.tick,visible});
   return;
  }
  if(!N.solo)sampleOnlineMobs(now,dt);
- const mobs=N.solo?N.soloMobs:N.mpMobs;
+ const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll');
  const opt={solo:N.solo,tick:N.solo?N.soloTick:N.tick,now,lastState:N.lastState,
   alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible};
  // Precompute visible goblins in ONE scan. They are never re-animated in sorting.
@@ -1324,6 +1327,10 @@ function drawDepthSortedWorld(g,now,dt,visible){
   jobs.push({depth:p.y+13,kind:2,id:Number(p.id.slice(1)),p});
  }
  for(const entry of prepared)jobs.push({depth:entry.depth,kind:3,id:entry.mob.id,entry});
+ for(const boss of (N.solo?N.soloMobs:N.mpMobs)){
+  if(boss.kind!=='troll'||boss.hp<=0||boss.x<visible.left-80||boss.x>visible.right+80||boss.y<visible.top-160||boss.y>visible.bottom+40)continue;
+  jobs.push({depth:boss.y+14,kind:5,id:boss.id,boss});
+ }
  // 80 goblins + ~12 props + six players: deterministic O(n log n),
  // far cheaper than multiple complete canvas render passes.
  jobs.sort((a,b)=>a.depth-b.depth||a.kind-b.kind||a.id-b.id);
@@ -1333,6 +1340,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   else if(item.kind===1)drawArenaChests(g,[item.chest],visible);
   else if(item.kind===2)drawArenaPlayerBody(g,item.p,now,dt);
   else if(item.kind===4)window.NS157_SCENERY?.drawOne(g,item.item);
+  else if(item.kind===5)window.NS162_TROLL?.drawOne(g,item.boss,opt);
   else sprites.drawOne(g,item.entry,opt);
  }
  // Names and HP remain legible above a large horde, even when bodies are occluded.
