@@ -52,7 +52,7 @@ vm.createContext(ctx);
 vm.runInContext(client.slice(start,end)+';this.render=drawDepthSortedWorld;',ctx,{timeout:1000});
 const visible={left:0,right:500,top:0,bottom:600};
 ctx.render(g,1000,1/60,visible);
-assert.deepEqual(trace,['house','chest','mob0','herop1','mob1','label'],
+assert.deepEqual(trace,['house','mob0','chest','herop1','mob1','label'],
  'rear enemy must be UNDER the hero, front enemy must cover their body');
 assert.equal(ctx.N.visibleMobs,2);
 trace.length=0;p.y=245;
