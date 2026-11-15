@@ -6,7 +6,7 @@ const B=()=>window.__NS110_BRIDGE||{},clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
  players:new Map(),me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
- correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},attack:false,timeout:null,ticket:'',retry:0,
+ correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
  solo:false,soloMobs:[],mpMobs:[],soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 const el=id=>document.getElementById(id);
 function ui(){
@@ -20,11 +20,10 @@ function ui(){
  '#ns140Pad{position:fixed;left:0;top:0;width:112px;height:112px;display:none;transform:translate(-50%,-50%);pointer-events:none;touch-action:none;z-index:4;border:2px solid #d9eee096;background:radial-gradient(circle,#9bccaa26,#1a413e77);border-radius:50%;box-shadow:inset 0 0 23px #061a2188}'+
  '#ns140Pad.active{display:block}'+
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
- '#ns140Hit{position:absolute;right:20px;bottom:57px;width:90px;height:90px;border-radius:50%;border:2px solid #edce9a;background:#76523e;color:#fff6cf;font-size:27px;touch-action:none}'+
- '#ns140Hit small{font-size:10px;display:block}';
+ '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
- root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V148 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
- '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div><button type="button" id="ns140Hit">⚔<small>ATTACK</small></button>';
+ root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V149 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
+ '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>';
  document.body.append(style,root);
  el('ns140Close').onclick=()=>stop(true);
  el('ns140Retry').onclick=()=>{
@@ -49,10 +48,7 @@ function ui(){
  };
  canvas.addEventListener('pointerdown',e=>{
   if(N.phase!=='running'||N.stick.ptr!==null)return;
-  if(e.pointerType==='mouse'){
-   if(e.button===0){e.preventDefault();N.attack=true}
-   return; // PC matches normal mode: click = attack, WASD = move.
-  }
+  if(e.pointerType==='mouse')return; // Desktop steers with WASD; auto-attack never needs clicks.
   e.preventDefault();N.stick.ptr=e.pointerId;
   N.stick.startX=e.clientX;N.stick.startY=e.clientY;
   pad.style.left=e.clientX+'px';pad.style.top=e.clientY+'px';
@@ -71,13 +67,10 @@ function ui(){
    if(N.ws?.readyState!==1)connect(N.match,N.id,N.ticket,true);
   }
  });
- window.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')N.attack=false});
- const hit=el('ns140Hit');hit.onpointerdown=e=>{e.preventDefault();N.attack=true;hit.setPointerCapture(e.pointerId)};
- hit.onpointerup=hit.onpointercancel=hit.onlostpointercapture=()=>{N.attack=false};
  window.addEventListener('keydown',e=>{if(N.phase!=='running'||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
  const k=e.key.toLowerCase();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault()});
  window.addEventListener('keyup',e=>N.keys.delete(e.key.toLowerCase()));
- window.addEventListener('blur',()=>{N.keys.clear();resetStick();N.attack=false});
+ window.addEventListener('blur',()=>{N.keys.clear();resetStick()});
 }
 function status(note){
  ui();el('ns140Root').hidden=false;el('ns140Status').textContent=note;
@@ -89,7 +82,7 @@ function stop(notify=false){
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
- N.phase='idle';N.solo=false;N.soloMobs=[];N.mpMobs=[];N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;N.attack=false;
+ N.phase='idle';N.solo=false;N.soloMobs=[];N.mpMobs=[];N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
  if(wasSolo)try{window.__nightWatch?.showPreRun?.()}catch{}
@@ -100,7 +93,7 @@ function input(){
  const k=N.keys;let x=N.stick.x+(k.has('d')||k.has('arrowright')?1:0)-(k.has('a')||k.has('arrowleft')?1:0);
  let y=N.stick.y+(k.has('s')||k.has('arrowdown')?1:0)-(k.has('w')||k.has('arrowup')?1:0);
  const d=Math.hypot(x,y);if(d>1){x/=d;y/=d}
- return {x,y,attack:N.attack||k.has('j')||k.has('f')};
+ return {x,y};
 }
 function moveLocal(p,dx,dy){
  const w=N.world,r=w.r||14,free=(x,y)=>(w.obstacles||[]).every(o=>{
@@ -162,11 +155,10 @@ function startSolo(){
   sx:180+(i%4)*185,sy:75+Math.floor(i/4)*225,
   hp:35,attackAt:0,deadUntil:0
  }));
- status('V148 · SINGLEPLAYER · OFFLINE · TEST GOBLINI · 0 XP');
- el('ns140Hit').disabled=false;
+ status('V149 · SOLO · AUTO NAPAD · TEST GOBLINI · 0 XP');
  return true;
 }
-function stepSolo(dt,attackHeld){
+function stepSolo(dt){
  if(!N.solo||!N.me)return;
  N.soloAcc=Math.min(.15,N.soloAcc+dt);
  let iterations=0;
@@ -185,28 +177,19 @@ function stepSolo(dt,attackHeld){
     me.hp=Math.max(0,me.hp-7);mob.attackAt=N.soloTick+43;N.soloInvul=N.soloTick+28;
    }
   }
-  if(attackHeld&&N.soloTick-N.soloSwing>=19){
-   N.soloSwing=N.soloTick;me.attackTick=N.soloTick;
-   let target=null,dist=83;
+  // V149: attack the nearest goblin automatically, including while moving.
+  // No empty-air slashes; only real hits trigger animations and cooldown.
+  if(N.soloTick-N.soloSwing>=19){
+   let target=null,distSq=83**2;
    for(const mob of N.soloMobs){
     if(mob.hp<=0)continue;
-    const d=Math.hypot(mob.x-me.x,mob.y-me.y);
-    if(d<dist){target=mob;dist=d}
+    const dx=mob.x-me.x,dy=mob.y-me.y,d=dx*dx+dy*dy;
+    if(d<distSq){target=mob;distSq=d}
    }
-   // Lock slash direction onto the actual nearest goblin being hit.
-   // When nothing is in striking range, point toward the closest visible
-   // target (visual only — it never extends the authoritative 83px hitbox).
-   let visualTarget=target,visualDist=155;
-   if(!visualTarget)for(const mob of N.soloMobs){
-    if(mob.hp<=0)continue;
-    const d=Math.hypot(mob.x-me.x,mob.y-me.y);
-    if(d<visualDist){visualTarget=mob;visualDist=d}
-   }
-   if(visualTarget){
-    me.attackAngle=Math.atan2(visualTarget.y-me.y,visualTarget.x-me.x);
-    me.facingAngle=me.attackAngle;
-   }else me.attackAngle=Number.isFinite(me.facingAngle)?me.facingAngle:0;
    if(target){
+    N.soloSwing=N.soloTick;me.attackTick=N.soloTick;
+    me.attackAngle=Math.atan2(target.y-me.y,target.x-me.x);
+    me.facingAngle=me.attackAngle;
     target.hitTick=N.soloTick;
     target.hp=Math.max(0,target.hp-22);
     if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++}
@@ -232,7 +215,7 @@ function drawArenaMobs(g,now){
  }
 }
 
-// V148: tiny, cached canvas houses. Same collision rectangles as the
+// V149: tiny, cached canvas houses. Same collision rectangles as the
 // original plain blocks; artwork is pre-rendered once, not rebuilt at 60 FPS.
 const cottageCache=new Map();
 function cottageSprite(o,index){
@@ -298,7 +281,7 @@ function connect(match,id,ticket,rejoin=false){
  }
  N.match=match;N.id=id;N.ticket=ticket;
  N.phase=rejoin?'reconnecting':'connecting';
- status('V148 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
+ status('V149 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
  try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
@@ -315,16 +298,16 @@ function connect(match,id,ticket,rejoin=false){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;N.phase='waiting';
-   status('V148 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
+   status('V149 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
   if(m.t==='roster'){
-   status('V148 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
+   status('V149 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
   if(m.t==='start'){
    N.phase='running';N.retry=0;N.lostSince=0;
    if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.lastFrame=0;status('V148 · NOVA ZONA · ZAJEDNIČKI GOBLINI · 0 XP');return;
+   N.lastFrame=0;status('V149 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
   if(m.t==='s'){snapshot(m);return}
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
@@ -340,10 +323,10 @@ function connect(match,id,ticket,rejoin=false){
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
   if(!N.lostSince)N.lostSince=Date.now();
   if(Date.now()-N.lostSince>=120000){
-   N.phase='error';status('V148 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
+   N.phase='error';status('V149 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
   }
   N.retry++;N.phase='reconnecting';
-  status('V148 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
+  status('V149 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
   if(N.retryTimer)clearTimeout(N.retryTimer);
   N.retryTimer=setTimeout(()=>{
    N.retryTimer=null;
@@ -351,7 +334,7 @@ function connect(match,id,ticket,rejoin=false){
   },Math.min(4000,650+N.retry*380));
  };
  ws.onerror=()=>{
-  if(N.ws===ws)status('V148 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
+  if(N.ws===ws)status('V149 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
  };
  return true;
 }
@@ -361,7 +344,7 @@ async function startHost(){
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
  if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
- N.phase='preparing';status('V148 · PRIPREMAM ZASEBAN MP SERVER...');
+ N.phase='preparing';status('V149 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
@@ -387,7 +370,7 @@ function acceptOffer(d){
  if(N.phase!=='idle')return N.match===d.match;
  return connect(d.match,d.id,d.ticket);
 }
-// V148: movement phase is frozen when idle; a light breathing bob remains.
+// V149: movement phase is frozen when idle; a light breathing bob remains.
 // This avoids the old permanently-walking character pose in the test arena.
 function updateHeroMotion(p,dt){
  if(!p.motion)p.motion={lastX:p.x,lastY:p.y,phase:0,side:1,angle:0,walking:false};
@@ -437,7 +420,7 @@ function frame(now){
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
   moveLocal(N.me,v.x*N.world.speed*dt,v.y*N.world.speed*dt);
-  if(N.solo){stepSolo(dt,v.attack)}
+  if(N.solo){stepSolo(dt)}
   else {N.delta.x+=N.me.x-oldX;N.delta.y+=N.me.y-oldY;}
   const away=Math.hypot(N.me.x-N.me.tx,N.me.y-N.me.ty);
   if(!N.solo&&away>105){N.me.x=N.me.tx+(N.me.x-N.me.tx)*105/away;N.me.y=N.me.ty+(N.me.y-N.me.ty)*105/away}
@@ -446,7 +429,11 @@ function frame(now){
   const seq=++N.seq;N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
   if(N.pending.length>26)N.pending.shift();
   N.delta={x:0,y:0};N.lastInput=now;
-  N.ws.send(JSON.stringify({t:'i',seq,ax:Math.round(v.x*127),ay:Math.round(v.y*127),attack:v.attack?1:0}));
+  // Compatibility: old arena server also auto-attacks when this flag is set.
+  // Server still validates the 83px enemy hitbox; no client damage accepted.
+  const autoTarget=N.me&&N.mpMobs.some(m=>m.hp>0&&
+   (m.x-N.me.x)**2+(m.y-N.me.y)**2<83**2);
+  N.ws.send(JSON.stringify({t:'i',seq,ax:Math.round(v.x*127),ay:Math.round(v.y*127),attack:autoTarget?1:0}));
  }
  if(N.ws?.readyState===1&&now-N.lastPing>2000){N.lastPing=now;N.ws.send(JSON.stringify({t:'ping',sent:now}))}
  const r=canvas.getBoundingClientRect(),dpr=Math.min(1.5,devicePixelRatio||1);
@@ -483,7 +470,7 @@ function frame(now){
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
  get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
- joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,attackHeld:N.attack,
+ joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  playerX:N.me?.x,playerY:N.me?.y,walking:!!N.me?.motion?.walking,
  facing:N.me?.motion?.side||1,attackAngle:N.me?.attackAngle??null}}};
 })();
