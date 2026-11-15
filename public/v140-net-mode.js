@@ -654,6 +654,7 @@ function soloLabAction(m){
  else if(a==='resetWave')resetWave();
  else if(a==='spawnMob'){
   const kind=m.kind==='troll'?'troll':'goblin';
+  if(kind==='troll')N.soloMobs=N.soloMobs.filter(m=>!(m.kind==='troll'&&m.hp<=0));
   const qty=kind==='troll'?1:int(m.quantity,1,10,1),ids=new Set(N.soloMobs.map(x=>x.id));
   if(kind==='troll'&&N.soloMobs.some(x=>x.kind==='troll'&&x.hp>0))return false;
   for(let i=0;i<qty&&N.soloMobs.filter(q=>q.hp>0).length<80;i++){
