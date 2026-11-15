@@ -6,7 +6,7 @@ const client=fs.readFileSync(path.join(root,'v140-net-mode.js'),'utf8');
 const audio=fs.readFileSync(path.join(root,'v152-arena-audio.js'),'utf8');
 const scene=fs.readFileSync(path.join(root,'v157-arena-scenery.js'),'utf8');
 const sprites=fs.readFileSync(path.join(root,'v154-goblin-renderer.js'),'utf8');
-assert.match(html,/<title>Night Watch v163 — Noćna Straža<\/title>/);
+assert.match(html,/<title>Night Watch v164 — Noćna Straža<\/title>/);
 for(const file of ['v140-net-mode.js','v152-arena-audio.js','v154-goblin-renderer.js','v157-arena-scenery.js'])
  assert.ok(html.includes(file+'?v='+(file==='v140-net-mode.js'?163:file==='v157-arena-scenery.js'?158:157)),'versioned asset missing '+file);
 assert.ok(html.indexOf('v157-arena-scenery.js')<html.indexOf('v140-net-mode.js'));
