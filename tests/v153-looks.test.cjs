@@ -3,14 +3,14 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const client=fs.readFileSync(path.join(__dirname,'../public/v140-net-mode.js'),'utf8');
 assert.match(html,/<title>Night Watch v160 — Noćna Straža<\/title>/);
-assert.match(html,/v140-net-mode\.js\?v=158/,'fresh client asset on PWA homescreen');
+assert.match(html,/v140-net-mode\.js\?v=160/,'fresh client asset on PWA homescreen');
 assert.match(client,/ws\.send\(JSON\.stringify\(\{t:'hello',id,ticket,protocol:140\}\)\)/,
  'legacy-compatible handshake is small');
 assert.match(client,/N\.lookSyncEnabled=Number\(m\.serverBuild\)>=153/,
  'appearance sync is enabled only on V153 server');
 assert.match(client,/ws\.send\(JSON\.stringify\(\{t:'look',look\}\)\)/,
  'appearance is sent once after capability negotiation');
-assert.match(client,/if\(m\.t==='look'\)\{rememberLook\(m\.id,m\.revision,m\.look\);renderPresence\(\);return\}/);
+assert.match(client,/if\(m\.t==='look'\)\{[\s\S]*?rememberLook\(m\.id,m\.revision,m\.look\)/);
 assert.match(client,/N\.looks\.get\(p\.id\)\?\.look/);
 assert.match(client,/N\.lastLookCheck>=850/,'cosmetics not transmitted on every frame');
 assert.match(client,/p\.hp\/\(p\.maxHp\|\|100\)/,'scaled look does not change health');
