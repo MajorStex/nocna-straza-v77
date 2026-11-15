@@ -2,8 +2,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const client=fs.readFileSync(path.join(__dirname,'../public/v140-net-mode.js'),'utf8');
-assert.match(html,/<title>Night Watch v154 — Noćna Straža<\/title>/);
-assert.match(html,/v140-net-mode\.js\?v=154/,'fresh client asset on PWA homescreen');
+assert.match(html,/<title>Night Watch v155 — Noćna Straža<\/title>/);
+assert.match(html,/v140-net-mode\.js\?v=155/,'fresh client asset on PWA homescreen');
 assert.match(client,/ws\.send\(JSON\.stringify\(\{t:'hello',id,ticket,protocol:140\}\)\)/,
  'legacy-compatible handshake is small');
 assert.match(client,/N\.lookSyncEnabled=Number\(m\.serverBuild\)>=153/,
