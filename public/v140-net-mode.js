@@ -148,7 +148,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
  players:new Map(),me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
- solo:false,soloCrowd:null,soloMobs:[],mpMobs:[],soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
+ solo:false,soloCrowd:null,soloMobs:[],mpMobs:[],mobHistory:[],mobRenderTick:null,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -223,7 +223,7 @@ function stop(notify=false){
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
- N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
+ N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
  if(wasSolo)try{window.__nightWatch?.showPreRun?.()}catch{}
@@ -254,6 +254,10 @@ function snapshot(m){
    const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10;
    return {id:q[0],x:prev?.x??x,y:prev?.y??y,tx:x,ty:y,hp:q[3],hitTick:Number(q[4])||0,attackTick:Number(q[5])||-100};
   });
+  // Tiny fixed-size position history (6 snapshots, max 12 goblins).
+  // Render two network frames behind to hide 15Hz arrivals and mild jitter.
+  N.mobHistory.push({tick:m.tick,positions:new Map(N.mpMobs.map(q=>[q.id,[q.tx,q.ty]]))});
+  if(N.mobHistory.length>6)N.mobHistory.shift();
  }
  for(const row of m.players){
   if(!Array.isArray(row)||!/^p[1-6]$/.test(row[0]))continue;
@@ -291,7 +295,7 @@ function startSolo(){
   {x:435,y:245,w:75,h:84},{x:165,y:350,w:87,h:58}
  ]};
  N.seq=N.ack=N.soloTick=N.soloKills=0;N.tick=-1;
- N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;
+ N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;
  N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt,y*N.world.speed*dt));
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.stick.ptr=null;N.stick.x=N.stick.y=0;
@@ -316,10 +320,13 @@ function stepSolo(dt){
   if(me.hp<=0){N.phase='solo_ended';status('STRAŽAR JE PAO · SOLO TEST ZAVRŠEN · NAZAD ZA PONOVNO');break}
   // Offline preview uses exactly the same deterministic crowd steering
   // as multiplayer: 15 Hz cached paths, 9-bucket separation, flanking.
+  // Save previous fixed-step positions for 60/90/120FPS render interpolation.
+  for(const mob of N.soloMobs){mob.prevX=mob.x;mob.prevY=mob.y}
   if(N.soloTick%2===0)N.soloCrowd.step(N.soloMobs,N.players,N.soloTick);
+  N.soloCrowd.advance(N.soloMobs,N.players);
   for(const mob of N.soloMobs){
    if(mob.hp<=0){
-    if(N.soloTick>=mob.deadUntil){mob.hp=35;mob.x=mob.sx;mob.y=mob.sy;mob.vx=mob.vy=0}
+    if(N.soloTick>=mob.deadUntil){mob.hp=35;mob.x=mob.prevX=mob.sx;mob.y=mob.prevY=mob.sy;mob.vx=mob.vy=0}
     continue;
    }
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
@@ -349,15 +356,48 @@ function stepSolo(dt){
   }
  }
 }
+// V151: interpolate authoritative positions on a stable tick timeline,
+// not exponential easing toward each 15Hz packet (which caused visible jolts).
+function sampleOnlineMobs(now,dt){
+ const history=N.mobHistory;
+ if(!history.length)return;
+ const latest=history[history.length-1];
+ const elapsed=clamp((now-N.lastState)/33.333,0,5);
+ const desired=latest.tick-3+elapsed;
+ if(N.mobRenderTick===null||Math.abs(N.mobRenderTick-desired)>10){
+  N.mobRenderTick=desired;
+ }else{
+  N.mobRenderTick+=Math.min(dt,.05)*30;
+  N.mobRenderTick+=clamp(desired-N.mobRenderTick,-.5,.5)*Math.min(1,dt*6);
+ }
+ N.mobRenderTick=clamp(N.mobRenderTick,history[0].tick,latest.tick);
+ let before=history[0],after=latest;
+ for(let i=1;i<history.length;i++){
+  if(history[i].tick>=N.mobRenderTick){after=history[i];before=history[i-1];break}
+ }
+ const fraction=after.tick===before.tick?1:clamp((N.mobRenderTick-before.tick)/(after.tick-before.tick),0,1);
+ for(const mob of N.mpMobs){
+  const old=before.positions.get(mob.id),next=after.positions.get(mob.id);
+  if(!next)continue;
+  if(!old||(next[0]-old[0])**2+(next[1]-old[1])**2>90**2){
+   mob.x=next[0];mob.y=next[1];continue;
+  }
+  mob.x=old[0]+(next[0]-old[0])*fraction;
+  mob.y=old[1]+(next[1]-old[1])*fraction;
+ }
+}
 function drawArenaMobs(g,now,dt){
  const mobs=N.solo?N.soloMobs:N.mpMobs,tick=N.solo?N.soloTick:N.tick;
+ if(!N.solo)sampleOnlineMobs(now,dt);
+ const alpha=N.solo?clamp(N.soloAcc*30,0,1):1;
  for(const mob of mobs){
   if(mob.hp<=0)continue;
-  if(!N.solo){const t=1-Math.exp(-Math.min(dt,.05)*17);mob.x+=(mob.tx-mob.x)*t;mob.y+=(mob.ty-mob.y)*t;}
+  const drawX=N.solo?(mob.prevX??mob.x)+(mob.x-(mob.prevX??mob.x))*alpha:mob.x;
+  const drawY=N.solo?(mob.prevY??mob.y)+(mob.y-(mob.prevY??mob.y))*alpha:mob.y;
   const pulse=Math.sin(now/250+mob.id)*1.4;
   const attackAge=(N.tick-mob.attackTick)+(N.solo?0:clamp((now-N.lastState)/33.333,0,2));
   const lunge=attackAge>=0&&attackAge<10?Math.sin(attackAge/10*Math.PI)*2.5:0;
-  g.save();g.translate(mob.x,mob.y+pulse-lunge);
+  g.save();g.translate(drawX,drawY+pulse-lunge);
   g.fillStyle=tick-(mob.hitTick||-100)>0&&tick-(mob.hitTick||-100)<6?'#506b39':'#2c3e29';g.beginPath();g.ellipse(0,6,17,13,0,0,Math.PI*2);g.fill();
   g.fillStyle='#6a8954';g.beginPath();g.moveTo(-13,0);g.lineTo(-15,-13);g.lineTo(-6,-8);
   g.quadraticCurveTo(0,-22,8,-8);g.lineTo(15,-14);g.lineTo(12,0);
@@ -431,7 +471,7 @@ function connect(match,id,ticket,rejoin=false){
  if(B().currentProfileLevel?.()<7){N.phase='error';status('NOVA ZONA zahteva OPŠTI NIVO 7');return false}
  if(!rejoin){
   N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
-  N.players.clear();N.mpMobs=[];N.me=null;N.retry=0;N.lostSince=0;
+  N.players.clear();N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
  }
  N.match=match;N.id=id;N.ticket=ticket;
  N.phase=rejoin?'reconnecting':'connecting';
@@ -629,7 +669,7 @@ function frame(now){
   ' | korekcija '+Math.round(N.correction)+'px | stanje '+Math.round(now-N.lastState)+'ms | CPU '+N.serverMs+'ms';
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  playerX:N.me?.x,playerY:N.me?.y,walking:!!N.me?.motion?.walking,
  facing:N.me?.motion?.side||1,attackAngle:N.me?.attackAngle??null}}};
