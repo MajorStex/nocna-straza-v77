@@ -1,0 +1,90 @@
+name: V154 live six-player 60-goblin horde stress
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/v154-six-player-horde-live.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  six-players:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Measure real server snapshots with 60 moving goblins and six WebSocket peers
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const base='https://nocna-straza-relay.stefanstevic1996.workers.dev';
+          const health=await (await fetch(base+'/health')).json();
+          assert.equal(health.arenaBuild,154);
+          assert.equal(health.arenaMobs,60);
+          assert.equal(health.arenaMaxMobs,80);
+          const seats=Array.from({length:6},(_,i)=>'p'+(i+1));
+          const res=await fetch(base+'/arena/create',{
+            method:'POST',headers:{'content-type':'application/json'},
+            body:JSON.stringify({code:'GABZ27',seats})
+          });
+          const room=await res.json();assert.equal(res.status,200,JSON.stringify(room));
+          const peers=[],timers=[];
+          const connect=id=>{
+            const ws=new WebSocket(room.ws);
+            const p={id,ws,seq:0,snapshots:[],started:false,closed:false,bytes:[]};
+            peers.push(p);
+            ws.addEventListener('open',()=>ws.send(JSON.stringify({t:'hello',protocol:140,id,ticket:room.tickets[id]})));
+            ws.addEventListener('message',event=>{
+              const m=JSON.parse(event.data);
+              if(m.t==='start')p.started=true;
+              if(m.t==='s'){p.snapshots.push(m);p.bytes.push(Buffer.byteLength(event.data));
+                if(p.snapshots.length>180){p.snapshots.shift();p.bytes.shift()}}
+            });
+            ws.addEventListener('close',()=>p.closed=true);
+            return p;
+          };
+          async function until(fn,label,timeout=14000){
+            const from=Date.now();
+            while(Date.now()-from<timeout){
+              if(fn())return;
+              await new Promise(r=>setTimeout(r,70));
+            }
+            throw Error('Timed out: '+label+' '+JSON.stringify(peers.map(p=>[p.id,p.started,p.snapshots.length,p.closed])));
+          }
+          try{
+            for(const id of seats)connect(id);
+            await until(()=>peers.every(p=>p.started&&p.snapshots.some(s=>s.totalMobs===60&&s.mobs.length===60)),
+              'all six clients receive identical 60 goblins and shared wave');
+            for(const [i,p] of peers.entries())timers.push(setInterval(()=>{
+              if(p.ws.readyState===1)p.ws.send(JSON.stringify({t:'i',seq:++p.seq,
+                ax:i%2?50:-50,ay:i%3?15:-15,attack:0}));
+            },50));
+            const initial=peers[0].snapshots.at(-1);
+            await new Promise(r=>setTimeout(r,4500));
+            assert.ok(peers.every(p=>!p.closed&&p.snapshots.length>=25),'all six guests receive continuous updates');
+            const last=peers[0].snapshots.at(-1);
+            const start=new Map(initial.mobs.map(x=>[x[0],x]));
+            const moving=last.mobs.filter(x=>{
+              const old=start.get(x[0]);return old&&(x[1]-old[1])**2+(x[2]-old[2])**2>100;
+            }).length;
+            assert.ok(moving>=10,'at least ten goblins travel during real six-peer test: '+moving);
+            const samples=peers.flatMap(p=>p.snapshots.map(s=>s.ms||0)).sort((a,b)=>a-b);
+            const p95=samples[Math.floor(samples.length*.95)]||0;
+            const bytes=peers.flatMap(p=>p.bytes);
+            const averageBytes=Math.round(bytes.reduce((a,b)=>a+b,0)/Math.max(1,bytes.length));
+            console.log('V154 LIVE STRESS:',JSON.stringify({players:6,totalMobs:60,moved:moving,
+              snapshots:peers.map(p=>p.snapshots.length),serverCPUmsP95:p95,avgSnapshotBytes:averageBytes,
+              activeAlive:last.alive}));
+            assert.ok(p95<33.4,'server needs to maintain 30Hz CPU step budget: '+p95+'ms');
+            const guest=peers[1],before=guest.snapshots.at(-1).tick;
+            peers[0].ws.send(JSON.stringify({t:'leave'}));
+            await until(()=>guest.snapshots.at(-1)?.tick>before+20,
+              'five guests continue authoritative simulation after creator leaves',6000);
+            console.log('V154 SIX-PLAYER HORDE LIVE PASS: smooth authoritative updates, no host dependency');
+          }finally{
+            for(const interval of timers)clearInterval(interval);
+            for(const p of peers)try{p.ws.close()}catch{}
+          }
+          JS
