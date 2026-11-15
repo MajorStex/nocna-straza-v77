@@ -159,7 +159,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,o
  players:new Map(),looks:new Map(),lastLookSignature:'',lastLookCheck:0,lookSyncEnabled:false,me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
- wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,hordeStepAt:0,uiAt:0,choiceUiId:'',paused:false,
+ wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,hordeStepAt:0,uiAt:0,choiceUiId:'',paused:false,pausedAt:0,
  soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
  solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 const el=id=>document.getElementById(id);
@@ -295,7 +295,12 @@ function toggleArenaPause(force){
  if(N.phase!=='running')return false;
  const paused=typeof force==='boolean'?force:!N.paused;
  if(N.paused===paused)return paused;
- N.paused=paused;N.delta={x:0,y:0};N.pending.length=0;
+ if(N.solo&&N.paused&&!paused){
+  const spent=Date.now()-(N.pausedAt||Date.now());
+  if(N.soloChoice)N.soloChoice.until+=spent;
+  if(N.soloState==='between')N.soloBetweenUntil+=spent;
+ }
+ N.paused=paused;N.pausedAt=paused?Date.now():0;N.delta={x:0,y:0};N.pending.length=0;
  N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  el('ns140Pad')?.classList.remove('active');
  if(el('ns140Knob'))el('ns140Knob').style.transform='translate(0px,0px)';
@@ -331,7 +336,7 @@ function stop(notify=false){
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
- A()?.stop();N.paused=false;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
+ A()?.stop();N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
  N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
@@ -371,6 +376,12 @@ function snapshot(m){
  N.tick=m.tick;N.lastState=performance.now();N.serverMs=Number(m.ms)||0;
  if(Number.isFinite(m.serverNow))N.serverNow=m.serverNow;
  const priorWave=N.wave,priorChoice=N.choice?.seq;
+ const weaponHits=new Map();
+ for(const row of m.players){
+  if(Array.isArray(row)&&/^p[1-6]$/.test(row[0])&&Number.isInteger(row[8])&&row[8]>=0)
+   weaponHits.set(row[8],row[0]===N.id?localArenaLook().weapon:
+    N.looks.get(row[0])?.look?.weapon||'sword');
+ }
  if(Number.isInteger(m.wave)&&m.wave>0&&m.wave<1000)N.wave=m.wave;
  if(m.waveState==='play'||m.waveState==='between')N.waveState=m.waveState;
  if(Number.isFinite(m.waveAt))N.waveAt=m.waveAt;
@@ -392,7 +403,7 @@ function snapshot(m){
     A()?.play('enemy',{sourceId:q[0],x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.4});
    const hitTick=Number(q[4])||0;
    if(prev&&hitTick>0&&hitTick!==prev.hitTick)
-    A()?.play('hit',{x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
+    A()?.play('hit',{weapon:weaponHits.get(q[0])||'sword',variant:hitTick,x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
    mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;
@@ -414,7 +425,7 @@ function snapshot(m){
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
-   A()?.play('swing',{weapon:N.looks.get(id)?.look?.weapon||B().getVillageHeroLook?.(id)?.weapon||'sword',
+   A()?.play('swing',{weapon:id===N.id?localArenaLook().weapon:N.looks.get(id)?.look?.weapon||B().getVillageHeroLook?.(id)?.weapon||'sword',variant:attackTick,
     x,y,listenerX:myPosition.x,listenerY:myPosition.y,sourceId:id,gain:id===N.id?1:.36});
   }
   if(id===N.id){
@@ -568,7 +579,7 @@ function stepSolo(dt){
     target.hitTick=N.soloTick;
     target.hp=Math.max(0,target.hp-(me.damage||22));
     A()?.play('swing',{weapon:localArenaLook().weapon||'sword'});
-    A()?.play('hit',{gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
+    A()?.play('hit',{weapon:localArenaLook().weapon||'sword',variant:N.soloTick,gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
     if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++;me.kills++}
    }
   }
