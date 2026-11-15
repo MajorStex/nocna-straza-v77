@@ -1,0 +1,114 @@
+name: V157 LIVE equipped weapon, pause, joined notices and 60 mob safe spawn
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/v157-live-multiplayer-e2e.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-new-zone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Compare deployed game and custom scenery/audio sources byte-for-byte
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          const base='https://nocna-straza-v77.stefanstevic1996.workers.dev/';
+          for(const file of ['index.html','v140-net-mode.js','v152-arena-audio.js',
+            'v154-goblin-renderer.js','v157-arena-scenery.js']){
+            const local=fs.readFileSync('public/'+file,'utf8');
+            let live='';const url=base+(file==='index.html'?'':file)+'?v157-check='+Date.now();
+            for(let attempt=0;attempt<8;attempt++){
+              const response=await fetch(url+'&attempt='+attempt,{cache:'no-store'});
+              if(response.ok)live=await response.text();
+              if(live===local)break;
+              await new Promise(r=>setTimeout(r,4000));
+            }
+            assert.equal(live,local,'production must equal GitHub main for '+file);
+          }
+          console.log('V157 LIVE ASSETS PASS: game, cached weapon Foley, goblin walk, tree and rock scenery');
+          JS
+      - name: Exercise real authoritative two-phone WebSocket room with safe 60-creep wave, join and pause
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const base='https://nocna-straza-relay.stefanstevic1996.workers.dev';
+          const h=await(await fetch(base+'/health')).json();
+          assert.equal(h.arenaBuild,157,'must deploy V157 relay before asserting live');
+          const create=await fetch(base+'/arena/create',{method:'POST',headers:{'content-type':'application/json'},
+           body:JSON.stringify({code:'GABZ27',seats:['p1','p2']})});
+          const room=await create.json();assert.equal(create.status,200,JSON.stringify(room));
+          const peers=[];
+          const connect=(id,name,weapon)=>{
+            const ws=new WebSocket(room.ws),p={id,name,weapon,ws,messages:[],times:[],snapshots:[]};peers.push(p);
+            ws.addEventListener('open',()=>ws.send(JSON.stringify({t:'hello',id,protocol:140,ticket:room.tickets[id]})));
+            ws.addEventListener('message',e=>{
+              const m=JSON.parse(e.data);p.messages.push(m);
+              if(m.t==='welcome'){
+                assert.equal(m.serverBuild,157);
+                ws.send(JSON.stringify({t:'look',look:{name,heroClass:id==='p1'?'warrior':'mage',
+                 weapon,skin:id==='p1'?'#d9794f':'#528ac6',accent:'#bb9966',
+                 visualSize:id==='p1'?1.1:.75,wardrobe:{topColor:id==='p1'?'#aa4433':'#3344aa'}}}));
+              }
+              if(m.t==='s'){p.snapshots.push(m);p.times.push(Date.now());}
+            });
+            return p;
+          };
+          const until=async(fn,label,limit=12000)=>{
+            const start=Date.now();while(Date.now()-start<limit){
+              if(fn())return;await new Promise(r=>setTimeout(r,60));
+            }
+            throw Error('Timed out: '+label+' '+JSON.stringify(peers.map(p=>({
+              id:p.id,types:p.messages.slice(-12).map(m=>m.t),snapshots:p.snapshots.length}))));
+          };
+          try{
+            const a=connect('p1','RATNIK','axe'),b=connect('p2','MAGE','spear');
+            await until(()=>[a,b].every(p=>p.messages.some(x=>x.t==='start')&&p.snapshots.length>=4),
+              'both phones share running horde');
+            await until(()=>[a,b].every(p=>p.messages.some(x=>x.t==='event'&&x.kind==='joined'&&
+              x.id==='p1'&&x.name==='RATNIK')&&p.messages.some(x=>x.t==='event'&&
+              x.kind==='joined'&&x.id==='p2'&&x.name==='MAGE')),'joined names are owner-verified');
+            const initial=b.snapshots.find(x=>x.mobs.length===60);
+            assert.ok(initial,'full 60 goblins must appear in the first wave');
+            const players=new Map(initial.players.map(x=>[x[0],[x[1]/10,x[2]/10]]));
+            const nearest=Math.min(...initial.mobs.flatMap(m=>
+             [...players.values()].map(([x,y])=>Math.hypot(m[1]/10-x,m[2]/10-y))));
+            assert.ok(nearest>=350,'no wave goblin next to players: '+nearest);
+            assert.ok(a.messages.some(x=>x.t==='look'&&x.id==='p2'&&x.look.weapon==='spear'));
+            assert.ok(b.messages.some(x=>x.t==='look'&&x.id==='p1'&&x.look.weapon==='axe'));
+            a.ws.send(JSON.stringify({t:'pause',paused:true}));
+            await until(()=>b.messages.some(x=>x.t==='presence'&&x.players.some(y=>y[0]==='p1'&&y[1]==='paused')),
+              'pause shared to other player without disconnecting');
+            const beforeA=a.snapshots.at(-1).players.find(x=>x[0]==='p1')[1];
+            const beforeB=b.snapshots.at(-1).players.find(x=>x[0]==='p2')[1];
+            let seqA=0,seqB=0;
+            const spam=setInterval(()=>{
+              if(a.ws.readyState===1)a.ws.send(JSON.stringify({t:'i',seq:++seqA,ax:127,ay:0,attack:1}));
+              if(b.ws.readyState===1)b.ws.send(JSON.stringify({t:'i',seq:++seqB,ax:127,ay:0,attack:1}));
+            },65);
+            await new Promise(r=>setTimeout(r,1000));clearInterval(spam);
+            const afterA=a.snapshots.at(-1).players.find(x=>x[0]==='p1')[1];
+            const afterB=b.snapshots.at(-1).players.find(x=>x[0]==='p2')[1];
+            assert.ok(Math.abs(afterA-beforeA)<=15,'paused player cannot move '+(afterA-beforeA));
+            assert.ok(afterB>beforeB+80,'other player continues while first is paused');
+            a.ws.send(JSON.stringify({t:'pause',paused:false}));
+            await until(()=>b.messages.some(x=>x.t==='event'&&x.kind==='resumed'),'resume notification');
+            const before=b.snapshots.at(-1).tick;
+            a.ws.send(JSON.stringify({t:'leave'}));
+            await until(()=>b.messages.some(x=>x.t==='event'&&x.kind==='left'&&x.id==='p1'),
+              'intentional leave notification');
+            await until(()=>b.snapshots.at(-1).tick>before+15,'guest keeps running without host',6000);
+            const gaps=b.times.slice(1).map((t,i)=>t-b.times[i]).sort((a,b)=>a-b);
+            const p95=gaps[Math.floor(gaps.length*.95)]||0;
+            assert.ok(p95<250,'network snapshot jitter beyond playable budget '+p95+'ms');
+            console.log('V157 LIVE GAMEPLAY PASS',JSON.stringify({
+              twoClients:true,firstWaveGoblins:60,minimumSpawnDistance:Math.round(nearest),
+              localPauseNoGlobalFreeze:true,correctJoinNames:true,hostless:true,snapshotGapP95:p95}));
+          }finally{for(const p of peers)try{p.ws.close()}catch{}}
+          JS
