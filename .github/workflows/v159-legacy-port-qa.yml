@@ -24,6 +24,7 @@ jobs:
           node tests/v159-troll.test.cjs
           node tests/v159-two-clients.test.cjs
           node tests/v159-lab.test.cjs
+          node tests/v159-legacy-compound.test.cjs
           node tests/v159-collision-grid.test.cjs
       - name: Confirm old stable game mode is not broken
         run: |
