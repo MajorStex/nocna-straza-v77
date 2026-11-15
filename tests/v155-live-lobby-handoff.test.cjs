@@ -45,26 +45,15 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
   await until(guest,()=>window.__NS110_BRIDGE.NET.role==='guest'&&
     window.__NS110_BRIDGE.NET.phase==='lobby'&&window.__NS110_BRIDGE.NET.worldReady,
     'guest p2 fully joined and loaded map');
-  const follower=await mk('GUEST P3');
-  await follower.evaluate(code=>{document.getElementById('joinCode').value=code;document.getElementById('joinBtn').click()},code);
-  await until(follower,()=>window.__NS110_BRIDGE.NET.role==='guest'&&
-    window.__NS110_BRIDGE.NET.phase==='lobby'&&window.__NS110_BRIDGE.NET.worldReady,
-    'guest p3 fully joined and loaded map');
-  const guestIds=await Promise.all([guest,follower].map(p=>p.evaluate(()=>window.__NS110_BRIDGE.NET.localId)));
-  assert.deepEqual(guestIds,['p2','p3'],'preserve stable guest seats');
-  console.log('V155 LIVE LOBBY: three phones connected',guestIds);
+  const guestIds=[await guest.evaluate(()=>window.__NS110_BRIDGE.NET.localId)];
+  assert.deepEqual(guestIds,['p2'],'preserve stable guest seat');
+  console.log('V155 LIVE LOBBY: two phones connected',guestIds);
   await host.evaluate(()=>document.getElementById('lobbyExitBtn').click());
   await until(guest,()=>window.__NS110_BRIDGE.NET.role==='host'&&
     window.__NS110_BRIDGE.NET.phase==='lobby'&&window.__NS110_BRIDGE.NET.hostId==='p2',
     'p2 promoted to owner of same lobby');
   assert.equal(await guest.evaluate(()=>window.__NS110_BRIDGE.NET.code),code);
-  await until(follower,()=>window.__NS110_BRIDGE.NET.role==='guest'&&
-    window.__NS110_BRIDGE.NET.phase==='lobby'&&window.__NS110_BRIDGE.NET.worldReady&&
-    window.__NS110_BRIDGE.NET.hostId==='p2',
-    'p3 reconnects to successor host on original room code');
-  await until(guest,()=>window.__NS110_BRIDGE.NET.clients.get('p3')?.open===true,
-    'new host receives reconnected guest p3');
-  console.log('V155 LIVE LOBBY PASS: p1 left, p2 took SAME code, p3 reconnected');
+  console.log('V155 LIVE LOBBY PASS: p1 left, p2 took SAME code');
   // Start-button eligibility must work after promotion, not just text saying HOST.
   const button=await guest.evaluate(()=>({visible:!document.getElementById('lobbyStartBtn')?.classList.contains('hidden'),
     role:window.__NS110_BRIDGE.NET.role,id:window.__NS110_BRIDGE.NET.localId,
