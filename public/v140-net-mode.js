@@ -156,7 +156,7 @@ function createArenaCrowdSteering(world,move){
 }
 
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
- players:new Map(),looks:new Map(),lastLookSignature:'',lastLookCheck:0,me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
+ players:new Map(),looks:new Map(),lastLookSignature:'',lastLookCheck:0,lookSyncEnabled:false,me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
  wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,uiAt:0,choiceUiId:'',
@@ -269,7 +269,7 @@ function stop(notify=false){
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
  A()?.stop();N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
- N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.lastLookSignature='';N.lastLookCheck=0;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
+ N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
  if(wasSolo)try{window.__nightWatch?.showPreRun?.()}catch{}
@@ -417,7 +417,7 @@ function startSolo(){
  N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();
  N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt,y*N.world.speed*dt));
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
- N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.lastLookSignature='';N.lastLookCheck=0;N.stick.ptr=null;N.stick.x=N.stick.y=0;
+ N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.stick.ptr=null;N.stick.x=N.stick.y=0;
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
  N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
@@ -602,7 +602,7 @@ function connect(match,id,ticket,rejoin=false){
  if(B().currentProfileLevel?.()<7){N.phase='error';status('NOVA ZONA zahteva OPŠTI NIVO 7');return false}
  if(!rejoin){
   N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
-  N.players.clear();N.looks.clear();N.lastLookSignature='';N.lastLookCheck=0;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
+  N.players.clear();N.looks.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.lastMyHp=null;N.hurtUntil=0;
  }
  N.match=match;N.id=id;N.ticket=ticket;
@@ -619,9 +619,10 @@ function connect(match,id,ticket,rejoin=false){
  },18000);
  ws.onopen=()=>{
   if(N.ws!==ws)return;
-  const look=localArenaLook();N.lastLookSignature=JSON.stringify(look);N.lastLookCheck=performance.now();
-  rememberLook(id,0,look);
-  ws.send(JSON.stringify({t:'hello',id,ticket,protocol:140,look}));
+  // Legacy V152 rejects >500-byte hello packets. Negotiate before sending looks.
+  N.lookSyncEnabled=false;N.lastLookSignature=JSON.stringify(localArenaLook());
+  N.lastLookCheck=performance.now();rememberLook(id,0,localArenaLook());
+  ws.send(JSON.stringify({t:'hello',id,ticket,protocol:140}));
  };
  ws.onmessage=e=>{
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
@@ -629,8 +630,16 @@ function connect(match,id,ticket,rejoin=false){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;N.phase='waiting';
+    N.lookSyncEnabled=Number(m.serverBuild)>=153;
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
+    }
+    if(N.lookSyncEnabled&&ws.readyState===1){
+     const look=localArenaLook();
+     N.lastLookSignature=JSON.stringify(look);
+     N.lastLookCheck=performance.now();
+     // Skin/size metadata is sent once after the server confirms support.
+     ws.send(JSON.stringify({t:'look',look}));
     }
    status('V153 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
@@ -839,7 +848,7 @@ function frame(now){
  if(!selecting&&N.me&&Math.hypot(v.x,v.y)>.25&&now-N.lastStepSound>285){
   N.lastStepSound=now;A()?.play('step',{gain:.8});
  }
- if(!N.solo&&N.ws?.readyState===1&&now-N.lastLookCheck>=850){
+ if(!N.solo&&N.lookSyncEnabled&&N.ws?.readyState===1&&now-N.lastLookCheck>=850){
    N.lastLookCheck=now;
    const look=localArenaLook(),signature=JSON.stringify(look);
    if(signature!==N.lastLookSignature&&N.ws.bufferedAmount<4000){
