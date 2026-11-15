@@ -129,7 +129,12 @@
   '@media(max-width:560px){#ns109Top{gap:5px}#ns109Info{display:none}#ns109Bottom{gap:4px}#ns109Bottom button{min-height:35px;padding:6px}}'
  ].join('');
  document.head.append(css);document.body.append(root);if(fpsBadge)root.append(fpsBadge);
- const canvas=$('ns109Scene');let g=canvas.getContext('2d',{alpha:false});const pane=$('ns109Pane'),area=$('ns109PaneContent');
+ const canvas=$('ns109Scene');let g=canvas.getContext('2d',{alpha:false});
+ // A legitimate movement tap also unlocks speaker audio output on Android.
+ // Microphone capture itself still requires an explicit tap on 🎤 PRIČAJ.
+ canvas.addEventListener('pointerdown',()=>{
+  if(window.NS159_LIVE?.status().session)window.NS159_LIVE.unlock();
+ },{passive:true});const pane=$('ns109Pane'),area=$('ns109PaneContent');
  const destinations=document.createElement('select');destinations.id='ns109Destinations';destinations.setAttribute('aria-label','Choose a village building');
  const first=document.createElement('option');first.value='';first.textContent=tr('🏠 HOUSES','🏠 KUĆICE');destinations.append(first);
  for(const b of buildings){const opt=document.createElement('option');opt.value=b.id;opt.textContent=tr(b.label,b.sr);destinations.append(opt)}
