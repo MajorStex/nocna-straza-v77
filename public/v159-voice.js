@@ -10,6 +10,38 @@ const RELAY='wss://nocna-straza-relay.stefanstevic1996.workers.dev/voice/';
 const RATE=12000,LOG=Math.log(256),MAX_BUFFER=.35;
 let session=null,socket=null,ready=false,context=null,master=null,limiter=null;
 let mic=null,source=null,filter=null,processor=null,silence=null,micOn=false,micPending=false;
+let mode='ptt',pttKeyHeld=false,lastHeldPointer=null,requestEpoch=0;
+const pttPointers=new Set();
+const transmitting=()=>micOn&&(mode==='toggle'||pttKeyHeld||pttPointers.size>0);
+const emitVoiceChange=()=>window.dispatchEvent(new Event('nsVoiceChanged'));
+function setTrackEnabled(value){
+ if(mic)for(const track of mic.getAudioTracks())track.enabled=!!value;
+}
+function endPTT(){
+ const was=transmitting();
+ pttKeyHeld=false;pttPointers.clear();lastHeldPointer=null;
+ if(was&&!transmitting())signalMic(false);
+ if(mode==='ptt')setTrackEnabled(false);
+ lastLocalVoice=0;redraw();
+}
+function beginPTT(){
+ if(mode!=='ptt'||document.hidden)return;
+ const was=transmitting();pttKeyHeld=true;
+ if(micOn){setTrackEnabled(true);if(!was)signalMic(true)}
+ else if(!micPending)startMic();
+ redraw();
+}
+function setMode(next){
+ if(next!=='ptt'&&next!=='toggle')return;
+ if(mode===next)return;
+ endPTT();stopMic();
+ mode=next;redraw();
+ notice(next==='ptt'?'Push-to-Talk: drži 🎙 ili V na tastaturi.':'Toggle: jednim dodirom uključi ili isključi mikrofon.');
+}
+function toggleMic(){
+ if(mode!=='toggle')return;
+ if(micOn)stopMic();else startMic();
+}
 let reconnectTimer=null,attempts=0,button=null,info=null,lastPacketAt=0;
 // Small room-only state: 6 peers, one transition packet per toggle.
 const speakers=new Map(),remoteMics=new Set(),lastVoice=new Map();
@@ -20,7 +52,7 @@ function signalMic(on){
 }
 function badgeState(id,now=performance.now()){
  if(!session||!ready||!testSeat(id)||document.hidden)return 0;
- const enabled=id===session.id?micOn:remoteMics.has(id);
+ const enabled=id===session.id?transmitting():remoteMics.has(id);
  if(!enabled)return 0;
  const speaking=id===session.id?now-lastLocalVoice<850:now-(lastVoice.get(id)||-1e8)<1000;
  return speaking?2:1;
@@ -43,13 +75,20 @@ function audio(){
 }
 function notice(message){if(info)info.textContent=message}
 function redraw(){
- if(!button)return;
- button.textContent=micOn?'🎙 MIKROFON: UKLJUČEN':'🎙 MIKROFON: ISKLJUČEN';
- button.style.background=micOn?'#246c50':'#263f3c';
- button.setAttribute('aria-pressed',String(micOn));
+ const active=transmitting();
+ if(button){
+  button.textContent=mode==='ptt'?(active?'🟢 GOVORIŠ — PUSTI':'🎙 DRŽI ZA PRIČU (V)'):
+   micOn?'🎙 MIC UKLJUČEN — UGASI':'🎙 UKLJUČI MIKROFON';
+  button.style.background=active?'#246c50':'#263f3c';
+  button.setAttribute('aria-pressed',String(active));
+  button.setAttribute('aria-label',mode==='ptt'?'Drži za razgovor; pustiti za utišavanje':'Uključi ili isključi mikrofon');
+ }
+ emitVoiceChange();
 }
 function stopMic(){
- if(micOn)signalMic(false);
+ requestEpoch++;
+ if(transmitting())signalMic(false);
+ pttKeyHeld=false;pttPointers.clear();lastHeldPointer=null;
  micOn=false;lastLocalVoice=0;
  if(processor){processor.onaudioprocess=null;try{processor.disconnect()}catch{}processor=null}
  for(const n of [filter,source,silence])if(n)try{n.disconnect()}catch{}
@@ -84,7 +123,7 @@ function playback(packet){
  sound.start(p.next);p.next+=n/RATE;
 }
 function capture(event){
- if(!micOn||!ready||document.hidden||socket?.readyState!==WebSocket.OPEN||socket.bufferedAmount>6000)return;
+ if(!transmitting()||!ready||document.hidden||socket?.readyState!==WebSocket.OPEN||socket.bufferedAmount>6000)return;
  const d=event.inputBuffer.getChannelData(0),sr=context.sampleRate;
  const count=Math.floor(d.length*RATE/sr);
  if(count<120||count>1700)return;
@@ -106,20 +145,22 @@ async function startMic(){
  if(!session||!ready||socket?.readyState!==WebSocket.OPEN){notice('Glasovni server još nije povezan.');return}
  const ctx=audio();
  if(!ctx||!navigator.mediaDevices?.getUserMedia||!ctx.createScriptProcessor){notice('Mikrofon nije podržan u ovom pregledaču.');return}
- micPending=true;
+ micPending=true;const epoch=++requestEpoch;
  try{
   await ctx.resume();
   const stream=await navigator.mediaDevices.getUserMedia({audio:{
    echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1
   },video:false});
-  if(!session||!ready){stream.getTracks().forEach(t=>t.stop());return}
+  if(!session||!ready||epoch!==requestEpoch){stream.getTracks().forEach(t=>t.stop());return}
   mic=stream;source=ctx.createMediaStreamSource(stream);filter=ctx.createBiquadFilter();
   filter.type='highpass';filter.frequency.value=125;
   processor=ctx.createScriptProcessor(4096,1,1);silence=ctx.createGain();silence.gain.value=0;
   source.connect(filter);filter.connect(processor);processor.connect(silence);silence.connect(ctx.destination);
-  micOn=true;processor.onaudioprocess=capture;signalMic(true);
+  micOn=true;processor.onaudioprocess=capture;
+  setTrackEnabled(transmitting());
+  if(transmitting())signalMic(true);
   for(const track of stream.getTracks())track.onended=stopMic;
-  redraw();notice('Pričaš dok je mikrofon uključen · klikni ponovo za gašenje.');
+  redraw();notice(mode==='ptt'?'PTT spreman. Drži dugme ili slovo V da pričaš.':'Mikrofon uključen — dodirni ponovo za gašenje.');
  }catch{stopMic();notice('Mikrofon nije dozvoljen ili nije dostupan.')}
  finally{micPending=false}
 }
@@ -162,6 +203,29 @@ function connect(){
  };
  ws.onerror=()=>{if(socket===ws)notice('Privremena greška glasovnog servera.')};
 }
+function bindControl(target){
+ if(!target||target.dataset.nsPttBound)return;
+ target.dataset.nsPttBound='1';
+ target.addEventListener('pointerdown',event=>{
+  if(mode!=='ptt'||event.button>0)return;
+  event.preventDefault();pttPointers.add(event.pointerId);lastHeldPointer=event.pointerId;
+  try{target.setPointerCapture(event.pointerId)}catch{}
+  if(micOn){setTrackEnabled(true);signalMic(true)}else if(!micPending)startMic();
+  redraw();
+ });
+ const release=event=>{
+  if(mode!=='ptt'||!pttPointers.has(event.pointerId))return;
+  pttPointers.delete(event.pointerId);
+  if(!transmitting()){setTrackEnabled(false);signalMic(false);lastLocalVoice=0}
+  redraw();
+ };
+ target.addEventListener('pointerup',release);
+ target.addEventListener('pointercancel',release);
+ target.addEventListener('lostpointercapture',release);
+ target.addEventListener('click',event=>{
+  if(mode==='toggle'){event.preventDefault();toggleMic()}
+ });
+}
 function installUI(){
  const root=document.getElementById('ns140Root');if(!root)return;
  if(button&&button.isConnected)return;
@@ -169,7 +233,7 @@ function installUI(){
  wrap.style.cssText='position:absolute;z-index:18;right:11px;bottom:calc(18px + env(safe-area-inset-bottom));display:grid;gap:4px;max-width:min(210px,52vw);padding:6px;background:#102620dc;border:1px solid #7f9b8c;border-radius:10px;pointer-events:auto';
  button=document.createElement('button');button.type='button';button.id='ns159Mic';
  button.style.cssText='font:700 11px system-ui;min-height:40px;border-radius:8px;border:1px solid #a8bfb0;color:#f4ebcf;padding:7px';
- button.onclick=()=>{audio()?.resume().catch(()=>{});if(micOn)stopMic();else startMic()};
+ bindControl(button);
  info=document.createElement('small');info.id='ns159VoiceInfo';
  info.style.cssText='font:10px/1.3 system-ui;color:#cbd9cc;pointer-events:none';
  info.textContent='Glas nije povezan';
@@ -193,7 +257,21 @@ document.addEventListener('visibilitychange',()=>{
  if(document.hidden){stopMic();closeSocket()}else if(session)connect();
 });
 window.addEventListener('pagehide',()=>{stopMic();closeSocket()});
+window.addEventListener('blur',endPTT);
+window.addEventListener('keyup',event=>{
+ if(event.code!=='KeyV')return;
+ pttKeyHeld=false;if(mode==='ptt'){
+  if(!transmitting()){setTrackEnabled(false);signalMic(false)}
+  redraw();
+ }
+});
+document.addEventListener('keydown',event=>{
+ if(mode!=='ptt'||event.code!=='KeyV'||event.repeat||
+   ['INPUT','TEXTAREA','SELECT'].includes(event.target?.tagName))return;
+ event.preventDefault();beginPTT();
+});
 window.addEventListener('pageshow',()=>{if(session&&!socket&&!document.hidden)connect()});
-window.NS159_VOICE={mount,stop,badgeState,get connected(){return ready},get microphoneOn(){return micOn}};
+window.NS159_VOICE={mount,stop,badgeState,setMode,toggleMic,beginPTT,endPTT,bindControl,
+ get connected(){return ready},get microphoneOn(){return micOn},get transmitting(){return transmitting()},get mode(){return mode}};
 window.dispatchEvent(new Event('ns159VoiceReady'));
 })();
