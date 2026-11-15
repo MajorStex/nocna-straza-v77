@@ -1,0 +1,43 @@
+name: V157 New Zone weapon sound, pause, scenery and safe spawn QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/v140-net-mode.js'
+      - 'public/v152-arena-audio.js'
+      - 'public/v154-goblin-renderer.js'
+      - 'public/v157-arena-scenery.js'
+      - 'public/index.html'
+      - 'tests/v157-client-features.test.cjs'
+      - '.github/workflows/v157-client-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  v157:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install mobile Chromium
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Test cached weapon waveforms, pause, scenery and 80 safe spawns
+        run: |
+          node --check public/v140-net-mode.js
+          node --check public/v152-arena-audio.js
+          node --check public/v154-goblin-renderer.js
+          node --check public/v157-arena-scenery.js
+          node tests/current-deployment.test.cjs
+          node tests/v157-client-features.test.cjs
+      - name: Original gameplay, skins, 60FPS jitter, depth and full Chromium regressions
+        run: |
+          node tests/v140-isolated-arena.test.cjs
+          node tests/v151-mob-motion.test.cjs
+          node tests/v152-arena-features.test.cjs
+          node tests/v153-looks.test.cjs
+          node tests/v154-goblins.test.cjs
+          node tests/v155-colors-lobby-transfer.test.cjs
+          node tests/v156-depth-audio.test.cjs
