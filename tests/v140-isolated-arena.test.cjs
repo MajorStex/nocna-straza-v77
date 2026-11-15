@@ -5,7 +5,10 @@ const client=fs.readFileSync(path.join(__dirname,'../public/v140-net-mode.js'),'
 for(const m of [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)].filter(x=>!/\bsrc=/.test(x[1])))
  new Function(m[2]);
 new Function(client);
-assert.match(html,/\['arena140','NOVA ZONA[^]*?,7\]/,'mode must be level 7 in choose mode');
+assert.match(html,/const NS140_TEMP_UNLOCK_LEVEL=0/,'V164 temporary New Zone unlock starts at level 0');
+assert.match(html,/\['arena140','NOVA ZONA[^]*?,NS140_TEMP_UNLOCK_LEVEL\]/,'solo New Zone is available from level 0');
+assert.match(client,/const NS140_TEMP_UNLOCK_LEVEL=0/,'independent arena client must accept level 0');
+assert.match(client,/currentProfileLevel\?\.\(\)<NS140_TEMP_UNLOCK_LEVEL/,'solo and guest client use temporary public level gate');
 assert.match(html,/<option value="arena140">/,'host can select mode in lobby');
 assert.match(html,/if\(selectedMode==='arena140'\)[\s\S]{0,450}NS140_ARENA\.startHost\(/,
  'new arena branches before legacy startGame call');
@@ -28,4 +31,4 @@ assert.ok(!/fetch\(|new WebSocket|\.send\(/.test(soloSource),'solo must not conn
 assert.match(client,/function stepSolo\(dt\)/,'offline movement and automatic combat have a local simulation');
 assert.doesNotMatch(client,/ns140Hit|attackHeld|N\.attack/,'New Zone must never require a manual Attack control');
 assert.match(client,/if\(wasSolo\).*showPreRun/,'back to solo choose-mode, not multiplayer lobby');
-console.log('V140 frontend + solo QA PASS: account-level 7 gate, isolated lobby handoff, no old gameplay, syntax and input bounds');
+console.log('V164 frontend + solo QA PASS: temporary account-level 0 gate, isolated lobby handoff, no old gameplay, syntax and input bounds');
