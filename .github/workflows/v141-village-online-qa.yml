@@ -2,7 +2,7 @@ name: V141 Village host and practice QA
 on:
   push:
     branches: [feature/v141-village-server-up-training, main]
-    paths: ['public/v115-village.js', 'public/v140-net-mode.js', 'public/index.html', 'tests/v141-village-server-up.test.cjs', 'tests/v143-offline-invites.test.cjs', 'tests/v144-village-audio.test.cjs', 'tests/v140-isolated-arena.test.cjs', 'tests/v145-arena-controls.test.cjs', 'tests/v147-mobile-resume-fallback.test.cjs', '.github/workflows/v141-village-online-qa.yml']
+    paths: ['public/v115-village.js', 'public/v140-net-mode.js', 'public/index.html', 'tests/v141-village-server-up.test.cjs', 'tests/v143-offline-invites.test.cjs', 'tests/v144-village-audio.test.cjs', 'tests/v140-isolated-arena.test.cjs', 'tests/v145-arena-controls.test.cjs', 'tests/v147-mobile-resume-fallback.test.cjs', 'tests/v151-mob-motion.test.cjs', 'tests/v152-arena-features.test.cjs', 'public/v152-arena-audio.js', '.github/workflows/v141-village-online-qa.yml']
   pull_request:
     branches: [main]
     paths: ['public/v115-village.js', 'public/v140-net-mode.js', 'public/index.html', 'tests/v141-village-server-up.test.cjs', '.github/workflows/v141-village-online-qa.yml']
@@ -24,4 +24,6 @@ jobs:
       - run: node tests/v146-ready-autostart.test.cjs
       - run: node tests/v147-mobile-resume-fallback.test.cjs
       - run: node tests/v145-arena-controls.test.cjs
+      - run: node tests/v151-mob-motion.test.cjs
+      - run: node tests/v152-arena-features.test.cjs
       - run: node tests/v141-village-server-up.test.cjs
