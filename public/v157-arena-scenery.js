@@ -82,7 +82,7 @@ function generate(world){
  const key=[world?.w,world?.h,world?.decorSeed||157].join(':');
  if(cached&&cachedKey===key)return cached;
  const r=rng((world?.decorSeed||157)*7919),items=[];
- const obstacles=world?.obstacles||[],chests=[[530,465],[960,580],[1470,820]];
+ const obstacles=(world?.obstacles||[]).filter(o=>o.kind!=='tree'&&o.kind!=='rock'),chests=[[530,465],[960,580],[1470,820]];
  const spawns=[[130,250],[190,250],[250,260],[130,310],[205,310],[275,310]];
  let tries=0;
  while(items.length<53&&tries++<900){
@@ -100,11 +100,18 @@ function generate(world){
  cachedKey=key;cached=items;
  return cached;
 }
+// The painted canopy is decorative: collisions match the solid trunk/rock
+// at ground level. Tiny boxes keep lanes open and avoid blocking with foliage.
+function colliders(world){
+ return generate(world).map(item=>item.type<3?
+  {kind:'tree',x:item.x-9,y:item.y-15,w:18,h:16}:
+  {kind:'rock',x:item.x-16,y:item.y-16,w:32,h:13});
+}
 function drawOne(g,item){
  const source=build()[item.type];if(!source)return;
  const anchorX=Math.round(item.x-source.width/2);
  const anchorY=Math.round(item.y-source.height+12);
  g.drawImage(source,anchorX,anchorY);
 }
-window.NS157_SCENERY={generate,drawOne,prewarm:build,get total(){return cached?.length||0}};
+window.NS157_SCENERY={generate,colliders,drawOne,prewarm:build,get total(){return cached?.length||0}};
 })();
