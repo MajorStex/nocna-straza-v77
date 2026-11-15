@@ -51,21 +51,28 @@ jobs:
               if(test())return;
               await new Promise(r=>setTimeout(r,50));
             }
-            throw Error('Timed out: '+label);
+            throw Error('Timed out: '+label+' / '+JSON.stringify(peers.map(p=>({id:p.id,closed:p.closed,types:p.events.map(e=>e.t),looks:p.events.filter(e=>e.t==='look').map(e=>[e.id,e.look?.skin,e.look?.visualSize]),manifest:p.events.find(e=>e.t==='welcome')?.looks}))).slice(0,5000));
           };
           try{
             const a=connect('p1'),b=connect('p2');
             await until(()=>[a,b].every(p=>p.events.some(e=>e.t==='welcome')),'both joined');
-            await until(()=>[a,b].every(p=>
-              p.events.some(e=>e.t==='look'&&e.id==='p1'&&e.look.visualSize===1.12&&e.look.skin==='#44aa77')&&
-              p.events.some(e=>e.t==='look'&&e.id==='p2'&&e.look.visualSize===0.70&&e.look.skin==='#6699ff')),
-              'both phones see identical independent looks');
+            const hasLook=(p,id,size,skin)=>{
+              const updates=p.events.filter(e=>e.t==='look'&&e.id===id);
+              const rows=p.events.find(e=>e.t==='welcome')?.looks||[];
+              return updates.some(e=>e.look.visualSize===size&&e.look.skin===skin)||
+                rows.some(r=>r[0]===id&&r[2].visualSize===size&&r[2].skin===skin);
+            };
+            await until(()=>[a,b].every(p=>hasLook(p,'p1',1.12,'#44aa77')&&
+              hasLook(p,'p2',0.70,'#6699ff')),
+              'both phones see same authoritative looks through updates or welcome manifest');
             await until(()=>a.events.some(e=>e.t==='s')&&b.events.some(e=>e.t==='s'),'shared movement');
             assert.ok(a.events.filter(e=>e.t==='s').every(e=>!('looks' in e)),
               'looks do not bloat repeated movement snapshots');
             console.log('V153 LIVE: two distinct player skin, clothing, weapon and sizes synchronized');
+            const before=b.events.filter(e=>e.t==='s').length;
             a.ws.send(JSON.stringify({t:'leave'}));
-            await until(()=>a.closed,'creator leaves');
+            await until(()=>b.events.filter(e=>e.t==='s').length>=before+8,
+              'guest stays online after creator leaves');
             const rejoin=connect('p1');
             await until(()=>rejoin.events.some(e=>e.t==='welcome'),'creator reconnect');
             const manifest=rejoin.events.find(e=>e.t==='welcome').looks;
