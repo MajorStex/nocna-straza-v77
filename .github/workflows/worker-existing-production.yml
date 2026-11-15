@@ -9,6 +9,7 @@ on:
       - 'package.json'
       - 'tests/current-deployment.test.cjs'
       - 'tests/v140-isolated-arena.test.cjs'
+      - 'tests/v159-voice.test.cjs'
       - '.github/workflows/worker-existing-production.yml'
   workflow_dispatch:
 permissions:
@@ -39,6 +40,8 @@ jobs:
           else
             echo "V140 not in main release yet: leaving existing game untouched"
           fi
+      - name: V159 microphone isolation and version regression checks
+        run: node tests/v159-voice.test.cjs
       - name: Require Cloudflare Worker credentials (do not silently skip deployment)
         shell: bash
         run: |
