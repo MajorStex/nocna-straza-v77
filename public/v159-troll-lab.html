@@ -561,6 +561,15 @@ document.querySelector('#gate').onclick=e=>{
  e.target.textContent=gateOpen?'🔓':'🔒';
 };
 document.querySelector('#reset').onclick=()=>{player.x=area==='legacy'?compound.gateX:535;player.y=area==='legacy'?820:485};
+// Read-only diagnostics for isolated browser collision/animation tests.
+window.__NS159_LAB_TEST=Object.freeze({
+ get area(){return area},get gateOpen(){return gateOpen},
+ get colliderCount(){return activeObstacles.length},
+ get playerPosition(){return {x:player.x,y:player.y}},
+ get originalArtBuilds(){return compound.builds},
+ clearAt:(x,y)=>test(x,y),
+ move:(dx,dy)=>move(dx,dy)
+});
 const buffer=[];
 const draw=now=>{
  const dt=clamp((now-last)/1000||0,0,.05);last=now;
