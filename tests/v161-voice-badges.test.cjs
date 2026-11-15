@@ -25,7 +25,7 @@ const sockets=[];
 const window={addEventListener(){},dispatchEvent(){}};
 const document={hidden:false,addEventListener(){},getElementById(){return null}};
 const ctx=vm.createContext({window,document,WebSocket:Socket,performance:{now:()=>clock},
- navigator:{},setTimeout(){return 1},clearTimeout(){},console,Math,Uint8Array,Map,Set});
+ navigator:{},setTimeout(){return 1},clearTimeout(){},console,Math,Event:class {constructor(type){this.type=type}}});
 vm.runInContext(voice,ctx,{timeout:1000});
 const api=window.NS159_VOICE;
 assert(api&&typeof api.badgeState==='function');
@@ -37,8 +37,8 @@ ws.onmessage({data:JSON.stringify({t:'ready',seat:'p1',codec:'log8'})});
 assert.equal(api.badgeState('p2'),0,'a silent unmuted seat has no icon');
 ws.onmessage({data:JSON.stringify({t:'mic',seat:'p2',on:true})});
 assert.equal(api.badgeState('p2'),1,'toggle on: small standby speaker');
-vm.runInContext("const sample=new Uint8Array(128);sample[0]=50;window.__socket.onmessage({data:sample.buffer})",
- Object.assign(ctx,{window:Object.assign(window,{__socket:ws})}));
+window.__socket=ws;
+vm.runInContext("const sample=new Uint8Array(128);sample[0]=50;window.__socket.onmessage({data:sample.buffer})",ctx);
 assert.equal(api.badgeState('p2'),2,'actual received audio: green speaking icon');
 clock+=1500;
 assert.equal(api.badgeState('p2'),1,'speaking indicator goes quiet after 1.5 seconds');
