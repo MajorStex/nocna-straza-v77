@@ -9,6 +9,7 @@ assert.match(html,/v140-net-mode\.js\?v=164/);
 assert.match(html,/const NS140_TEMP_UNLOCK_LEVEL=0/);
 assert.match(client,/const NS140_TEMP_UNLOCK_LEVEL=0/);
 assert.match(html,/PRIVREMENO OTKLJUČANO ZA SVE \(NIVO 0\+\)/);
+assert.match(html,/<option value="arena140">NOVA ZONA · SOLO \+ MP · OTKLJUČANO OD NIVO 0 \(TEST\)<\/option>/);
 assert.match(html,/\['arena140','NOVA ZONA',NS140_TEMP_UNLOCK_LEVEL\]/);
 assert.match(html,/\['arena140','NOVA ZONA'[^\n]*,NS140_TEMP_UNLOCK_LEVEL\]/);
 assert.match(html,/roster\.every\(p=>Number\(p\.level\)>=NS140_TEMP_UNLOCK_LEVEL\)/);
