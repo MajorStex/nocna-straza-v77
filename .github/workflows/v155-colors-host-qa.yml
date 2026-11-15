@@ -1,0 +1,28 @@
+name: V155 cross-device colors and lobby owner handoff QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/index.html'
+      - 'public/v140-net-mode.js'
+      - 'tests/v155-colors-lobby-transfer.test.cjs'
+      - '.github/workflows/v155-colors-host-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  colors-and-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test the real renderer identity and same-code host transfer
+        run: |
+          node --check public/v140-net-mode.js
+          node tests/current-deployment.test.cjs
+          node tests/v155-colors-lobby-transfer.test.cjs
+          node tests/v153-looks.test.cjs
+          node tests/v140-isolated-arena.test.cjs
