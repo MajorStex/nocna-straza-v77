@@ -7,6 +7,7 @@ on:
       - 'public/v140-net-mode.js'
       - 'public/index.html'
       - 'tests/v154-goblins.test.cjs'
+      - 'tests/v151-mob-motion.test.cjs'
       - '.github/workflows/v154-goblin-horde-qa.yml'
   workflow_dispatch:
 permissions:
