@@ -3,11 +3,152 @@
 'use strict';
 if(window.NS140_ARENA)return;
 const B=()=>window.__NS110_BRIDGE||{},clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+// Shared V150 crowd formula also runs in the offline practice map.
+// V150: predictable, allocation-bounded movement for New Zone's PvE mobs.
+// Only the server decides positions. Each player destination gets one cached
+// navigation field; 48px spatial buckets bound nearby separation work.
+function createArenaCrowdSteering(world,move){
+ const CELL=32,COLS=Math.ceil(world.w/CELL),ROWS=Math.ceil(world.h/CELL),COUNT=COLS*ROWS,INF=65535;
+ const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+ const walkable=(x,y)=>{
+  if(x<world.r||y<world.r||x>world.w-world.r||y>world.h-world.r)return false;
+  return world.obstacles.every(o=>{
+   const px=clamp(x,o.x,o.x+o.w),py=clamp(y,o.y,o.y+o.h);
+   return (x-px)**2+(y-py)**2>=(world.r+3)**2;
+  });
+ };
+ const open=Uint8Array.from({length:COUNT},(_,i)=>
+  walkable((i%COLS+.5)*CELL,(Math.floor(i/COLS)+.5)*CELL)?1:0);
+ const grid=(x,y)=>clamp(Math.floor(y/CELL),0,ROWS-1)*COLS+clamp(Math.floor(x/CELL),0,COLS-1);
+ const flows=new Map();
+ function nearestOpen(x,y){
+  const col=clamp(Math.floor(x/CELL),0,COLS-1),row=clamp(Math.floor(y/CELL),0,ROWS-1);
+  let index=row*COLS+col;if(open[index])return index;
+  let cost=Infinity,best=-1;
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+   const nx=col+dx,ny=row+dy;if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;
+   index=ny*COLS+nx;if(!open[index])continue;
+   const d=dx*dx+dy*dy;if(d<cost){best=index;cost=d}
+  }
+  return best;
+ }
+ function field(x,y){
+  const goal=nearestOpen(x,y);if(goal<0)return null;
+  if(flows.has(goal))return flows.get(goal);
+  if(flows.size>=8)flows.clear();
+  const distance=new Uint16Array(COUNT);distance.fill(INF);
+  const q=new Uint16Array(COUNT);let head=0,tail=0;
+  q[tail++]=goal;distance[goal]=0;
+  while(head<tail){
+   const i=q[head++],cx=i%COLS,cy=Math.floor(i/COLS);
+   for(const [dx,dy] of dirs){
+    const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;
+    const n=ny*COLS+nx;if(!open[n]||distance[n]!==INF)continue;
+    if(dx&&dy&&(!open[cy*COLS+nx]||!open[ny*COLS+cx]))continue;
+    distance[n]=distance[i]+1;q[tail++]=n;
+   }
+  }
+  flows.set(goal,distance);return distance;
+ }
+ function clearPath(x1,y1,x2,y2){
+  for(const o of world.obstacles){
+   const lx=o.x-world.r-2,rx=o.x+o.w+world.r+2;
+   const ly=o.y-world.r-2,ry=o.y+o.h+world.r+2;
+   const dx=x2-x1,dy=y2-y1;
+   let low=0,high=1;
+   for(const [p,q] of [[-dx,x1-lx],[dx,rx-x1],[-dy,y1-ly],[dy,ry-y1]]){
+    if(Math.abs(p)<1e-9){if(q<0){low=2;break}continue}
+    const value=q/p;
+    if(p<0)low=Math.max(low,value);else high=Math.min(high,value);
+   }
+   if(low<=high)return false;
+  }
+  return true;
+ }
+ function bucketsFor(mobs){
+  const buckets=new Map();
+  for(const m of mobs)if(m.hp>0){
+   const key=Math.floor(m.x/48)+','+Math.floor(m.y/48);
+   if(!buckets.has(key))buckets.set(key,[]);
+   buckets.get(key).push(m);
+  }
+  return buckets;
+ }
+ function step(mobs,players,tick){
+  // 15 Hz steer tick: deterministic strafe, no wandering RNG or path spam.
+  const buckets=bucketsFor(mobs),pressure=new Map();
+  for(const m of mobs){
+   if(m.hp<=0)continue;
+   let target=players.get(m.targetId);
+   if(!target?.online||target.knocked||target.hp<=0||tick>=(m.retargetAt||0)){
+    target=null;let score=Infinity;
+    for(const p of players.values()){
+     if(!p.online||p.knocked||p.hp<=0)continue;
+     const d=Math.hypot(p.x-m.x,p.y-m.y);
+     const cost=d+(pressure.get(p.id)||0)*18+(p.id===m.targetId?-24:0)+
+      ((m.id*7+Number(p.id.slice(1))*11)%5)*3;
+     if(cost<score){score=cost;target=p}
+    }
+    m.targetId=target?.id||'';
+    m.retargetAt=tick+24+(m.id%4)*7; // stagger expensive aggro selection
+   }
+   if(!target)continue;
+   pressure.set(target.id,(pressure.get(target.id)||0)+1);
+   const range=Math.hypot(target.x-m.x,target.y-m.y);
+   const slotAngle=m.id*2.399963229728653; // stable different flanking approach
+   const slot=range<145?28:0;
+   const gx=clamp(target.x+Math.cos(slotAngle)*slot,world.r,world.w-world.r);
+   const gy=clamp(target.y+Math.sin(slotAngle)*slot,world.r,world.h-world.r);
+   let dx=gx-m.x,dy=gy-m.y;
+   if(!clearPath(m.x,m.y,gx,gy)){
+    const distances=field(target.x,target.y),pos=grid(m.x,m.y);
+    if(distances&&distances[pos]<INF){
+     const cx=pos%COLS,cy=Math.floor(pos/COLS);
+     let best=pos,cost=distances[pos];
+     for(const [ox,oy] of dirs){
+      const nx=cx+ox,ny=cy+oy;
+      if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;
+      const n=ny*COLS+nx;if(distances[n]>=cost)continue;
+      if(ox&&oy&&(!open[cy*COLS+nx]||!open[ny*COLS+cx]))continue;
+      best=n;cost=distances[n];
+     }
+     if(best!==pos){dx=(best%COLS+.5)*CELL-m.x;dy=(Math.floor(best/COLS)+.5)*CELL-m.y}
+    }
+   }
+   let mag=Math.hypot(dx,dy)||1;dx/=mag;dy/=mag;
+   let sx=0,sy=0,neighbours=0;
+   const bx=Math.floor(m.x/48),by=Math.floor(m.y/48);
+   for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++){
+    const list=buckets.get((bx+xx)+','+(by+yy));if(!list)continue;
+    for(const other of list){
+     if(other===m)continue;
+     const ox=m.x-other.x,oy=m.y-other.y,d2=ox*ox+oy*oy;
+     if(d2>=46*46)continue;
+     if(++neighbours>16)break; // hard cap to prevent pathological crowds
+     if(d2<.01){sx+=(m.id>other.id?1:-1)*.5;continue}
+     const d=Math.sqrt(d2),w=(46-d)/46;sx+=ox/d*w;sy+=oy/d*w;
+    }
+   }
+   const strafe=range<65?.04:Math.sin(tick*.041+m.id*2.73)*.12*(m.id%2?1:-1);
+   const oldX=dx,oldY=dy;
+   dx=oldX+sx*.92-oldY*strafe;
+   dy=oldY+sy*.92+oldX*strafe;
+   mag=Math.hypot(dx,dy)||1;dx/=mag;dy/=mag;
+   m.vx=(m.vx||0)*.54+dx*.46;m.vy=(m.vy||0)*.54+dy*.46;
+   mag=Math.hypot(m.vx,m.vy)||1;
+   const stride=(49+(m.id%5)*3.25)/world.speed;
+   move(m,m.vx/mag*stride,m.vy/mag*stride,2/30);
+  }
+ }
+ return {step,field,nearestOpen,walkable,get cachedFields(){return flows.size},clear(){flows.clear()}};
+}
+
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
  players:new Map(),me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
- solo:false,soloMobs:[],mpMobs:[],soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
+ solo:false,soloCrowd:null,soloMobs:[],mpMobs:[],soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -82,7 +223,7 @@ function stop(notify=false){
  if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
  const ws=N.ws;N.ws=null;if(ws){ws.onopen=ws.onmessage=ws.onclose=ws.onerror=null;try{ws.close()}catch{}}
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
- N.phase='idle';N.solo=false;N.soloMobs=[];N.mpMobs=[];N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
+ N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.ticket='';N.retry=0;N.players.clear();N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
  if(el('ns140Root'))el('ns140Root').hidden=true;
  if(wasSolo)try{window.__nightWatch?.showPreRun?.()}catch{}
@@ -111,16 +252,22 @@ function snapshot(m){
   N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<24&&
    Number.isFinite(q[1])&&Number.isFinite(q[2])&&Number.isFinite(q[3])).map(q=>{
    const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10;
-   return {id:q[0],x:prev?.x??x,y:prev?.y??y,tx:x,ty:y,hp:q[3],hitTick:Number(q[4])||0};
+   return {id:q[0],x:prev?.x??x,y:prev?.y??y,tx:x,ty:y,hp:q[3],hitTick:Number(q[4])||0,attackTick:Number(q[5])||-100};
   });
  }
  for(const row of m.players){
   if(!Array.isArray(row)||!/^p[1-6]$/.test(row[0]))continue;
-  const [id,xx,yy,hp,attackTick,online,knocked]=row;
+  const [id,xx,yy,hp,attackTick,online,knocked,attackDir,attackTarget]=row;
   if(!Number.isFinite(xx)||!Number.isFinite(yy))continue;
   const x=xx/10,y=yy/10;let p=N.players.get(id);
   if(!p){p={id,x,y,tx:x,ty:y};N.players.set(id,p)}
   p.tx=x;p.ty=y;p.hp=hp;p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
+  // Quantized angle and attack start tick come ONLY from the server.
+  // No independent "nearest enemy" target choices per phone.
+  if(Number.isInteger(attackDir)&&attackDir>=0&&attackDir<=255){
+   p.attackAngle=attackDir/255*2*Math.PI-Math.PI;
+   p.attackTarget=Number.isInteger(attackTarget)?attackTarget:-1;
+  }
   if(id===N.id){
    N.me=p;const ack=Number(m.ack)||0;
    if(ack>N.ack){N.ack=ack;N.pending=N.pending.filter(e=>e.seq>ack)}
@@ -145,6 +292,7 @@ function startSolo(){
  ]};
  N.seq=N.ack=N.soloTick=N.soloKills=0;N.tick=-1;
  N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;
+ N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt,y*N.world.speed*dt));
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.stick.ptr=null;N.stick.x=N.stick.y=0;
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
@@ -153,7 +301,7 @@ function startSolo(){
  N.soloMobs=Array.from({length:12},(_,i)=>({
   id:i,x:180+(i%4)*185,y:75+Math.floor(i/4)*225,
   sx:180+(i%4)*185,sy:75+Math.floor(i/4)*225,
-  hp:35,attackAt:0,deadUntil:0
+  hp:35,attackAt:(i%4)*7,attackTick:-100,deadUntil:0,hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0
  }));
  status('V149 · SOLO · AUTO NAPAD · TEST GOBLINI · 0 XP');
  return true;
@@ -166,15 +314,19 @@ function stepSolo(dt){
   N.soloAcc-=1/30;N.soloTick++;N.tick=N.soloTick;
   const me=N.me;
   if(me.hp<=0){N.phase='solo_ended';status('STRAŽAR JE PAO · SOLO TEST ZAVRŠEN · NAZAD ZA PONOVNO');break}
+  // Offline preview uses exactly the same deterministic crowd steering
+  // as multiplayer: 15 Hz cached paths, 9-bucket separation, flanking.
+  if(N.soloTick%2===0)N.soloCrowd.step(N.soloMobs,N.players,N.soloTick);
   for(const mob of N.soloMobs){
    if(mob.hp<=0){
-    if(N.soloTick>=mob.deadUntil){mob.hp=35;mob.x=mob.sx;mob.y=mob.sy}
+    if(N.soloTick>=mob.deadUntil){mob.hp=35;mob.x=mob.sx;mob.y=mob.sy;mob.vx=mob.vy=0}
     continue;
    }
-   const dx=me.x-mob.x,dy=me.y-mob.y,d=Math.hypot(dx,dy)||1;
-   if(d>28)moveLocal(mob,dx/d*55/30,dy/d*55/30);
-   else if(N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
-    me.hp=Math.max(0,me.hp-7);mob.attackAt=N.soloTick+43;N.soloInvul=N.soloTick+28;
+   const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
+   if(d2<=34**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
+    me.hp=Math.max(0,me.hp-7);
+    mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+39+(mob.id%5)*4;
+    N.soloInvul=N.soloTick+28;
    }
   }
   // V149: attack the nearest goblin automatically, including while moving.
