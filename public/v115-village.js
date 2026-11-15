@@ -824,7 +824,7 @@ function showAchievements(){
    g.strokeText(name,x,y-74);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,x,y-74);
    if(ready){g.font='bold 14px system-ui';g.fillStyle='#c2ffc5';g.fillText('✓',x+27,y-60)}
    const emote=emotes.get(id);if(emote&&Date.now()<emote.until){g.font='22px system-ui';g.fillText(emote.text,x+30,y-75)}
-   drawVillagePvpHp(id,x,y);g.restore();return;
+   drawVillagePvpHp(id,x,y);window.NS165_CLASSIC_VOICE?.drawBadge?.(g,id,x+44,y-86);g.restore();return;
   }
   g.save();if(PVP.get(id)?.opted&&PVP.get(id)?.hp<=0)g.globalAlpha*=.38;g.translate(x,y);g.textAlign='center';g.font='bold 12px system-ui';g.strokeStyle='#0b191d';g.lineWidth=3;g.strokeText(name,0,-36);g.fillStyle=ready?'#a4efbd':'#f2d29c';g.fillText(name,0,-36);
   g.fillStyle='#061a21a1';g.beginPath();g.ellipse(0,15,15,5,0,0,7);g.fill();
@@ -833,7 +833,7 @@ function showAchievements(){
   g.fillStyle=sparta?'#f7d778':'#304a4d';g.fillRect(-10,-34,20,6);
   g.fillStyle='#303c3d';g.fillRect(-11,10,8,15);g.fillRect(3,10,8,15);
   if(ready){g.font='bold 18px system-ui';g.fillStyle='#c2ffc5';g.fillText('✓',18,-22)}
-  g.restore();drawVillagePvpHp(id,x,y);
+  g.restore();drawVillagePvpHp(id,x,y);window.NS165_CLASSIC_VOICE?.drawBadge?.(g,id,x+38,y-60);
  }
  // V118: physics shared by joystick, dash and tap-to-walk.
  const COLLISION_PAD=12;
@@ -1377,7 +1377,13 @@ function showAchievements(){
    if(fpsBadge)fpsBadge.textContent=PERF.fps+' FPS · '+PERF.averageDrawMs.toFixed(1)+'ms';
   }
  }
- window.NS109_VILLAGE={open:showVillage,close:closeVillage,frame:villageFrame,onMessage,enter,onLobbyUI:onVillageLobbyReady,expectJoin:expectVillageJoin,openInvites:()=>{if(!opened&&canVisit())showVillage();if(!opened)return false;showInviteHouse();return true},
+ window.NS109_VILLAGE={open:showVillage,close:closeVillage,frame:villageFrame,onMessage,enter,onLobbyUI:onVillageLobbyReady,expectJoin:expectVillageJoin,
+ voicePosition:id=>{
+  if(!opened||!isLobby())return null;
+  if(id===NET.localId)return {x:my.x,y:my.y};
+  const a=smoothAvatars.get(id)||avatars.get(id);
+  return a&&Number.isFinite(a.x)&&Number.isFinite(a.y)?{x:a.x,y:a.y}:null;
+ },openInvites:()=>{if(!opened&&canVisit())showVillage();if(!opened)return false;showInviteHouse();return true},
  get serverUp(){return villageOnline()},get roomCode(){return isLobby()?NET.code:''},
  startServer:startVillageOnlineRoom,
  onSoloResult:run=>{if(run&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(run.kills)},
