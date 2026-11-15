@@ -25,7 +25,7 @@ function thumbnails(){
 function header(){
  $('ns162Title').textContent=adapter?.solo?'SOLO TEST LAB':adapter?.host?'SERVER TEST LAB · HOST':'SERVER TEST LAB · GOST';
  $('ns162MiniText').textContent=selected==='troll'?'🧌 Trol':'👹 Goblin';
- $('ns162MiniSpawn').disabled=!editable();
+ $('ns162MiniSpawn').disabled=!editable()||(selected==='troll'&&st().trollAlive===true);
  $('ns162MiniSpawn').textContent=selected==='troll'?'＋ Trol':'＋ Goblin';
  root.querySelector('.ns162Dock')?.classList.toggle('collapsed',minimized);
  shell?.classList.toggle('collapsed',minimized);
@@ -44,7 +44,7 @@ function render(){
    '<button type="button" data-enemy="troll" '+(!available?'disabled':'')+' class="'+(selected==='troll'?'active':'')+'"><canvas data-preview="troll" width="64" height="64"></canvas><b>🧌 Trol</b><small>BOSS · talas 10</small></button>'+
   '</div>'+
   (!available?'<p>Server još nema potvrđenu podršku za novog trola. Solo radi samostalno.</p>':'')+
-  '<div class="ns162Summary">Na mapi: <b>'+clamp(s.alive,0,80,0)+' živih</b> od '+clamp(s.total,0,80,0)+' neprijatelja · najviše 80 ukupno</div>'+
+  '<div class="ns162Summary">Na mapi: <b>'+clamp(s.alive,0,80,0)+' živih</b> od '+clamp(s.total,0,80,0)+' neprijatelja · najviše 80 ukupno'+(s.trollAlive?' · 🧌 Trol je već tu (1/1)':'')+'</div>'+
   row(num('quantity','Broj komada',selected==='troll'?1:settings.quantity,1,selected==='troll'?1:10)+num('hp','Život (HP)',selected==='troll'?(settings.hp===35?900:settings.hp):settings.hp,1,selected==='troll'?2000:500))+
   row(btn('＋ STVORI '+(selected==='troll'?'TROLA':'GOBLINA'),'spawnMob')+btn('🧹 Očisti neprijatelje','clearMobs'))+
   '<details><summary>🔧 Napredna podešavanja neprijatelja</summary>'+
@@ -118,6 +118,7 @@ function dispatch(command){
  else if(command==='resumeAll'){adapter.resumeAll?.();flash='Zahtev za nastavak poslat';}
  else if(editable()){
   if(selected==='troll'&&command==='spawnMob'&&s.bossAvailable===false)flash='Novi server još ne podržava trola';
+  else if(selected==='troll'&&command==='spawnMob'&&s.trollAlive)flash='Trol je već na mapi. Ukloni ga pre novog spawnovanja.';
   else {adapter.command?.(packet);flash='✓ '+(command==='spawnMob'?(selected==='troll'?'Stvaram trola':'Stvaram goblina'):'Test komanda poslata')}
  }else flash='Samo host može da menja svet';
  $('ns162Message').textContent=flash; // no per-command full DOM rebuild
