@@ -440,6 +440,7 @@ function startSolo(){
  N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
+ window.NS154_GOBLINS?.prewarm();
  status('V154 · SOLO · TALASI I SANDUCI · 0 XP');
  return true;
 }
@@ -657,6 +658,7 @@ function connect(match,id,ticket,rejoin=false){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;N.phase='waiting';
+    window.NS154_GOBLINS?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
