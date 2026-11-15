@@ -46,41 +46,57 @@ function spriteAtlas(){
  }
  atlas=sheet;return atlas;
 }
-function draw(g,mobs,opt){
- const sheet=spriteAtlas();
- const {solo,tick,now,lastState,alpha,visible}=opt;let count=0;
+// V156: retain one shared sprite sheet, prepare visible coordinates only once
+// and let the main painter Y-sort goblins, players, houses and chests together.
+function prepare(mobs,opt){
+ const {solo,alpha,visible}=opt,shown=[];
  for(const mob of mobs){
   if(mob.hp<=0)continue;
   const x=solo?(mob.prevX??mob.x)+(mob.x-(mob.prevX??mob.x))*alpha:mob.x;
   const y=solo?(mob.prevY??mob.y)+(mob.y-(mob.prevY??mob.y))*alpha:mob.y;
-  // Fast viewport rejection: don't animate or draw distant goblins.
   if(x<visible.left-36||x>visible.right+36||y<visible.top-42||y>visible.bottom+35){
    mob.animX=x;mob.animY=y;continue;
   }
-  count++;
-  const dx=x-(mob.animX??x),dy=y-(mob.animY??y),distance=Math.hypot(dx,dy);
-  if(distance>.18&&distance<35){
-   mob.animDistance=(mob.animDistance||0)+Math.min(3,distance);
-   mob.movingUntil=now+140;
-   if(Math.abs(dx)>.15)mob.facing=dx<0?-1:1;
-  }
-  mob.animX=x;mob.animY=y;
-  const age=(tick-mob.attackTick)+(solo?0:Math.min(2,Math.max(0,(now-lastState)/33.333)));
-  const pose=age>=0&&age<8?9:now<(mob.movingUntil||0)?
-   (Math.floor((mob.animDistance||0)/5+mob.id*3)%8):8;
-  if(sheet)g.drawImage(sheet,pose*W,mob.facing===-1?H:0,W,H,
-   Math.round(x-W/2),Math.round(y-36),W,H);
-  else {g.fillStyle='#729557';g.fillRect(Math.round(x-12),Math.round(y-29),24,30)}
-  if(tick-(mob.hitTick||-100)>=0&&tick-(mob.hitTick||-100)<5){
-   g.fillStyle='#daefa38c';g.fillRect(Math.round(x-15),Math.round(y-32),30,3);
-  }
-  if(mob.hp<mob.maxHp){
-   g.fillStyle='#32412d';g.fillRect(Math.round(x-15),Math.round(y-43),30,4);
-   g.fillStyle='#a6d49a';g.fillRect(Math.round(x-15),Math.round(y-43),
-    Math.round(30*Math.max(0,Math.min(1,mob.hp/(mob.maxHp||35)))),3);
-  }
+  shown.push({mob,x,y,depth:y+13}); // contact shadow/feet, NOT the top of the head
  }
- return count;
+ return shown;
 }
-window.NS154_GOBLINS={draw,prewarm:spriteAtlas,get atlasReady(){return !!atlas}};
+function drawOne(g,entry,opt){
+ const {mob,x,y}=entry;
+ const {tick,now,lastState,solo}=opt;
+ const dx=x-(mob.animX??x),dy=y-(mob.animY??y),distance=Math.hypot(dx,dy);
+ if(distance>.18&&distance<35){
+  mob.animDistance=(mob.animDistance||0)+Math.min(3,distance);
+  mob.movingUntil=now+140;
+  if(Math.abs(dx)>.15)mob.facing=dx<0?-1:1;
+ }
+ mob.animX=x;mob.animY=y;
+ const age=tick-mob.attackTick+(solo?0:Math.min(2,Math.max(0,(now-lastState)/33.333)));
+ const pose=age>=0&&age<8?9:now<(mob.movingUntil||0)?
+  Math.floor((mob.animDistance||0)/5+mob.id*3)%8:8;
+ const sheet=spriteAtlas();
+ if(sheet)g.drawImage(sheet,pose*W,mob.facing===-1?H:0,W,H,
+  Math.round(x-W/2),Math.round(y-36),W,H);
+ else {g.fillStyle='#729557';g.fillRect(Math.round(x-12),Math.round(y-29),24,30)}
+ const hitAge=tick-(mob.hitTick||-100);
+ if(hitAge>=0&&hitAge<6){
+  // Three very short impact streaks, no DOM, textures, particles or allocation.
+  const fade=(6-hitAge)/6;
+  g.fillStyle='rgba(223,242,164,'+(fade*.63).toFixed(2)+')';
+  g.fillRect(Math.round(x-12-hitAge),Math.round(y-32),9,2);
+  g.fillRect(Math.round(x+5+hitAge),Math.round(y-27),8,2);
+  g.fillRect(Math.round(x-2),Math.round(y-38-hitAge),3,6);
+ }
+ if(mob.hp<mob.maxHp){
+  g.fillStyle='#32412d';g.fillRect(Math.round(x-15),Math.round(y-43),30,4);
+  g.fillStyle='#a6d49a';g.fillRect(Math.round(x-15),Math.round(y-43),
+   Math.round(30*Math.max(0,Math.min(1,mob.hp/(mob.maxHp||35)))),3);
+ }
+}
+function draw(g,mobs,opt){
+ const shown=prepare(mobs,opt);
+ for(const item of shown)drawOne(g,item,opt);
+ return shown.length;
+}
+window.NS154_GOBLINS={draw,prepare,drawOne,prewarm:spriteAtlas,get atlasReady(){return !!atlas}};
 })();
