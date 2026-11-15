@@ -517,7 +517,7 @@ function snapshot(m){
     A()?.play('hit',{weapon:weaponHits.get(q[0])||'sword',variant:hitTick,x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
-   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;
+   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=q[8]===1?'troll':'goblin';
    return mob;
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
@@ -595,13 +595,19 @@ function buildSoloWave(wave){
   pt,i,dist:alive.length?Math.min(...alive.map(p=>Math.hypot(pt[0]-p.x,pt[1]-p.y))):9999
  }));
  ranked.sort((a,b)=>b.dist-a.dist||((a.i+shift)%points.length)-((b.i+shift)%points.length));
- return ranked.slice(0,count).map(({pt,dist},i)=>{
+ const spawnList=ranked.slice(0,count).map(({pt,dist},i)=>{
   const hp=Math.min(115,35+(wave-1)*9);
   return {id:i,x:pt[0],y:pt[1],sx:pt[0],sy:pt[1],hp,maxHp:hp,
    spawnDistance:Math.round(dist),attackAt:(i%4)*7,attackTick:-100,deadUntil:0,
    hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0,
    animDistance:0,animX:pt[0],animY:pt[1],facing:1,movingUntil:0};
  });
+ if(wave===10&&spawnList.length){
+  const pos=spawnList.pop();
+  spawnList.push({...pos,id:95,kind:'troll',hp:900,maxHp:900,
+   attackAt:0,attackTick:-100,hitTick:-100,targetId:''});
+ }
+ return spawnList;
 }
 
 // Test-only actions: use the existing New Zone simulation, not legacy editor logic.
@@ -645,18 +651,23 @@ function soloLabAction(m){
  else if(a==='count'||a==='resetCount'){LAB.customCount=a==='resetCount'?null:int(m.value,1,80,60);resetWave()}
  else if(a==='resetWave')resetWave();
  else if(a==='spawnMob'){
-  const qty=int(m.quantity,1,10,1),ids=new Set(N.soloMobs.map(x=>x.id));
+  const kind=m.kind==='troll'?'troll':'goblin';
+  const qty=kind==='troll'?1:int(m.quantity,1,10,1),ids=new Set(N.soloMobs.map(x=>x.id));
+  if(kind==='troll'&&N.soloMobs.some(x=>x.kind==='troll'&&x.hp>0))return false;
   for(let i=0;i<qty&&N.soloMobs.filter(q=>q.hp>0).length<80;i++){
-   let id=0;while(ids.has(id)&&id<96)id++;if(id>=96)break;
-   const p=nearSoloPoint(i+LAB.rev*7),hp=int(m.hp,1,500,35);
-   N.soloMobs.push({id,x:p.x,y:p.y,sx:p.x,sy:p.y,prevX:p.x,prevY:p.y,hp,maxHp:hp,
+   let id=kind==='troll'?95:0;
+   if(kind==='troll'&&ids.has(95))break;
+   while(kind!=='troll'&&ids.has(id)&&id<95)id++;
+   if(id>=96||kind!=='troll'&&id>=95)break;
+   const p=nearSoloPoint(i+LAB.rev*7),hp=int(m.hp,1,kind==='troll'?2000:500,kind==='troll'?900:35);
+   N.soloMobs.push({id,kind,x:p.x,y:p.y,sx:p.x,sy:p.y,prevX:p.x,prevY:p.y,hp,maxHp:hp,
     attackAt:0,attackTick:-100,deadUntil:0,hitTick:-100,vx:0,vy:0,targetId:'',
     retargetAt:0,animDistance:0,animX:p.x,animY:p.y,facing:1,movingUntil:0});
    ids.add(id);
   }
   N.soloState='play';N.soloChoice=null;N.soloCrowd.clear();
  }else if(a==='clearMobs'){N.soloMobs=[];N.soloState='play';N.soloChoice=null;N.soloCrowd.clear()}
- else if(a==='setMob'){const mob=N.soloMobs.find(q=>q.id===int(m.id,0,95,-1));if(mob){mob.hp=mob.maxHp=int(m.hp,1,500,35)}}
+ else if(a==='setMob'){const mob=N.soloMobs.find(q=>q.id===int(m.id,0,95,-1));if(mob){mob.hp=mob.maxHp=int(m.hp,1,mob.kind==='troll'?2000:500,35)}}
  else if(a==='removeMob'){const id=int(m.id,0,95,-1);N.soloMobs=N.soloMobs.filter(q=>q.id!==id);N.soloCrowd.clear()}
  else if(a==='toggleMobFreeze'){const mob=N.soloMobs.find(q=>q.id===int(m.id,0,95,-1));if(mob){mob.labFrozen=!mob.labFrozen;mob.vx=mob.vy=0}}
  else if(a==='freezeAI')LAB.freezeAI=!!m.value;
@@ -773,29 +784,35 @@ function stepSolo(dt){
   // Fixed physics 30Hz, steering only at 15Hz, interpolation at display FPS.
   for(const mob of N.soloMobs){mob.prevX=mob.x;mob.prevY=mob.y}
   if(!LAB.freezeAI){
-   const locked=N.soloMobs.filter(m=>m.labFrozen).map(m=>[m,m.x,m.y]);
-   if(N.soloTick%2===0)N.soloCrowd.step(N.soloMobs,N.players,N.soloTick);
-   N.soloCrowd.advance(N.soloMobs,N.players);
+   const goblins=N.soloMobs.filter(m=>m.kind!=='troll');
+   const locked=goblins.filter(m=>m.labFrozen).map(m=>[m,m.x,m.y]);
+   if(N.soloTick%2===0)N.soloCrowd.step(goblins,N.players,N.soloTick);
+   N.soloCrowd.advance(goblins,N.players);
    for(const [m,x,y] of locked){m.x=x;m.y=y;m.prevX=x;m.prevY=y;m.vx=m.vy=0}
+   for(const boss of N.soloMobs)if(boss.kind==='troll'&&boss.hp>0&&!boss.labFrozen){
+    boss.targetId=me.id;
+    const dx=me.x-boss.x,dy=me.y-boss.y,dist=Math.hypot(dx,dy);
+    if(dist>66)moveLocal(boss,dx/dist*67/30,dy/dist*67/30);
+   }
   }
   if(LAB.allies.length)stepSoloAllies();
   if(!LAB.freezeAI)for(const mob of N.soloMobs){
    if(mob.hp<=0||mob.labFrozen)continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
-   if(!LAB.godMode&&d2<=34**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
-    me.hp=Math.max(0,me.hp-7);N.hurtUntil=performance.now()+290;
+   if(!LAB.godMode&&d2<=(mob.kind==='troll'?65:34)**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
+    me.hp=Math.max(0,me.hp-(mob.kind==='troll'?17:7));N.hurtUntil=performance.now()+290;
     A()?.play('hurt');
-    mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+39+(mob.id%5)*4;
+    mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+(mob.kind==='troll'?77:39+(mob.id%5)*4);
     N.soloInvul=N.soloTick+28;
    }
   }
   // Auto-attack the nearest living enemy only when in 83px weapon range.
   if(N.soloTick-N.soloSwing>=19){
-   let target=null,distSq=83**2;
+   let target=null,distSq=95**2;
    for(const mob of N.soloMobs){
     if(mob.hp<=0)continue;
     const dx=mob.x-me.x,dy=mob.y-me.y,d=dx*dx+dy*dy;
-    if(d<distSq){target=mob;distSq=d}
+    if(d<distSq&&d<(mob.kind==='troll'?95:83)**2){target=mob;distSq=d}
    }
    if(target){
     N.soloSwing=N.soloTick;me.attackTick=N.soloTick;
