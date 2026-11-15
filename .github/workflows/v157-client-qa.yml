@@ -14,6 +14,7 @@ on:
       - 'public/v162-sandbox.js'
       - 'public/v162-troll.js'
       - 'tests/v162-boss-palette.test.cjs'
+      - 'tests/v163-push-to-talk.test.cjs'
       - 'tests/v160-sandbox.test.cjs'
       - 'tests/v161-voice-badges.test.cjs'
       - 'tests/v140-isolated-arena.test.cjs'
@@ -38,6 +39,7 @@ jobs:
           node --check public/v140-net-mode.js
           node --check public/v159-voice.js
           node tests/v161-voice-badges.test.cjs
+          node tests/v163-push-to-talk.test.cjs
           node --check public/v160-sandbox.js
           node --check public/v162-sandbox.js
           node --check public/v162-troll.js
