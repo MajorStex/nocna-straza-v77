@@ -1,0 +1,80 @@
+name: V155 LIVE two-player colors, background and successor host
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/v155-live-presence-colors.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  arena-online:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test V155 production server with successor p2, two colors and honest presence
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const base='https://nocna-straza-relay.stefanstevic1996.workers.dev';
+          const h=await (await fetch(base+'/health')).json();
+          assert.equal(h.arenaBuild,155,'V155 production relay required');
+          const seats=['p2','p3'];
+          const res=await fetch(base+'/arena/create',{method:'POST',headers:{'content-type':'application/json'},
+           body:JSON.stringify({code:'GABZ27',seats})});
+          const room=await res.json();assert.equal(res.status,200,JSON.stringify(room));
+          const logs=[],peers=[];
+          const connect=id=>{
+            const ws=new WebSocket(room.ws);
+            const p={id,ws,events:[],closed:false};peers.push(p);
+            ws.addEventListener('open',()=>ws.send(JSON.stringify({t:'hello',id,protocol:140,ticket:room.tickets[id]})));
+            ws.addEventListener('message',e=>{
+              const m=JSON.parse(e.data);p.events.push(m);
+              if(m.t==='welcome'){
+                assert.equal(m.serverBuild,155);
+                const isP2=id==='p2';
+                ws.send(JSON.stringify({t:'look',look:{name:isP2?'CRVENI':'PLAVI',
+                 heroClass:isP2?'warrior':'mage',weapon:isP2?'axe':'spear',
+                 skin:isP2?'#dd5555':'#3366cc',hair:'#553322',
+                 accent:isP2?'#ff4411':'#2244ef',visualSize:isP2?1.1:.7,
+                 wardrobe:{topColor:isP2?'#ff1111':'#2222ff',
+                  torso:isP2?'#aa2222':'#1111bb'}}}));
+              }
+            });
+            ws.addEventListener('close',()=>p.closed=true);
+            return p;
+          };
+          const until=async(fn,label,limit=12000)=>{
+           const t=Date.now();while(Date.now()-t<limit){if(fn())return;await new Promise(r=>setTimeout(r,65))}
+           throw Error('Timeout: '+label+' '+JSON.stringify(peers.map(p=>({id:p.id,types:p.events.map(e=>e.t).slice(-20)}))));
+          };
+          const has=(p,id,size,skin)=>p.events.some(e=>e.t==='look'&&e.id===id&&
+            e.look?.visualSize===size&&e.look.skin===skin);
+          try{
+            const a=connect('p2'),b=connect('p3');
+            await until(()=>[a,b].every(p=>p.events.some(e=>e.t==='start')),'two players started with p2 as room owner');
+            await until(()=>[a,b].every(p=>has(p,'p2',1.1,'#dd5555')&&has(p,'p3',.7,'#3366cc')),
+              'identical colored cosmetics on both peers');
+            a.ws.send(JSON.stringify({t:'presence',state:'background'}));
+            await until(()=>b.events.some(e=>e.t==='presence'&&
+              e.players.some(x=>x[0]==='p2'&&x[1]==='background')),
+              'minimized p2 should be background and not disconnected');
+            assert.equal(b.events.at(-1).t==='presence'&&b.events.at(-1).players.some(x=>x[0]==='p2'&&x[1]==='disconnected'),false);
+            a.ws.send(JSON.stringify({t:'presence',state:'active'}));
+            await until(()=>b.events.some(e=>e.t==='presence'&&
+              e.players.some(x=>x[0]==='p2'&&x[1]==='online')&&
+              e.players.some(x=>x[0]==='p3'&&x[1]==='online')),
+              'p2 resume should restore online');
+            a.ws.send(JSON.stringify({t:'leave'}));
+            await until(()=>b.events.some(e=>e.t==='presence'&&
+              e.players.some(x=>x[0]==='p2'&&x[1]==='disconnected')),
+              'only confirmed exit is disconnected');
+            const before=b.events.filter(e=>e.t==='s').length;
+            await until(()=>b.events.filter(e=>e.t==='s').length>=before+10,
+              'remaining guest still runs after old p2 leaves');
+            console.log('V155 LIVE PASS: both phones see correct red/blue, p2 can host, background != disconnected, intentional leave and hostless continuation');
+          }finally{for(const p of peers)try{p.ws.close()}catch{}}
+          JS
