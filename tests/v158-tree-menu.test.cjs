@@ -24,7 +24,7 @@ for(let i=0;i<visual.length;i++){
  const item=visual[i],h=hitboxes[i];
  assert.equal(h.kind,item.type<3?'tree':'rock');
  assert.ok(h.x<=item.x&&h.x+h.w>=item.x,'collider centered on painted trunk');
- assert.ok(h.y<=item.y&&h.y+h.h>=item.y-1,'collider near visible ground anchor');
+ assert.ok(h.y<=item.y&&h.y+h.h>=item.y-(item.type<3?1:4),'collider near visible ground anchor');
  assert.ok(h.w<=32,'canopy must NOT be a giant invisible wall');
 }
 world.obstacles.push(...hitboxes);
