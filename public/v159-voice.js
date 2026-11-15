@@ -271,7 +271,7 @@ document.addEventListener('keydown',event=>{
  event.preventDefault();beginPTT();
 });
 window.addEventListener('pageshow',()=>{if(session&&!socket&&!document.hidden)connect()});
-window.NS159_VOICE={mount,stop,badgeState,setMode,toggleMic,beginPTT,endPTT,bindControl,
+window.NS159_VOICE={mount,stop,badgeState,setMode,toggleMic,beginPTT,endPTT,bindControl,disableMic:stopMic,
  get connected(){return ready},get microphoneOn(){return micOn},get transmitting(){return transmitting()},get mode(){return mode}};
 window.dispatchEvent(new Event('ns159VoiceReady'));
 })();
