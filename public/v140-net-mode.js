@@ -185,7 +185,7 @@ function ui(){
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
- root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V153 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
+ root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V154 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div>'+
  '<div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
@@ -440,7 +440,7 @@ function startSolo(){
  N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
- status('V153 · SOLO · TALASI I SANDUCI · 0 XP');
+ status('V154 · SOLO · TALASI I SANDUCI · 0 XP');
  return true;
 }
 function stepSolo(dt){
@@ -535,14 +535,21 @@ function sampleOnlineMobs(now,dt){
   mob.y=old[1]+(next[1]-old[1])*fraction;
  }
 }
-function drawArenaMobs(g,now,dt){
+function drawArenaMobs(g,now,dt,visible){
  const mobs=N.solo?N.soloMobs:N.mpMobs,tick=N.solo?N.soloTick:N.tick;
  if(!N.solo)sampleOnlineMobs(now,dt);
+ // V154: cached sprite sheet + viewport culling; fallback retains old graphics in isolated QA.
+ if(window.NS154_GOBLINS){
+  N.visibleMobs=window.NS154_GOBLINS.draw(g,mobs,{solo:N.solo,tick,now,
+   lastState:N.lastState,alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible});
+  return;
+ }
  const alpha=N.solo?clamp(N.soloAcc*30,0,1):1;
  for(const mob of mobs){
   if(mob.hp<=0)continue;
   const drawX=N.solo?(mob.prevX??mob.x)+(mob.x-(mob.prevX??mob.x))*alpha:mob.x;
   const drawY=N.solo?(mob.prevY??mob.y)+(mob.y-(mob.prevY??mob.y))*alpha:mob.y;
+  if(drawX<visible.left-35||drawX>visible.right+35||drawY<visible.top-40||drawY>visible.bottom+30)continue;
   const pulse=Math.sin(now/250+mob.id)*1.4;
   const attackAge=(N.tick-mob.attackTick)+(N.solo?0:clamp((now-N.lastState)/33.333,0,2));
   const lunge=attackAge>=0&&attackAge<10?Math.sin(attackAge/10*Math.PI)*2.5:0;
@@ -608,9 +615,11 @@ function cottageSprite(o,index){
  g.fillStyle='#f8d68b';g.fillRect(doorX+21,h-12,4,4);
  cottageCache.set(key,canvas);return canvas;
 }
-function drawArenaBuildings(g,obstacles){
+function drawArenaBuildings(g,obstacles,visible){
  for(let i=0;i<obstacles.length;i++){
-  const o=obstacles[i],sprite=cottageSprite(o,i);
+  const o=obstacles[i];
+  if(o.x>visible.right||o.x+o.w<visible.left||o.y>visible.bottom||o.y+o.h<visible.top)continue;
+  const sprite=cottageSprite(o,i);
   if(sprite)g.drawImage(sprite,o.x-13,o.y-16);
  }
 }
@@ -625,7 +634,7 @@ function connect(match,id,ticket,rejoin=false){
  }
  N.match=match;N.id=id;N.ticket=ticket;
  N.phase=rejoin?'reconnecting':'connecting';
- status('V153 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
+ status('V154 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
  try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
@@ -659,17 +668,17 @@ function connect(match,id,ticket,rejoin=false){
      // Skin/size metadata is sent once after the server confirms support.
      ws.send(JSON.stringify({t:'look',look}));
     }
-   status('V153 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
+   status('V154 · POVEZAN · ČEKAM OSTALE IGRAČE');return;
   }
   if(m.t==='look'){rememberLook(m.id,m.revision,m.look);return}
    if(m.t==='roster'){
-   status('V153 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
+   status('V154 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
   if(m.t==='start'){
    N.phase='running';N.retry=0;N.lostSince=0;
    if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.lastFrame=0;status('V153 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
+   N.lastFrame=0;status('V154 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
   if(m.t==='s'){snapshot(m);return}
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
@@ -685,10 +694,10 @@ function connect(match,id,ticket,rejoin=false){
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
   if(!N.lostSince)N.lostSince=Date.now();
   if(Date.now()-N.lostSince>=120000){
-   N.phase='error';status('V153 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
+   N.phase='error';status('V154 · ISKORIŠĆENO 2 MINUTA ZA POVRATAK · LOBBY');return;
   }
   N.retry++;N.phase='reconnecting';
-  status('V153 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
+  status('V154 · VRAĆAM ISTOG IGRAČA ('+N.retry+') · NE NAPUŠTAJ SOBU');
   if(N.retryTimer)clearTimeout(N.retryTimer);
   N.retryTimer=setTimeout(()=>{
    N.retryTimer=null;
@@ -696,7 +705,7 @@ function connect(match,id,ticket,rejoin=false){
   },Math.min(4000,650+N.retry*380));
  };
  ws.onerror=()=>{
-  if(N.ws===ws)status('V153 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
+  if(N.ws===ws)status('V154 · MREŽNA GREŠKA · POKUŠAVAM PONOVO');
  };
  return true;
 }
@@ -706,7 +715,7 @@ async function startHost(){
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
  if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
- N.phase='preparing';status('V153 · PRIPREMAM ZASEBAN MP SERVER...');
+ N.phase='preparing';status('V154 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
@@ -824,7 +833,7 @@ function sessionHud(now){
   N.uiAt=now;
   hud.textContent='TALAS '+wave;
   const count=mobs.filter(m=>m.hp>0).length;
-  remaining.textContent=state==='between'?'ODMOR · NOVI TALAS USKORO':'GOBLINI '+count;
+  remaining.textContent=state==='between'?'ODMOR · NOVI TALAS USKORO':'GOBLINI '+count+'/'+(N.solo?mobs.length:N.hordeTotal);
   const key=choice?(choice.seq+':'+choice.owner):'';
   if(!choice){holder.hidden=true;N.choiceUiId=''}
   else{
@@ -898,9 +907,9 @@ function frame(now){
  // Viewport culling keeps the expanded map cheap on mobile GPUs.
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
   top:me.y-r.height/2/zoom-90,bottom:me.y+r.height/2/zoom+90};
- drawArenaBuildings(g,N.world.obstacles);
+ drawArenaBuildings(g,N.world.obstacles,visible);
  drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
- drawArenaMobs(g,now,dt);
+ drawArenaMobs(g,now,dt,visible);
  for(const p of N.players.values()){
   if(!p.online)continue;
   if(p.id!==N.id){const k=1-Math.exp(-Math.min(dt,.05)*13);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
@@ -923,9 +932,14 @@ function frame(now){
  }
  g.setTransform(dpr,0,0,dpr,0,0);
  sessionHud(now);
- el('ns140Stats').textContent=N.solo?('FPS '+N.fps+' | SOLO · HP '+N.me.hp+' | KILOVI '+N.soloKills+' | 0 XP'):
-  'FPS '+N.fps+' | '+Math.round(N.ping)+'ms | ACK '+N.ack+'/'+N.seq+
-  ' | korekcija '+Math.round(N.correction)+'px | stanje '+Math.round(now-N.lastState)+'ms | CPU '+N.serverMs+'ms';
+ // Avoid updating live DOM HUD sixty times per second on mid-range phones.
+ if(now-(N.statsAt||0)>=320){
+  N.statsAt=now;
+  el('ns140Stats').textContent=N.solo?
+   ('FPS '+N.fps+' | SOLO · GOBLINI '+N.soloMobs.filter(m=>m.hp>0).length+' | VIDLJIVO '+N.visibleMobs+' | 0 XP'):
+   ('FPS '+N.fps+' | '+Math.round(N.ping)+'ms | GOBLINI '+N.mpMobs.length+'/'+N.hordeTotal+
+    ' | VIDLJIVO '+N.visibleMobs+' | CPU '+N.serverMs+'ms');
+ }
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
  get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
