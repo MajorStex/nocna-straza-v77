@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="sr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="color-scheme" content="dark"><title>Noćna Straža v159 — izolovani vizuelni test trola</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#182f28;color:#f1e4bd;font:13px system-ui}
+canvas{position:fixed;inset:0;width:100vw;height:100dvh;touch-action:none}
+header{position:fixed;left:env(safe-area-inset-left);right:env(safe-area-inset-right);top:env(safe-area-inset-top);z-index:2;background:#101f1deb;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;border-bottom:1px solid #94b3a2}
+header strong{white-space:nowrap}header small{display:block;color:#b4c9b8;font-size:10px}
+nav{display:flex;gap:6px}button{background:#365c4e;color:#f1e4bd;border:1px solid #8ca992;border-radius:8px;padding:9px;font-weight:700;touch-action:manipulation}
+#stats{position:fixed;right:9px;bottom:calc(12px + env(safe-area-inset-bottom));background:#101f1dde;border:1px solid #8da28e;border-radius:9px;padding:8px;z-index:2;font:11px monospace;pointer-events:none}
+#help{position:fixed;left:9px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:52vw;background:#101f1dcc;padding:8px;border-radius:8px;color:#d9ddc5;pointer-events:none}
+#stick{position:fixed;width:90px;height:90px;border-radius:50%;border:2px solid #bfd4b7aa;pointer-events:none;display:none;z-index:1;background:#415e4988}
+#knob{width:35px;height:35px;border-radius:50%;background:#d6e2b8aa;position:absolute;left:25px;top:25px}
+@media(max-width:420px){header{padding:6px}button{padding:8px;font-size:11px}header strong{font-size:12px}}
+</style></head><body>
+<canvas id="game" aria-label="Pokretni vizuelni test originalnog trola"></canvas>
+<header><span><strong>NOĆNA STRAŽA · v159 TEST</strong><small>Samo vizuelni demo · bez servera i XP</small></span>
+<nav><button id="pause">⏸ Pauza</button><button id="amount">80 nepr.</button><button id="reset">↺</button></nav></header>
+<div id="stick"><div id="knob"></div></div>
+<div id="help">Dodirni i prevuci za kretanje. PC: WASD. Trol napada svakih nekoliko sekundi.</div>
+<div id="stats">Učitavanje atlasa…</div>
+<script>/* Noćna Straža V157: deterministic, fully local world decoration.
+   Only 5 small sprite canvases are painted once. No downloads, no MP packets,
+   no per-frame tree geometry, no gameplay/physics desynchronization. */
+(()=>{
+'use strict';
+if(window.NS157_SCENERY)return;
+const TAU=Math.PI*2;
+const sizes=[{w:94,h:124},{w:84,h:135},{w:94,h:119},{w:56,h:36},{w:48,h:34}];
+let sprites=null,cached=null,cachedKey='';
+function rng(initial){let seed=initial>>>0;return()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296)}
+function oval(g,x,y,rx,ry,color){
+ g.fillStyle=color;g.beginPath();g.ellipse(x,y,rx,ry,0,0,TAU);g.fill();
+}
+function build(){
+ if(sprites)return sprites;
+ sprites=sizes.map((size,type)=>{
+  const canvas=document.createElement('canvas');
+  canvas.width=size.w;canvas.height=size.h;
+  const g=canvas.getContext('2d');if(!g)return null;
+  const w=size.w,h=size.h,x=w/2,ground=h-12,random=rng(2409+type*78);
+  if(type===3||type===4){
+   oval(g,x+2,ground-4,w*.42,6,'#142a22a1');
+   const path=new Path2D();
+   path.moveTo(x-w*.42,ground-6);
+   path.lineTo(x-w*.27,ground-21-(type===3?3:0));
+   path.lineTo(x+w*.11,ground-30);
+   path.lineTo(x+w*.42,ground-11);
+   path.lineTo(x+w*.30,ground-4);
+   path.closePath();
+   g.fillStyle=type===3?'#647168':'#786f58';g.fill(path);
+   g.fillStyle='#a2aaa0';g.beginPath();
+   g.moveTo(x-w*.26,ground-20);g.lineTo(x+w*.1,ground-29);
+   g.lineTo(x+w*.21,ground-15);g.lineTo(x,ground-14);g.closePath();g.fill();
+   g.strokeStyle='#485850';g.lineWidth=2;g.beginPath();
+   g.moveTo(x+w*.11,ground-29);g.lineTo(x+w*.03,ground-14);
+   g.lineTo(x+w*.28,ground-5);g.stroke();
+   if(type===3){g.fillStyle='#7c9656';oval(g,x-w*.18,ground-14,7,3,'#7c9656');}
+   return canvas;
+  }
+  oval(g,x+2,ground-4,25,7,'#10291ea1');
+  // Trunk below crown, tapered roots and visible twisted limbs.
+  g.fillStyle=type===2?'#b2a88e':'#6d5036';g.beginPath();
+  g.moveTo(x-8,ground);g.lineTo(x-5,ground-60);g.lineTo(x+5,ground-60);
+  g.lineTo(x+7,ground);g.lineTo(x+14,ground+1);g.lineTo(x+1,ground-1);
+  g.lineTo(x-14,ground+1);g.closePath();g.fill();
+  g.strokeStyle=type===2?'#53483e':'#493624';g.lineWidth=3;g.lineCap='round';
+  g.beginPath();g.moveTo(x,ground-58);g.lineTo(x-17,ground-82);
+  g.moveTo(x+1,ground-47);g.lineTo(x+20,ground-70);g.stroke();
+  if(type===1){
+   // Pine: layered irregular needle boughs and narrowing visible tip.
+   for(let layer=0;layer<6;layer++){
+    const y=ground-28-layer*16,r=35-layer*4.1;
+    g.fillStyle=layer%2?'#37584b':'#456b4c';
+    g.beginPath();g.moveTo(x,y-35);g.lineTo(x-r,y+11);
+    g.quadraticCurveTo(x,y+4,x+r,y+11);g.closePath();g.fill();
+    g.strokeStyle='#78915f';g.lineWidth=1.5;g.beginPath();
+    g.moveTo(x-8,y-2);g.lineTo(x-14,y+5);g.moveTo(x+8,y-2);g.lineTo(x+14,y+4);g.stroke();
+   }
+  }else{
+   // Broadleaf crowns are groups of rounded canopies (never square rectangles).
+   const baseY=type===2?ground-73:ground-69;
+   for(let i=0;i<17;i++){
+    const a=i*2.39996+type,d=Math.sqrt(i/17),xx=x+Math.cos(a)*30*d;
+    const yy=baseY+Math.sin(a)*24*d;
+    oval(g,xx,yy,17+random()*8,14+random()*7,
+     type===2?(i%3?'#628850':'#91a665'):(i%3?'#426d4c':'#5d8754'));
+   }
+   for(let i=0;i<12;i++){
+    const a=i*2.06,xx=x+Math.cos(a)*28*random(),yy=baseY-5+Math.sin(a)*19*random();
+    oval(g,xx-2,yy-4,4+random()*3,3+random()*2,
+     type===2?'#b6bf7a':'#91aa6a');
+   }
+  }
+  // Shading and thin bark highlights.
+  g.strokeStyle=type===2?'#ece2c0':'#977a50';g.lineWidth=2;
+  g.beginPath();g.moveTo(x-3,ground-22);g.lineTo(x-2,ground-49);g.stroke();
+  return canvas;
+ });
+ return sprites;
+}
+function generate(world){
+ const key=[world?.w,world?.h,world?.decorSeed||157].join(':');
+ if(cached&&cachedKey===key)return cached;
+ const r=rng((world?.decorSeed||157)*7919),items=[];
+ const obstacles=(world?.obstacles||[]).filter(o=>o.kind!=='tree'&&o.kind!=='rock'),chests=[[530,465],[960,580],[1470,820]];
+ const spawns=[[130,250],[190,250],[250,260],[130,310],[205,310],[275,310]];
+ let tries=0;
+ while(items.length<53&&tries++<900){
+  const type=items.length<28?Math.floor(r()*3):3+Math.floor(r()*2);
+  const x=38+r()*(world.w-76),y=55+r()*(world.h-100);
+  const radius=type<3?45:23;
+  const blocked=obstacles.some(o=>x>o.x-radius-7&&x<o.x+o.w+radius+7&&
+    y>o.y-radius-7&&y<o.y+o.h+radius+7);
+  if(blocked||spawns.some(([px,py])=>(x-px)**2+(y-py)**2<(radius+72)**2)||
+    chests.some(([cx,cy])=>(x-cx)**2+(y-cy)**2<(radius+60)**2)||
+    items.some(p=>(x-p.x)**2+(y-p.y)**2<(radius+(p.type<3?30:18))**2))continue;
+  items.push({id:items.length,x:Math.round(x),y:Math.round(y),type,
+   depth:Math.round(y)+(type<3?0:7)});
+ }
+ cachedKey=key;cached=items;
+ return cached;
+}
+// The painted canopy is decorative: collisions match the solid trunk/rock
+// at ground level. Tiny boxes keep lanes open and avoid blocking with foliage.
+function colliders(world){
+ return generate(world).map(item=>item.type<3?
+  {kind:'tree',x:item.x-9,y:item.y-15,w:18,h:16}:
+  {kind:'rock',x:item.x-16,y:item.y-16,w:32,h:13});
+}
+function drawOne(g,item){
+ const source=build()[item.type];if(!source)return;
+ const anchorX=Math.round(item.x-source.width/2);
+ const anchorY=Math.round(item.y-source.height+12);
+ g.drawImage(source,anchorX,anchorY);
+}
+window.NS157_SCENERY={generate,colliders,drawOne,prewarm:build,get total(){return cached?.length||0}};
+})();</script>
+<script>/* Noćna Straža V154 - cached walking goblin sprites. Cosmetics stay local.
+   Physics, damage and movement remain authoritative on the 30Hz server. */
+(()=>{
+'use strict';
+if(window.NS154_GOBLINS)return;
+const W=48,H=56,POSES=10,TAU=Math.PI*2;
+let atlas=null;
+function spriteAtlas(){
+ if(atlas)return atlas;
+ const sheet=document.createElement('canvas');
+ sheet.width=W*POSES;sheet.height=H*2;
+ const ctx=sheet.getContext('2d');if(!ctx)return null;
+ for(let face=0;face<2;face++)for(let pose=0;pose<POSES;pose++){
+  const walk=pose<8,attack=pose===9;
+  const phase=walk?Math.sin(pose*TAU/8):0;
+  ctx.save();ctx.translate(pose*W+W/2,face*H+36-(walk?Math.abs(phase)*1.2:0));
+  if(face)ctx.scale(-1,1);
+  // Shadow, boots and individually animated legs.
+  ctx.fillStyle='#192b22a8';ctx.beginPath();ctx.ellipse(0,13,17,4,0,0,TAU);ctx.fill();
+  for(const side of [-1,1]){
+   // Clearly articulated opposite legs. The feet lift out of phase while
+   // running; all 8 walk poses are cached in one atlas, not built each frame.
+   const stride=phase*side*9,kneeX=side*6+stride*.48;
+   const footX=side*7+stride,footY=16-Math.max(0,phase*side)*3;
+   ctx.strokeStyle='#476537';ctx.lineWidth=6.6;ctx.lineCap='round';
+   ctx.beginPath();ctx.moveTo(side*6,-1);ctx.lineTo(kneeX,9);
+   ctx.lineTo(footX,footY);ctx.stroke();
+   ctx.strokeStyle='#2c442b';ctx.lineWidth=2;ctx.beginPath();
+   ctx.moveTo(kneeX-2,9);ctx.lineTo(footX,footY-1);ctx.stroke();
+   ctx.fillStyle='#202f23';ctx.beginPath();
+   ctx.ellipse(footX+side*2,footY,6.5,3.8,side*.12,0,TAU);ctx.fill();
+  }
+  // Arms counter-swing while walking; a raised claw marks authoritative attack ticks.
+  for(const side of [-1,1]){
+   const elbowX=side*15-phase*side*3,elbowY=attack?-27:-4+phase*side*3;
+   ctx.strokeStyle='#65834c';ctx.lineWidth=6;ctx.beginPath();
+   ctx.moveTo(side*10,-14);ctx.lineTo(elbowX,elbowY);ctx.stroke();
+   ctx.fillStyle='#8fac65';ctx.beginPath();ctx.arc(elbowX,elbowY,3,0,TAU);ctx.fill();
+  }
+  ctx.save();ctx.rotate(phase*.05);
+  ctx.fillStyle='#4d6d3e';ctx.beginPath();ctx.ellipse(0,-11,12,15,0,0,TAU);ctx.fill();
+  ctx.fillStyle='#769653';ctx.beginPath();ctx.ellipse(0,-21,13,11,0,0,TAU);ctx.fill();
+  ctx.fillStyle='#617e43';ctx.beginPath();
+  ctx.moveTo(-11,-24);ctx.lineTo(-19,-30);ctx.lineTo(-13,-17);
+  ctx.moveTo(11,-24);ctx.lineTo(19,-30);ctx.lineTo(13,-17);ctx.fill();
+  ctx.fillStyle=attack?'#ff674e':'#f1c269';
+  ctx.fillRect(-8,-24,4,3);ctx.fillRect(5,-24,4,3);
+  // Steel helmet: keep the old palette with more visible motion silhouette.
+  ctx.fillStyle='#34412e';ctx.fillRect(-14,-32,28,5);
+  ctx.fillStyle='#aaa67c';ctx.fillRect(-10,-34,20,4);
+  ctx.fillStyle='#b9a681';ctx.fillRect(-3,-12,6,2);
+  ctx.restore();ctx.restore();
+ }
+ atlas=sheet;return atlas;
+}
+// V156: retain one shared sprite sheet, prepare visible coordinates only once
+// and let the main painter Y-sort goblins, players, houses and chests together.
+function prepare(mobs,opt){
+ const {solo,alpha,visible}=opt,shown=[];
+ for(const mob of mobs){
+  if(mob.hp<=0||mob.type==='troll')continue; // V159: original troll has its own cached atlas
+  const x=solo?(mob.prevX??mob.x)+(mob.x-(mob.prevX??mob.x))*alpha:mob.x;
+  const y=solo?(mob.prevY??mob.y)+(mob.y-(mob.prevY??mob.y))*alpha:mob.y;
+  if(x<visible.left-36||x>visible.right+36||y<visible.top-42||y>visible.bottom+35){
+   mob.animX=x;mob.animY=y;continue;
+  }
+  shown.push({mob,x,y,depth:y+16}); // contact shadow/feet, NOT the top of the head
+ }
+ return shown;
+}
+function drawOne(g,entry,opt){
+ const {mob,x,y}=entry;
+ const {tick,now,lastState,solo}=opt;
+ const dx=x-(mob.animX??x),dy=y-(mob.animY??y),distance=Math.hypot(dx,dy);
+ if(distance>.18&&distance<35){
+  mob.animDistance=(mob.animDistance||0)+Math.min(3,distance);
+  mob.movingUntil=now+140;
+  if(Math.abs(dx)>.15)mob.facing=dx<0?-1:1;
+ }
+ mob.animX=x;mob.animY=y;
+ const age=tick-mob.attackTick+(solo?0:Math.min(2,Math.max(0,(now-lastState)/33.333)));
+ const pose=age>=0&&age<8?9:now<(mob.movingUntil||0)?
+  Math.floor((mob.animDistance||0)/5+mob.id*3)%8:8;
+ const sheet=spriteAtlas();
+ if(sheet)g.drawImage(sheet,pose*W,mob.facing===-1?H:0,W,H,
+  Math.round(x-W/2),Math.round(y-36),W,H);
+ else {g.fillStyle='#729557';g.fillRect(Math.round(x-12),Math.round(y-29),24,30)}
+ const hitAge=tick-(mob.hitTick||-100);
+ if(hitAge>=0&&hitAge<6){
+  // Three very short impact streaks, no DOM, textures, particles or allocation.
+  const fade=(6-hitAge)/6;
+  g.fillStyle='rgba(223,242,164,'+(fade*.63).toFixed(2)+')';
+  g.fillRect(Math.round(x-12-hitAge),Math.round(y-32),9,2);
+  g.fillRect(Math.round(x+5+hitAge),Math.round(y-27),8,2);
+  g.fillRect(Math.round(x-2),Math.round(y-38-hitAge),3,6);
+ }
+ if(mob.hp<mob.maxHp){
+  g.fillStyle='#32412d';g.fillRect(Math.round(x-15),Math.round(y-43),30,4);
+  g.fillStyle='#a6d49a';g.fillRect(Math.round(x-15),Math.round(y-43),
+   Math.round(30*Math.max(0,Math.min(1,mob.hp/(mob.maxHp||35)))),3);
+ }
+}
+function draw(g,mobs,opt){
+ const shown=prepare(mobs,opt);
+ for(const item of shown)drawOne(g,item,opt);
+ return shown.length;
+}
+window.NS154_GOBLINS={draw,prepare,drawOne,prewarm:spriteAtlas,get atlasReady(){return !!atlas}};
+})();</script>
+<script>/* Noćna Straža v159 TEST: exact original drawTroll vector artwork
+ * from public/index.html; converted into one bounded 11x2 sprite atlas.
+ * VISUAL ONLY: server remains authoritative for collision, HP, and attacks.
+ */
+(()=>{
+'use strict';
+if(window.NS159_TROLL)return;
+const W=120,H=140,G=100,POSES=11,TAU=Math.PI*2,MODEL={color:'#83ae91'};
+let atlas=null,builds=0,ctx=null;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function ellipse(x,y,rx,ry,fill){
+ ctx.beginPath();ctx.ellipse(x,y,Math.max(.1,rx),Math.max(.1,ry),0,0,TAU);
+ ctx.fillStyle=fill;ctx.fill();
+}
+function limbs(ax,ay,bx,by,c,w){
+ ctx.lineCap='round';ctx.lineWidth=w+3;ctx.strokeStyle='#182027';
+ ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+ ctx.strokeStyle=c;ctx.lineWidth=w;ctx.stroke();
+}
+// BEGIN EXACT ORIGINAL LEGACY TROLL RENDERER; no shapes or animation rewritten.
+function drawTroll(e,model){
+ const r=e.r||22,t=e.frame||0,life=e.dead?clamp((e.deathT||0)/.39,0,1):1;
+ const step=Math.sin(t*1.25)*5.2,bob=Math.abs(Math.sin(t*1.25))*1.15;
+ const attack=e.attackT||0;
+ const windup=attack>.30?Math.min(1,(.82-attack)/.52):1;
+ const strike=attack>0&&attack<=.32?Math.sin((.32-attack)/.32*Math.PI):0;
+ const skin=e.flash>0?'#bddfd1':model.color||'#83ae91';
+ ctx.save();ctx.globalAlpha*=life;ctx.translate(e.x,e.y);ctx.rotate((e.angle||0)+Math.PI/2+(e.dead?(1-life)*.7:0));
+ ellipse(0,r*.77,r*1.0,r*.32,'#0b141398');
+ ctx.scale(r/22,r/22);ctx.translate(0,-bob);
+ for(const side of [-1,1]){
+  limbs(side*8,5,side*9+step*side*.85,22+Math.abs(step)*.13,'#506a60',7.5);
+  ellipse(side*9+step*side*.85,22+Math.abs(step)*.13,6.7,4.2,'#334b40');
+ }
+ limbs(-14,-14,-18-step*.7,8-step*.25,skin,7.5);
+ ctx.fillStyle='#6a5444';ctx.beginPath();ctx.moveTo(-15,-16);ctx.lineTo(15,-16);ctx.lineTo(16,7);ctx.lineTo(0,20);ctx.lineTo(-16,7);ctx.closePath();ctx.fill();
+ ellipse(0,-1,17.5,17,skin);
+ ellipse(-4,-6,3.2,2.0,'#aacbbc');ellipse(9,4,2.5,2,'#639183');
+ ctx.fillStyle='#745742';ctx.fillRect(-16,-13,6,21);ctx.fillRect(10,-13,6,21);
+ ellipse(0,-25,12,11,skin);
+ for(const side of [-1,1]){ctx.fillStyle=skin;ctx.beginPath();ctx.moveTo(side*8,-29);ctx.lineTo(side*19,-34);ctx.lineTo(side*13,-21);ctx.closePath();ctx.fill();}
+ ellipse(-4,-26,2,2.4,'#263731');ellipse(4,-26,2,2.4,'#263731');
+ ellipse(0,-18,5,2.5,'#405349');ctx.fillStyle='#d6d8b4';ctx.fillRect(-3,-19,2.5,3);ctx.fillRect(1,-19,2.5,3);
+ const armSwing=attack>0?(attack>.30?-3-7*windup:5+18*strike):step*.55;
+ limbs(14,-14,20+armSwing,-8*strike,skin,8);
+ ctx.save();ctx.translate(20+armSwing,-8*strike);ctx.rotate(-.35-1.4*strike+.35*windup);
+ ctx.strokeStyle='#655043';ctx.lineWidth=5.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,8);ctx.lineTo(0,-34);ctx.stroke();
+ ctx.fillStyle='#514d47';ctx.beginPath();ctx.moveTo(-7,-42);ctx.lineTo(7,-42);ctx.lineTo(10,-24);ctx.lineTo(-10,-24);ctx.closePath();ctx.fill();
+ ctx.strokeStyle='#867a68';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-4,-39);ctx.lineTo(2,-31);ctx.stroke();ctx.restore();
+ ctx.restore();
+}
+// END EXACT ORIGINAL LEGACY RENDERER.
+function prewarm(){
+ if(atlas)return atlas;
+ const sheet=document.createElement('canvas');
+ sheet.width=W*POSES;sheet.height=H*2;
+ const g=sheet.getContext('2d');if(!g)return null;
+ ctx=g;
+ try{
+  for(let direction=0;direction<2;direction++)for(let pose=0;pose<POSES;pose++){
+   g.save();g.translate(pose*W+W/2,direction*H+G);
+   if(direction)g.scale(-1,1);
+   // Legacy angles are world-facing; point the original sprite up in its own cell.
+   const isWalking=pose<8;
+   const e={x:0,y:0,r:22,frame:isWalking?pose*.64:0,
+    angle:-Math.PI/2,dead:false,attackT:pose===9?.55:pose===10?.16:0,flash:0};
+   drawTroll(e,MODEL);
+   g.restore();
+  }
+ }finally{ctx=null}
+ builds++;atlas=sheet;return sheet;
+}
+function prepare(mobs,{solo,alpha,visible}){
+ const shown=[];
+ for(const mob of mobs){
+  if(mob.hp<=0||mob.type!=='troll')continue;
+  const x=solo?(mob.prevX??mob.x)+(mob.x-(mob.prevX??mob.x))*alpha:mob.x;
+  const y=solo?(mob.prevY??mob.y)+(mob.y-(mob.prevY??mob.y))*alpha:mob.y;
+  if(x<visible.left-75||x>visible.right+75||y<visible.top-120||y>visible.bottom+45){
+   mob.animX=x;mob.animY=y;continue;
+  }
+  shown.push({mob,x,y,depth:y+16});
+ }
+ return shown;
+}
+function drawOne(g,entry,{tick,now,lastState,solo}){
+ const {mob,x,y}=entry,dx=x-(mob.animX??x),dy=y-(mob.animY??y);
+ const dist=Math.hypot(dx,dy);
+ if(dist>.17&&dist<36){
+  mob.animDistance=(mob.animDistance||0)+Math.min(4,dist);
+  mob.movingUntil=now+160;
+  if(Math.abs(dx)>.2)mob.facing=dx<0?-1:1;
+ }
+ mob.animX=x;mob.animY=y;
+ const since=tick-(mob.attackTick??-100)+(solo?0:Math.min(2,Math.max(0,(now-lastState)/33.333)));
+ const pose=since>=0&&since<5?9:since>=5&&since<11?10:
+  now<(mob.movingUntil||0)?Math.floor((mob.animDistance||0)/6+mob.id*3)%8:8;
+ const sheet=prewarm();
+ if(!sheet)return;
+ g.drawImage(sheet,pose*W,mob.facing===-1?H:0,W,H,
+  Math.round(x-W/2),Math.round(y-G),W,H);
+ if(mob.hp<mob.maxHp){
+  const a=Math.max(0,Math.min(1,mob.hp/(mob.maxHp||1)));
+  g.fillStyle='#21352e';g.fillRect(Math.round(x-26),Math.round(y-65),52,6);
+  g.fillStyle='#b6d593';g.fillRect(Math.round(x-25),Math.round(y-64),Math.round(50*a),4);
+ }
+}
+window.NS159_TROLL=Object.freeze({prepare,drawOne,prewarm,
+ get cached(){return !!atlas},get builds(){return builds},get atlasPixels(){return atlas?atlas.width*atlas.height:0},
+ get originalRendererVersion(){return 'legacy-drawTroll-v89'}});
+})();
+</script>
+<script>
+(()=>{
+'use strict';
+const cvs=document.querySelector('#game'),ctx=cvs.getContext('2d',{alpha:false});
+const W=1680,H=1080,clamp=(a,b,c)=>Math.max(b,Math.min(c,a));
+const props=[
+{x:275,y:140,w:95,h:92},{x:585,y:330,w:102,h:94},{x:435,y:245,w:75,h:84},
+{x:165,y:350,w:87,h:58},{x:790,y:170,w:126,h:104},{x:1120,y:275,w:106,h:110},
+{x:1230,y:650,w:140,h:110},{x:720,y:730,w:116,h:100},{x:1005,y:875,w:120,h:90},
+{x:395,y:785,w:100,h:105},{x:1460,y:410,w:110,h:104},{x:1020,y:485,w:94,h:94}];
+const world={w:W,h:H,r:14,speed:156,decorSeed:157,obstacles:props};
+world.obstacles=props.concat(window.NS157_SCENERY.colliders(world));
+const scenery=window.NS157_SCENERY.generate(world);
+const player={x:535,y:485},keys=new Set(),sprites=window.NS154_GOBLINS,troll=window.NS159_TROLL;
+let tick=100,last=0,frames=0,fps=0,fpsT=0,paused=false,limit=80,drag=null;
+const boxes=world.obstacles,mons=Array.from({length:80},(_,i)=>{
+ const x=i===0?650:180+(i%13)*110,y=i===0?470:80+Math.floor(i/13)*160;
+ return {id:i,type:i===0?'troll':'goblin',x,y,prevX:x,prevY:y,
+   animX:x,animY:y,facing:1,hp:i===0?335:35,maxHp:i===0?335:35,
+   attackTick:-100,hitTick:-100,animDistance:0, movingUntil:0};
+});
+sprites.prewarm();troll.prewarm();window.NS157_SCENERY.prewarm();
+const test=(x,y)=>boxes.every(o=>{
+ if(x+14<o.x||x-14>o.x+o.w||y+14<o.y||y-14>o.y+o.h)return true;
+ const qx=clamp(x,o.x,o.x+o.w),qy=clamp(y,o.y,o.y+o.h);
+ return (x-qx)**2+(y-qy)**2>=14*14;
+});
+const move=(dx,dy)=>{const x=clamp(player.x+dx,16,W-16);if(test(x,player.y))player.x=x;
+const y=clamp(player.y+dy,16,H-16);if(test(player.x,y))player.y=y};
+window.addEventListener('keydown',e=>keys.add(e.key.toLowerCase()));
+window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+const stick=document.querySelector('#stick'),knob=document.querySelector('#knob');
+const touch={x:0,y:0};
+cvs.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;
+drag={id:e.pointerId,x:e.clientX,y:e.clientY};
+stick.style.left=(e.clientX-45)+'px';stick.style.top=(e.clientY-45)+'px';stick.style.display='block';
+cvs.setPointerCapture(e.pointerId);e.preventDefault()});
+cvs.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;
+const dx=e.clientX-drag.x,dy=e.clientY-drag.y,n=Math.hypot(dx,dy)||1;
+touch.x=dx/n*Math.min(1,n/40);touch.y=dy/n*Math.min(1,n/40);
+knob.style.transform='translate('+(touch.x*26)+'px,'+(touch.y*26)+'px)';e.preventDefault()});
+const clear=()=>{drag=null;touch.x=touch.y=0;stick.style.display='none';knob.style.transform='none'};
+for(const k of ['pointerup','pointercancel','lostpointercapture'])cvs.addEventListener(k,clear);
+document.querySelector('#pause').onclick=e=>{paused=!paused;e.target.textContent=paused?'▶ Nastavi':'⏸ Pauza'};
+document.querySelector('#amount').onclick=e=>{limit=limit===80?20:80;e.target.textContent=limit+' nepr.'};
+document.querySelector('#reset').onclick=()=>{player.x=535;player.y=485};
+const buffer=[];
+const draw=now=>{
+ const dt=clamp((now-last)/1000||0,0,.05);last=now;
+ frames++;if(!fpsT)fpsT=now;if(now-fpsT>800){fps=Math.round(frames*1000/(now-fpsT));frames=0;fpsT=now}
+ const start=performance.now();
+ const dpr=Math.min(devicePixelRatio||1,1.5),cw=cvs.clientWidth,ch=cvs.clientHeight;
+ if(cvs.width!==Math.round(cw*dpr)||cvs.height!==Math.round(ch*dpr)){
+  cvs.width=Math.round(cw*dpr);cvs.height=Math.round(ch*dpr)}
+ if(!paused){
+  tick+=dt*30;const xx=(keys.has('d')||keys.has('arrowright')?1:0)-
+    (keys.has('a')||keys.has('arrowleft')?1:0)+touch.x;
+  const yy=(keys.has('s')||keys.has('arrowdown')?1:0)-
+    (keys.has('w')||keys.has('arrowup')?1:0)+touch.y;
+  const n=Math.max(1,Math.hypot(xx,yy));move(xx/n*140*dt,yy/n*140*dt);
+  for(let i=0;i<limit;i++){
+   const m=mons[i];m.prevX=m.x;m.prevY=m.y;
+   // Cosmetic-only motion: the real V159 fight is controlled by the server.
+   m.x+=Math.cos(tick*.035+i*.7)*.16;
+   m.y+=Math.sin(tick*.041+i*.9)*.16;
+   if(i===0&&Math.floor(tick/95)!==Math.floor((tick-dt*30)/95))
+    m.attackTick=Math.floor(tick);
+  }
+ }
+ const zoom=clamp(Math.max(cw/750,ch/760),.7,1.45);
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.fillStyle='#162a23';ctx.fillRect(0,0,cw,ch);
+ ctx.setTransform(dpr*zoom,0,0,dpr*zoom,dpr*(cw/2-player.x*zoom),dpr*(ch/2-player.y*zoom));
+ ctx.fillStyle='#355345';ctx.fillRect(0,0,W,H);
+ const visible={left:player.x-cw/2/zoom-85,right:player.x+cw/2/zoom+85,
+ top:player.y-ch/2/zoom-140,bottom:player.y+ch/2/zoom+85};
+ ctx.strokeStyle='#486653';ctx.lineWidth=1;
+ for(let x=0;x<W;x+=80){if(x<visible.left||x>visible.right)continue;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+ for(let y=0;y<H;y+=80){if(y<visible.top||y>visible.bottom)continue;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ const opt={solo:true,tick:Math.floor(tick),now,lastState:now,alpha:1,visible};
+ const green=sprites.prepare(mons.slice(0,limit),opt);
+ const big=troll.prepare(mons.slice(0,limit),opt);
+ const jobs=[];
+ for(const e of scenery)if(e.x>=visible.left-80&&e.x<=visible.right+80&&
+   e.y>=visible.top-150&&e.y<=visible.bottom+30)jobs.push({depth:e.depth,kind:0,e});
+ for(const e of green)jobs.push({depth:e.depth,kind:1,e});
+ for(const e of big)jobs.push({depth:e.depth,kind:2,e});
+ jobs.push({depth:player.y+12,kind:3});
+ jobs.sort((a,b)=>a.depth-b.depth||a.kind-b.kind);
+ for(const job of jobs){
+  if(job.kind===0)window.NS157_SCENERY.drawOne(ctx,job.e);
+  if(job.kind===1)sprites.drawOne(ctx,job.e,opt);
+  if(job.kind===2)troll.drawOne(ctx,job.e,opt);
+  if(job.kind===3){
+   ctx.fillStyle='#141b1c99';ctx.beginPath();ctx.ellipse(player.x,player.y+10,13,5,0,0,7);ctx.fill();
+   ctx.fillStyle='#d5ddb9';ctx.beginPath();ctx.arc(player.x,player.y-14,11,0,7);ctx.fill();
+   ctx.fillStyle='#455b85';ctx.fillRect(player.x-10,player.y-2,20,24);
+  }
+ }
+ const duration=performance.now()-start;
+ buffer.push(duration);if(buffer.length>120)buffer.shift();
+ if(frames%16===0){const sorted=buffer.slice().sort((a,b)=>a-b);
+  const p95=sorted[Math.floor(sorted.length*.95)]||0;
+  document.querySelector('#stats').textContent='FPS '+fps+' · P95 '+p95.toFixed(1)+
+   ' ms · na ekranu '+(green.length+big.length)+'/'+limit+
+   ' · trol-atlas '+troll.builds+'×';}
+ requestAnimationFrame(draw);
+};
+requestAnimationFrame(draw);
+})();
+</script></body></html>
