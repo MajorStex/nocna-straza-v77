@@ -8030,7 +8030,7 @@ $('coopBtn').onclick=()=>{resetLobbyUI();$('ns93SpellDock')?.classList.add('hidd
 $('closeCoop').onclick=()=>{if(NET.role||NET.phase!=='idle')leaveLobby();else $('coopPanel').classList.add('hidden')};
 $('lobbyExitBtn').onclick=leaveLobby;
 $('lobbyHeroSelect').onchange=e=>{if(!applyHeroProfile(e.target.value))return;loadHeroTracks();if(NET.role==='guest'&&NET.conn?.open)NET.conn.send({t:'profile',...localMPProfile()});if(NET.role==='host')broadcastLobby();renderLobby()};
-$('lobbyModeSelect').onchange=e=>{if(NET.role!=='host')return;const next=e.target.value;if(next==='night'&&currentProfileLevel()<3||next==='rush'&&currentProfileLevel()<8||next==='arena140'&&currentProfileLevel()<7){toast('Režim je zaključan na tvom opštem nivou');e.target.value=selectedMode;return}selectedMode=next;broadcastLobby();};
+$('lobbyModeSelect').onchange=e=>{if(NET.role!=='host')return;const next=e.target.value;if(next==='night'&&currentProfileLevel()<3||next==='rush'&&currentProfileLevel()<8||next==='arena140'&&currentProfileLevel()<NS140_TEMP_UNLOCK_LEVEL){toast('Režim je zaključan na tvom opštem nivou');e.target.value=selectedMode;return}selectedMode=next;broadcastLobby();};
 $('lobbyReadyBtn').onclick=setMyReady;$('lobbyForceBtn').onclick=()=>{NET.forceRequest=true;startLobbyMatch()};$('coopForgeToggle').onclick=()=>{$('coopForge').classList.toggle('hidden');renderCoopForge()};
 $('lobbyStartBtn').onclick=startLobbyMatch;
 $('ns62ShareRoomCode').onclick=async()=>{
