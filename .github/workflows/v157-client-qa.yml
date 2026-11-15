@@ -1,4 +1,4 @@
-name: V157 New Zone weapon sound, pause, scenery and safe spawn QA
+name: V158 New Zone tree collisions and menu with weapon, pause, horde QA
 on:
   push:
     branches: [main]
@@ -9,6 +9,7 @@ on:
       - 'public/v157-arena-scenery.js'
       - 'public/index.html'
       - 'tests/v157-client-features.test.cjs'
+      - 'tests/v158-tree-menu.test.cjs'
       - 'tests/v140-isolated-arena.test.cjs'
       - 'tests/v154-goblins.test.cjs'
       - '.github/workflows/v157-client-qa.yml'
@@ -34,6 +35,7 @@ jobs:
           node --check public/v157-arena-scenery.js
           node tests/current-deployment.test.cjs
           node tests/v157-client-features.test.cjs
+          node tests/v158-tree-menu.test.cjs
       - name: Original gameplay, skins, 60FPS jitter, depth and full Chromium regressions
         run: |
           node tests/v140-isolated-arena.test.cjs
