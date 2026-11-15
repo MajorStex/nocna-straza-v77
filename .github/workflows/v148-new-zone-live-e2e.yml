@@ -1,4 +1,4 @@
-name: V149 real New Zone automatic combat WebSocket smoke
+name: V150 real New Zone synchronized sword and mob AI smoke
 on:
   push:
     branches: [main]
@@ -21,7 +21,7 @@ jobs:
           import assert from 'node:assert/strict';
           const endpoint='https://nocna-straza-relay.stefanstevic1996.workers.dev';
           const health=await (await fetch(endpoint+'/health')).json();
-          assert.equal(health.arenaBuild,149,'must exercise deployed V148 server');
+          assert.equal(health.arenaBuild,150,'must exercise deployed V150 synchronized combat server');
           assert.equal(health.arenaMobs,12);
           const res=await fetch(endpoint+'/arena/create',{
             method:'POST',headers:{'content-type':'application/json'},
@@ -60,6 +60,11 @@ jobs:
             try{
               await until(()=>p1.snapshots.some(m=>m.mobs?.length===12&&m.ack>0),'goblins and input ACK');
               await until(()=>p1.snapshots.some(m=>m.mobs?.some(g=>g[3]<35)),'server hit on goblins');
+              await until(()=>p1.snapshots.some(m=>m.players?.some(p=>
+                p[0]==='p1'&&p[4]>=0&&Number.isInteger(p[7])&&p[7]>=0&&p[7]<=255&&
+                Number.isInteger(p[8])&&p[8]>=0)),'server sword tick, quantized facing and struck target');
+              await until(()=>p1.snapshots.some(m=>m.mobs?.some(g=>g.length>=6)),
+                'goblin synchronized attack tick in shared snapshot');
             }finally{clearInterval(input)}
             console.log('REAL_NEW_ZONE: 12 shared goblins, automatic hits with attack=0 and ACK verified');
             p2.ws.close(1000,'Android background simulation');
@@ -72,5 +77,5 @@ jobs:
           }finally{
             for(const p of peers)try{p.ws.close()}catch{}
           }
-          console.log('V149 REAL AUTO-ATTACK 2-PLAYER WEBSOCKET TEST PASS');
+          console.log('V150 REAL SYNCHRONIZED SWORD + MOB AI 2-PLAYER WEBSOCKET TEST PASS');
           JS
