@@ -8,8 +8,8 @@ const voiceSource=fs.readFileSync(path.join(root,'v159-voice.js'),'utf8');
 const gameSource=fs.readFileSync(path.join(root,'v140-net-mode.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 new Function(voiceSource);new Function(gameSource);
-assert.match(html,/<title>Night Watch v163/);
-assert.match(html,/v140-net-mode\.js\?v=163/);
+assert.match(html,/<title>Night Watch v164/);
+assert.match(html,/v140-net-mode\.js\?v=164/);
 for(const id of ['ns163VoiceMode','ns163VoiceMic','ns163VoiceOff','ns163VoiceHint'])
  assert(gameSource.includes('id="'+id+'"'),'missing actual in-menu microphone setting: '+id);
 assert.match(gameSource,/voiceScript\.src='\.\/v159-voice\.js\?v=163'/);
