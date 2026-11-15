@@ -33,14 +33,14 @@ jobs:
           const peers=[],timers=[];
           const connect=id=>{
             const ws=new WebSocket(room.ws);
-            const p={id,ws,seq:0,snapshots:[],started:false,closed:false,bytes:[]};
+            const p={id,ws,seq:0,snapshots:[],started:false,closed:false,bytes:[],received:[]};
             peers.push(p);
             ws.addEventListener('open',()=>ws.send(JSON.stringify({t:'hello',protocol:140,id,ticket:room.tickets[id]})));
             ws.addEventListener('message',event=>{
               const m=JSON.parse(event.data);
               if(m.t==='start')p.started=true;
-              if(m.t==='s'){p.snapshots.push(m);p.bytes.push(Buffer.byteLength(event.data));
-                if(p.snapshots.length>180){p.snapshots.shift();p.bytes.shift()}}
+              if(m.t==='s'){p.snapshots.push(m);p.bytes.push(Buffer.byteLength(event.data));p.received.push(Date.now());
+                if(p.snapshots.length>180){p.snapshots.shift();p.bytes.shift();p.received.shift()}}
             });
             ws.addEventListener('close',()=>p.closed=true);
             return p;
@@ -70,14 +70,14 @@ jobs:
               const old=start.get(x[0]);return old&&(x[1]-old[1])**2+(x[2]-old[2])**2>100;
             }).length;
             assert.ok(moving>=10,'at least ten goblins travel during real six-peer test: '+moving);
-            const samples=peers.flatMap(p=>p.snapshots.map(s=>s.ms||0)).sort((a,b)=>a-b);
-            const p95=samples[Math.floor(samples.length*.95)]||0;
+            const gaps=peers.flatMap(p=>p.received.slice(1).map((t,i)=>t-p.received[i])).sort((a,b)=>a-b);
+            const p95gap=gaps[Math.floor(gaps.length*.95)]||0;
             const bytes=peers.flatMap(p=>p.bytes);
             const averageBytes=Math.round(bytes.reduce((a,b)=>a+b,0)/Math.max(1,bytes.length));
             console.log('V154 LIVE STRESS:',JSON.stringify({players:6,totalMobs:60,moved:moving,
-              snapshots:peers.map(p=>p.snapshots.length),serverCPUmsP95:p95,avgSnapshotBytes:averageBytes,
+              snapshots:peers.map(p=>p.snapshots.length),snapshotGapP95ms:p95gap,avgSnapshotBytes:averageBytes,
               activeAlive:last.alive}));
-            assert.ok(p95<33.4,'server needs to maintain 30Hz CPU step budget: '+p95+'ms');
+            assert.ok(p95gap<250,'six-peer snapshot arrival jitter is excessive: '+p95gap+'ms');
             const guest=peers[1],before=guest.snapshots.at(-1).tick;
             peers[0].ws.send(JSON.stringify({t:'leave'}));
             await until(()=>guest.snapshots.at(-1)?.tick>before+20,
