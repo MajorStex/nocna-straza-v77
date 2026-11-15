@@ -236,13 +236,14 @@ function ui(){
  '#ns158Menu[hidden]{display:none!important}#ns158Menu{position:absolute;z-index:13;right:9px;top:calc(max(9px,env(safe-area-inset-top)) + 57px);display:grid;gap:7px;width:min(250px,calc(100vw - 18px));padding:12px;background:#142f28f5;border:1px solid #abc39d;border-radius:13px;box-shadow:0 12px 30px #0009}'+
  '#ns158Menu button{padding:11px;border-radius:9px;border:1px solid #8da993;background:#2b4b3e;color:#fff4ce;text-align:left;font-weight:800;min-height:42px}#ns158Menu .danger{background:#6c453b;border-color:#c88d79}'+
  '#ns158Menu p{font:11px/1.4 system-ui;color:#c3d4ca;margin:2px 0 1px}'+
+ '#ns159GateOpen[hidden]{display:none!important}'+
  '@media(max-width:780px){#ns140Bar{flex-wrap:nowrap;min-height:47px;padding:5px 8px}#ns140Status{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}#ns140Stats{max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ns152Music,#ns152Sound,#ns157Pause,#ns140Close{display:none}}'+
  '#ns140Pad.active{display:block}'+
  '#ns140Knob{position:absolute;left:27px;top:27px;width:54px;height:54px;border:2px solid #c3e2d1b8;background:radial-gradient(circle at 34% 27%,#c1e4cfb5,#547c77bd);border-radius:50%;box-shadow:0 4px 11px #081c1a9a;will-change:transform}'+
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
  root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V158 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
- '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
+ '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><button id="ns159GateOpen" type="button" hidden>🔑 OTVORI STARU KAPIJU</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U multiplayeru pauza važi samo za tebe — ostali nastavljaju.</p></div>'+
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
@@ -257,9 +258,19 @@ function ui(){
  menuButton.onclick=()=>{
   menuPanel.hidden=!menuPanel.hidden;menuButton.setAttribute('aria-expanded',String(!menuPanel.hidden));
   el('ns158MenuPause').textContent=N.paused?'▶ NASTAVI':'⏸ PAUZIRAJ';
+  el('ns159GateOpen').hidden=!N.world.legacyMode||!!N.world.legacyGateOpen||N.solo;
  };
  el('ns158MenuPause').onclick=()=>{closeArenaMenu();toggleArenaPause()};
  el('ns158MenuLeave').onclick=()=>{closeArenaMenu();stop(true)};
+ el('ns159GateOpen').onclick=()=>{
+  closeArenaMenu();
+  if(!N.world.legacyMode||N.solo||N.world.legacyGateOpen||N.ws?.readyState!==1)return;
+  if(!N.me||Math.hypot(N.me.x-548,N.me.y-960)>145){
+   status('PRIĐI STAROJ KAPIJI, PA OTVORI MENI');return;
+  }
+  // Only a request: server checks the player's real position and unlocks.
+  N.ws.send(JSON.stringify({t:'gateOpen'}));
+ };
  const musicButton=el('ns152Music'),soundButton=el('ns152Sound');
  function refreshAudioButtons(){
   musicButton.textContent=A()?.music?'♫':'♫̸';
@@ -803,7 +814,7 @@ function connect(match,id,ticket,rejoin=false){
  N.phase=rejoin?'reconnecting':'connecting';
  status('V158 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
- try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
+ try{ws=new WebSocket('wss://nocna-straza-relay-v159-test.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
  N.ws=ws;
  if(N.timeout)clearTimeout(N.timeout);
@@ -830,6 +841,7 @@ function connect(match,id,ticket,rejoin=false){
    }
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;N.collisionGrid=createArenaCollisionGrid(N.world);N.phase='waiting';
+    if(N.world.legacyMode)window.NS159_LEGACY_COMPOUND?.prewarm(N.world.legacyItems||[]);
     window.NS154_GOBLINS?.prewarm();window.NS159_TROLL?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
     if(Array.isArray(m.looks))for(const item of m.looks){
@@ -861,6 +873,11 @@ function connect(match,id,ticket,rejoin=false){
     }
     return;
    }
+   if(m.t==='gate'&&m.world?.legacyMode){
+    N.world=m.world;N.collisionGrid=createArenaCollisionGrid(N.world);
+    window.NS159_LEGACY_COMPOUND?.prewarm(N.world.legacyItems||[]);
+    announceArena('STARA KAPIJA JE OTVORENA · PROLAZ SLOBODAN');return;
+   }
    if(m.t==='waveStart'){announceArena('TALAS '+m.wave+' — neprijatelji dolaze iz daljine');return}
    if(m.t==='waveEnd'){announceArena('TALAS '+m.wave+' očišćen · pripremi se za novi');return}
    if(m.t==='roster'){
@@ -874,7 +891,21 @@ function connect(match,id,ticket,rejoin=false){
     if(N.paused&&ws.readyState===1)ws.send(JSON.stringify({t:'pause',paused:true}));
     status('V158 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
-  if(m.t==='s'){snapshot(m);return}
+  if(m.t==='s'){
+   // A missed one-time gate event also heals from authoritative snapshots.
+   if(N.world.legacyMode&&typeof m.gateOpen==='boolean'&&
+      m.gateOpen!==!!N.world.legacyGateOpen){
+    const art=window.NS159_LEGACY_COMPOUND;
+    if(art){
+     N.world.legacyGateOpen=m.gateOpen;
+     N.world.legacyItems=art.create(m.gateOpen);
+     N.world.obstacles=art.colliders(N.world.legacyItems);
+     N.collisionGrid=createArenaCollisionGrid(N.world);
+     art.prewarm(N.world.legacyItems);
+    }
+   }
+   snapshot(m);return;
+  }
   if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
   if(m.t==='end'){
    N.phase='ended';status('TEST ZAVRŠEN: '+String(m.reason||'kraj'));
@@ -911,9 +942,9 @@ async function startHost(){
   status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
  N.phase='preparing';status('V158 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
-  const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
+  const req=await fetch('https://nocna-straza-relay-v159-test.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({code:net.code,seats:roster.map(p=>p.id)})});
+   body:JSON.stringify({code:net.code,seats:roster.map(p=>p.id),zone:'legacy_corner'})});
   const data=await req.json().catch(()=>null);
   if(!req.ok||data?.protocol!==140||!data.ok||!data.tickets)throw Error(data?.error||'server_not_deployed');
   for(const peer of roster){
