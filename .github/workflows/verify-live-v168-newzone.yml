@@ -1,0 +1,23 @@
+name: Verify V168 New Zone at permanent game link
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/v140-net-mode.js'
+      - 'public/v157-arena-scenery.js'
+      - 'public/v152-arena-audio.js'
+      - 'public/index.html'
+      - 'scripts/verify-live-v168-newzone.mjs'
+      - '.github/workflows/verify-live-v168-newzone.yml'
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  verify-live-newzone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Verify public Worker exact new-zone/audio/scenery SHA256 and relay V168
+        run: node scripts/verify-live-v168-newzone.mjs
