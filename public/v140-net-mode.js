@@ -163,6 +163,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:4200,h:4200,r:14,speed:156
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
  wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,hordeStepAt:0,uiAt:0,choiceUiId:'',paused:false,pausedAt:0,
  soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
+ soloDrops:[],drops:[],dropSeq:0,soloUpgradeSeq:0,
  solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 // V160 sandbox state lives only in this isolated runtime, never in saved progression.
 let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};
@@ -170,6 +171,9 @@ let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUT
 let LAB_SUPPORTED=false,LAB_LOOK=null,LAB_UNDO=null,LAB_SERVER_BUILD=0;
 const LAB_WEAPONS=new Set(['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul']);
 const labDefaultCount=wave=>Math.min(80,60+Math.max(0,wave-1)*10);
+// Matches Classic slow XP curve. Only RUN EXP is awarded: no account/paid XP.
+const xpNeeded=(level)=>{let v=160;for(let n=1;n<Math.min(level,100);n++)v=Math.round(v*1.12+18);return v};
+const XP_CAP=160;
 const el=id=>document.getElementById(id);
 function ui(){
  if(el('ns140Root'))return;
@@ -180,6 +184,7 @@ function ui(){
  '#ns140Stats{font:10px monospace;color:#b8d5c6}#ns140Close{background:#714837;color:white;border:1px solid #e9b69a;padding:7px;border-radius:7px}'+
  '#ns140Retry{background:#446447;color:#fff3d9;border:1px solid #d5bf83;border-radius:7px;padding:7px;font-weight:800}#ns140Retry[hidden]{display:none!important}'+
  '#ns140Pad{position:fixed;left:0;top:0;width:112px;height:112px;display:none;transform:translate(-50%,-50%);pointer-events:none;touch-action:none;z-index:4;border:2px solid #d9eee096;background:radial-gradient(circle,#9bccaa26,#1a413e77);border-radius:50%;box-shadow:inset 0 0 23px #061a2188}'+
+ '#ns168XpHud{position:absolute;top:57px;left:12px;width:min(235px,53vw);padding:5px 8px;background:#132e30e8;border:1px solid #6cbad0a3;border-radius:10px;pointer-events:none;color:#b9e8fa;font:800 10px system-ui}#ns168XpHud[hidden]{display:none!important}#ns168XpTrack{height:7px;border-radius:8px;margin-top:4px;overflow:hidden;background:#152c3e}#ns168XpFill{height:100%;width:0;background:linear-gradient(90deg,#2388bc,#80e5ff);transition:width .12s linear}'+
  '#ns152Hud{position:absolute;right:12px;top:108px;background:#122b25de;border:1px solid #7d9c84;border-radius:11px;padding:9px 12px;text-align:right;pointer-events:none;min-width:106px}'+
  '#ns152Hud strong{font-size:14px;display:block;color:#fce7a9}#ns152Hud small{display:block;color:#c9dccc;font-size:10px}'+
  '#ns152Choice[hidden]{display:none!important}#ns152Choice{position:absolute;inset:0;background:#071c19b0;display:flex;align-items:center;justify-content:center;padding:18px;pointer-events:auto}'+
@@ -219,7 +224,7 @@ function ui(){
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
  root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V166 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
  '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><div id="ns163VoiceSettings"><strong>🎙 GLASOVNI CHAT · MULTIPLAYER</strong><button id="ns163VoiceMode" type="button">🎙 REŽIM: PTT · DRŽI</button><button id="ns163VoiceMic" type="button">🎙 DRŽI DA PRIČAŠ</button><button id="ns163VoiceOff" type="button">🔇 UGASI MIKROFON</button><p id="ns163VoiceHint">Drži dugme ili V · pusti da se utiša. Zvučnik je iznad heroja.</p></div><button id="ns160Open" type="button">🛠 SANDBOX / TEST LAB</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U MP igra teče dok svi povezani igrači ne izglasaju pauzu. Samo host uređuje Sandbox.</p></div>'+
- '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
+ '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns168XpHud" role="status" aria-label="EXP napredak" hidden><span id="ns168XpText">NIVO 1 · EXP 0/160</span><div id="ns168XpTrack"><div id="ns168XpFill"></div></div></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
@@ -479,7 +484,7 @@ function stop(notify=false){
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
  A()?.stop();window.NS160_LAB?.close();LAB_AUTO_PAUSE=false;closeArenaMenu(false);N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
- N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];
+ N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];N.drops=[];N.soloDrops=[];N.dropSeq=0;N.soloUpgradeSeq=0;
  LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;LAB_SUPPORTED=false;LAB_LOOK=null;LAB_UNDO=null;LAB_SERVER_BUILD=0;
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
@@ -784,7 +789,7 @@ function startSolo(){
  ].map(o=>({...o,x:o.x+1260,y:o.y+1560}))};
  // Solo uses precisely the same seeded trunks/rocks as the multiplayer server.
  N.world.obstacles.push(...(window.NS157_SCENERY?.colliders?.(N.world)||[]));
- N.seq=N.ack=N.soloTick=N.soloKills=0;N.tick=-1;
+ N.seq=N.ack=N.soloTick=N.soloKills=N.dropSeq=N.soloUpgradeSeq=0;N.tick=-1;N.soloDrops=[];N.drops=[];
  N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=60;
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
  N.soloChests=[{id:1,x:1790,y:2025,opened:false},{id:2,x:2220,y:2140,opened:false},{id:3,x:2730,y:2380,opened:false}];
@@ -793,11 +798,11 @@ function startSolo(){
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.stick.ptr=null;N.stick.x=N.stick.y=0;
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
- N.me={id:'p1',x:2030,y:2070,tx:2030,ty:2070,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
+ N.me={id:'p1',x:2030,y:2070,tx:2030,ty:2070,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false,xp:0,xpNeed:160,level:1,xpCollected:0,queuedUpgrades:0};
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
  window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
- status('V166 · SOLO · TALASI I SANDUCI · 0 XP');
+ status('V168 · SOLO · PLAVI EXP KRISTALI · MAPA 4200×4200');
  return true;
 }
 function stepSolo(dt){
