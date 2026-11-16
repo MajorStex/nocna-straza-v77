@@ -1564,12 +1564,19 @@ function frame(now){
  g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#192e29';g.fillRect(0,0,r.width,r.height);
  const zoom=clamp(Math.max(r.width/750,r.height/760),.7,1.45),me=N.me||{x:N.world.w/2,y:N.world.h/2};
  g.setTransform(dpr*zoom,0,0,dpr*zoom,dpr*(r.width/2-me.x*zoom),dpr*(r.height/2-me.y*zoom));
- g.fillStyle='#395443';g.fillRect(0,0,N.world.w,N.world.h);
- g.strokeStyle='#536b55';for(let x=0;x<N.world.w;x+=55){g.beginPath();g.moveTo(x,0);g.lineTo(x,N.world.h);g.stroke()}
- for(let y=0;y<N.world.h;y+=55){g.beginPath();g.moveTo(0,y);g.lineTo(N.world.w,y);g.stroke()}
- // Viewport culling keeps the expanded map cheap on mobile GPUs.
+ // Draw only lines covering the current camera, never all 4,200 world pixels.
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
   top:me.y-r.height/2/zoom-90,bottom:me.y+r.height/2/zoom+90};
+ g.fillStyle='#395443';g.fillRect(Math.max(0,visible.left),Math.max(0,visible.top),
+  Math.min(N.world.w,visible.right)-Math.max(0,visible.left),
+  Math.min(N.world.h,visible.bottom)-Math.max(0,visible.top));
+ g.strokeStyle='#536b55';
+ for(let x=Math.max(0,Math.floor(visible.left/55)*55);x<=Math.min(N.world.w,visible.right);x+=55){
+  g.beginPath();g.moveTo(x,Math.max(0,visible.top));g.lineTo(x,Math.min(N.world.h,visible.bottom));g.stroke();
+ }
+ for(let y=Math.max(0,Math.floor(visible.top/55)*55);y<=Math.min(N.world.h,visible.bottom);y+=55){
+  g.beginPath();g.moveTo(Math.max(0,visible.left),y);g.lineTo(Math.min(N.world.w,visible.right),y);g.stroke();
+ }
  drawDepthSortedWorld(g,now,dt,visible);
  drawArenaXpCrystals(g,now,visible);
  drawLabThings(g,now,visible);
