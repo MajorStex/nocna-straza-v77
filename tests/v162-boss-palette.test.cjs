@@ -7,7 +7,7 @@ const client=read('v140-net-mode.js'),palette=read('v162-sandbox.js'),
 for(const js of [client,palette,bossArt])new Function(js);
 assert.match(html,/<title>Night Watch v166/);
 assert.match(html,/v162-troll\.js\?v=162/);
-assert.match(html,/v140-net-mode\.js\?v=166/);
+assert.match(html,/v140-net-mode\.js\?v=168/);
 assert(html.indexOf('v162-troll.js')<html.indexOf('v140-net-mode.js'));
 assert.match(client,/script\.src='\.\/v162-sandbox\.js\?v=162'/);
 assert.match(client,/if\(wave===10&&spawnList\.length\)/);

@@ -5,7 +5,7 @@ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const client=fs.readFileSync(path.join(root,'v140-net-mode.js'),'utf8');
 assert.match(html,/<title>Night Watch v166/);
 assert.match(html,/VERZIJA V166/);
-assert.match(html,/v140-net-mode\.js\?v=166/);
+assert.match(html,/v140-net-mode\.js\?v=168/);
 assert.match(html,/const NS140_TEMP_UNLOCK_LEVEL=0/);
 assert.match(client,/const NS140_TEMP_UNLOCK_LEVEL=0/);
 assert.match(html,/PRIVREMENO OTKLJUČANO ZA SVE \(NIVO 0\+\)/);

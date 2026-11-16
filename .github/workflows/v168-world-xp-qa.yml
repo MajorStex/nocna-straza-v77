@@ -1,0 +1,35 @@
+name: V168 New Zone large world / blue EXP / audio QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/v140-net-mode.js'
+      - 'public/v157-arena-scenery.js'
+      - 'public/v152-arena-audio.js'
+      - 'tests/v168-xp-world.test.cjs'
+      - 'tests/v168-mobile-browser.test.cjs'
+      - 'tests/v168-cloudflare-two-peers.test.mjs'
+      - '.github/workflows/v168-world-xp-qa.yml'
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: V168 direct JS syntax and blue EXP visuals/audio/map
+        run: node tests/v168-xp-world.test.cjs
+      - name: Real Android-size Chromium solo map & XP bar
+        run: |
+          npm install --no-save --no-package-lock playwright-core@1.58.2
+          node tests/v168-mobile-browser.test.cjs
+      - name: Two Cloudflare preview WebSocket peers verify single-claim EXP and 4200 world
+        run: node tests/v168-cloudflare-two-peers.test.mjs
+      - name: Production relay V168 two-device WebSocket synchronization
+        env:
+          V168_RELAY_PREVIEW: https://nocna-straza-relay.stefanstevic1996.workers.dev
+        run: node tests/v168-cloudflare-two-peers.test.mjs
+      - name: Classic lobby regression (do not modify original mode)
+        run: node tests/v166-lobby-mobile-width.test.cjs

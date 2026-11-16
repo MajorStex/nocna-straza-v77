@@ -142,7 +142,7 @@ function play(kind,options={}){
  const gain=spatial*clamp(options.gain??1,0,1);
  if(gain<.018)return false;
  const now=performance.now(),cool={step:250,swing:170,hurt:240,enemy:380,
-  goblinStep:620,hit:135,chest:600,wave:900,choose:200};
+  goblinStep:620,hit:135,chest:600,wave:900,choose:200,xp:165,level:700};
  const key=['enemy','hit','goblinStep'].includes(kind)?kind:kind+(options.sourceId??'');
  if(now-(last.get(key)||-100000)<(cool[kind]||180))return false;
  // Don't create any new voices once the small FX pool is occupied.
@@ -164,6 +164,9 @@ function play(kind,options={}){
  else if(kind==='chest'){tone(392,at,.17,.16*gain,'triangle',fxBus);tone(587.3,at+.10,.27,.13*gain,'sine',fxBus)}
  else if(kind==='wave'){tone(220,at,.21,.13*gain,'triangle',fxBus);tone(293.66,at+.12,.3,.10*gain,'sine',fxBus)}
  else if(kind==='choose'){tone(494,at,.13,.12*gain,'triangle',fxBus);tone(659.25,at+.07,.21,.07*gain,'sine',fxBus)}
+  // Cached WebAudio synthesis only: no sound download, socket traffic or per-crystal voices.
+  else if(kind==='xp'){tone(784,at,.075,.075*gain,'sine',fxBus,1.16);tone(1174.66,at+.037,.11,.042*gain,'triangle',fxBus,1.05)}
+  else if(kind==='level'){tone(392,at,.15,.10*gain,'triangle',fxBus);tone(523.25,at+.11,.18,.10*gain,'sine',fxBus);tone(784,at+.21,.27,.09*gain,'sine',fxBus)}
  else return false;
  return true;
 }
