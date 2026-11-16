@@ -1,0 +1,22 @@
+name: Verify V169 Village live on permanent link
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/index.html'
+      - 'public/v115-village.js'
+      - 'public/v165-classic-voice.js'
+      - 'scripts/verify-live-v169-village.mjs'
+      - '.github/workflows/verify-live-v169-village.yml'
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Compare live Worker Village/Voice hashes, protect V168 server
+        run: node scripts/verify-live-v169-village.mjs
