@@ -139,6 +139,21 @@
  for(const b of buildings){const opt=document.createElement('option');opt.value=b.id;opt.textContent=tr(b.label,b.sr);destinations.append(opt)}
  destinations.onchange=()=>{const b=buildings.find(x=>x.id===destinations.value);destinations.value='';if(b)startVillageTravel(b.x,b.y+b.h/2+26,b.id)};
  $('ns109Top').insertBefore(destinations,$('ns109Classic'));
+ // Pure DOM menu: original button IDs and click handlers stay intact.
+ function setVillageMenu(open=false){
+  const menu=$('ns169Menu'),scrim=$('ns169Scrim'),button=$('ns169More');
+  if(!menu||!scrim||!button)return;
+  const show=!!open&&opened&&!root.classList.contains('ns109Hidden');
+  menu.hidden=!show;scrim.hidden=!show;
+  button.setAttribute('aria-expanded',String(show));
+  root.classList.toggle('ns169MenuOpen',show);
+  if(show){window.NS165_CLASSIC_VOICE?.hideVillagePopup?.();menu.querySelector('button')?.focus({preventScroll:true})}
+ }
+ $('ns169More').onclick=()=>setVillageMenu($('ns169Menu').hidden);
+ $('ns169Scrim').onclick=()=>setVillageMenu(false);
+ for(const button of $('ns169Menu').querySelectorAll('button'))
+  button.addEventListener('click',()=>setVillageMenu(false));
+
  function view(){
   const r=canvas.getBoundingClientRect(),portrait=r.height>r.width*1.28;
   const scale=portrait?Math.min(r.height/540,r.width/360):Math.min(r.width/960,r.height/540);
@@ -156,6 +171,7 @@
  const ownName=()=>{try{return String(getActiveAccount()?.name||'GUARDIAN').slice(0,20)}catch{return 'GUARDIAN'}};
  const getPlayers=()=>{try{return currentLobbyRoster()}catch{return []}};
  function closePane(){
+  setVillageMenu(false);
   if(focusNode&&returnPlace){returnPlace.appendChild(focusNode);if(focusNode.id==='coopForge')focusNode.classList.add('hidden')}
   focusNode=null;returnPlace=null;focused=null;pane.classList.add('ns109Hidden');area.replaceChildren();
  }
@@ -1118,6 +1134,7 @@ function showAchievements(){
   else{startVillageTravel(p.x,p.y)}
  }
  function showVillage(){
+  setVillageMenu(false);
   if(!canVisit()){toast(tr('Open the village from the main menu or multiplayer lobby.','Otvori selo iz glavnog menija ili multiplayer lobija.'));return false;}
   soloPreview=!isLobby();
   if(!soloPreview){$('coopPanel')?.classList.remove('hidden');$('lobbyArea')?.classList.remove('hidden')}
@@ -1131,6 +1148,7 @@ function showAchievements(){
   return true;
  }
  function closeVillage(){
+  setVillageMenu(false);window.NS165_CLASSIC_VOICE?.hideVillagePopup?.();
   // Opt-out on exit (game starts, lobby closes or player leaves); no persistent arena state.
   if(isLobby()&&getPvP(NET.localId).opted){
    if(NET.role==='host'){getPvP(NET.localId).opted=false;villageBroadcastPvp()}
@@ -1335,7 +1353,7 @@ function showAchievements(){
   toast(trainingOn?tr('Training only · no XP or rewards','Samo trening · bez XP-a i nagrada'):tr('Training paused','Trening pauziran'));
  };
  // V117 pointer handlers above distinguish tap-to-enter from drag-to-move.
- document.addEventListener('keydown',e=>{if(!opened||!canVisit())return;if(e.key==='Escape'&&!pane.classList.contains('ns109Hidden')){e.stopImmediatePropagation();closePane()}else if(e.key==='Escape'){e.stopImmediatePropagation();closeVillage()}},true);
+ document.addEventListener('keydown',e=>{if(!opened||!canVisit())return;if(e.key==='Escape'&&!$('ns169Menu').hidden){e.stopImmediatePropagation();setVillageMenu(false)}else if(e.key==='Escape'&&!pane.classList.contains('ns109Hidden')){e.stopImmediatePropagation();closePane()}else if(e.key==='Escape'){e.stopImmediatePropagation();closeVillage()}},true);
  const homeVillage=document.createElement('button');homeVillage.id='ns110VillageHome';homeVillage.type='button';homeVillage.textContent='🏡 '+tr('EXPLORE VILLAGE · CHILL HUB','ISTRAŽI SELO · CHILL LOBI');homeVillage.onclick=()=>{if(G.mode!=='menu'){toast(tr('Village is available between runs.','Selo je dostupno između partija.'));return}localStorage.setItem('ns109_village_pref','village');showVillage()};($('ns50MenuPlay')||$('coopBtn'))?.insertAdjacentElement('beforebegin',homeVillage);
  const enterButton=document.createElement('button');enterButton.id='ns109Visit';enterButton.type='button';enterButton.textContent='🏡 '+tr('ENTER VILLAGE','UĐI U SELO');enterButton.onclick=()=>{localStorage.setItem('ns109_village_pref','village');showVillage()};
  $('lobbyArea')?.insertBefore(enterButton,$('roomCode'));
