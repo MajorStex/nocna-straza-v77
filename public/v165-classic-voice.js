@@ -186,15 +186,32 @@ function install(){
  if(villageTop&&!$('ns165VillageVoice')){
   const button=document.createElement('button');button.id='ns165VillageVoice';button.type='button';
   button.className='ns165VoiceVillageButton';button.textContent='🎙 GLAS';
-  button.onclick=()=>{
-   const pop=$('ns165VillagePopup');if(!pop)return;
-   pop.hidden=!pop.hidden;bind();refresh();
-  };
+  button.setAttribute('aria-controls','ns165VillagePopup');
+  button.setAttribute('aria-expanded','false');
+  button.onclick=()=>showVillagePopup(!!$('ns165VillagePopup')?.hidden);
   villageTop.append(button);
  }
  if(!$('ns165VillagePopup')){
   const pop=document.createElement('div');pop.id='ns165VillagePopup';pop.hidden=true;
+  pop.setAttribute('role','dialog');pop.setAttribute('aria-label','Glas u selu');pop.setAttribute('aria-hidden','true');
+  const head=document.createElement('div');head.id='ns165VillageVoiceHeader';
+  const label=document.createElement('strong');label.textContent='🎙 MIKROFON';
+  const close=document.createElement('button');close.id='ns165VillageVoiceClose';close.type='button';
+  close.textContent='✕';close.setAttribute('aria-label','Zatvori mikrofon');close.onclick=hideVillagePopup;
+  head.append(label,close);pop.append(head);
   document.body.append(pop);create(pop,'ns165VillageVoiceCard');
+ }
+ if(!villageDismissInstalled){
+  villageDismissInstalled=true;
+  document.addEventListener('pointerdown',e=>{
+   const pop=$('ns165VillagePopup');
+   if(pop&&!pop.hidden&&!pop.contains(e.target)&&!$('ns165VillageVoice')?.contains(e.target))hideVillagePopup();
+  },true);
+  document.addEventListener('keydown',e=>{
+   if(e.key==='Escape'&&!$('ns165VillagePopup')?.hidden){
+    hideVillagePopup();e.stopImmediatePropagation();e.preventDefault();
+   }
+  },true);
  }
  bind();
  if(!ticker)ticker=setInterval(()=>{if(config)refresh();else if(ticker){clearInterval(ticker);ticker=0}},350);
@@ -218,6 +235,7 @@ function refresh(){
  if(lobby)lobby.hidden=!!($('lobbyArea')?.classList.contains('hidden')||!sessionCode);
  const menu=$('ns165PauseVoice');if(menu)menu.hidden=!config;
  const village=$('ns165VillageVoice');if(village)village.hidden=!config;
+ if(!config||$('ns109Village')?.classList.contains('ns109Hidden'))hideVillagePopup();
  const badge=$('ns165VillageVoice');if(badge)badge.textContent=voice?.transmitting?'🟢 GLAS':'🎙 GLAS';
  for(const el of document.querySelectorAll('[data-ns165-voice-seat]')){
   const state=live?voice?.badgeState?.(el.dataset.ns165VoiceSeat):0;
@@ -248,7 +266,7 @@ function drawBadge(g,id,x,y){
 window.addEventListener('nsVoiceChanged',refresh);
 window.addEventListener('ns159VoiceReady',()=>{bind();refresh()});
 window.addEventListener('pagehide',()=>{if(ownVoice())window.NS159_VOICE?.disableMic()});
-window.NS165_CLASSIC_VOICE={host,guest,receive,syncGuest,syncAll,suspend,resume,leave,install,refresh,decorateLobby,drawBadge,
+window.NS165_CLASSIC_VOICE={host,guest,receive,syncGuest,syncAll,suspend,resume,leave,install,refresh,hideVillagePopup,decorateLobby,drawBadge,
  get active(){return ownVoice()&&!suspended},get room(){return sessionCode},get mode(){return mode},
  get status(){return status},get match(){return config?.match||''}};
 })();
