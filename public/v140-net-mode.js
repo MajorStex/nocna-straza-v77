@@ -10,7 +10,7 @@ const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,clamp=(v,a,
 // Only the server decides positions. Each player destination gets one cached
 // navigation field; 48px spatial buckets bound nearby separation work.
 function createArenaCrowdSteering(world,move){
- const CELL=32,COLS=Math.ceil(world.w/CELL),ROWS=Math.ceil(world.h/CELL),COUNT=COLS*ROWS,INF=65535;
+ const CELL=56,COLS=Math.ceil(world.w/CELL),ROWS=Math.ceil(world.h/CELL),COUNT=COLS*ROWS,INF=65535;
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  const walkable=(x,y)=>{
@@ -157,7 +157,7 @@ function createArenaCrowdSteering(world,move){
  return {step,advance,field,nearestOpen,walkable,get cachedFields(){return flows.size},clear(){flows.clear()}};
 }
 
-const N={phase:'idle',ws:null,match:'',id:'',world:{w:960,h:600,r:14,speed:156,obstacles:[]},
+const N={phase:'idle',ws:null,match:'',id:'',world:{w:4200,h:4200,r:14,speed:156,obstacles:[]},
  players:new Map(),looks:new Map(),lastLookSignature:'',lastLookCheck:0,lookSyncEnabled:false,me:null,seq:0,ack:0,pending:[],delta:{x:0,y:0},tick:-1,
  lastInput:0,lastState:0,lastFrame:0,lastPing:0,ping:0,fps:0,fpsAt:0,frames:0,
  correction:0,serverMs:0,keys:new Set(),stick:{x:0,y:0,ptr:null,startX:0,startY:0,radius:47,deadZone:7},timeout:null,ticket:'',retry:0,
@@ -609,10 +609,10 @@ function soloHordePoints(){
   const px=clamp(x,o.x,o.x+o.w),py=clamp(y,o.y,o.y+o.h);
   return (x-px)**2+(y-py)**2<r*r;
  });
- for(let row=0;row<11;row++)for(let col=0;col<15;col++){
-  const x=64+col*108,y=46+row*97;
-  if(inside(x,y,33)||(x<355&&y>145&&y<420)||
-   [[530,465],[960,580],[1470,820]].some(([cx,cy])=>(cx-x)**2+(cy-y)**2<70**2))continue;
+ for(let row=0;row<24;row++)for(let col=0;col<24;col++){
+  const x=98+col*174,y=98+row*174;
+  if(inside(x,y,33)||
+   [[1790,2025],[2220,2140],[2730,2380]].some(([cx,cy])=>(cx-x)**2+(cy-y)**2<70**2))continue;
   points.push([x,y]);
  }
  let seed=1572026;
@@ -629,8 +629,10 @@ function buildSoloWave(wave){
  const ranked=points.map((pt,i)=>({
   pt,i,dist:alive.length?Math.min(...alive.map(p=>Math.hypot(pt[0]-p.x,pt[1]-p.y))):9999
  }));
- ranked.sort((a,b)=>b.dist-a.dist||((a.i+shift)%points.length)-((b.i+shift)%points.length));
- const spawnList=ranked.slice(0,count).map(({pt,dist},i)=>{
+ const safe=ranked.filter(item=>item.dist>=470);
+ safe.sort((a,b)=>Math.abs(a.dist-740)-Math.abs(b.dist-740)||
+  ((a.i+shift)%points.length)-((b.i+shift)%points.length));
+ const spawnList=safe.slice(0,count).map(({pt,dist},i)=>{
   const hp=Math.min(115,35+(wave-1)*9);
   return {id:i,x:pt[0],y:pt[1],sx:pt[0],sy:pt[1],hp,maxHp:hp,
    spawnDistance:Math.round(dist),attackAt:(i%4)*7,attackTick:-100,deadUntil:0,
@@ -772,26 +774,26 @@ function startSolo(){
  if(N.ws){try{N.ws.close()}catch{}N.ws=null}
  LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_WEAPON=null;LAB_LOOK=null;LAB_UNDO=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};
  N.solo=true;N.phase='running';N.paused=false;N.id='p1';N.match='offline';N.ticket='';
- N.world={w:1680,h:1080,r:14,speed:156,decorSeed:157,obstacles:[
+ N.world={w:4200,h:4200,r:14,speed:156,decorSeed:168,obstacles:[
   {x:275,y:140,w:95,h:92},{x:585,y:330,w:102,h:94},
   {x:435,y:245,w:75,h:84},{x:165,y:350,w:87,h:58},
   {x:790,y:170,w:126,h:104},{x:1120,y:275,w:106,h:110},
   {x:1230,y:650,w:140,h:110},{x:720,y:730,w:116,h:100},
   {x:1005,y:875,w:120,h:90},{x:395,y:785,w:100,h:105},
   {x:1460,y:410,w:110,h:104},{x:1020,y:485,w:94,h:94}
- ]};
+ ].map(o=>({...o,x:o.x+1260,y:o.y+1560}))};
  // Solo uses precisely the same seeded trunks/rocks as the multiplayer server.
  N.world.obstacles.push(...(window.NS157_SCENERY?.colliders?.(N.world)||[]));
  N.seq=N.ack=N.soloTick=N.soloKills=0;N.tick=-1;
  N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=60;
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
- N.soloChests=[{id:1,x:530,y:465,opened:false},{id:2,x:960,y:580,opened:false},{id:3,x:1470,y:820,opened:false}];
+ N.soloChests=[{id:1,x:1790,y:2025,opened:false},{id:2,x:2220,y:2140,opened:false},{id:3,x:2730,y:2380,opened:false}];
  N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();
  N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt,y*N.world.speed*dt));
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.stick.ptr=null;N.stick.x=N.stick.y=0;
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
- N.me={id:'p1',x:130,y:250,tx:130,ty:250,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
+ N.me={id:'p1',x:2030,y:2070,tx:2030,ty:2070,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false};
  N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
  window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
