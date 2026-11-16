@@ -93,12 +93,14 @@ function receive(packet,{code,id,position:getPosition}={}){
  return guest({code,id,match:packet.match,ticket:packet.ticket,position:getPosition});
 }
 function suspend(){
+ hideVillagePopup();
  suspended=true;
  if(ownVoice())try{window.NS159_VOICE?.stop()}catch{}
  refresh();
 }
 function resume(){suspended=false;if(config)attach();refresh()}
 function leave(){
+ hideVillagePopup();
  generation++;busy=false;
  if(ownVoice())try{window.NS159_VOICE?.stop()}catch{}
  config=null;hostContext=null;sessionCode='';suspended=false;status='Nije povezan';
@@ -110,6 +112,23 @@ function toggleMode(){
  refresh();
 }
 function micOff(){if(ownVoice())window.NS159_VOICE?.disableMic();refresh()}
+function hideVillagePopup(){
+ const pop=$('ns165VillagePopup');
+ if(pop){pop.hidden=true;pop.setAttribute('aria-hidden','true')}
+ const trigger=$('ns165VillageVoice');if(trigger)trigger.setAttribute('aria-expanded','false');
+}
+function showVillagePopup(show){
+ const pop=$('ns165VillagePopup'),button=$('ns165VillageVoice');
+ if(!pop||!button)return;
+ if(!show){hideVillagePopup();return}
+ if($('ns109Village')?.classList.contains('ns109Hidden')||!config)return;
+ const more=$('ns169Menu'),shade=$('ns169Scrim'),menuBtn=$('ns169More');
+ if(more)more.hidden=true;if(shade)shade.hidden=true;
+ if(menuBtn)menuBtn.setAttribute('aria-expanded','false');
+ pop.hidden=false;pop.setAttribute('aria-hidden','false');button.setAttribute('aria-expanded','true');
+ bind();refresh();
+}
+let villageDismissInstalled=false;
 function bind(){
  const voice=window.NS159_VOICE;
  if(!voice)return;
@@ -125,6 +144,7 @@ function install(){
    '#ns165VillagePopup{position:fixed;z-index:100085;right:10px;top:56px;width:min(290px,87vw);max-height:70dvh;overflow:auto;box-shadow:0 14px 30px #0009}'+
    '#ns165VillageVoice{min-height:32px;padding:5px 7px;font:700 10px system-ui}';
 
+  st.textContent += "\n/* V169 Village microphone popover, presentation-only */\n#ns165VillagePopup[hidden]{display:none!important}\n#ns165VillagePopup{position:fixed;z-index:100085;right:10px;top:100px;width:min(306px,calc(100vw - 20px));max-height:50dvh;overflow:auto;overscroll-behavior:contain;padding:8px;border-radius:15px;background:#102824f4;border:1px solid #9ab7a0;box-shadow:0 16px 30px #000b;touch-action:pan-y}\n#ns165VillagePopup .ns165VoiceCard{margin:0;border:0;padding:5px;background:transparent;box-shadow:none}\n#ns165VillagePopup .ns165VoiceActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}\n#ns165VillagePopup .ns165VoiceActions>*{min-width:0!important;font-size:11px!important;white-space:normal!important;line-height:1.25}\n#ns165VillagePopup .ns165Mic{grid-column:1/-1;min-height:42px!important;background:#287052}\n#ns165VillageVoiceHeader{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 4px 6px;color:#f6d69d;font:800 12px system-ui}\n#ns165VillageVoiceClose{min-width:34px;min-height:32px!important;padding:3px 8px!important}\n@media(max-width:600px){#ns165VillagePopup{top:calc(104px + env(safe-area-inset-top));right:8px;max-height:min(48dvh,310px)}#ns165VillageVoice{min-height:38px!important;padding:6px!important}}\n";
   // V166 mobile lobby width fix: constrain nested CSS grid min-content sizing.
   // Never scale the game's viewport or alter networking/audio semantics.
   st.textContent+=`@media (max-width:600px){
