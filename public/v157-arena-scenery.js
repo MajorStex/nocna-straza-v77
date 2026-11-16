@@ -82,11 +82,12 @@ function generate(world){
  const key=[world?.w,world?.h,world?.decorSeed||157].join(':');
  if(cached&&cachedKey===key)return cached;
  const r=rng((world?.decorSeed||157)*7919),items=[];
- const obstacles=(world?.obstacles||[]).filter(o=>o.kind!=='tree'&&o.kind!=='rock'),chests=[[530,465],[960,580],[1470,820]];
- const spawns=[[130,250],[190,250],[250,260],[130,310],[205,310],[275,310]];
+ const obstacles=(world?.obstacles||[]).filter(o=>o.kind!=='tree'&&o.kind!=='rock'),chests=world.w>=4000?[[1790,2025],[2220,2140],[2730,2380]]:[[530,465],[960,580],[1470,820]];
+ const spawns=world.w>=4000?[[2030,2070],[2080,2070],[2130,2070],[2030,2130],[2080,2130],[2130,2130]]:[[130,250],[190,250],[250,260],[130,310],[205,310],[275,310]];
  let tries=0;
- while(items.length<53&&tries++<900){
-  const type=items.length<28?Math.floor(r()*3):3+Math.floor(r()*2);
+ const limit=world.w>=4000?124:53;
+ while(items.length<limit&&tries++<1800){
+  const type=items.length<Math.floor(limit*.52)?Math.floor(r()*3):3+Math.floor(r()*2);
   const x=38+r()*(world.w-76),y=55+r()*(world.h-100);
   const radius=type<3?45:23;
   const blocked=obstacles.some(o=>x>o.x-radius-7&&x<o.x+o.w+radius+7&&
