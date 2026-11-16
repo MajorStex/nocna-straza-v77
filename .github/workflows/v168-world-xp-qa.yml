@@ -27,5 +27,9 @@ jobs:
           node tests/v168-mobile-browser.test.cjs
       - name: Two Cloudflare preview WebSocket peers verify single-claim EXP and 4200 world
         run: node tests/v168-cloudflare-two-peers.test.mjs
+      - name: Production relay V168 two-device WebSocket synchronization
+        env:
+          V168_RELAY_PREVIEW: https://nocna-straza-relay.stefanstevic1996.workers.dev
+        run: node tests/v168-cloudflare-two-peers.test.mjs
       - name: Classic lobby regression (do not modify original mode)
         run: node tests/v166-lobby-mobile-width.test.cjs
