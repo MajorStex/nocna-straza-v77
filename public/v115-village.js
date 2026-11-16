@@ -71,7 +71,7 @@
  const my={x:840,y:506};
  const root=document.createElement('section');root.id='ns109Village';root.className='ns109Hidden';root.setAttribute('aria-label','Village lobby');
  root.innerHTML=
-  '<div id="ns109Top"><strong>🏡 NIGHT WATCH · VILLAGE</strong><span id="ns109Info" role="status" aria-live="polite">◇ OFFLINE SELO</span><button id="ns141Server" type="button">🌐 PODIGNI SERVER</button>'+
+  '<div id="ns109Top"><strong>🏡 '+tr('VILLAGE','SELO')+' · V169</strong><span id="ns109Info" role="status" aria-live="polite">◇ OFFLINE SELO</span><button id="ns141Server" type="button">🌐 PODIGNI SERVER</button>'+
   '<button id="ns109Sound" type="button">♫</button><button id="ns109Classic" type="button">☷ CLASSIC LOBBY</button></div>'+
   '<div id="ns109Stage"><canvas id="ns109Scene" width="960" height="540" aria-label="Village with interactive buildings"></canvas><div id="ns117Stick" class="ns109Hidden" aria-hidden="true"><span id="ns117Knob"></span></div><button id="ns117Dodge" type="button" aria-label="Dodge / Izbegni">↝<small>DODGE</small></button><button id="ns120Door" type="button" class="ns109Hidden" aria-label="Enter building / Uđi u kućicu">↳ ENTER</button>'+
   '<button id="ns138Attack" type="button" aria-label="Attack nearby animals or players" title="Attack · J / F">⚔<small>ATTACK</small></button>'+
