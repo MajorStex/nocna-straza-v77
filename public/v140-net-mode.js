@@ -537,7 +537,10 @@ function snapshot(m){
  if(m.waveState==='play'||m.waveState==='between')N.waveState=m.waveState;
  if(Number.isFinite(m.waveAt))N.waveAt=m.waveAt;
  N.choice=m.choice&&Number.isInteger(m.choice.seq)&&typeof m.choice.owner==='string'?
-  {id:m.choice.id,owner:m.choice.owner,options:['edge','heart','boots'],seq:m.choice.seq,until:m.choice.until}:null;
+  {id:m.choice.id,kind:m.choice.kind==='xp'?'xp':'chest',level:Number(m.choice.level)||1,owner:m.choice.owner,options:['edge','heart','boots'],seq:m.choice.seq,until:m.choice.until}:null;
+ if(LAB_SERVER_BUILD>=168&&Array.isArray(m.drops))N.drops=m.drops.slice(0,85)
+  .filter(d=>Array.isArray(d)&&Number.isInteger(d[0])&&Number.isFinite(d[1])&&Number.isFinite(d[2]))
+  .map(d=>({id:d[0],x:d[1]/10,y:d[2]/10,value:Number(d[3])||7}));
  if(Array.isArray(m.chests))N.chests=m.chests.slice(0,16)
   .filter(c=>Array.isArray(c)&&Number.isInteger(c[0])&&Number.isFinite(c[1])&&Number.isFinite(c[2]))
   .map(c=>({id:c[0],x:c[1],y:c[2],opened:!!c[3]}));
@@ -571,8 +574,18 @@ function snapshot(m){
   if(!Number.isFinite(xx)||!Number.isFinite(yy))continue;
   const x=xx/10,y=yy/10;let p=N.players.get(id);
   if(!p){p={id,x,y,tx:x,ty:y};N.players.set(id,p)}
-  const previousAttack=p.attackTick;
+  const previousAttack=p.attackTick,previousCollected=p.xpCollected,previousLevel=p.level;
   p.tx=x;p.ty=y;p.hp=hp;p.maxHp=Number(row[9])||100;p.kills=Number(row[10])||0;
+  if(LAB_SERVER_BUILD>=168){
+   p.level=Math.max(1,Number(row[11])||1);p.xp=Math.max(0,Number(row[12])||0);
+   p.xpNeed=Math.max(1,Number(row[13])||160);p.xpCollected=Math.max(0,Number(row[14])||0);
+   if(id===N.id&&Number.isInteger(previousCollected)&&p.xpCollected>previousCollected)
+    A()?.play('xp',{gain:.6});
+   if(id===N.id&&Number.isInteger(previousLevel)&&p.level>previousLevel){
+    A()?.play('level',{gain:.7});
+    announceArena('✦ NIVO '+p.level+' · IZABERI NADOGRADNJU');
+   }
+  }
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
@@ -1062,7 +1075,7 @@ function connect(match,id,ticket,rejoin=false){
   LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
   N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
-  N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.lastMyHp=null;N.hurtUntil=0;
+  N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.drops=[];N.lastMyHp=null;N.hurtUntil=0;
  }
  N.match=match;N.id=id;N.ticket=ticket;if(!rejoin)N.paused=false;
  N.phase=rejoin?'reconnecting':'connecting';
