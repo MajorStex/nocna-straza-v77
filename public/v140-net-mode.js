@@ -770,7 +770,7 @@ function soloWaveDone(){
   y:clamp(me.y+62,35,N.world.h-35),opened:true};
  N.soloChests.push(chest);
  if(N.soloChests.length>12)N.soloChests=N.soloChests.slice(-12);
- N.soloChoice={id:chest.id,seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
+ N.soloChoice={id:chest.id,kind:'chest',seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
  N.choiceUiId='';A()?.play('chest');
 }
 
@@ -805,6 +805,49 @@ function startSolo(){
  status('V168 · SOLO · PLAVI EXP KRISTALI · MAPA 4200×4200');
  return true;
 }
+
+function spawnSoloXpCrystal(mob){
+ const d={id:++N.dropSeq,x:mob.x,y:mob.y,value:mob.kind==='troll'?45:7,expires:N.soloTick+1800};
+ N.soloDrops.push(d);
+ if(N.soloDrops.length>XP_CAP)N.soloDrops.shift();
+}
+function addSoloRunXp(amount){
+ const p=N.me;if(!p)return;
+ p.xp=(p.xp||0)+amount;p.xpCollected=(p.xpCollected||0)+1;
+ let levels=0;
+ while(p.level<100&&p.xp>=p.xpNeed&&levels++<3){
+  p.xp-=p.xpNeed;p.level++;p.xpNeed=xpNeeded(p.level);
+  p.hp=Math.min(p.maxHp,p.hp+12);
+  p.queuedUpgrades=Math.min(10,(p.queuedUpgrades||0)+1);
+  A()?.play('level',{gain:.75});
+  announceArena('✦ NOVI NIVO '+p.level+' · IZABERI NADOGRADNJU');
+ }
+ if(p.level>=100)p.xp=0;
+}
+function stepSoloXpCrystals(){
+ const p=N.me;if(!p)return;
+ const out=[];
+ for(const d of N.soloDrops){
+  if(d.expires<=N.soloTick)continue;
+  const dx=p.x-d.x,dy=p.y-d.y,dist=Math.hypot(dx,dy);
+  if(dist<120&&dist>0.00001){
+   const pull=Math.min(dist,(200+(120-dist)*2.2)/30);
+   d.x+=dx/dist*pull;d.y+=dy/dist*pull;
+  }
+  if((p.x-d.x)**2+(p.y-d.y)**2<=25**2){
+   addSoloRunXp(d.value);
+   A()?.play('xp',{gain:.55});
+  }else out.push(d);
+ }
+ N.soloDrops=out;
+ if(!N.soloChoice&&(p.queuedUpgrades||0)>0){
+  p.queuedUpgrades--;
+  N.soloChoice={id:10000+ ++N.soloUpgradeSeq,kind:'xp',level:p.level,
+   owner:'p1',seq:++N.soloChestSeq,until:Date.now()+6500};
+  N.choiceUiId='';
+ }
+}
+
 function stepSolo(dt){
  if(!N.solo||!N.me)return;
  N.soloAcc=Math.min(.15,N.soloAcc+dt);
@@ -865,14 +908,15 @@ function stepSolo(dt){
     target.hp=Math.max(0,target.hp-(me.damage||22));
     A()?.play('swing',{weapon:localArenaLook().weapon||'sword'});
     A()?.play('hit',{weapon:localArenaLook().weapon||'sword',variant:N.soloTick,gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
-    if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++;me.kills++}
+    if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++;me.kills++;spawnSoloXpCrystal(target)}
    }
   }
+  stepSoloXpCrystals();
   // As in the regular game, chest proximity opens a timed reward choice.
   if(!N.soloChoice){
    const chest=N.soloChests.find(c=>!c.opened&&(c.x-me.x)**2+(c.y-me.y)**2<=64**2);
    if(chest){
-    chest.opened=true;N.soloChoice={id:chest.id,seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
+    chest.opened=true;N.soloChoice={id:chest.id,kind:'chest',seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
     N.choiceUiId='';A()?.play('chest');
    }
   }
@@ -1241,7 +1285,8 @@ function resolveSoloChest(option){
  if(pick==='edge')me.damage=Math.min(65,Math.round((me.damage||22)*1.2));
  if(pick==='heart'){me.maxHp=Math.min(240,(me.maxHp||100)+25);me.hp=Math.min(me.maxHp,me.hp+35)}
  if(pick==='boots')me.speedMult=Math.min(1.5,(me.speedMult||1)*1.1);
- N.soloChoice=null;N.choiceUiId='';N.soloBetweenUntil=Date.now()+1750;
+ const isXp=N.soloChoice.kind==='xp';N.soloChoice=null;N.choiceUiId='';
+ if(!isXp)N.soloBetweenUntil=Date.now()+1750;
  A()?.play('choose');return true;
 }
 function sessionHud(now){
