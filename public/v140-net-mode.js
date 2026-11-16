@@ -1302,6 +1302,21 @@ function resolveSoloChest(option){
  if(!isXp)N.soloBetweenUntil=Date.now()+1750;
  A()?.play('choose');return true;
 }
+function drawArenaXpCrystals(g,now,view){
+ const drops=N.solo?N.soloDrops:N.drops;
+ for(const d of drops){
+  if(d.x<view.left-24||d.x>view.right+24||d.y<view.top-24||d.y>view.bottom+24)continue;
+  const r=d.value>=40?10:7,pulse=.82+.18*Math.sin(now/250+d.id);
+  g.save();g.translate(d.x,d.y);g.globalAlpha=pulse;
+  g.fillStyle='#153c5a88';g.beginPath();g.ellipse(1,8,r+5,4,0,0,Math.PI*2);g.fill();
+  // Classic four-point blue XP crystal. No mobile-expensive shadowBlur.
+  g.fillStyle='#62d5f8';g.strokeStyle='#c4f0ff';g.lineWidth=1.2;
+  g.beginPath();g.moveTo(0,-r*1.5);g.lineTo(r,0);
+  g.lineTo(1,r*1.2);g.lineTo(-r,0);g.closePath();g.fill();g.stroke();
+  g.fillStyle='#2285b4';g.beginPath();g.moveTo(0,-r*1.5);g.lineTo(1,r*1.2);g.lineTo(-r,0);g.closePath();g.fill();
+  g.restore();
+ }
+}
 function sessionHud(now){
  const wave=N.solo?N.soloWave:N.wave,state=N.solo?N.soloState:N.waveState;
  const mobs=N.solo?N.soloMobs:N.mpMobs,choice=N.solo?N.soloChoice:N.choice;
@@ -1310,6 +1325,14 @@ function sessionHud(now){
  if(now-N.uiAt>=140||N.choiceUiId!==(choice?.seq??'')){
   N.uiAt=now;
   hud.textContent='TALAS '+wave;
+  const xpHud=el('ns168XpHud'),xpText=el('ns168XpText'),xpFill=el('ns168XpFill');
+  const xpEnabled=N.solo||LAB_SERVER_BUILD>=168;
+  if(xpHud)xpHud.hidden=!xpEnabled;
+  if(xpEnabled&&N.me){
+   const level=Math.max(1,N.me.level||1),current=Math.max(0,N.me.xp||0),needed=Math.max(1,N.me.xpNeed||160);
+   if(xpText)xpText.textContent='✦ NIVO '+level+' · EXP '+Math.floor(current)+' / '+needed;
+   if(xpFill)xpFill.style.width=Math.min(100,current/needed*100).toFixed(1)+'%';
+  }
   const count=mobs.filter(m=>m.hp>0).length;
   const bosses=mobs.filter(m=>m.kind==='troll'&&m.hp>0).length;
   remaining.textContent=state==='between'?'ODMOR · NOVI TALAS USKORO':
@@ -1321,7 +1344,9 @@ function sessionHud(now){
    const mine=choice.owner===N.id;
    if(N.choiceUiId!==key){
     N.choiceUiId=key;
-    el('ns152ChoiceTitle').textContent=mine?'OTVORIO SI SANDUK':'IGRAČ OTVARA SANDUK';
+    el('ns152ChoiceTitle').textContent=choice.kind==='xp'?
+      (mine?'✦ NIVO '+choice.level+' · NADOGRADNJA':'✦ IGRAČ BIRA NADOGRADNJU'):
+      (mine?'OTVORIO SI SANDUK':'IGRAČ OTVARA SANDUK');
     el('ns152ChoiceText').textContent=mine?
      'Izaberi nadogradnju. Ako ne stigneš, automatski se bira OŠTRICA.':
      'Čeka se '+choice.owner.toUpperCase()+' · izbor se automatski završava.';
@@ -1546,6 +1571,7 @@ function frame(now){
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
   top:me.y-r.height/2/zoom-90,bottom:me.y+r.height/2/zoom+90};
  drawDepthSortedWorld(g,now,dt,visible);
+ drawArenaXpCrystals(g,now,visible);
  drawLabThings(g,now,visible);
  // Grouped horde steps. One sound per nearby crowd per 720ms, not 80 voices.
  if(N.visibleMobs>1&&N.me&&now-N.hordeStepAt>=720){
@@ -1566,9 +1592,9 @@ function frame(now){
  if(now-(N.statsAt||0)>=320){
   N.statsAt=now;
   el('ns140Stats').textContent=N.solo?
-   ('FPS '+N.fps+' | SOLO · GOBLINI '+N.soloMobs.filter(m=>m.hp>0).length+' | VIDLJIVO '+N.visibleMobs+' | 0 XP'):
+   ('FPS '+N.fps+' | SOLO · GOBLINI '+N.soloMobs.filter(m=>m.hp>0).length+' | VIDLJIVO '+N.visibleMobs+' | NIVO '+(N.me?.level||1)+' · EXP '+Math.floor(N.me?.xp||0)+ '/'+(N.me?.xpNeed||160)):
    ('FPS '+N.fps+' | '+Math.round(N.ping)+'ms | GOBLINI '+N.mpMobs.length+'/'+N.hordeTotal+
-    ' | VIDLJIVO '+N.visibleMobs+' | CPU '+N.serverMs+'ms');
+    ' | VIDLJIVO '+N.visibleMobs+(LAB_SERVER_BUILD>=168?' | NIVO '+(N.me?.level||1)+' · EXP '+Math.floor(N.me?.xp||0):'')+' | CPU '+N.serverMs+'ms');
  }
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
