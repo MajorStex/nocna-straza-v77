@@ -1609,6 +1609,7 @@ window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){r
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
- playerX:N.me?.x,playerY:N.me?.y,walking:!!N.me?.motion?.walking,
+ worldWidth:N.world.w,worldHeight:N.world.h,runLevel:N.me?.level||1,runXp:N.me?.xp||0,runXpNeed:N.me?.xpNeed||160,runXpCollected:N.me?.xpCollected||0,xpCrystals:(N.solo?N.soloDrops:N.drops).length,
+  playerX:N.me?.x,playerY:N.me?.y,walking:!!N.me?.motion?.walking,
  facing:N.me?.motion?.side||1,attackAngle:N.me?.attackAngle??null}}};
 })();
