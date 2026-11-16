@@ -1,0 +1,29 @@
+name: V169 Village compact mobile HUD QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/v115-village.js'
+      - 'public/v165-classic-voice.js'
+      - 'public/index.html'
+      - 'tests/v169-village-mobile-hud.test.cjs'
+      - '.github/workflows/v169-village-mobile-hud.yml'
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  android-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Install small Chromium test harness
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Village mobile header/footer, 5 secondary tools and mic popup (320/360/393/412/832 px)
+        run: node tests/v169-village-mobile-hud.test.cjs
+      - name: Classic multiplayer lobby and legacy New Zone regression
+        run: |
+          node tests/v166-lobby-mobile-width.test.cjs
+          node tests/v168-xp-world.test.cjs
+          node tests/v168-mobile-browser.test.cjs

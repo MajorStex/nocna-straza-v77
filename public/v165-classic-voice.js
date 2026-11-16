@@ -93,12 +93,14 @@ function receive(packet,{code,id,position:getPosition}={}){
  return guest({code,id,match:packet.match,ticket:packet.ticket,position:getPosition});
 }
 function suspend(){
+ hideVillagePopup();
  suspended=true;
  if(ownVoice())try{window.NS159_VOICE?.stop()}catch{}
  refresh();
 }
 function resume(){suspended=false;if(config)attach();refresh()}
 function leave(){
+ hideVillagePopup();
  generation++;busy=false;
  if(ownVoice())try{window.NS159_VOICE?.stop()}catch{}
  config=null;hostContext=null;sessionCode='';suspended=false;status='Nije povezan';
@@ -110,6 +112,23 @@ function toggleMode(){
  refresh();
 }
 function micOff(){if(ownVoice())window.NS159_VOICE?.disableMic();refresh()}
+function hideVillagePopup(){
+ const pop=$('ns165VillagePopup');
+ if(pop){pop.hidden=true;pop.setAttribute('aria-hidden','true')}
+ const trigger=$('ns165VillageVoice');if(trigger)trigger.setAttribute('aria-expanded','false');
+}
+function showVillagePopup(show){
+ const pop=$('ns165VillagePopup'),button=$('ns165VillageVoice');
+ if(!pop||!button)return;
+ if(!show){hideVillagePopup();return}
+ if($('ns109Village')?.classList.contains('ns109Hidden')||!config)return;
+ const more=$('ns169Menu'),shade=$('ns169Scrim'),menuBtn=$('ns169More');
+ if(more)more.hidden=true;if(shade)shade.hidden=true;
+ if(menuBtn)menuBtn.setAttribute('aria-expanded','false');
+ pop.hidden=false;pop.setAttribute('aria-hidden','false');button.setAttribute('aria-expanded','true');
+ bind();refresh();
+}
+let villageDismissInstalled=false;
 function bind(){
  const voice=window.NS159_VOICE;
  if(!voice)return;
@@ -125,6 +144,7 @@ function install(){
    '#ns165VillagePopup{position:fixed;z-index:100085;right:10px;top:56px;width:min(290px,87vw);max-height:70dvh;overflow:auto;box-shadow:0 14px 30px #0009}'+
    '#ns165VillageVoice{min-height:32px;padding:5px 7px;font:700 10px system-ui}';
 
+  st.textContent += "\n/* V169 Village microphone popover, presentation-only */\n#ns165VillagePopup[hidden]{display:none!important}\n#ns165VillagePopup{position:fixed;z-index:100085;right:10px;top:100px;width:min(306px,calc(100vw - 20px));max-height:50dvh;overflow:auto;overscroll-behavior:contain;padding:8px;border-radius:15px;background:#102824f4;border:1px solid #9ab7a0;box-shadow:0 16px 30px #000b;touch-action:pan-y}\n#ns165VillagePopup .ns165VoiceCard{margin:0;border:0;padding:5px;background:transparent;box-shadow:none}\n#ns165VillagePopup .ns165VoiceActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}\n#ns165VillagePopup .ns165VoiceActions>*{min-width:0!important;font-size:11px!important;white-space:normal!important;line-height:1.25}\n#ns165VillagePopup .ns165Mic{grid-column:1/-1;min-height:42px!important;background:#287052}\n#ns165VillageVoiceHeader{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 4px 6px;color:#f6d69d;font:800 12px system-ui}\n#ns165VillageVoiceClose{min-width:34px;min-height:32px!important;padding:3px 8px!important}\n@media(max-width:600px){#ns165VillagePopup{top:calc(104px + env(safe-area-inset-top));right:8px;max-height:min(48dvh,310px)}#ns165VillageVoice{min-height:38px!important;padding:6px!important}}\n";
   // V166 mobile lobby width fix: constrain nested CSS grid min-content sizing.
   // Never scale the game's viewport or alter networking/audio semantics.
   st.textContent+=`@media (max-width:600px){
@@ -166,15 +186,32 @@ function install(){
  if(villageTop&&!$('ns165VillageVoice')){
   const button=document.createElement('button');button.id='ns165VillageVoice';button.type='button';
   button.className='ns165VoiceVillageButton';button.textContent='🎙 GLAS';
-  button.onclick=()=>{
-   const pop=$('ns165VillagePopup');if(!pop)return;
-   pop.hidden=!pop.hidden;bind();refresh();
-  };
+  button.setAttribute('aria-controls','ns165VillagePopup');
+  button.setAttribute('aria-expanded','false');
+  button.onclick=()=>showVillagePopup(!!$('ns165VillagePopup')?.hidden);
   villageTop.append(button);
  }
  if(!$('ns165VillagePopup')){
   const pop=document.createElement('div');pop.id='ns165VillagePopup';pop.hidden=true;
+  pop.setAttribute('role','dialog');pop.setAttribute('aria-label','Glas u selu');pop.setAttribute('aria-hidden','true');
+  const head=document.createElement('div');head.id='ns165VillageVoiceHeader';
+  const label=document.createElement('strong');label.textContent='🎙 MIKROFON';
+  const close=document.createElement('button');close.id='ns165VillageVoiceClose';close.type='button';
+  close.textContent='✕';close.setAttribute('aria-label','Zatvori mikrofon');close.onclick=hideVillagePopup;
+  head.append(label,close);pop.append(head);
   document.body.append(pop);create(pop,'ns165VillageVoiceCard');
+ }
+ if(!villageDismissInstalled){
+  villageDismissInstalled=true;
+  document.addEventListener('pointerdown',e=>{
+   const pop=$('ns165VillagePopup');
+   if(pop&&!pop.hidden&&!pop.contains(e.target)&&!$('ns165VillageVoice')?.contains(e.target))hideVillagePopup();
+  },true);
+  document.addEventListener('keydown',e=>{
+   if(e.key==='Escape'&&!$('ns165VillagePopup')?.hidden){
+    hideVillagePopup();e.stopImmediatePropagation();e.preventDefault();
+   }
+  },true);
  }
  bind();
  if(!ticker)ticker=setInterval(()=>{if(config)refresh();else if(ticker){clearInterval(ticker);ticker=0}},350);
@@ -198,6 +235,7 @@ function refresh(){
  if(lobby)lobby.hidden=!!($('lobbyArea')?.classList.contains('hidden')||!sessionCode);
  const menu=$('ns165PauseVoice');if(menu)menu.hidden=!config;
  const village=$('ns165VillageVoice');if(village)village.hidden=!config;
+ if(!config||$('ns109Village')?.classList.contains('ns109Hidden'))hideVillagePopup();
  const badge=$('ns165VillageVoice');if(badge)badge.textContent=voice?.transmitting?'🟢 GLAS':'🎙 GLAS';
  for(const el of document.querySelectorAll('[data-ns165-voice-seat]')){
   const state=live?voice?.badgeState?.(el.dataset.ns165VoiceSeat):0;
@@ -228,7 +266,7 @@ function drawBadge(g,id,x,y){
 window.addEventListener('nsVoiceChanged',refresh);
 window.addEventListener('ns159VoiceReady',()=>{bind();refresh()});
 window.addEventListener('pagehide',()=>{if(ownVoice())window.NS159_VOICE?.disableMic()});
-window.NS165_CLASSIC_VOICE={host,guest,receive,syncGuest,syncAll,suspend,resume,leave,install,refresh,decorateLobby,drawBadge,
+window.NS165_CLASSIC_VOICE={host,guest,receive,syncGuest,syncAll,suspend,resume,leave,install,refresh,hideVillagePopup,decorateLobby,drawBadge,
  get active(){return ownVoice()&&!suspended},get room(){return sessionCode},get mode(){return mode},
  get status(){return status},get match(){return config?.match||''}};
 })();

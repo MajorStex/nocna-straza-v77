@@ -71,16 +71,22 @@
  const my={x:840,y:506};
  const root=document.createElement('section');root.id='ns109Village';root.className='ns109Hidden';root.setAttribute('aria-label','Village lobby');
  root.innerHTML=
-  '<div id="ns109Top"><strong>🏡 NIGHT WATCH · VILLAGE</strong><span id="ns109Info" role="status" aria-live="polite">◇ OFFLINE SELO</span><button id="ns141Server" type="button">🌐 PODIGNI SERVER</button>'+
+  '<div id="ns109Top"><strong>🏡 '+tr('VILLAGE','SELO')+' · V169</strong><span id="ns109Info" role="status" aria-live="polite">◇ OFFLINE SELO</span><button id="ns141Server" type="button">🌐 PODIGNI SERVER</button>'+
   '<button id="ns109Sound" type="button">♫</button><button id="ns109Classic" type="button">☷ CLASSIC LOBBY</button></div>'+
   '<div id="ns109Stage"><canvas id="ns109Scene" width="960" height="540" aria-label="Village with interactive buildings"></canvas><div id="ns117Stick" class="ns109Hidden" aria-hidden="true"><span id="ns117Knob"></span></div><button id="ns117Dodge" type="button" aria-label="Dodge / Izbegni">↝<small>DODGE</small></button><button id="ns120Door" type="button" class="ns109Hidden" aria-label="Enter building / Uđi u kućicu">↳ ENTER</button>'+
   '<button id="ns138Attack" type="button" aria-label="Attack nearby animals or players" title="Attack · J / F">⚔<small>ATTACK</small></button>'+
   '<div id="ns141Join" class="ns109Hidden" aria-live="polite"></div><div id="ns109Hint">Tap the ground to move, or a house to walk there. Enter the green gate when ready.</div></div>'+
-  '<div id="ns109Bottom"><button id="ns144Fx" type="button" aria-label="Toggle village sounds">🔊 FX</button><button id="ns109Results" type="button">🏆 RESULTS</button>'+
+  // V169 mobile toolbar: existing actions are preserved, secondary tools move to a menu.
+  '<div id="ns169Scrim" hidden></div>'+
+  '<div id="ns169Menu" hidden role="group" aria-label="Village options"><strong>🏡 VILLAGE · MENI</strong>'+
+  '<button id="ns144Fx" type="button" aria-label="Toggle village sounds">🔊 FX</button>'+
+  '<button id="ns109Results" type="button">🏆 RESULTS</button>'+
   '<button id="ns109Global" type="button">🌍 GLOBAL RANKINGS</button>'+
   '<button id="ns109Sparta" type="button">🛡 SPARTA</button>'+
-  '<button id="ns109Voices" type="button">🎙 VOICE</button>'+
-  '<button id="ns109Chat" type="button">💬 CHAT</button><button id="ns141Training" type="button">⚔ TRENING: OFF</button></div>'+
+  '<button id="ns109Voices" type="button">🎙 SNIMLJENI GLASOVI</button></div>'+
+  '<div id="ns109Bottom"><button id="ns109Chat" type="button">💬 CHAT</button>'+
+  '<button id="ns141Training" type="button">⚔ TRENING: OFF</button>'+
+  '<button id="ns169More" type="button" aria-controls="ns169Menu" aria-expanded="false" aria-label="Više opcija">☰ MENI</button></div>'+
   '<div id="ns109Pane" class="ns109Hidden" role="dialog" aria-modal="false"><div class="ns109PaneBox"><div id="ns109PaneHead"><strong id="ns109PaneTitle"></strong><button id="ns109PaneBack" type="button">✕</button></div><div id="ns109PaneContent"></div></div></div>';
  const css=document.createElement('style');css.textContent=[
   '#ns109Village{position:fixed;inset:0;z-index:110;background:#101d24;color:#f3e7cc;display:flex;flex-direction:column;font-family:system-ui,sans-serif;overflow:hidden;touch-action:manipulation}',
@@ -125,6 +131,7 @@
   'body.ns109External #nsShopPanel:not(.hidden),body.ns109External #nsArmoryPanel:not(.hidden),body.ns109External #nsGuidePanel:not(.hidden){z-index:150!important}',
   '@media(max-width:560px){#ns109Top{gap:5px}#ns109Info{display:none}#ns109Bottom{gap:4px}#ns109Bottom button{min-height:35px;padding:6px}}'
  ].join('');
+ css.textContent += "\n/* V169 mobile HUD, presentation-only: no new loops or room packets */\n#ns169Scrim[hidden],#ns169Menu[hidden]{display:none!important}\n#ns169Scrim{position:absolute;inset:0;z-index:7;background:#05100e8c}\n#ns169Menu{position:absolute;right:10px;bottom:calc(65px + env(safe-area-inset-bottom));z-index:8;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;width:min(350px,calc(100% - 20px));max-height:min(64dvh,480px);overflow:auto;overscroll-behavior:contain;padding:12px;background:#152b2bf2;border:1px solid #c4ab7f9c;border-radius:18px;box-shadow:0 18px 45px #030b0cdd;backdrop-filter:blur(12px)}\n#ns169Menu strong{grid-column:1/-1;font:800 12px system-ui;color:#f1d6a5;padding:3px 2px 5px}\n#ns169Menu button{white-space:normal!important;text-align:left;min-width:0;min-height:44px!important;line-height:1.3!important;background:#223f3a;border:1px solid #62867b}\n#ns169Menu #ns109Global{grid-column:1/-1}\n#ns169More{background:#2f4545!important;border-color:#95b2a2!important;color:#f7e9ca!important}\n@media(max-width:600px){\n#ns109Village{--v169edge:10px}\n#ns109Village button{min-height:39px;border-radius:11px}\n#ns109Top{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:\"brand server music\" \"dest start voice\";gap:5px 6px;align-items:center;flex-wrap:nowrap;padding:calc(7px + env(safe-area-inset-top)) var(--v169edge) 7px;background:#12262a;border-bottom:1px solid #58786c55}\n#ns109Top strong{grid-area:brand;min-width:0;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 clamp(11px,3.1vw,14px) system-ui}\n#ns109Info{display:none!important}\n#ns141Server{grid-area:server;max-width:118px!important;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:11px!important;min-height:36px!important;padding:6px 10px!important;border-radius:12px!important}\n#ns109Sound{grid-area:music;width:54px;min-width:54px;padding:6px 5px!important;min-height:36px!important;font-size:11px!important}\n#ns109Destinations{grid-area:dest;width:100%;max-width:100%!important;min-width:0;height:38px;min-height:38px;border-radius:11px;font-size:11px;padding:5px 7px;overflow:hidden;text-overflow:ellipsis}\n#ns109Classic{grid-area:start;min-width:0;max-width:139px!important;min-height:38px!important;padding:7px 9px!important;font-size:11px!important;background:#294148;border:1px solid #647b7b}\n#ns165VillageVoice{grid-area:voice;width:54px;min-width:54px;min-height:38px!important;padding:7px 4px!important;font-size:12px!important}\n#ns109Bottom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) minmax(0,.82fr);gap:7px;align-items:stretch;padding:7px var(--v169edge) calc(8px + env(safe-area-inset-bottom));background:#132b2b;border-top:1px solid #657f6c66}\n#ns109Bottom button{min-width:0;width:100%;min-height:42px!important;padding:7px 4px!important;font-size:clamp(10px,2.8vw,12px)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap!important;letter-spacing:0}\n#ns117Dodge{left:12px;bottom:14px;width:64px;height:64px;font-size:21px!important;box-shadow:0 3px 16px #0006}\n#ns138Attack{right:12px;bottom:14px;width:68px;height:68px;font-size:22px!important}\n#ns120Door{right:88px;bottom:24px;max-width:min(210px,calc(100vw - 190px));font-size:11px!important;min-height:36px}\n#ns109Hint{display:none}\n#ns141Join{top:9px;max-width:min(85vw,320px);font-size:11px}\n#ns169Menu{bottom:calc(59px + env(safe-area-inset-bottom))}\n}\n@media(max-width:360px){#ns109Top{grid-template-columns:minmax(0,1fr) 92px 46px}#ns109Sound,#ns165VillageVoice{width:46px;min-width:46px}#ns109Classic{max-width:118px!important;padding:6px!important}#ns109Top strong{font-size:11px!important}}\n@media(max-height:660px) and (max-width:600px){#ns109Top{padding-top:4px;row-gap:3px}#ns109Bottom{padding-top:4px;padding-bottom:4px}#ns109Bottom button{min-height:38px!important}}\n";
  document.head.append(css);document.body.append(root);if(fpsBadge)root.append(fpsBadge);
  const canvas=$('ns109Scene');let g=canvas.getContext('2d',{alpha:false});const pane=$('ns109Pane'),area=$('ns109PaneContent');
  const destinations=document.createElement('select');destinations.id='ns109Destinations';destinations.setAttribute('aria-label','Choose a village building');
@@ -132,6 +139,21 @@
  for(const b of buildings){const opt=document.createElement('option');opt.value=b.id;opt.textContent=tr(b.label,b.sr);destinations.append(opt)}
  destinations.onchange=()=>{const b=buildings.find(x=>x.id===destinations.value);destinations.value='';if(b)startVillageTravel(b.x,b.y+b.h/2+26,b.id)};
  $('ns109Top').insertBefore(destinations,$('ns109Classic'));
+ // Pure DOM menu: original button IDs and click handlers stay intact.
+ function setVillageMenu(open=false){
+  const menu=$('ns169Menu'),scrim=$('ns169Scrim'),button=$('ns169More');
+  if(!menu||!scrim||!button)return;
+  const show=!!open&&opened&&!root.classList.contains('ns109Hidden');
+  menu.hidden=!show;scrim.hidden=!show;
+  button.setAttribute('aria-expanded',String(show));
+  root.classList.toggle('ns169MenuOpen',show);
+  if(show){window.NS165_CLASSIC_VOICE?.hideVillagePopup?.();menu.querySelector('button')?.focus({preventScroll:true})}
+ }
+ $('ns169More').onclick=()=>setVillageMenu($('ns169Menu').hidden);
+ $('ns169Scrim').onclick=()=>setVillageMenu(false);
+ for(const button of $('ns169Menu').querySelectorAll('button'))
+  button.addEventListener('click',()=>setVillageMenu(false));
+
  function view(){
   const r=canvas.getBoundingClientRect(),portrait=r.height>r.width*1.28;
   const scale=portrait?Math.min(r.height/540,r.width/360):Math.min(r.width/960,r.height/540);
@@ -149,6 +171,7 @@
  const ownName=()=>{try{return String(getActiveAccount()?.name||'GUARDIAN').slice(0,20)}catch{return 'GUARDIAN'}};
  const getPlayers=()=>{try{return currentLobbyRoster()}catch{return []}};
  function closePane(){
+  setVillageMenu(false);
   if(focusNode&&returnPlace){returnPlace.appendChild(focusNode);if(focusNode.id==='coopForge')focusNode.classList.add('hidden')}
   focusNode=null;returnPlace=null;focused=null;pane.classList.add('ns109Hidden');area.replaceChildren();
  }
@@ -1111,6 +1134,7 @@ function showAchievements(){
   else{startVillageTravel(p.x,p.y)}
  }
  function showVillage(){
+  setVillageMenu(false);
   if(!canVisit()){toast(tr('Open the village from the main menu or multiplayer lobby.','Otvori selo iz glavnog menija ili multiplayer lobija.'));return false;}
   soloPreview=!isLobby();
   if(!soloPreview){$('coopPanel')?.classList.remove('hidden');$('lobbyArea')?.classList.remove('hidden')}
@@ -1124,6 +1148,7 @@ function showAchievements(){
   return true;
  }
  function closeVillage(){
+  setVillageMenu(false);window.NS165_CLASSIC_VOICE?.hideVillagePopup?.();
   // Opt-out on exit (game starts, lobby closes or player leaves); no persistent arena state.
   if(isLobby()&&getPvP(NET.localId).opted){
    if(NET.role==='host'){getPvP(NET.localId).opted=false;villageBroadcastPvp()}
@@ -1328,7 +1353,7 @@ function showAchievements(){
   toast(trainingOn?tr('Training only · no XP or rewards','Samo trening · bez XP-a i nagrada'):tr('Training paused','Trening pauziran'));
  };
  // V117 pointer handlers above distinguish tap-to-enter from drag-to-move.
- document.addEventListener('keydown',e=>{if(!opened||!canVisit())return;if(e.key==='Escape'&&!pane.classList.contains('ns109Hidden')){e.stopImmediatePropagation();closePane()}else if(e.key==='Escape'){e.stopImmediatePropagation();closeVillage()}},true);
+ document.addEventListener('keydown',e=>{if(!opened||!canVisit())return;if(e.key==='Escape'&&!$('ns169Menu').hidden){e.stopImmediatePropagation();setVillageMenu(false)}else if(e.key==='Escape'&&!pane.classList.contains('ns109Hidden')){e.stopImmediatePropagation();closePane()}else if(e.key==='Escape'){e.stopImmediatePropagation();closeVillage()}},true);
  const homeVillage=document.createElement('button');homeVillage.id='ns110VillageHome';homeVillage.type='button';homeVillage.textContent='🏡 '+tr('EXPLORE VILLAGE · CHILL HUB','ISTRAŽI SELO · CHILL LOBI');homeVillage.onclick=()=>{if(G.mode!=='menu'){toast(tr('Village is available between runs.','Selo je dostupno između partija.'));return}localStorage.setItem('ns109_village_pref','village');showVillage()};($('ns50MenuPlay')||$('coopBtn'))?.insertAdjacentElement('beforebegin',homeVillage);
  const enterButton=document.createElement('button');enterButton.id='ns109Visit';enterButton.type='button';enterButton.textContent='🏡 '+tr('ENTER VILLAGE','UĐI U SELO');enterButton.onclick=()=>{localStorage.setItem('ns109_village_pref','village');showVillage()};
  $('lobbyArea')?.insertBefore(enterButton,$('roomCode'));
