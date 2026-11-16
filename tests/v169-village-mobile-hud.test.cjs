@@ -20,6 +20,8 @@ assert(arena.includes('function drawArenaXpCrystals'),'V168 crystal rendering mu
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto('file://'+path.join(ROOT,'index.html')+'?village-test=1',{waitUntil:'domcontentloaded'});
    await page.waitForFunction(()=>window.NS109_VILLAGE?.opened,{timeout:16000});
+   // The file:// harness has no signed-in account; dismiss unrelated auth dialog.
+   await page.evaluate(()=>document.querySelector('#ns82-auth')?.remove());
    const get=()=>page.evaluate(()=>{
     const rect=id=>{
      const el=document.getElementById(id),r=el?.getBoundingClientRect();
