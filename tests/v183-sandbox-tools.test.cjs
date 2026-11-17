@@ -50,6 +50,7 @@ try{
  console.log('V182 WORKSHOP BATTLE AND IMMERSIVE PASS',JSON.stringify({twoBrowsers:true,hostGuestLayoutsIndependent:true,hostOwnsDamage:true,guestHp:combat.hp,guestMaxHp:combat.maxHp,observe:true}));
  // World editor: selected targeting, static props, copied/deleted layout, undo/redo, reset.
  await host.locator('#ns183Sandbox summary').click();
+ await host.locator('[data-action=resetCombat]').click();
  await host.locator('#ns183Selection').selectOption('a0');
  await host.locator('#ns183Targets').selectOption('p2');
  await host.locator('[data-action=attack]').click();
@@ -76,6 +77,7 @@ try{
  assert.equal(await host.evaluate(()=>NS171_CREATOR.test.simulation.props.length),2);
  const collision=await host.evaluate(()=>{const s=NS171_CREATOR.test.simulation.props[0];const p=NS171_CREATOR.workshopMove(s.x-50,s.y,s.x,s.y);return p.x!==s.x});
  assert(collision,'host collision rejects obstacle center');
+ await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.props===2);
  await guest.locator('[data-w=save]').click();
  await guest.waitForFunction(()=>NS176_SCENES.list(NS171_CREATOR.clean,NS174_AI,NS175_FACTIONS).some(s=>s.props?.length===2));
  console.log('V183 EDITOR PASS',JSON.stringify({targeted:true,stop:true,undoRedo:true,props:2,guestSave:true,collision:true}));
