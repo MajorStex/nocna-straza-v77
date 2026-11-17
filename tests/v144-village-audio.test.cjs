@@ -6,7 +6,7 @@ const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8'
 const code=fs.readFileSync(path.resolve(__dirname,'../public/v115-village.js'),'utf8');
 const provenance=fs.readFileSync(path.resolve(__dirname,'../public/THIRD_PARTY_AUDIO.md'),'utf8');
 assert.match(html,/<title>Night Watch v(14[4-9]|1[5-9][0-9]) — Noćna Straža<\/title>/);
-assert.match(html,/v115-village\.js\?v=144/);
+assert.match(html,/v115-village\.js\?v=(?:14[4-9]|1[5-9][0-9]|[2-9][0-9]{2})(?:[&"'])/);
 assert.match(code,/id="ns144Fx"/);
 assert.match(code,/function primeVillageAudio\(\)/);
 assert.match(code,/function playAnimalCall\(kind,x,y,hit=false\)/);
