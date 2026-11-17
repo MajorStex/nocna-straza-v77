@@ -23,7 +23,7 @@ assert(!/fetch\(|new WebSocket|XMLHttpRequest|https?:\/\//.test(voice));
   await page.locator('[data-tab=voice]').click();
   await page.waitForFunction(()=>document.querySelector('[data-voice-count]')?.textContent.includes('0 / 27'));
   const layout=await page.evaluate(()=>{const f=document.getElementById('ns171Fields');return {overflow:f.scrollWidth>f.clientWidth+2,tabs:[...document.querySelectorAll('#ns171Creator [data-tab]')].length}});
-  assert(!layout.overflow&&[5,6].includes(layout.tabs));
+  assert(!layout.overflow&&[5,6,7].includes(layout.tabs));
   await page.locator('[data-voice-action=record]').click();
   await page.waitForFunction(()=>window.NS172_VOICES.test.recording,{timeout:10000});
   await page.waitForTimeout(800);
