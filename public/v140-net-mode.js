@@ -5,6 +5,25 @@ if(window.NS140_ARENA)return;
 // V164 temporary public testing: New Zone solo and co-op are open from account level 0.
 const NS140_TEMP_UNLOCK_LEVEL=0;
 const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+// BEGIN V189 SPELL MECHANICS
+// V189 shared Nova Zone spell mechanics (classic NS93 values, zero permanent rewards).
+const ARENA_SPELLS=[
+  {id:'spark',icon:'✦',en:'Spark',sr:'Iskra',cost:12,price:0,cd:3.6,radius:57,damage:29,range:355,color:'#a6d9ff',audio:490,cap:4},
+  {id:'lightning',icon:'⚡',en:'Lightning',sr:'Grom',cost:26,price:7,cd:6.5,radius:63,damage:61,range:360,color:'#b9b0ff',audio:260,cap:5},
+  {id:'fire',icon:'🔥',en:'Fireburst',sr:'Vatrena eksplozija',cost:23,price:6,cd:5.4,radius:86,damage:41,range:350,color:'#ffad6b',audio:160,cap:7},
+  {id:'frost',icon:'❄',en:'Glacial Spike',sr:'Ledeni šiljci',cost:28,price:9,cd:8.5,radius:110,damage:31,range:340,color:'#a0e7f7',audio:420,cap:7,slow:2.4},
+  {id:'chain',icon:'⌁',en:'Chain Storm',sr:'Lančana oluja',cost:36,price:12,cd:10,radius:112,damage:49,range:365,color:'#dab3ff',audio:320,cap:5},
+  {id:'comet',icon:'☄',en:'Comet',sr:'Kometa',cost:48,price:17,cd:12,radius:118,damage:79,range:370,color:'#ffbd8a',audio:125,cap:8},
+  {id:'heal',icon:'✚',en:'Healing Circle',sr:'Krug lečenja',cost:36,price:11,cd:15,radius:135,damage:0,heal:28,range:290,color:'#8be3b2',audio:660,cap:6},
+  {id:'nova',icon:'✺',en:'Arcane Nova',sr:'Magični talas',cost:61,price:22,cd:19,radius:150,damage:68,range:325,color:'#d2aaff',audio:190,cap:9}
+ ];
+function arenaSpellInit(p,cls){const mage=cls==='mage',max=mage?102:64;if(!Number.isFinite(p.spellMana)){p.spellMana=max;p.spellCd=Array(8).fill(0)}p.spellMax=max;p.spellMana=Math.min(max,p.spellMana);p.spellRegen=mage?4.3:2.5;if(!Array.isArray(p.spellCd)||p.spellCd.length!==8)p.spellCd=Array(8).fill(0)}
+function arenaSpellTick(p,cls){arenaSpellInit(p,cls);p.spellMana=Math.min(p.spellMax,p.spellMana+p.spellRegen/30)}
+function arenaSpellState(p,tick){return [Math.round((p.spellMana||0)*10),p.spellMax||64,(p.spellCd||Array(8).fill(0)).map(t=>Math.max(0,t-tick)),p.spellSeq||0]}
+function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2)return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.kind==='troll'?34:14),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2)victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(m.kind==='troll'?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-damage);m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
+function arenaSpellExpire(mobs,tick){for(const m of mobs)if(m.spellSlowFactor&&tick>=m.spellSlowUntil){m.spellSlowFactor=0;m.spellSlowUntil=0}}
+function arenaSpellEvents(events,tick){return events.filter(e=>tick-e[4]<=24).slice(-18)}
+// END V189 SPELL MECHANICS
 // Shared V152 crowd formula identical to server navigation and 30Hz movement.
 // V150: predictable, allocation-bounded movement for New Zone's PvE mobs.
 // Only the server decides positions. Each player destination gets one cached
@@ -175,6 +194,17 @@ const labDefaultCount=wave=>Math.min(80,60+Math.max(0,wave-1)*10);
 const xpNeeded=(level)=>{let v=160;for(let n=1;n<Math.min(level,100);n++)v=Math.round(v*1.12+18);return v};
 const XP_CAP=160;
 const el=id=>document.getElementById(id);
+let magicSupported=false,spellSlot=0,spellSeq=0,spellView=null,spellFx=[],spellSeen=new Map(),spellAim=null,spellHudAt=0,spellPendingAt=0;
+function resetArenaMagic(){magicSupported=false;spellSeq=0;spellView=null;spellFx=[];spellSeen.clear();spellAim=null;spellHudAt=spellPendingAt=0;if(el('ns189Picker'))el('ns189Picker').hidden=true;if(el('ns189Magic'))el('ns189Magic').hidden=true}
+function arenaMagicAvailable(){return N.phase==='running'&&(N.solo||magicSupported)&&N.me?.hp>0&&!N.me.knocked&&!N.paused&&el('ns158Menu')?.hidden!==false&&!LAB_PAUSE.paused&&!(N.solo?N.soloChoice||N.soloState!=='play':N.choice||N.waveState!=='play')}
+function magicPoint(clientX,clientY){const r=el('ns140Canvas').getBoundingClientRect(),z=clamp(Math.max(r.width/750,r.height/760),.7,1.45);return{x:N.me.x+(clientX-r.left-r.width/2)/z,y:N.me.y+(clientY-r.top-r.height/2)/z}}
+function spellTarget(slot){const s=ARENA_SPELLS[slot],p=N.me;if(s.heal)return{x:p.x,y:p.y};let best=null,dist=Math.min(250,s.range)**2;for(const m of (N.solo?N.soloMobs:N.mpMobs)){if(m.hp<=0)continue;const d=(m.x-p.x)**2+(m.y-p.y)**2;if(d<dist){best=m;dist=d}}const angle=p.facingAngle??p.attackAngle??0;return best?{x:best.x,y:best.y}:{x:p.x+Math.cos(angle)*105,y:p.y+Math.sin(angle)*105}}
+function showArenaSpell(event){if(!Array.isArray(event)||event.length!==5||!Number.isSafeInteger(event[0])||spellSeen.has(event[0])||!ARENA_SPELLS[event[1]]||!event.slice(2).every(Number.isFinite))return;spellSeen.set(event[0],event[4]);for(const [id,t] of spellSeen)if(event[4]-t>120)spellSeen.delete(id);spellFx.push({event,at:performance.now()});if(spellFx.length>18)spellFx.shift();const me=N.me;if(me&&(event[2]-me.x)**2+(event[3]-me.y)**2<640**2)B().arenaSpellSound?.(ARENA_SPELLS[event[1]].id,event[2],event[3],me)}
+function requestArenaSpell(slot,point){if(!arenaMagicAvailable()||!ARENA_SPELLS[slot])return false;const p=N.me,s=ARENA_SPELLS[slot],state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state||state[0]<s.cost*10||state[2][slot]>0)return false;const q=point||spellTarget(slot);if(point&&(q.x<30||q.y<30||q.x>N.world.w-30||q.y>N.world.h-30))return false;const x=Math.round(clamp(q.x,30,N.world.w-30)),y=Math.round(clamp(q.y,30,N.world.h-30));if((x-p.x)**2+(y-p.y)**2>s.range**2)return false;if(N.solo){const e=arenaSpellCast({p,players:N.players,mobs:N.soloMobs,world:N.world,tick:N.soloTick,cls:localArenaLook().heroClass,slot,x,y,kill:m=>{m.deadUntil=N.soloTick+105;N.soloKills++;p.kills++;spawnSoloXpCrystal(m)}});if(e){showArenaSpell(e);spellHudAt=0;return true}return false}if(N.ws?.readyState!==1||N.ws.bufferedAmount>=4000||performance.now()-spellPendingAt<170)return false;spellPendingAt=performance.now();N.ws.send(JSON.stringify({t:'spell',seq:++spellSeq,slot,x,y}));return true}
+function refreshMagicHud(now){const dock=el('ns189Magic');if(!dock)return;const enabled=arenaMagicAvailable();if(dock.hidden===enabled)dock.hidden=!enabled;if(!enabled){spellAim=null;el('ns189Picker').hidden=true;return}if(now-spellHudAt<140)return;spellHudAt=now;const p=N.me,state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state){el('ns189Cast').disabled=true;return}const s=ARENA_SPELLS[spellSlot],mana=state[0]/10,remaining=state[2][spellSlot]/30,b=el('ns189Cast');el('ns189Mana').textContent=Math.floor(mana)+' / '+state[1]+' MP';el('ns189ManaFill').style.width=Math.min(100,mana/state[1]*100)+'%';b.textContent=s.icon+' '+s.sr+(remaining>0?' · '+Math.ceil(remaining)+'s':' · '+s.cost+' MP');b.disabled=mana<s.cost||remaining>0;b.style.borderColor=s.color;const picker=el('ns189Picker');if(!picker.hidden&&picker.dataset.slot!==String(spellSlot)){picker.dataset.slot=String(spellSlot);picker.querySelectorAll('button').forEach((q,i)=>q.setAttribute('aria-pressed',String(i===spellSlot)))}}
+function mountArenaMagic(root,style){style.textContent+='#ns189Magic{position:absolute;left:calc(10px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;width:min(205px,42vw);font:700 11px system-ui;color:#e3f4ff;background:#152a35e8;border:1px solid #7196bf;border-radius:11px;padding:5px;touch-action:none}#ns189Magic[hidden],#ns189Picker[hidden]{display:none!important}#ns189Magic button{background:#243d50;color:#e8f6ff;border:1px solid #7698b8;border-radius:7px;min-height:34px;font:700 11px system-ui;touch-action:none}#ns189Magic button:disabled{opacity:.52}#ns189ManaTrack{height:5px;background:#14202f;border-radius:5px;overflow:hidden;margin:3px 0}#ns189ManaFill{height:100%;background:#58abeb}#ns189CastRow{display:flex;gap:4px}#ns189Cast{flex:1}#ns189Picker{position:absolute;bottom:100%;left:0;width:min(280px,75vw);display:grid;grid-template-columns:repeat(2,1fr);gap:4px;padding:6px;background:#142933f5;border:1px solid #83a1bc;border-radius:9px}#ns189Picker button[aria-pressed=true]{border-color:#ffe1a2;background:#3e4b5d}';const dock=document.createElement('div');dock.id='ns189Magic';dock.hidden=true;dock.innerHTML='<span id="ns189Mana">0 MP</span><div id="ns189ManaTrack"><div id="ns189ManaFill"></div></div><div id="ns189CastRow"><button id="ns189Cast" type="button" aria-label="Baci magiju">✦ Iskra</button><button id="ns189Swap" type="button" aria-label="Izaberi magiju">⇄</button></div><div id="ns189Picker" hidden></div>';root.append(dock);const picker=el('ns189Picker');for(const [i,s] of ARENA_SPELLS.entries()){const b=document.createElement('button');b.type='button';b.textContent=s.icon+' '+s.sr+' · '+s.cost+' MP';b.onclick=()=>{spellSlot=i;picker.hidden=true;spellHudAt=0;refreshMagicHud(performance.now())};picker.append(b)}el('ns189Swap').onclick=()=>{picker.hidden=!picker.hidden;spellHudAt=0;refreshMagicHud(performance.now())};const btn=el('ns189Cast');btn.addEventListener('pointerdown',e=>{if(!arenaMagicAvailable()||btn.disabled||e.button>0)return;e.preventDefault();e.stopPropagation();A()?.unlock();B().unlockSound?.();spellAim={id:e.pointerId,slot:spellSlot,x:e.clientX,y:e.clientY,moved:false,point:null};try{btn.setPointerCapture(e.pointerId)}catch{}});btn.addEventListener('pointermove',e=>{if(spellAim?.id!==e.pointerId)return;spellAim.moved=spellAim.moved||Math.hypot(e.clientX-spellAim.x,e.clientY-spellAim.y)>12;if(spellAim.moved)spellAim.point=magicPoint(e.clientX,e.clientY)});btn.addEventListener('pointerup',e=>{if(spellAim?.id!==e.pointerId)return;const a=spellAim;spellAim=null;requestArenaSpell(a.slot,a.moved?magicPoint(e.clientX,e.clientY):null)});for(const name of ['pointercancel','lostpointercapture'])btn.addEventListener(name,()=>{spellAim=null});btn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();requestArenaSpell(spellSlot)}})}
+function drawArenaMagic(g,now,visible){if(spellAim?.point&&N.me){const p=spellAim.point,s=ARENA_SPELLS[spellAim.slot],valid=(p.x-N.me.x)**2+(p.y-N.me.y)**2<=s.range**2;g.save();g.strokeStyle=valid?s.color:'#f87878';g.lineWidth=2;g.beginPath();g.arc(p.x,p.y,s.radius,0,Math.PI*2);g.stroke();g.restore()}if(!spellFx.length)return;spellFx=spellFx.filter(q=>now-q.at<720);for(const q of spellFx){const [id,slot,x,y]=q.event,s=ARENA_SPELLS[slot];if(x+s.radius<visible.left||x-s.radius>visible.right||y+s.radius<visible.top||y-s.radius>visible.bottom)continue;const life=1-clamp((now-q.at)/720,0,1);g.save();g.translate(x,y);g.globalAlpha=life;const classicDraw=B().arenaSpellDraw;if(classicDraw)classicDraw(g,{id,value:{id:s.id,radius:s.radius}},life);else{g.strokeStyle=s.color;g.lineWidth=2;g.beginPath();g.arc(0,0,s.radius*(1-life*.8),0,Math.PI*2);g.stroke()}g.restore()}}
+
 function ui(){
  if(el('ns140Root'))return;
  const style=document.createElement('style');
@@ -229,7 +259,7 @@ function ui(){
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
  '<div id="ns152Choice" hidden><div id="ns152ChoiceCard"><h3 id="ns152ChoiceTitle">OTVOREN SANDUK</h3><p id="ns152ChoiceText"></p><div id="ns152Choices"><button data-pick="edge">⚔ OŠTRIJA OŠTRICA · +20% ŠTETE</button><button data-pick="heart">♥ ČUVAROVO SRCE · +25 HP</button><button data-pick="boots">➤ BRŽE ČIZME · +10% BRZINE</button></div><span id="ns152Timer">7 s</span></div></div>';
- document.body.append(style,root);
+ document.body.append(style,root);mountArenaMagic(root,style);
  // Lazy-load independent voice client only when entering New Zone.
  if(!window.NS159_VOICE&&!document.getElementById('ns159VoiceScript')){
   const voiceScript=document.createElement('script');voiceScript.id='ns159VoiceScript';
@@ -365,6 +395,7 @@ function ui(){
   if(k==='escape'&&!el('ns158Menu')?.hidden){e.preventDefault();closeArenaMenu();return}
   if((k==='escape'||k==='p')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation?.();toggleArenaPause();return}
   if(N.paused)return;
+  if(/^[1-8]$/.test(k)){e.preventDefault();if(!e.repeat){spellSlot=Number(k)-1;spellHudAt=0;requestArenaSpell(spellSlot)}return}
   A()?.unlock();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault();
  });
  window.addEventListener('keyup',e=>N.keys.delete(e.key.toLowerCase()));
@@ -479,7 +510,7 @@ function status(note){
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
 function stop(notify=false){
- N.prepareAttempt=(N.prepareAttempt||0)+1;
+ resetArenaMagic();N.prepareAttempt=(N.prepareAttempt||0)+1;
  window.NS179_DIAGNOSTICS?.close();
  window.NS159_VOICE?.stop();
  const wasSolo=N.solo;
@@ -556,7 +587,7 @@ function snapshot(m){
   N.arrivalJitter=(N.arrivalJitter||0)*.85+variation*.15;
   N.interpolationTicks=clamp(3+Math.ceil(N.arrivalJitter/34),3,7);
  }
- N.tick=m.tick;N.lastState=arrived;N.serverMs=Number(m.ms)||0;
+ N.tick=m.tick;N.lastState=arrived;if(magicSupported&&Array.isArray(m.spell)&&Number.isFinite(m.spell[0])&&Number.isFinite(m.spell[1])&&Array.isArray(m.spell[2])&&m.spell[2].length===8){spellView=m.spell;spellSeq=Math.max(spellSeq,Number(m.spell[3])||0)}if(magicSupported&&Array.isArray(m.spellFx))for(const event of m.spellFx.slice(-18))showArenaSpell(event);N.serverMs=Number(m.ms)||0;
  if(Number.isFinite(m.serverNow))N.serverNow=m.serverNow;
  if(typeof m.globalPaused==='boolean')LAB_PAUSE.paused=m.globalPaused;
  if(Array.isArray(m.allies))LAB_REMOTE={...(LAB_REMOTE||{}),allies:m.allies.slice(0,3).map(a=>({id:a[0],x:a[1]/10,y:a[2]/10,hp:a[3],lastAttack:a[4]}))};
@@ -829,7 +860,7 @@ function startSolo(){
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL||B().NET?.role||!['idle','error'].includes(N.phase))return false;
  if(N.ws){try{N.ws.close()}catch{}N.ws=null}
  LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_WEAPON=null;LAB_LOOK=null;LAB_UNDO=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};
- N.solo=true;N.phase='running';N.paused=false;N.id='p1';N.match='offline';N.ticket='';
+ resetArenaMagic();magicSupported=true;N.solo=true;N.phase='running';N.paused=false;N.id='p1';N.match='offline';N.ticket='';
  N.world={w:4200,h:4200,r:14,speed:156,decorSeed:168,obstacles:[
   {x:275,y:140,w:95,h:92},{x:585,y:330,w:102,h:94},
   {x:435,y:245,w:75,h:84},{x:165,y:350,w:87,h:58},
@@ -844,13 +875,13 @@ function startSolo(){
  N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=60;
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
  N.soloChests=[{id:1,x:1790,y:2025,opened:false},{id:2,x:2220,y:2140,opened:false},{id:3,x:2730,y:2380,opened:false}];
- N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();
- N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt,y*N.world.speed*dt));
+ N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();B().unlockSound?.();
+ N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt*(p.spellSlowFactor||1),y*N.world.speed*dt*(p.spellSlowFactor||1)));
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;resetRenderQuality();
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.stick.ptr=null;N.stick.x=N.stick.y=0;
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
  N.me={id:'p1',x:2030,y:2070,tx:2030,ty:2070,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false,xp:0,xpNeed:160,level:1,xpCollected:0,queuedUpgrades:0};
- N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
+ arenaSpellInit(N.me,localArenaLook().heroClass);N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  N.soloMobs=buildSoloWave(1);
  window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
  status('V168 · SOLO · PLAVI EXP KRISTALI · MAPA 4200×4200');
@@ -918,6 +949,7 @@ function stepSolo(dt){
    }
    continue;
   }
+  arenaSpellTick(me,N.looks.get('p1')?.look?.heroClass||'warrior');arenaSpellExpire(N.soloMobs,N.soloTick);
   // Fixed physics 30Hz, steering only at 15Hz, interpolation at display FPS.
   for(const mob of N.soloMobs){mob.prevX=mob.x;mob.prevY=mob.y}
   if(!LAB.freezeAI){
@@ -929,7 +961,7 @@ function stepSolo(dt){
    for(const boss of N.soloMobs)if(boss.kind==='troll'&&boss.hp>0&&!boss.labFrozen){
     boss.targetId=me.id;
     const dx=me.x-boss.x,dy=me.y-boss.y,dist=Math.hypot(dx,dy);
-    if(dist>66)moveLocal(boss,dx/dist*67/30,dy/dist*67/30);
+    if(dist>66)moveLocal(boss,dx/dist*67/30*(boss.spellSlowFactor||1),dy/dist*67/30*(boss.spellSlowFactor||1));
    }
   }
   if(LAB.allies.length)stepSoloAllies();
@@ -1119,7 +1151,7 @@ function connect(match,id,ticket,rejoin=false){
  if(rejoin?(N.phase!=='reconnecting'||!!N.ws):N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL){N.phase='error';status('NOVA ZONA privremeno dostupna od nivoa 0');return false}
  if(!rejoin){
-  LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
+  resetArenaMagic();LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
   resetRenderQuality();N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
   N.arrivalJitter=0;N.interpolationTicks=3;N.rejoinCorrection=false;
@@ -1156,7 +1188,7 @@ function connect(match,id,ticket,rejoin=false){
    attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
-    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;
+    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;magicSupported=m.arenaSpells===189;
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
     }
@@ -1699,7 +1731,7 @@ function frame(now){
  g.stroke();
  drawDepthSortedWorld(g,now,dt,visible);
  drawArenaXpCrystals(g,now,visible);
- drawLabThings(g,now,visible);
+ drawLabThings(g,now,visible);drawArenaMagic(g,now,visible);
  // Grouped horde steps. One sound per nearby crowd per 720ms, not 80 voices.
  if(N.visibleMobs>1&&N.me&&now-N.hordeStepAt>=720){
   N.hordeStepAt=now;
@@ -1714,7 +1746,7 @@ function frame(now){
    listenerX:N.me.x,listenerY:N.me.y,gain:.38});
  }
  g.setTransform(dpr,0,0,dpr,0,0);
- sessionHud(now);
+ sessionHud(now);refreshMagicHud(now);
  // Avoid updating live DOM HUD sixty times per second on mid-range phones.
  if(now-(N.statsAt||0)>=320){
   N.statsAt=now;
@@ -1726,7 +1758,7 @@ function frame(now){
  renderCostSum+=performance.now()-frameStart;renderCostCount++;
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, jitterMs:N.arrivalJitter??null, interpolationDelayMs:(N.interpolationTicks||3)*1000/30, renderDpr:RENDER_Q.dpr,cosmeticFxLevel:RENDER_Q.fxLevel,characterQualityLocked:true, frameP95Ms:RENDER_Q.p95Ms, meanFrameCostMs:RENDER_Q.frameCostMs, qualityChanges:RENDER_Q.changes, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, jitterMs:N.arrivalJitter??null, interpolationDelayMs:(N.interpolationTicks||3)*1000/30, renderDpr:RENDER_Q.dpr,cosmeticFxLevel:RENDER_Q.fxLevel,characterQualityLocked:true, frameP95Ms:RENDER_Q.p95Ms, meanFrameCostMs:RENDER_Q.frameCostMs, qualityChanges:RENDER_Q.changes, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {magicSupported:N.solo||magicSupported,magicMana:N.solo?N.me?.spellMana:spellView?.[0]/10,magicCooldown:N.solo&&N.me?arenaSpellState(N.me,N.soloTick)[2]:spellView?.[2],phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
