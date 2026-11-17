@@ -1,0 +1,46 @@
+name: V176 scene and live multiplayer QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/v176-scenes.js'
+      - 'public/v171-character-creator.js'
+      - 'public/v172-character-voices.js'
+      - 'public/v175-faction-relations.js'
+      - 'public/index.html'
+      - 'tests/v176-*'
+      - '.github/workflows/v176-scene-sync.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  editor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Scene persistence and performance
+        run: node tests/v176-scenes.test.cjs
+      - name: Existing features
+        run: |
+          node tests/v175-faction-relations.test.cjs
+          node tests/v174-independent-ai.test.cjs
+          node tests/v173-ability-forge.test.cjs
+          node tests/v172-character-voices.test.cjs
+          node tests/v171-character-creator.test.cjs
+          node tests/v140-isolated-arena.test.cjs
+          node tests/v138-village-pvp-animals.test.cjs
+          node tests/v168-xp-world.test.cjs
+          node tests/current-deployment.test.cjs
+  live-relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Private test room, six peers, authoritative snapshots and reconnect
+        run: node tests/v176-live-sync.mjs

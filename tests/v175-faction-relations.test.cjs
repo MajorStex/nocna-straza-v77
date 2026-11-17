@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');const root=path.resolve(__dirname,'../public'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const code=read('v175-faction-relations.js'),ai=read('v174-independent-ai.js'),html=read('index.html');
 const w={};new Function('window',code)(w);new Function('window',ai)(w);const F=w.NS175_FACTIONS,I=w.NS174_AI;
-assert.match(html,/name="ns-release" content="175"/);assert(html.indexOf('v175-faction-relations.js')<html.indexOf('v174-independent-ai.js'));assert(!/fetch\(|setInterval\(|requestAnimationFrame\(|new WebSocket/.test(code));
+assert.match(html,/name="ns-release" content="17[56]"/);assert(html.indexOf('v175-faction-relations.js')<html.indexOf('v174-independent-ai.js'));assert(!/fetch\(|setInterval\(|requestAnimationFrame\(|new WebSocket/.test(code));
 let matrix={};assert.equal(F.relation(matrix,'enemy','player'),'hostile');assert.equal(F.relation(matrix,'enemy','enemy'),'friendly');assert.equal(F.relation(matrix,'red','blue'),'neutral');
 matrix=F.set(matrix,'red','blue','hostile');assert.equal(F.relation(matrix,'blue','red'),'hostile');assert.equal(F.relation({},'blue','red'),'neutral');assert.deepEqual(F.set(matrix,'blue','red','neutral'),{});
 function actor(faction,x,mat){const a={c:{id:'same',role:'enemy',ai:{mode:'hunt'},behavior:'melee'},s:{hp:100,speed:100,range:65,level:1},hp:100,x,y:200};I.attach(a,{x,y:200,faction});if(mat)F.bind(a,mat);return a}
