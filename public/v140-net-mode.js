@@ -5,6 +5,25 @@ if(window.NS140_ARENA)return;
 // V164 temporary public testing: New Zone solo and co-op are open from account level 0.
 const NS140_TEMP_UNLOCK_LEVEL=0;
 const B=()=>window.__NS110_BRIDGE||{},A=()=>window.NS152_AUDIO||null,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+// BEGIN V189 SPELL MECHANICS
+// V189 shared Nova Zone spell mechanics (classic NS93 values, zero permanent rewards).
+const ARENA_SPELLS=[
+  {id:'spark',icon:'✦',en:'Spark',sr:'Iskra',cost:12,price:0,cd:3.6,radius:57,damage:29,range:355,color:'#a6d9ff',audio:490,cap:4},
+  {id:'lightning',icon:'⚡',en:'Lightning',sr:'Grom',cost:26,price:7,cd:6.5,radius:63,damage:61,range:360,color:'#b9b0ff',audio:260,cap:5},
+  {id:'fire',icon:'🔥',en:'Fireburst',sr:'Vatrena eksplozija',cost:23,price:6,cd:5.4,radius:86,damage:41,range:350,color:'#ffad6b',audio:160,cap:7},
+  {id:'frost',icon:'❄',en:'Glacial Spike',sr:'Ledeni šiljci',cost:28,price:9,cd:8.5,radius:110,damage:31,range:340,color:'#a0e7f7',audio:420,cap:7,slow:2.4},
+  {id:'chain',icon:'⌁',en:'Chain Storm',sr:'Lančana oluja',cost:36,price:12,cd:10,radius:112,damage:49,range:365,color:'#dab3ff',audio:320,cap:5},
+  {id:'comet',icon:'☄',en:'Comet',sr:'Kometa',cost:48,price:17,cd:12,radius:118,damage:79,range:370,color:'#ffbd8a',audio:125,cap:8},
+  {id:'heal',icon:'✚',en:'Healing Circle',sr:'Krug lečenja',cost:36,price:11,cd:15,radius:135,damage:0,heal:28,range:290,color:'#8be3b2',audio:660,cap:6},
+  {id:'nova',icon:'✺',en:'Arcane Nova',sr:'Magični talas',cost:61,price:22,cd:19,radius:150,damage:68,range:325,color:'#d2aaff',audio:190,cap:9}
+ ];
+function arenaSpellInit(p,cls){const mage=cls==='mage',max=mage?102:64;if(!Number.isFinite(p.spellMana)){p.spellMana=max;p.spellCd=Array(8).fill(0)}p.spellMax=max;p.spellMana=Math.min(max,p.spellMana);p.spellRegen=mage?4.3:2.5;if(!Array.isArray(p.spellCd)||p.spellCd.length!==8)p.spellCd=Array(8).fill(0)}
+function arenaSpellTick(p,cls){arenaSpellInit(p,cls);p.spellMana=Math.min(p.spellMax,p.spellMana+p.spellRegen/30)}
+function arenaSpellState(p,tick){return [Math.round((p.spellMana||0)*10),p.spellMax||64,(p.spellCd||Array(8).fill(0)).map(t=>Math.max(0,t-tick)),p.spellSeq||0]}
+function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2)return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.kind==='troll'?34:14),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2)victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(m.kind==='troll'?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-damage);m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
+function arenaSpellExpire(mobs,tick){for(const m of mobs)if(m.spellSlowFactor&&tick>=m.spellSlowUntil){m.spellSlowFactor=0;m.spellSlowUntil=0}}
+function arenaSpellEvents(events,tick){return events.filter(e=>tick-e[4]<=24).slice(-18)}
+// END V189 SPELL MECHANICS
 // Shared V152 crowd formula identical to server navigation and 30Hz movement.
 // V150: predictable, allocation-bounded movement for New Zone's PvE mobs.
 // Only the server decides positions. Each player destination gets one cached
