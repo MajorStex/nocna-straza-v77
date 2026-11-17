@@ -101,14 +101,14 @@ try{
  await host.evaluate(()=>{const p=NS177_WORKSHOP.position('p2');const x=p.x>680?p.x-45:p.x+45;if(!NS171_CREATOR.workshopImport({id:'world-qa',name:'World QA',level:1,hero:NS171_CREATOR.presets.guardian,actors:[],relations:{},props:[{kind:'barrel',x,y:p.y}]}))throw Error('World fixture')});
  await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.props===1&&NS177_WORKSHOP.diagnostics.usedProps===0);
  await host.locator('[data-action=battle]').click();
- const action=guest.locator('[data-w=useProp]');await action.waitFor({state:'visible'});assert.match(await action.innerText(),/Razbij/);
+ const action=guest.locator('[data-w=useProp]');await guest.waitForFunction(()=>{const b=document.querySelector('[data-w=useProp]');return b&&!b.hidden&&b.textContent==='Razbij'});
  for(let n=0;n<8;n++){if(await guest.evaluate(()=>NS177_WORKSHOP.diagnostics.usedProps===1))break;await action.click();await guest.waitForTimeout(650)}
  await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.usedProps===1);
  assert.equal(await host.evaluate(()=>NS171_CREATOR.test.simulation.usedProps),1);
  const unlocked=await host.evaluate(()=>{const p=NS171_CREATOR.test.simulation.props[0];return NS171_CREATOR.workshopMove(p.x-40,p.y,p.x,p.y).x===p.x});assert(unlocked);
  const destination=await host.evaluate(()=>{const p=NS177_WORKSHOP.position('p2'),x=p.x>680?p.x-40:p.x+40,y=p.y;const tx=x>390?110:670,ty=y>250?120:410;if(!NS171_CREATOR.workshopImport({id:'portal-qa',name:'Portal QA',level:1,hero:NS171_CREATOR.presets.guardian,actors:[],relations:{},props:[{kind:'portal',x,y},{kind:'portal',x:tx,y:ty}]}))throw Error('Portal fixture');return {x:tx,y:ty}});
  await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.props===2);
- await host.locator('[data-action=battle]').click();await action.waitFor({state:'visible'});assert.match(await action.innerText(),/Teleport/);
+ await host.locator('[data-action=battle]').click();await guest.waitForFunction(()=>{const b=document.querySelector('[data-w=useProp]');return b&&!b.hidden&&b.textContent==='Teleport'});
  await action.click();await host.waitForFunction(d=>{const p=NS177_WORKSHOP.position('p2');return Math.hypot(p.x-d.x,p.y-d.y)<50},destination);
  await guest.waitForFunction(d=>{const p=NS177_WORKSHOP.position('p2');return p&&Math.hypot(p.x-d.x,p.y-d.y)<50},destination);
  console.log('V187 WORLD SYNC PASS',JSON.stringify({barrel:true,collisionReleased:true,guestPortal:true,hostGuestSameDestination:true}));
