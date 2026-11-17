@@ -1297,9 +1297,9 @@ function hash(x,y){const z=Math.sin(x*127.1+y*311.7)*43758.5453;return z-Math.fl
 let rngSeed=71381;function rnd(){rngSeed=(rngSeed*1664525+1013904223)>>>0;return rngSeed/4294967296}
 let G={blueCrystals:[],crystalSpawnClock:0,spawnClock:0,blasts:[],lootPending:null,marketPending:null,marketSeen:false,abilityDirty:true,projectiles:[],mode:'menu',paused:false,editFrom:'menu',time:0,wave:1,waveClock:0,level:1,xp:0,xpNeed:160,kills:0,players:[],mobs:[],drops:[],effects:[],bossId:0,nextId:1,camera:{x:START.x,y:START.y},pan:{x:START.x,y:START.y},tool:'rock',tab:'map',waveNotice:'',waveNoticeT:0,muted:false,fxSeq:0,relicPending:null,relicTaken:false,relicChoice:'',relicDropBonus:0,relicEnemyHaste:1,relicXpTax:1};
 function ns165VoicePosition(id){
- const workshop=window.NS177_WORKSHOP?.position?.(id);if(workshop)return workshop;
+ const workshop=window.NS177_WORKSHOP?.position?.(id);if(workshop)return {...workshop,zone:'workshop'};
  const village=window.NS109_VILLAGE?.voicePosition?.(id);
- if(village)return village;
+ if(village)return {...village,zone:'village'};
  if(G.mode!=='play')return null;
  const p=G.players.find(q=>q.id===id);
  return p&&Number.isFinite(p.x)&&Number.isFinite(p.y)?{x:p.x,y:p.y}:null;
