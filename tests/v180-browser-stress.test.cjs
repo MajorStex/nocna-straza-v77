@@ -32,7 +32,10 @@ console.log('4000 collision probes PASS');
    if(!startSolo())throw Error('boot');
    LAB.enabled=true;LAB.godMode=true;LAB.customCount=200;
    for(let n=2;n<=6;n++){const id='p'+n;N.players.set(id,{...N.me,id,x:N.me.x+(n-3)*32,y:N.me.y+65,tx:N.me.x+(n-3)*32,ty:N.me.y+65,motion:null})}
-   const units=buildSoloWave(1);
+   // Real production batch cap still applies; build two batches only in the QA fixture.
+   const first=buildSoloWave(1,200,0);if(first.length!==160)throw Error('production batch cap changed');
+   const extra=buildSoloWave(1,40,1).map((m,i)=>({...m,id:160+i}));
+   const units=first.concat(extra);
    if(units.length!==200)throw Error('200 fixture not built: '+units.length);
    N.soloMobs=units;N.soloState='play';
    // Concentrate all units in view to test render plus crowd motion, unlike normal spawn.
