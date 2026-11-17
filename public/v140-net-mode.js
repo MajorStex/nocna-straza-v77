@@ -1518,7 +1518,7 @@ function sessionHud(now){
 // V156: the physical feet/shadow determine depth, not sprite drawing order.
 // Static buildings, chests, goblins and heroes share ONE painter queue.
 function drawArenaPlayerBody(g,p,now,dt){
- g.save();if(p.hp<=0)g.globalAlpha=.38;
+ g.save();if(p.hp<=0){g.globalAlpha=p.knocked?.8:.38;g.translate(p.x,p.y);g.rotate(-Math.PI/2);g.translate(-p.x,-p.y);}
  const motion=updateHeroMotion(p,dt),age=swordAge(p,now);
  const b=B(),look=N.looks.get(p.id)?.look||(p.id===N.id?localArenaLook():b.getVillageHeroLook?.(p.id));
  if(typeof b.drawVillageHero==='function'){
@@ -1718,12 +1718,12 @@ function frame(now){
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
   moveLocal(N.me,v.x*N.world.speed*dt*(N.me.speedMult||1),v.y*N.world.speed*dt*(N.me.speedMult||1));
-  if(N.solo){if(!N.paused)stepSolo(dt)}
+  if(N.solo){if(!N.paused)stepSolo(dt);if(N.me.hp<=0){N.phase='solo_ended';status('STRAŽAR JE PAO · SOLO TEST ZAVRŠEN')}}
   else {N.delta.x+=N.me.x-oldX;N.delta.y+=N.me.y-oldY;}
   const away=Math.hypot(N.me.x-N.me.tx,N.me.y-N.me.ty);
   if(!N.solo&&away>105){N.me.x=N.me.tx+(N.me.x-N.me.tx)*105/away;N.me.y=N.me.ty+(N.me.y-N.me.ty)*105/away}
  }
- if(!selecting&&N.me&&Math.hypot(v.x,v.y)>.25&&now-N.lastStepSound>285){
+ if(!selecting&&N.me&&N.me.hp>0&&Math.hypot(v.x,v.y)>.25&&now-N.lastStepSound>285){
   N.lastStepSound=now;A()?.play('step',{gain:.8});
  }
  if(!N.solo&&N.lookSyncEnabled&&N.ws?.readyState===1&&now-N.lastLookCheck>=850){
@@ -1750,7 +1750,7 @@ function frame(now){
  const r=canvas.getBoundingClientRect(),dpr=RENDER_Q.dpr;
  const ww=Math.round(r.width*dpr),hh=Math.round(r.height*dpr);if(canvas.width!==ww||canvas.height!==hh){canvas.width=ww;canvas.height=hh}
  g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#192e29';g.fillRect(0,0,r.width,r.height);
- const zoom=clamp(Math.max(r.width/750,r.height/760),.7,1.45),me=N.me||{x:N.world.w/2,y:N.world.h/2};
+ const zoom=clamp(Math.max(r.width/750,r.height/760),.7,1.45),me=(N.me?.finalDead?[...N.players.values()].find(p=>p.online&&p.hp>0&&!p.knocked):null)||N.me||{x:N.world.w/2,y:N.world.h/2};
  g.setTransform(dpr*zoom,0,0,dpr*zoom,dpr*(r.width/2-me.x*zoom),dpr*(r.height/2-me.y*zoom));
  // Draw only lines covering the current camera, never all 4,200 world pixels.
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
