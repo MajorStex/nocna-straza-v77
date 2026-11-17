@@ -25,7 +25,8 @@
   {id:'hall',x:566,y:717,w:178,h:106,label:'HALL OF FAME',sr:'DOSTIGNUĆA',roof:'#605a7d',wall:'#aaa8b8',icon:'🏆'},
   {id:'chat',x:954,y:717,w:178,h:110,label:'TAVERN / CHAT',sr:'KRČMA / ČET',roof:'#967255',wall:'#d0b385',icon:'💬'},
   {id:'ready',x:1312,y:713,w:145,h:105,label:'READY GATE',sr:'KAPIJA STARTA',roof:'#386d61',wall:'#b8ac84',icon:'✓'},
-  {id:'barn',x:1452,y:429,w:194,h:130,label:'PVP BARN',sr:'ŠTALA ZA PVP',roof:'#845348',wall:'#bf9b72',icon:'⚔'}
+  {id:'barn',x:1452,y:429,w:194,h:130,label:'PVP BARN',sr:'ŠTALA ZA PVP',roof:'#845348',wall:'#bf9b72',icon:'⚔'},
+  {id:'workshop',x:135,y:535,w:136,h:108,label:'CREATIVE WORKSHOP',sr:'KREATIVNA RADIONICA',roof:'#526f58',wall:'#c6ad84',icon:'⚒'}
  ];
  const avatars=new Map(),smoothAvatars=new Map(),limits=new Map(),emotes=new Map();
  // Ambient animals use deterministic clock-based patrols; no extra rAF or network movement packets.
@@ -204,6 +205,7 @@
   if(id==='hall'){showAchievements();return}
   if(id==='invite'){showInviteHouse();return}
   if(id==='barn'){showBarnPvP();return}
+  if(id==='workshop'){closePane();resetStick();route=[];walkTo=null;thenEnter=null;root.classList.add('ns109Hidden');const resume=()=>{if(opened&&canVisit()){root.classList.remove('ns109Hidden');frameAt=performance.now();doorLatch='workshop';$('home')?.classList.add('hidden')}};if(!window.NS177_WORKSHOP?.open(resume)){resume();toast('Radionica nije dostupna.')}return}
   if(id==='ready'){
    if(soloPreview){closeVillage();$('coopBtn')?.click();return}
    if(NS97_POST.active){if(!NET.ns97Results?.votes?.[NET.localId])NS97_POST.vote('yes');else NS97_POST.vote('no')}
@@ -1225,7 +1227,7 @@ function showAchievements(){
   return true;
  }
  function closeVillage(){
-  setVillageMenu(false);window.NS165_CLASSIC_VOICE?.hideVillagePopup?.();
+  window.NS177_WORKSHOP?.close();setVillageMenu(false);window.NS165_CLASSIC_VOICE?.hideVillagePopup?.();
   // Opt-out on exit (game starts, lobby closes or player leaves); no persistent arena state.
   if(isLobby()&&getPvP(NET.localId).opted){
    if(NET.role==='host'){getPvP(NET.localId).opted=false;villageBroadcastPvp()}
