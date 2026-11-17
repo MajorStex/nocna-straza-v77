@@ -349,7 +349,7 @@ function ui(){
   canvas.addEventListener(type,e=>{if(e.pointerId===N.stick.ptr)resetStick()});
  document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
-   resetStick();
+   resetRenderSamples();resetStick();
    if(N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'presence',state:'background'}))}catch{}
    return;
   }
@@ -814,7 +814,7 @@ function startSolo(){
  N.soloChests=[{id:1,x:1790,y:2025,opened:false},{id:2,x:2220,y:2140,opened:false},{id:3,x:2730,y:2380,opened:false}];
  N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();
  N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt,y*N.world.speed*dt));
- N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
+ N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;resetRenderQuality();
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.stick.ptr=null;N.stick.x=N.stick.y=0;
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
  N.me={id:'p1',x:2030,y:2070,tx:2030,ty:2070,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false,xp:0,xpNeed:160,level:1,xpCollected:0,queuedUpgrades:0};
@@ -1079,7 +1079,7 @@ function connect(match,id,ticket,rejoin=false){
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL){N.phase='error';status('NOVA ZONA privremeno dostupna od nivoa 0');return false}
  if(!rejoin){
   LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
-  N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
+  resetRenderQuality();N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.drops=[];N.lastMyHp=null;N.hurtUntil=0;
  }
@@ -1547,11 +1547,45 @@ function drawLabThings(g,now,visible){
   g.restore();
  }
 }
+// V179 adaptive render budget. Only the canvas backing resolution changes;
+// world coordinates, collisions, input cadence, and server ticks are unchanged.
+function newRenderBudget(cap=1.5){
+ cap=Math.max(.5,Math.min(1.5,Number(cap)||1));
+ return {cap,dpr:cap,min:Math.min(cap,.8),slow:0,fast:0,p95Ms:null,frameCostMs:null,windows:0,changes:0};
+}
+function tuneRenderBudget(q,fps,p95Ms,costMs){
+ if(![fps,p95Ms,costMs].every(Number.isFinite))return q;
+ q.p95Ms=p95Ms;q.frameCostMs=costMs;q.windows++;
+ // Hysteresis: two overloaded windows to drop, five comfortable to recover.
+ const overloaded=fps<57||p95Ms>23||costMs>15;
+ const comfortable=fps>=59&&p95Ms<=18&&costMs<10;
+ q.slow=overloaded?q.slow+1:0;q.fast=comfortable?q.fast+1:0;
+ const old=q.dpr;
+ if(q.slow>=2){q.dpr=Math.max(q.min,Math.round((q.dpr-.15)*100)/100);q.slow=0;q.fast=0}
+ else if(q.fast>=5){q.dpr=Math.min(q.cap,Math.round((q.dpr+.1)*100)/100);q.fast=0}
+ if(old!==q.dpr)q.changes++;
+ return q;
+}
+let RENDER_Q=newRenderBudget(window.devicePixelRatio||1),renderIntervals=[],renderCostSum=0,renderCostCount=0;
+function resetRenderSamples(now=0){
+ renderIntervals.length=0;renderCostSum=0;renderCostCount=0;
+ N.frames=0;N.fpsAt=now;N.lastFrame=0;
+}
+function resetRenderQuality(){RENDER_Q=newRenderBudget(window.devicePixelRatio||1);N.fps=0;resetRenderSamples()}
 function frame(now){
  if(N.phase!=='running'||document.hidden)return;
  const canvas=el('ns140Canvas'),g=canvas?.getContext('2d');if(!g)return;
+ const frameStart=performance.now();
+ const elapsed=N.lastFrame?now-N.lastFrame:0;
+ if(elapsed>1000||elapsed<0)resetRenderSamples(now);
  const dt=clamp((now-(N.lastFrame||now))/1000,0,.035);N.lastFrame=now;
- N.frames++;if(!N.fpsAt)N.fpsAt=now;if(now-N.fpsAt>1000){N.fps=Math.round(N.frames*1000/(now-N.fpsAt));N.frames=0;N.fpsAt=now}
+ if(elapsed>0&&elapsed<=1000&&renderIntervals.length<300)renderIntervals.push(elapsed);
+ if(!N.fpsAt)N.fpsAt=now;N.frames++;
+ if(now-N.fpsAt>=1000){
+  N.fps=Math.round(N.frames*1000/(now-N.fpsAt));
+  if(renderIntervals.length&&renderCostCount){const sorted=renderIntervals.slice().sort((a,b)=>a-b);tuneRenderBudget(RENDER_Q,N.fps,sorted[Math.ceil(sorted.length*.95)-1],renderCostSum/renderCostCount)}
+  N.frames=0;N.fpsAt=now;renderIntervals.length=0;renderCostSum=0;renderCostCount=0;
+ }
  const v=input();
  const selecting=N.paused||!el('ns158Menu')?.hidden||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
  if(selecting){v.x=0;v.y=0}
@@ -1587,7 +1621,7 @@ function frame(now){
   N.ws.send(JSON.stringify({t:'i',seq,ax:Math.round(v.x*127),ay:Math.round(v.y*127),attack:autoTarget?1:0}));
  }
  if(N.ws?.readyState===1&&now-N.lastPing>2000){N.lastPing=now;N.ws.send(JSON.stringify({t:'ping',sent:now}))}
- const r=canvas.getBoundingClientRect(),dpr=Math.min(1.5,devicePixelRatio||1);
+ const r=canvas.getBoundingClientRect(),dpr=RENDER_Q.dpr;
  const ww=Math.round(r.width*dpr),hh=Math.round(r.height*dpr);if(canvas.width!==ww||canvas.height!==hh){canvas.width=ww;canvas.height=hh}
  g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#192e29';g.fillRect(0,0,r.width,r.height);
  const zoom=clamp(Math.max(r.width/750,r.height/760),.7,1.45),me=N.me||{x:N.world.w/2,y:N.world.h/2};
@@ -1631,9 +1665,10 @@ function frame(now){
    ('FPS '+N.fps+' | '+Math.round(N.ping)+'ms | GOBLINI '+N.mpMobs.length+'/'+N.hordeTotal+
     ' | VIDLJIVO '+N.visibleMobs+(LAB_SERVER_BUILD>=168?' | NIVO '+(N.me?.level||1)+' · EXP '+Math.floor(N.me?.xp||0):'')+' | CPU '+N.serverMs+'ms');
  }
+ renderCostSum+=performance.now()-frameStart;renderCostCount++;
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, renderDpr:RENDER_Q.dpr, frameP95Ms:RENDER_Q.p95Ms, meanFrameCostMs:RENDER_Q.frameCostMs, qualityChanges:RENDER_Q.changes, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
