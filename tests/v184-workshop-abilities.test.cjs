@@ -44,11 +44,11 @@ try{
  // Zoom out on guest while host stays zoomed. Both can fit the whole map.
  await guest.locator('[data-w=zoomout]').click();
  await guest.locator('[data-w=zoomout]').click();
- assert.match(await guest.locator('[data-w=zoom]').innerText(),/cela mapa/);
+ assert.equal(await guest.locator('[data-w=zoom]').getAttribute('data-zoom'),'0.75');
  assert.match(await host.locator('[data-action=zoom]').innerText(),/1\.35/);
  await host.locator('[data-action=zoomout]').click();
  await host.locator('[data-action=zoomout]').click();
- assert.match(await host.locator('[data-action=zoom]').innerText(),/cela mapa/);
+ assert.equal(await host.locator('[data-action=zoom]').getAttribute('data-zoom'),'0.75');
  assert.equal(await host.locator('[data-action=zoomout]').isDisabled(),true);
  assert.equal(await guest.locator('[data-w=zoomout]').isDisabled(),true);
  const scale=await host.evaluate(()=>NS176_SCENES.cameraScale(832,384,true,.75));
