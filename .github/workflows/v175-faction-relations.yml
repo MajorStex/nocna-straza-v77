@@ -1,0 +1,35 @@
+name: V175 Faction relations and observer QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/v175-faction-relations.js'
+      - 'public/v174-independent-ai.js'
+      - 'public/v171-character-creator.js'
+      - 'public/index.html'
+      - 'tests/v175-faction-relations.test.cjs'
+      - '.github/workflows/v175-faction-relations.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  factions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Install Chromium harness
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Factions and independent observer UI
+        run: node tests/v175-faction-relations.test.cjs
+      - name: Existing game and editor regressions
+        run: |
+          node tests/v174-independent-ai.test.cjs
+          node tests/v173-ability-forge.test.cjs
+          node tests/v172-character-voices.test.cjs
+          node tests/v171-character-creator.test.cjs
+          node tests/current-deployment.test.cjs
+          node tests/v138-village-pvp-animals.test.cjs
+          node tests/v168-xp-world.test.cjs
