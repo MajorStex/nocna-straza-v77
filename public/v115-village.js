@@ -37,6 +37,8 @@
  // The real lobby/relay continues to run independently while Village is open.
  const TRAINING_SPAWNS=[[1070,575],[1160,540],[1210,590]];
  const trainingMobs=TRAINING_SPAWNS.map(([x,y],id)=>({id,x,y,sx:x,sy:y,hp:3,deadUntil:0}));
+ // V170 practice crates: three temporary targets, no XP, drops or persistent rewards.
+ const VILLAGE_CRATES=[[880,420],[1215,550],[465,560]].map(([x,y],id)=>({id,x,y,hp:3,deadUntil:0}));
  let trainingOn=false,trainingKills=0,trainingCredit=0,lastRosterCount=0,joinNoticeUntil=0,lastResultsRoundShown=-1;
  let opened=false,soloPreview=false,focused=null,focusNode=null,returnPlace=null,walkTo=null,thenEnter=null,lastSent=0,frameAt=0,lastBroadcast=0,lastLeaderboard=0,lastLeaderRequest=0,leaderCache=null,leaderBusy=false;
  let originalShowLobby=null,originalStartMatch=null,originalSettle=null,originalAward=null,originalOnKill=null,musicCtx=null,musicTimer=null,musicOn=false;
@@ -225,11 +227,13 @@
   if(NET.role!=='host'||NET.phase!=='lobby')return;
   const pvp=[...PVP].slice(0,6).map(([id,p])=>({id,opted:p.opted,hp:p.hp,seq:p.seq,x:p.x,y:p.y,respawnAt:p.respawnAt,invulnerableUntil:p.invulnerableUntil}));
   const animals=NPCS.map(a=>[a.id,a.hp,a.deadUntil]);
-  const data={t:'ns138State',pvp,animals};
+  const crates=VILLAGE_CRATES.map(c=>[c.id,c.hp,c.deadUntil]);
+  const data={t:'ns138State',pvp,animals,crates};
   for(const c of NET.clients.values())if(c?.open)try{c.send(data)}catch{}
  }
  function applyVillageState(data){
-  if(!Array.isArray(data.pvp)||data.pvp.length>6||!Array.isArray(data.animals)||data.animals.length>20)return;
+  if(!Array.isArray(data.pvp)||data.pvp.length>6||!Array.isArray(data.animals)||data.animals.length>20||
+   (data.crates!==undefined&&(!Array.isArray(data.crates)||data.crates.length>8)))return;
   for(const p of data.pvp){
    if(!/^p[1-6]$/.test(String(p?.id||''))||!Number.isFinite(p.hp)||!Number.isFinite(p.seq))continue;
    const prev=getPvP(p.id);
@@ -252,6 +256,12 @@
     const at=animalPos(animal,Date.now());
     if(soundDistance(at.x,at.y,270)>.1){playVillageHit(at.x,at.y,animal.kind);playAnimalCall(animal.kind,at.x,at.y,true)}
    }
+  }
+  for(const q of data.crates||[])if(Array.isArray(q)&&q.length===3&&Number.isInteger(q[0])&&VILLAGE_CRATES[q[0]]&&Number.isFinite(q[1])&&Number.isFinite(q[2])){
+   const crate=VILLAGE_CRATES[q[0]],oldHp=crate.hp,oldDead=crate.deadUntil;
+   crate.hp=clamp(q[1],0,3);crate.deadUntil=Math.max(0,q[2]);
+   if(NET.role==='guest'&&(crate.hp<oldHp||(crate.deadUntil>Date.now()&&crate.deadUntil>oldDead+1000)))
+    playVillageHit(crate.x,crate.y,'wood');
   }
   if(focused==='barn'&&!pane.classList.contains('ns109Hidden'))showBarnPvP();
  }
@@ -290,7 +300,6 @@
   const state=getPvP(id);
   if(now-(state.lastHit||0)<640)return false;
   if(state.opted&&state.hp<=0)return false;
-  state.lastHit=now;
   // Only mutually opted-in, living players in the SAME lobby can hurt one another.
   let victimId=null,best=PVP_RANGE;
   if(isLobby()&&state.opted){
@@ -303,6 +312,7 @@
    }
   }
   if(victimId){
+   state.lastHit=now;
    const target=getPvP(victimId);
    target.hp=Math.max(0,target.hp-34);
    hitFX.push({x:villageHeroPos(victimId).x,y:villageHeroPos(victimId).y-25,until:now+280});
@@ -322,12 +332,27 @@
    const v=animalPos(a,now),d=Math.hypot(pos.x-v.x,pos.y-v.y);
    if(d<nearest){nearest=d;closest=a}
   }
-  if(!closest)return false;
-  closest.hp=Math.max(0,closest.hp-1);
-  const v=animalPos(closest,now);
-  hitFX.push({x:v.x,y:v.y-12,until:now+270});
-  if(closest.hp===0){closest.deadUntil=now+16000;closest.hp=2}
-  if(id===NET.localId){playVillageHit(v.x,v.y,closest.kind);playAnimalCall(closest.kind,v.x,v.y,true)}
+  if(closest){
+   state.lastHit=now;
+   closest.hp=Math.max(0,closest.hp-1);
+   const v=animalPos(closest,now);
+   hitFX.push({x:v.x,y:v.y-12,until:now+270});
+   if(closest.hp===0){closest.deadUntil=now+16000;closest.hp=2}
+   if(id===NET.localId){playVillageHit(v.x,v.y,closest.kind);playAnimalCall(closest.kind,v.x,v.y,true)}
+   if(NET.role==='host')villageBroadcastPvp();
+   return true;
+  }
+  let crate=null,nearestCrate=82;
+  for(const c of VILLAGE_CRATES){
+   if(now<c.deadUntil)continue;
+   const d=Math.hypot(pos.x-c.x,pos.y-c.y);
+   if(d<nearestCrate){crate=c;nearestCrate=d}
+  }
+  if(!crate)return false;
+  state.lastHit=now;crate.hp=Math.max(0,crate.hp-1);
+  hitFX.push({x:crate.x,y:crate.y-14,until:now+270});
+  if(crate.hp===0){crate.deadUntil=now+12000;crate.hp=3}
+  if(id===NET.localId)playVillageHit(crate.x,crate.y,'wood');
   if(NET.role==='host')villageBroadcastPvp();
   return true;
  }
@@ -426,6 +451,11 @@
    const p=animalPos(a,now),d=Math.hypot(my.x-p.x,my.y-p.y);
    if(d<72&&(!best||d<best.distance))best={kind:'animal',x:p.x,y:p.y,distance:d};
   }
+  if(best)return best;
+  for(const c of VILLAGE_CRATES)if(now>=c.deadUntil){
+   const d=Math.hypot(my.x-c.x,my.y-c.y);
+   if(d<82&&(!best||d<best.distance))best={kind:'crate',x:c.x,y:c.y,distance:d};
+  }
   return best;
  }
  function villageTryStrike(){
@@ -439,6 +469,17 @@
    try{NET.conn.send({t:'ns138Strike'});return true}catch{return false}
   }
   const id=NET.localId||'p1';return villageStrike(id);
+ }
+ function drawVillageCrate(c){
+  if(Date.now()<c.deadUntil)return;
+  g.save();g.translate(c.x,c.y);
+  g.fillStyle='#081d17aa';g.beginPath();g.ellipse(0,13,19,6,0,0,Math.PI*2);g.fill();
+  g.fillStyle='#8f6842';g.fillRect(-17,-18,34,33);
+  g.strokeStyle='#d5af71';g.lineWidth=2.5;g.strokeRect(-16,-17,32,31);
+  g.strokeStyle='#69482d';g.lineWidth=3;g.beginPath();g.moveTo(-13,-13);g.lineTo(13,10);
+  g.moveTo(13,-13);g.lineTo(-13,10);g.stroke();
+  if(c.hp<3){g.strokeStyle='#f8db9f';g.lineWidth=1.5;g.beginPath();g.moveTo(-4,-15);g.lineTo(1,-6);g.lineTo(-3,2);g.stroke()}
+  g.restore();
  }
  function drawVillageHits(){
   const now=Date.now();
@@ -1084,6 +1125,8 @@ function showAchievements(){
   const layer=villageStaticLayer();if(layer)g.drawImage(layer,0,0);else background();
   drawVillageAnimals(time);PERF.frames++;
   const depthItems=buildings.map(b=>({y:b.y+b.h/2,kind:'house',id:b.id,paint:()=>drawDepthHouse(b)}));
+  for(const c of VILLAGE_CRATES)if(Date.now()>=c.deadUntil)
+   depthItems.push({y:c.y,kind:'crate',id:c.id,paint:()=>drawVillageCrate(c)});
   if(trainingOn)for(const m of trainingMobs)if(m.hp>0){
    depthItems.push({y:m.y,kind:'training',id:'dummy'+m.id,paint:()=>drawTrainingMob(m,time)});
   }
@@ -1443,7 +1486,7 @@ function showAchievements(){
  onSoloResult:run=>{if(run&&NET.role===''&&G.runType==='default'&&!G.debugRun)spartaClaim(run.kills)},
  onMPAward:packet=>{if(packet&&Number.isFinite(packet.kills)&&!G.debugRun){spartaClaim(packet.kills);recordPersonalMP(packet)}},
  get opened(){return opened},test:{spartaClaim,spartaOwned,spartaEquipped,spartaKey,buildings,ground,readRankings,personalStats,recordPersonalMP,
-   get animals(){return NPCS.map(o=>({...o,...animalPos(o)}))},get practice(){return {on:trainingOn,kills:trainingKills,mobs:trainingMobs.map(m=>({...m}))}},
+   get animals(){return NPCS.map(o=>({...o,...animalPos(o)}))},get crates(){return VILLAGE_CRATES.map(c=>({...c}))},get autoTarget(){return villageAutoTarget()},get practice(){return {on:trainingOn,kills:trainingKills,mobs:trainingMobs.map(m=>({...m}))}},
    get serverUp(){return villageOnline()},startServer:startVillageOnlineRoom,
    get pvp(){return [...PVP].map(([id,p])=>({id,...p}))},
    get world(){return {width:VILLAGE_W,height:VILLAGE_H}},animalPos,attack:villageTryStrike,
