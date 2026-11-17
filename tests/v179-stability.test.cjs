@@ -56,3 +56,22 @@ test('adaptive quality uses hysteresis, never exceeds device bounds',()=>{
  const low=c.newRenderBudget(.75);for(let i=0;i<10;i++)c.tuneRenderBudget(low,30,34,20);
  assert.equal(low.dpr,.75);
 });
+
+test('V181 remote hero and enemy share monotonic buffered time even when jitter raises delay',()=>{
+ const a=source.indexOf('function sampleOnlineMobs('),b=source.indexOf('function drawArenaMobs(',a);
+ assert(a>=0&&b>a);
+ const remote={id:'p2',x:0,y:0,online:true},local={id:'p1',x:777,y:777,online:true};
+ const mob={id:7,x:0,y:0},N={id:'p1',players:new Map([['p1',local],['p2',remote]]),mpMobs:[mob],mobHistory:[],mobRenderTick:null,lastState:0,interpolationTicks:3};
+ const env=vm.createContext({N,clamp:(v,a,b)=>Math.max(a,Math.min(b,v))});vm.runInContext(source.slice(a,b),env);
+ let tick=0,previous=-1,frames=0,moving=0;
+ for(let i=1;i<=240;i++){
+  const now=i*1000/60;
+  if(i%4===0&&i%36!==0){tick+=i%36===4&&i>4?4:2;N.lastState=now;N.mobHistory.push({tick,positions:new Map([[7,[tick*2,0]]]),heroes:new Map([['p2',[tick*2,25,true]]])});if(N.mobHistory.length>12)N.mobHistory.shift()}
+  if(i===90)N.interpolationTicks=7;if(i===160)N.interpolationTicks=3;
+  env.sampleOnlineMobs(now,1/60);
+  if(N.mobHistory.length){assert(N.mobRenderTick>=previous,'no render clock reversal');if(previous>=0){frames++;if(N.mobRenderTick>previous)moving++}
+   assert(Math.abs(remote.x-mob.x)<1e-8,'hero and goblin same render tick');assert.equal(local.x,777,'no remote interpolation on local hero');previous=N.mobRenderTick;}
+ }
+ assert(moving/frames>.7,'most frames continue moving despite irregular arrivals');
+ assert(N.mobHistory.length<=12);
+});
