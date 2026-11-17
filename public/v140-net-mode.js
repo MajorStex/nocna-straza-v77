@@ -234,6 +234,50 @@ function stepArenaWorms(mobs,players,world,tick,wave,shots,seq,damage){
 }
 // END V190 ACID WORM
 
+// V191 Classic heavy enemies, shared deterministic solo/relay calendar.
+function arenaHeavyStats(kind,wave){
+ const n=Math.max(0,wave-1);
+ if(kind==='elephant')return {kind,hp:240+n*12,maxHp:240+n*12,moveSpeed:Math.min(108,75+n*1.2),bodyRadius:28};
+ if(kind==='rotfiend')return {kind,hp:620+n*45,maxHp:620+n*45,moveSpeed:Math.min(90,60+n*.5),bodyRadius:48};
+ return null;
+}
+function arenaHeavyWave(mobs,wave,batch,world){
+ const clear=(m,r)=>arenaAcidClear(world,m.x,m.y,m.x,m.y,r);
+ if(wave>=8)for(const m of mobs)if(m.kind!=='troll'&&(m.id+batch*7)%100<14&&clear(m,28))Object.assign(m,arenaHeavyStats('elephant',wave));
+ if(batch===0&&(wave===20||wave===30)){
+  const m=mobs.find(m=>m.kind!=='troll'&&clear(m,48));
+  if(m)Object.assign(m,arenaHeavyStats('rotfiend',wave));
+ }
+ return mobs;
+}
+function stepArenaHeavy(mobs,players,world,tick,wave,damage){
+ const alive=[...players.values()].filter(p=>p.online&&p.hp>0&&!p.knocked&&!p.finalDead);
+ for(const m of mobs){
+  if((m.kind!=='elephant'&&m.kind!=='rotfiend')||m.hp<=0||m.labFrozen)continue;
+  let p=alive.find(p=>p.id===m.targetId);if(!p){let d=Infinity;for(const q of alive){let n=(q.x-m.x)**2+(q.y-m.y)**2;if(n<d){p=q;d=n}}}
+  m.wormHold=false;if(!p){m.heavyCast=null;continue}
+  let dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy;
+  m.heavyAngle=Math.atan2(dy,dx);const boss=m.kind==='rotfiend',phase=m.hp<=m.maxHp*.3?3:m.hp<=m.maxHp*.65?2:1;
+  m.heavyPhase=phase;
+  if(boss&&phase===3&&!m.heavyEnraged){m.heavyEnraged=true;m.moveSpeed=Math.min(110,m.moveSpeed*1.25)}
+  if(m.heavyCast){
+   m.wormHold=true;const c=m.heavyCast;
+   if(tick<c.end)continue;
+   for(const a of alive)if(a.hp>0&&!a.knocked&&(a.x-c.x)**2+(a.y-c.y)**2<=(c.r+3)**2)damage(a,10+5*c.phase);
+   m.heavyCast=null;m.attackTick=tick;m.heavyNext=tick+(phase===3?132:phase===2?189:246);continue;
+  }
+  if(boss&&m.heavyNext===undefined)m.heavyNext=tick+114;
+  if(boss&&tick>=m.heavyNext&&d2<700**2){
+   m.heavyCast={x:Math.round(p.x),y:Math.round(p.y),r:phase===3?150:phase===2?131:112,start:tick,end:tick+(phase===3?30:phase===2?38:44),phase};m.wormHold=true;continue;
+  }
+  const range=boss?100:78;
+  if(d2<=range**2&&arenaAcidClear(world,m.x,m.y,p.x,p.y,8)){
+   m.wormHold=true;
+   if(tick>=(m.attackAt||0)){m.attackAt=tick+(boss?63:37);m.attackTick=tick;damage(p,Math.min(48,Math.round((boss?19:17)*(1+.035*(wave-1))*(boss&&phase===3?1.16:1))))}
+  }
+ }
+}
+// END V191 Classic heavy enemies
 const labDefaultCount=wave=>100+Math.max(0,wave-1)*20;
 const arenaMobSpeed=(wave,id)=>Math.min(145,98+Math.max(0,wave-1)*3.4+(id%5)*4+(id%7===0?12:0));
 // Matches Classic slow XP curve. Only RUN EXP is awarded: no account/paid XP.
@@ -684,7 +728,7 @@ function snapshot(m){
     A()?.play('hit',{weapon:weaponHits.get(q[0])||'sword',variant:hitTick,x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
-   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=q[8]===1?'troll':q[8]===2?'worm':'goblin';mob.wormWindup=m.tick+(Number(q[9])||0);mob.wormAngle=(Number(q[10])||0)/100;
+   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=q[8]===1?'troll':q[8]===2?'worm':q[8]===3?'elephant':q[8]===4?'rotfiend':'goblin';mob.heavyAngle=(Number(q[10])||0)/100;mob.heavyCast=Array.isArray(q[11])&&q[11].length===5&&q[11].every(Number.isFinite)?{x:q[11][0],y:q[11][1],r:q[11][2],start:q[11][3],end:q[11][4]}:null;mob.heavyPhase=Number(q[12])||1;mob.wormWindup=m.tick+(Number(q[9])||0);mob.wormAngle=(Number(q[10])||0)/100;
    return mob;
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
@@ -788,7 +832,7 @@ function buildSoloWave(wave,requested=LAB.customCount===null?labDefaultCount(wav
   spawnList.push({...pos,id:95,kind:'troll',hp:900,maxHp:900,moveSpeed:98,
    attackAt:0,attackTick:-100,hitTick:-100,targetId:''});
  }
- return spawnList.map(m=>arenaWormVariant(m,wave,batch));
+ return arenaHeavyWave(spawnList.map(m=>arenaWormVariant(m,wave,batch)),wave,batch,N.world);
 }
 
 // Test-only actions: use the existing New Zone simulation, not legacy editor logic.
@@ -1020,6 +1064,7 @@ function stepSolo(dt){
    const locked=goblins.filter(m=>m.labFrozen).map(m=>[m,m.x,m.y]);
    if(N.soloTick%2===0)N.soloCrowd.step(goblins,N.players,N.soloTick);
     const acid=stepArenaWorms(N.soloMobs,N.players,N.world,N.soloTick,N.soloWave,N.acidShots||[],N.acidSeq||0,(p,d)=>{if(LAB.godMode||N.soloTick<=N.soloInvul)return;p.hp=Math.max(0,p.hp-d);N.hurtUntil=performance.now()+290;N.soloInvul=N.soloTick+28;A()?.play('hurt')});if(acid.seq>(N.acidSeq||0)&&acid.shots.some(s=>s.id>(N.acidSeq||0)&&(s.x-me.x)**2+(s.y-me.y)**2<550**2))B().arenaWormSound?.();N.acidShots=acid.shots;N.acidSeq=acid.seq;
+   stepArenaHeavy(N.soloMobs,N.players,N.world,N.soloTick,N.soloWave,(p,d)=>{if(LAB.godMode||N.soloTick<=N.soloInvul)return;p.hp=Math.max(0,p.hp-d);N.hurtUntil=performance.now()+290;N.soloInvul=N.soloTick+28;A()?.play('hurt')});
    N.soloCrowd.advance(goblins,N.players);
    for(const [m,x,y] of locked){m.x=x;m.y=y;m.prevX=x;m.prevY=y;m.vx=m.vy=0}
    for(const boss of N.soloMobs)if(boss.kind==='troll'&&boss.hp>0&&!boss.labFrozen){
@@ -1030,7 +1075,7 @@ function stepSolo(dt){
   }
   if(LAB.allies.length)stepSoloAllies();
   if(!LAB.freezeAI)for(const mob of N.soloMobs){
-   if(mob.hp<=0||mob.labFrozen||mob.kind==='worm')continue; // no individual respawns during a wave
+   if(mob.hp<=0||mob.labFrozen||['worm','elephant','rotfiend'].includes(mob.kind))continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
    if(!LAB.godMode&&d2<=(mob.kind==='troll'?65:34)**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
     me.hp=Math.max(0,me.hp-Math.min(mob.kind==='troll'?60:30,Math.round((mob.kind==='troll'?17:7)*(1+.06*(N.soloWave-1)))));N.hurtUntil=performance.now()+290;
@@ -1041,11 +1086,11 @@ function stepSolo(dt){
   }
   // Auto-attack the nearest living enemy only when in 83px weapon range.
   if(N.soloTick-N.soloSwing>=19){
-   let target=null,distSq=95**2;
+   let target=null,distSq=125**2;
    for(const mob of N.soloMobs){
     if(mob.hp<=0)continue;
     const dx=mob.x-me.x,dy=mob.y-me.y,d=dx*dx+dy*dy;
-    if(d<distSq&&d<(mob.kind==='troll'?95:83)**2){target=mob;distSq=d}
+    if(d<distSq&&d<(mob.kind==='rotfiend'?125:mob.kind==='elephant'?100:mob.kind==='troll'?95:83)**2){target=mob;distSq=d}
    }
    if(target){
     N.soloSwing=N.soloTick;me.attackTick=N.soloTick;
@@ -1135,8 +1180,21 @@ function drawArenaAcid(g,now,visible){
  for(const s of N.acidShots||[]){const lead=N.solo?0:clamp((now-N.lastState)/1000,0,.07),x=s.x+s.vx*lead,y=s.y+s.vy*lead;if(x<visible.left||x>visible.right||y<visible.top||y>visible.bottom)continue;
  g.save();g.translate(x,y);g.rotate(Math.atan2(s.vy,s.vx));g.fillStyle='#a1cb4477';g.beginPath();g.ellipse(-11,0,16,4,0,0,Math.PI*2);g.fill();g.fillStyle='#6fc94c';g.beginPath();g.ellipse(0,0,9+Math.sin(now/55+s.id)*1.3,6,0,0,Math.PI*2);g.fill();g.fillStyle='#d9ff8f';g.beginPath();g.ellipse(1,-2,4,2.6,0,0,Math.PI*2);g.fill();g.restore();}
 }
+function drawArenaHeavy(g,m,now,visible){
+ if(m.hp<=0||m.x<visible.left-110||m.x>visible.right+110||m.y<visible.top-145||m.y>visible.bottom+100)return;
+ const tick=N.solo?N.soloTick:(N.mobRenderTick??N.tick),alpha=N.solo?clamp(N.soloAcc*30,0,1):1;
+ const x=N.solo?(m.prevX??m.x)+(m.x-(m.prevX??m.x))*alpha:m.x,y=N.solo?(m.prevY??m.y)+(m.y-(m.prevY??m.y))*alpha:m.y;
+ const d=Math.hypot(x-(m.heavyDrawX??x),y-(m.heavyDrawY??y));m.heavyDrawX=x;m.heavyDrawY=y;m.heavyDistance=(m.heavyDistance||0)+Math.min(20,d);
+ B().arenaClassicEnemy?.(g,m.kind,{x,y,angle:m.heavyAngle||0,frame:m.heavyDistance/9,attackT:Math.max(0,.36-(tick-m.attackTick)/30),flash:tick-m.hitTick<5?1:0,hp:m.hp,maxHp:m.maxHp,scale:1});
+}
+function drawArenaHeavyWarnings(g,visible){
+ const tick=N.solo?N.soloTick:(N.mobRenderTick??N.tick);
+ for(const m of N.solo?N.soloMobs:N.mpMobs){const c=m.heavyCast;if(!c||m.hp<=0||c.end<=tick||c.x+c.r<visible.left||c.x-c.r>visible.right||c.y+c.r<visible.top||c.y-c.r>visible.bottom)continue;
+ const k=clamp((tick-c.start)/Math.max(1,c.end-c.start),0,1);g.save();g.strokeStyle=k>.76?'#fff0a5':'#ff5752';g.fillStyle='#f14a4b24';g.lineWidth=3.5;g.beginPath();g.arc(c.x,c.y,c.r,0,Math.PI*2);g.fill();g.stroke();g.beginPath();g.arc(c.x,c.y,c.r*(1-k),0,Math.PI*2);g.stroke();g.restore();
+ }
+}
 function drawArenaMobs(g,now,dt,visible){
- const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll'&&m.kind!=='worm'),tick=N.solo?N.soloTick:N.tick;
+ const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>!['troll','worm','elephant','rotfiend'].includes(m.kind)),tick=N.solo?N.soloTick:N.tick;
  if(!N.solo)sampleOnlineMobs(now,dt);
  // V154: cached sprite sheet + viewport culling; fallback retains old graphics in isolated QA.
  if(window.NS154_GOBLINS){
@@ -1649,14 +1707,14 @@ function drawDepthSortedWorld(g,now,dt,visible){
   drawArenaBuildings(g,N.world.obstacles,visible);
   drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
   drawArenaMobs(g,now,dt,visible);
-  for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm')drawArenaWorm(g,m,now,visible);
+  for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm')drawArenaWorm(g,m,now,visible);else if(m.kind==='elephant'||m.kind==='rotfiend')drawArenaHeavy(g,m,now,visible);
   for(const p of N.players.values())if(p.online)drawArenaPlayerBody(g,p,now,dt);
   for(const p of N.players.values())if(p.online)drawArenaPlayerLabel(g,p);
   for(const boss of (N.solo?N.soloMobs:N.mpMobs))if(boss.kind==='troll')window.NS162_TROLL?.drawOne(g,boss,{now,tick:N.solo?N.soloTick:N.tick,visible});
   return;
  }
  if(!N.solo)sampleOnlineMobs(now,dt);
- const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll'&&m.kind!=='worm');
+ const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>!['troll','worm','elephant','rotfiend'].includes(m.kind));
  const bufferedTick=N.solo?N.soloTick:(N.mobRenderTick??N.tick);
  const opt={solo:N.solo,tick:bufferedTick,now,lastState:N.solo?N.lastState:now,
   alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible};
@@ -1691,6 +1749,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   jobs.push({depth:p.y+13,kind:2,id:Number(p.id.slice(1)),p});
  }
  for(const entry of prepared)jobs.push({depth:entry.depth,kind:3,id:entry.mob.id,entry});
+ for(const m of N.solo?N.soloMobs:N.mpMobs)if(['elephant','rotfiend'].includes(m.kind)&&m.hp>0&&m.x>=visible.left-110&&m.x<=visible.right+110&&m.y>=visible.top-145&&m.y<=visible.bottom+100)jobs.push({depth:m.y+15,kind:7,id:m.id,m});
  for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm'&&m.hp>0&&m.x>=visible.left-45&&m.x<=visible.right+45&&m.y>=visible.top-55&&m.y<=visible.bottom+55)jobs.push({depth:m.y+12,kind:6,id:m.id,m});
  for(const boss of (N.solo?N.soloMobs:N.mpMobs)){
   if(boss.kind!=='troll'||boss.hp<=0||boss.x<visible.left-80||boss.x>visible.right+80||boss.y<visible.top-160||boss.y>visible.bottom+40)continue;
@@ -1707,6 +1766,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   else if(item.kind===4)window.NS157_SCENERY?.drawOne(g,item.item);
   else if(item.kind===5)window.NS162_TROLL?.drawOne(g,item.boss,opt);
   else if(item.kind===6)drawArenaWorm(g,item.m,now,visible);
+  else if(item.kind===7)drawArenaHeavy(g,item.m,now,visible);
   else sprites.drawOne(g,item.entry,opt);
  }
  // Names and HP remain legible above a large horde, even when bodies are occluded.
@@ -1853,7 +1913,7 @@ function frame(now){
  }
  g.stroke();
  drawDepthSortedWorld(g,now,dt,visible);
- drawArenaXpCrystals(g,now,visible);drawArenaAcid(g,now,visible);
+ drawArenaXpCrystals(g,now,visible);drawArenaAcid(g,now,visible);drawArenaHeavyWarnings(g,visible);
  drawLabThings(g,now,visible);drawArenaMagic(g,now,visible);
  // Grouped horde steps. One sound per nearby crowd per 720ms, not 80 voices.
  if(N.visibleMobs>1&&N.me&&now-N.hordeStepAt>=720){
