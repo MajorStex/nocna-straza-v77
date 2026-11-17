@@ -550,7 +550,13 @@ function moveLocal(p,dx,dy){
 }
 function snapshot(m){
  if(!Number.isInteger(m.tick)||m.tick<=N.tick||!Array.isArray(m.players))return;
- N.tick=m.tick;N.lastState=performance.now();N.serverMs=Number(m.ms)||0;
+ const arrived=performance.now(),previousTick=N.tick;
+ if(previousTick>=0&&N.lastState&&m.tick-previousTick<=30){
+  const variation=Math.min(250,Math.abs((arrived-N.lastState)-(m.tick-previousTick)*1000/30));
+  N.arrivalJitter=(N.arrivalJitter||0)*.85+variation*.15;
+  N.interpolationTicks=clamp(3+Math.ceil(N.arrivalJitter/34),3,7);
+ }
+ N.tick=m.tick;N.lastState=arrived;N.serverMs=Number(m.ms)||0;
  if(Number.isFinite(m.serverNow))N.serverNow=m.serverNow;
  if(typeof m.globalPaused==='boolean')LAB_PAUSE.paused=m.globalPaused;
  if(Array.isArray(m.allies))LAB_REMOTE={...(LAB_REMOTE||{}),allies:m.allies.slice(0,3).map(a=>({id:a[0],x:a[1]/10,y:a[2]/10,hp:a[3],lastAttack:a[4]}))};
@@ -578,7 +584,9 @@ function snapshot(m){
  if(!N.choice&&priorChoice!==undefined)A()?.play('choose');
  if(Number.isInteger(m.totalMobs)&&m.totalMobs>=0&&m.totalMobs<=80)N.hordeTotal=m.totalMobs;
  if(Array.isArray(m.mobs)){
-  const previous=new Map(N.mpMobs.map(q=>[q.id,q]));
+  const waveChanged=N.wave!==priorWave;
+  if(waveChanged){N.mobHistory=[];N.mobRenderTick=null;}
+  const previous=new Map(waveChanged?[]:N.mpMobs.map(q=>[q.id,q]));
   N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<96&&
    Number.isFinite(q[1])&&Number.isFinite(q[2])&&Number.isFinite(q[3])).map(q=>{
    const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10,attackTick=Number(q[5])||-100;
@@ -594,8 +602,8 @@ function snapshot(m){
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
   // Render two network frames behind to hide 15Hz arrivals and mild jitter.
-  N.mobHistory.push({tick:m.tick,positions:new Map(N.mpMobs.map(q=>[q.id,[q.tx,q.ty]]))});
-  if(N.mobHistory.length>6)N.mobHistory.shift();
+  N.mobHistory.push({tick:m.tick,positions:new Map(N.mpMobs.map(q=>[q.id,[q.tx,q.ty]])),heroes:new Map(m.players.filter(row=>Array.isArray(row)&&/^p[1-6]$/.test(row[0])&&Number.isFinite(row[1])&&Number.isFinite(row[2])).map(row=>[row[0],[row[1]/10,row[2]/10,!!row[5]]]))});
+  if(N.mobHistory.length>12)N.mobHistory.shift();
  }
  for(const row of m.players){
   if(!Array.isArray(row)||!/^p[1-6]$/.test(row[0]))continue;
@@ -636,6 +644,7 @@ function snapshot(m){
   }
   if(id===N.id){
    N.me=p;const ack=Number(m.ack)||0;
+   if(N.rejoinCorrection){N.rejoinCorrection=false;N.pending=[];N.delta={x:0,y:0};N.seq=Math.max(N.seq,ack);p.x=x;p.y=y;p.motion=null;}
    if(ack>N.ack){N.ack=ack;N.pending=N.pending.filter(e=>e.seq>ack)}
    let dx=N.delta.x,dy=N.delta.y;for(const item of N.pending){dx+=item.dx;dy+=item.dy}
    const n=Math.hypot(dx,dy);if(n>105){dx*=105/n;dy*=105/n}
@@ -972,12 +981,13 @@ function sampleOnlineMobs(now,dt){
  if(!history.length)return;
  const latest=history[history.length-1];
  const elapsed=clamp((now-N.lastState)/33.333,0,5);
- const desired=latest.tick-3+elapsed;
- if(N.mobRenderTick===null||Math.abs(N.mobRenderTick-desired)>10){
+ const desired=latest.tick-(N.interpolationTicks||3)+elapsed;
+ if(N.mobRenderTick===null){
   N.mobRenderTick=desired;
  }else{
-  N.mobRenderTick+=Math.min(dt,.05)*30;
-  N.mobRenderTick+=clamp(desired-N.mobRenderTick,-.5,.5)*Math.min(1,dt*6);
+  const oldTick=N.mobRenderTick;
+  if(desired-oldTick>15)N.mobRenderTick=desired;
+  else N.mobRenderTick=oldTick+Math.min(dt,.05)*30*clamp(1+(desired-oldTick)*.12,0,1.35);
  }
  N.mobRenderTick=clamp(N.mobRenderTick,history[0].tick,latest.tick);
  let before=history[0],after=latest;
@@ -993,6 +1003,14 @@ function sampleOnlineMobs(now,dt){
   }
   mob.x=old[0]+(next[0]-old[0])*fraction;
   mob.y=old[1]+(next[1]-old[1])*fraction;
+ }
+ // Remote heroes share the same render timeline; local prediction stays immediate.
+ if(N.players)for(const p of N.players.values()){
+  if(p.id===N.id||!p.online)continue;
+  const a=before.heroes?.get(p.id),b=after.heroes?.get(p.id);
+  if(!b)continue;
+  if(!a||!a[2]||!b[2]||(b[0]-a[0])**2+(b[1]-a[1])**2>120**2){p.x=b[0];p.y=b[1];p.motion=null;continue}
+  p.x=a[0]+(b[0]-a[0])*fraction;p.y=a[1]+(b[1]-a[1])*fraction;
  }
 }
 function drawArenaMobs(g,now,dt,visible){
@@ -1104,6 +1122,7 @@ function connect(match,id,ticket,rejoin=false){
   LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
   resetRenderQuality();N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
+  N.arrivalJitter=0;N.interpolationTicks=3;N.rejoinCorrection=false;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.drops=[];N.lastMyHp=null;N.hurtUntil=0;
  }
  N.match=match;N.id=id;N.ticket=ticket;if(!rejoin)N.paused=false;
@@ -1132,7 +1151,9 @@ function connect(match,id,ticket,rejoin=false){
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.world=m.world||N.world;N.phase='waiting';attachVoiceToArena();
+   N.world=m.world||N.world;N.phase='waiting';
+   if(rejoin){N.mobHistory=[];N.mobRenderTick=null;N.lastState=0;N.rejoinCorrection=true;N.pending=[];N.delta={x:0,y:0};N.arrivalJitter=0;N.interpolationTicks=3;}
+   attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
     LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;
@@ -1503,7 +1524,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
  const people=[];
  for(const p of N.players.values()){
   if(!p.online)continue;
-  if(p.id!==N.id){const k=1-Math.exp(-Math.min(dt,.05)*13);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
+  // All remote heroes were sampled together with mobs above; no second easing pass.
   if(p.x<visible.left-75||p.x>visible.right+75||
      p.y<visible.top-95||p.y>visible.bottom+50)continue;
   people.push(p);
@@ -1698,7 +1719,7 @@ function frame(now){
  renderCostSum+=performance.now()-frameStart;renderCostCount++;
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, renderDpr:RENDER_Q.dpr, frameP95Ms:RENDER_Q.p95Ms, meanFrameCostMs:RENDER_Q.frameCostMs, qualityChanges:RENDER_Q.changes, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, jitterMs:N.arrivalJitter??null, interpolationDelayMs:(N.interpolationTicks||3)*1000/30, renderDpr:RENDER_Q.dpr, frameP95Ms:RENDER_Q.p95Ms, meanFrameCostMs:RENDER_Q.frameCostMs, qualityChanges:RENDER_Q.changes, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
