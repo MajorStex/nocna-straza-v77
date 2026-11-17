@@ -1393,7 +1393,11 @@ function drawArenaXpCrystals(g,now,view){
  for(const d of drops){
   if(d.x<view.left-24||d.x>view.right+24||d.y<view.top-24||d.y>view.bottom+24)continue;
   const r=d.value>=40?10:7,sprite=xpCrystalSprite(r);
-  if(sprite){g.globalAlpha=alpha*(.82+.18*Math.sin(now/250+d.id));g.drawImage(sprite,d.x-20,d.y-22)}
+  if(sprite){
+   const phase=RENDER_Q.fxLevel===1?Math.floor(now/120)*120:now;
+   g.globalAlpha=alpha*(RENDER_Q.fxLevel===0?.9:.82+.18*Math.sin(phase/250+d.id));
+   g.drawImage(sprite,d.x-20,d.y-22)
+  }
  }
  g.restore();
 }
@@ -1600,11 +1604,11 @@ function drawLabThings(g,now,visible){
   g.restore();
  }
 }
-// V179 adaptive render budget. Only the canvas backing resolution changes;
-// world coordinates, collisions, input cadence, and server ticks are unchanged.
+// V181 visual fidelity constraint: keep the established canvas DPR and every
+// hero/enemy shape, size, skin and animation intact. Adapt cosmetic XP pulse only.
 function newRenderBudget(cap=1.5){
  cap=Math.max(.5,Math.min(1.5,Number(cap)||1));
- return {cap,dpr:cap,min:Math.min(cap,.8),slow:0,fast:0,p95Ms:null,frameCostMs:null,windows:0,changes:0};
+ return {cap,dpr:cap,fxLevel:2,slow:0,fast:0,p95Ms:null,frameCostMs:null,windows:0,changes:0};
 }
 function tuneRenderBudget(q,fps,p95Ms,costMs){
  if(![fps,p95Ms,costMs].every(Number.isFinite))return q;
@@ -1613,10 +1617,10 @@ function tuneRenderBudget(q,fps,p95Ms,costMs){
  const overloaded=fps<57||p95Ms>23||costMs>15;
  const comfortable=fps>=59&&p95Ms<=18&&costMs<10;
  q.slow=overloaded?q.slow+1:0;q.fast=comfortable?q.fast+1:0;
- const old=q.dpr;
- if(q.slow>=2){q.dpr=Math.max(q.min,Math.round((q.dpr-.15)*100)/100);q.slow=0;q.fast=0}
- else if(q.fast>=5){q.dpr=Math.min(q.cap,Math.round((q.dpr+.1)*100)/100);q.fast=0}
- if(old!==q.dpr)q.changes++;
+ const old=q.fxLevel;
+ if(q.slow>=2){q.fxLevel=Math.max(0,q.fxLevel-1);q.slow=0;q.fast=0}
+ else if(q.fast>=5){q.fxLevel=Math.min(2,q.fxLevel+1);q.fast=0}
+ if(old!==q.fxLevel)q.changes++;
  return q;
 }
 let RENDER_Q=newRenderBudget(window.devicePixelRatio||1),renderIntervals=[],renderCostSum=0,renderCostCount=0;
@@ -1722,7 +1726,7 @@ function frame(now){
  renderCostSum+=performance.now()-frameStart;renderCostCount++;
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, jitterMs:N.arrivalJitter??null, interpolationDelayMs:(N.interpolationTicks||3)*1000/30, renderDpr:RENDER_Q.dpr, frameP95Ms:RENDER_Q.p95Ms, meanFrameCostMs:RENDER_Q.frameCostMs, qualityChanges:RENDER_Q.changes, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, jitterMs:N.arrivalJitter??null, interpolationDelayMs:(N.interpolationTicks||3)*1000/30, renderDpr:RENDER_Q.dpr,cosmeticFxLevel:RENDER_Q.fxLevel,characterQualityLocked:true, frameP95Ms:RENDER_Q.p95Ms, meanFrameCostMs:RENDER_Q.frameCostMs, qualityChanges:RENDER_Q.changes, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
