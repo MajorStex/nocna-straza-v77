@@ -24,5 +24,8 @@ function remove(id,cleanChar,I,F){return write(list(cleanChar,I,F).filter(x=>x.i
 function saveDraft(raw,cleanChar,I,F){const c=clean({...raw,id:'autosaved-draft'},cleanChar,I,F);if(!c)return false;try{localStorage.setItem(key()+'_draft',JSON.stringify(c));return true}catch{return false}}
 function getDraft(cleanChar,I,F){try{return clean(JSON.parse(localStorage.getItem(key()+'_draft')||'null'),cleanChar,I,F)}catch{return null}}
 function id(){return 'scene-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9)}
-window.NS176_SCENES={clean,list,save,remove,id,saveDraft,getDraft,PROP_TYPES,cleanProps,blocked,move,freePoint,drawProp,drawMiniMap};
+// Camera controls are local-only. Immersive 0.75 shows the complete map.
+function cameraZoomStep(value,delta){const levels=[0.75,1,1.35,1.65,2.3];let i=levels.indexOf(value);if(i<0)i=1;return levels[Math.max(0,Math.min(levels.length-1,i+Math.sign(delta)))]}
+function cameraScale(w,h,immersive,zoom){const fit=Math.min(w/780,h/500);return immersive?(zoom===0.75?fit:Math.max(w/780,h/500)*zoom):fit*zoom}
+window.NS176_SCENES={cameraZoomStep,cameraScale,clean,list,save,remove,id,saveDraft,getDraft,PROP_TYPES,cleanProps,blocked,move,freePoint,drawProp,drawMiniMap};
 })();

@@ -41,6 +41,20 @@ try{
  assert(!await guest.locator('.ns177Controls').isVisible());
  assert((await guest.locator('#ns177Canvas').boundingBox()).height>guestCanvas.height);
  await guest.locator('[data-w=zoom]').click();
+ // Zoom out on guest while host stays zoomed. Both can fit the whole map.
+ await guest.locator('[data-w=zoomout]').click();
+ await guest.locator('[data-w=zoomout]').click();
+ assert.equal(await guest.locator('[data-w=zoom]').getAttribute('data-zoom'),'0.75');
+ assert.match(await host.locator('[data-action=zoom]').innerText(),/1\.35/);
+ await host.locator('[data-action=zoomout]').click();
+ await host.locator('[data-action=zoomout]').click();
+ assert.equal(await host.locator('[data-action=zoom]').getAttribute('data-zoom'),'0.75');
+ assert.equal(await host.locator('[data-action=zoomout]').isDisabled(),true);
+ assert.equal(await guest.locator('[data-w=zoomout]').isDisabled(),true);
+ const scale=await host.evaluate(()=>NS176_SCENES.cameraScale(832,384,true,.75));
+ assert(scale*780<=832&&scale*500<=384);
+ console.log('V185 ZOOM PASS',JSON.stringify({hostGuestIndependent:true,wholeMap:true,lowerBound:true}));
+
  await host.locator('[data-action=immersive]').click();
  assert(await host.locator('#ns171Fields').isVisible());
  assert(!await guest.locator('.ns177Controls').isVisible(),'host layout is not broadcast');
