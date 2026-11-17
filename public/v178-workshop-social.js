@@ -29,6 +29,7 @@ function debugReport(){
   phase:active?arena.phase:N()?.phase||'offline',
   fps:active?num(arena.fps):num(classic?.fps),
   rttMs:active?num(arena.rttMs):num(classic?.hostPingMs),
+  jitterMs:active?num(arena.jitterMs):null,interpolationDelayMs:active?num(arena.interpolationDelayMs):null,
   renderDpr:active?arena.renderDpr:null,frameP95Ms:active?num(arena.frameP95Ms):null,meanFrameCostMs:active?num(arena.meanFrameCostMs):null,qualityChanges:active?arena.qualityChanges:null,
   connected:active?arena.connected:(W()?.active?members().filter(p=>p.inside).length:(N()?.role==='host'?1+[...N().clients.values()].filter(c=>c.open).length:null)),
   snapshots:active?arena.snapshots:null, avgSnapshotChars:active?arena.avgSnapshotChars:null,
