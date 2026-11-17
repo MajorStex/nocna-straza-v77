@@ -1318,6 +1318,8 @@ function slashHeading(p,m){
 // All clients render the attack pose from the same server attack tick.
 function swordAge(p,now){
  if(!Number.isFinite(p.attackTick))return Infinity;
+ // Remote weapon animation follows buffered world position; local pose stays responsive.
+ if(!N.solo&&p.id!==N.id&&Number.isFinite(N.mobRenderTick))return N.mobRenderTick-p.attackTick;
  return N.tick-p.attackTick+(N.solo?0:clamp((now-N.lastState)/33.333,0,2));
 }
 function drawTargetedSlash(g,p,m,age){
@@ -1498,7 +1500,8 @@ function drawDepthSortedWorld(g,now,dt,visible){
  }
  if(!N.solo)sampleOnlineMobs(now,dt);
  const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll');
- const opt={solo:N.solo,tick:N.solo?N.soloTick:N.tick,now,lastState:N.lastState,
+ const bufferedTick=N.solo?N.soloTick:(N.mobRenderTick??N.tick);
+ const opt={solo:N.solo,tick:bufferedTick,now,lastState:N.solo?N.lastState:now,
   alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible};
  // Precompute visible goblins in ONE scan. They are never re-animated in sorting.
  const prepared=sprites.prepare(mobs,opt);N.visibleMobs=prepared.length;
