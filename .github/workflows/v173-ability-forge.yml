@@ -1,0 +1,33 @@
+name: V173 Ability Forge combat audio and UI QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/v173-ability-forge.js'
+      - 'public/v171-character-creator.js'
+      - 'public/v172-character-voices.js'
+      - 'public/index.html'
+      - 'tests/v173-ability-forge.test.cjs'
+      - '.github/workflows/v173-ability-forge.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  forge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Install Chromium test harness
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Combat and mixer regressions, ability UI on 320 412 832
+        run: node tests/v173-ability-forge.test.cjs
+      - name: Recheck original editor Voice Studio Village and New Zone
+        run: |
+          node tests/v172-character-voices.test.cjs
+          node tests/v171-character-creator.test.cjs
+          node tests/current-deployment.test.cjs
+          node tests/v138-village-pvp-animals.test.cjs
+          node tests/v168-xp-world.test.cjs
