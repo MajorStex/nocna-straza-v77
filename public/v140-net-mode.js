@@ -169,7 +169,7 @@ function createArenaCrowdSteering(world,move){
    if(!target?.online||target.knocked||target.hp<=0)continue;
    const d=Math.hypot(m.vx||0,m.vy||0);
    if(d<.001)continue;
-   const stride=(49+(m.id%5)*3.25)/world.speed;
+   const stride=(m.moveSpeed||49+(m.id%5)*3.25)/world.speed;
    move(m,m.vx/d*stride,m.vy/d*stride,1/30);
   }
  }
@@ -183,13 +183,14 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:4200,h:4200,r:14,speed:156
  wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,hordeStepAt:0,uiAt:0,choiceUiId:'',paused:false,pausedAt:0,
  soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
  soloDrops:[],drops:[],dropSeq:0,soloUpgradeSeq:0,
- solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:60,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
+ solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:80,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 // V160 sandbox state lives only in this isolated runtime, never in saved progression.
 let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};
 let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null;
 let LAB_SUPPORTED=false,LAB_LOOK=null,LAB_UNDO=null,LAB_SERVER_BUILD=0;
 const LAB_WEAPONS=new Set(['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul']);
-const labDefaultCount=wave=>Math.min(140,60+Math.max(0,wave-1)*10);
+const labDefaultCount=wave=>Math.min(160,80+Math.max(0,wave-1)*15);
+const arenaMobSpeed=(wave,id)=>Math.min(145,98+Math.max(0,wave-1)*3.4+(id%5)*4+(id%7===0?12:0));
 // Matches Classic slow XP curve. Only RUN EXP is awarded: no account/paid XP.
 const xpNeeded=(level)=>{let v=160;for(let n=1;n<Math.min(level,100);n++)v=Math.round(v*1.12+18);return v};
 const XP_CAP=160;
@@ -619,12 +620,12 @@ function snapshot(m){
  if(N.wave>priorWave)A()?.play('wave');
  if(N.choice&&N.choice.seq!==priorChoice){A()?.play('chest');N.choiceUiId=''}
  if(!N.choice&&priorChoice!==undefined)A()?.play('choose');
- if(Number.isInteger(m.totalMobs)&&m.totalMobs>=0&&m.totalMobs<=140)N.hordeTotal=m.totalMobs;
+ if(Number.isInteger(m.totalMobs)&&m.totalMobs>=0&&m.totalMobs<=160)N.hordeTotal=m.totalMobs;
  if(Array.isArray(m.mobs)){
   const waveChanged=N.wave!==priorWave;
   if(waveChanged){N.mobHistory=[];N.mobRenderTick=null;}
   const previous=new Map(waveChanged?[]:N.mpMobs.map(q=>[q.id,q]));
-  N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<141&&
+  N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<161&&
    Number.isFinite(q[1])&&Number.isFinite(q[2])&&Number.isFinite(q[3])).map(q=>{
    const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10,attackTick=Number(q[5])||-100;
    if(prev&&attackTick>0&&attackTick!==prev.attackTick)
@@ -729,13 +730,13 @@ function buildSoloWave(wave){
  const spawnList=safe.slice(0,count).map(({pt,dist},i)=>{
   const hp=Math.min(420,35+(wave-1)*9);
   return {id:i>=95?i+1:i,x:pt[0],y:pt[1],sx:pt[0],sy:pt[1],hp,maxHp:hp,
-   spawnDistance:Math.round(dist),attackAt:(i%4)*7,attackTick:-100,deadUntil:0,
+   moveSpeed:arenaMobSpeed(wave,i>=95?i+1:i),spawnDistance:Math.round(dist),attackAt:(i%4)*7,attackTick:-100,deadUntil:0,
    hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0,
    animDistance:0,animX:pt[0],animY:pt[1],facing:1,movingUntil:0};
  });
  if(wave===10&&spawnList.length){
   const pos=spawnList.pop();
-  spawnList.push({...pos,id:95,kind:'troll',hp:900,maxHp:900,
+  spawnList.push({...pos,id:95,kind:'troll',hp:900,maxHp:900,moveSpeed:98,
    attackAt:0,attackTick:-100,hitTick:-100,targetId:''});
  }
  return spawnList;
@@ -879,7 +880,7 @@ function startSolo(){
  // Solo uses precisely the same seeded trunks/rocks as the multiplayer server.
  N.world.obstacles.push(...(window.NS157_SCENERY?.colliders?.(N.world)||[]));
  N.seq=N.ack=N.soloTick=N.soloKills=N.dropSeq=N.soloUpgradeSeq=0;N.tick=-1;N.soloDrops=[];N.drops=[];
- N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=60;
+ N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=80;
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
  N.soloChests=[{id:1,x:1790,y:2025,opened:false},{id:2,x:2220,y:2140,opened:false},{id:3,x:2730,y:2380,opened:false}];
  N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();B().unlockSound?.();
@@ -968,7 +969,7 @@ function stepSolo(dt){
    for(const boss of N.soloMobs)if(boss.kind==='troll'&&boss.hp>0&&!boss.labFrozen){
     boss.targetId=me.id;
     const dx=me.x-boss.x,dy=me.y-boss.y,dist=Math.hypot(dx,dy);
-    if(dist>66)moveLocal(boss,dx/dist*67/30*(boss.spellSlowFactor||1),dy/dist*67/30*(boss.spellSlowFactor||1));
+    if(dist>66)moveLocal(boss,dx/dist*98/30*(boss.spellSlowFactor||1),dy/dist*98/30*(boss.spellSlowFactor||1));
    }
   }
   if(LAB.allies.length)stepSoloAllies();
