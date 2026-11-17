@@ -123,7 +123,7 @@ function draw(g,c,x,y,op={}){
  g.restore();
 }
 let root=null,canvas=null,g=null,open=false,raf=0,last=0,lastDraw=0,all=[],draft=clean(base),tab='look',preview='idle',level=1,sim=null,notice='',selectedEnemy='',hidHome=false;
-let stick={id:null,x:0,y:0,vx:0,vy:0},keys=new Set(),grid=null,selectedHero='',testTier='auto',abilitySlot=0,labInvulnerable=false;
+let stick={id:null,x:0,y:0,vx:0,vy:0},keys=new Set(),grid=null,selectedHero='',testTier='auto',abilitySlot=0,labInvulnerable=false,lastAbilityHud=0;
 const esc=v=>String(v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const option=(v,label,on=false)=>'<option value="'+esc(v)+'"'+(on?' selected':'')+'>'+esc(label)+'</option>';
 const select=(k,title)=>'<label>'+title+'<select data-field="'+k+'">'+forms[k].map(v=>option(v,labels[v]||v,draft[k]===v)).join('')+'</select></label>';
@@ -203,7 +203,7 @@ function startTest(){
  const enemy=clean({...rawEnemy,role:testTier!=='auto'?testTier:rawEnemy.role==='hero'?'enemy':rawEnemy.role});
  sim={p:entity(hero,level,W/2,H/2),enemy,mobs:[],drops:[],wave:level,xp:0,kills:0,time:0,paused:false,cleared:0,voiceQueue:[],voiceClock:0,waveVoice:true,voicesReady:false,fx:[],damageDone:0,damageTaken:0};
  const round=sim;V()?.prepare([hero.id,enemy.id]).then(()=>{if(sim===round)round.voicesReady=true}).catch(()=>{});
- resetWave(true);keys.clear();resetStick();notice='';A()?.hud($('ns173CastHud'),sim.p);
+ resetWave(true);keys.clear();resetStick();notice='';lastAbilityHud=0;A()?.hud($('ns173CastHud'),sim.p);
 }
 function resetWave(initial=false){if(!sim)return;if(!initial&&sim.p.hp<=0)return;sim.mobs=[];sim.fx=[];sim.cleared=0;sim.waveVoice=true;sim.p.hp=sim.p.s.hp;sim.p.mana=sim.p.maxMana;sim.p.x=W/2;sim.p.y=H/2;spawnEnemy(Math.min(7,sim.enemy.role==='boss'?1:sim.enemy.role==='mini'?2:3+Math.floor(sim.wave/5)))}
 function spawnEnemy(count){if(!sim)return;for(let i=0;i<count&&sim.mobs.length<MAX_MOBS;i++){const a=sim.mobs.length*2.399+sim.wave*.71+sim.time*.15,x=clamp(sim.p.x+Math.cos(a)*230,35,W-35),y=clamp(sim.p.y+Math.sin(a)*210,45,H-26);sim.mobs.push(entity(sim.enemy,sim.wave,x,y))}}
@@ -244,7 +244,7 @@ function drawTest(w,h,now){
 }
 function frame(now){if(!open)return;raf=requestAnimationFrame(frame);if(document.hidden){last=0;return}const dt=last?clamp((now-last)/1000,0,.065):0;last=now;if(sim)step(dt);
  if(!sim&&now-lastDraw<32)return;lastDraw=now;const [w,h]=dimensions();background(w,h,!!sim);let status;
- if(sim){status=drawTest(w,h,now);A()?.hud($('ns173CastHud'),sim.p)}else{const moving=preview==='walk'||preview==='run',phase=gaitStep(draft,now*.001*draft.speed*(preview==='run'?1.55:1));draw(g,draft,w/2,h*.83,{phase,moving,attack:preview==='attack'?(Math.sin(now*.008)+1)/2:0,side:1,scale:Math.min(w/115,h/175),now});status=labels[draft.role].toUpperCase()+' · '+draft.name+' · '+labels[draft.race]}
+ if(sim){status=drawTest(w,h,now);if(now-lastAbilityHud>=100){lastAbilityHud=now;A()?.hud($('ns173CastHud'),sim.p)}}else{const moving=preview==='walk'||preview==='run',phase=gaitStep(draft,now*.001*draft.speed*(preview==='run'?1.55:1));draw(g,draft,w/2,h*.83,{phase,moving,attack:preview==='attack'?(Math.sin(now*.008)+1)/2:0,side:1,scale:Math.min(w/115,h/175),now});status=labels[draft.role].toUpperCase()+' · '+draft.name+' · '+labels[draft.race]}
  if(notice)status+='\n'+notice;const node=$('ns171Status');if(node.textContent!==status)node.textContent=status;
 }
 function install(){const parent=$('ns50MenuCreate')?.querySelector('.ns50GroupBody');if(!parent||$('ns171HeroBtn'))return;for(const [id,title,role] of [['ns171HeroBtn','♟ CREATE MY HERO','hero'],['ns171CharacterBtn','◇ CREATE CHARACTER · HERO / ENEMY','enemy']]){const b=document.createElement('button');b.id=id;b.textContent=title;b.onclick=()=>openEditor(role);parent.append(b)}}
