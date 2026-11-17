@@ -37,14 +37,14 @@ assert(arena.includes('function drawArenaXpCrystals'),'V168 crystal rendering mu
    const initial=await get();
    assert.deepEqual(initial.quick,['ns109Chat','ns141Training','ns169More'],'only three quick actions');
    assert.equal(initial.menu.hidden,true,'more menu stays hidden until requested');
+   assert.equal(initial.attack,null,'V170 hides manual attack button; proximity combat is automatic');
    assert(initial.dest.w>0&&initial.classic.w>0,'travel and lobby controls available');
    assert(initial.scrollWidth<=width+1,'no horizontal overflow '+width);
    if(width<=600){
     assert(initial.top.h<114,'header must not obscure world: '+JSON.stringify(initial.top));
     assert(initial.bottom.h<75,'single row footer: '+JSON.stringify(initial.bottom));
     assert(initial.stage.h>=height*.65,'world should occupy majority of screen '+JSON.stringify(initial.stage));
-    assert(initial.attack.bottom<=initial.stage.bottom+1&&initial.dodge.bottom<=initial.stage.bottom+1,'actions inside map');
-    assert(initial.attack.right<=width+1&&initial.dodge.x>=-1,'attacks within viewport');
+    assert(initial.dodge.bottom<=initial.stage.bottom+1&&initial.dodge.x>=-1,'dodge stays inside world');
    }
    await page.locator('#ns169More').click();
    const opened=await get();
@@ -73,7 +73,7 @@ assert(arena.includes('function drawArenaXpCrystals'),'V168 crystal rendering mu
    });
    assert(popup.button&&popup.height<310,'compact popup and explicit close button');
    assert(popup.right<=width+1&&popup.top>=0,'popup inside phone viewport');
-   if(width<=600)assert(popup.bottom<initial.attack.y-20,'mic popup must not block attack button');
+   if(width<=600)assert(popup.bottom<initial.stage.bottom-60,'mic popup leaves movement area visible');
    await page.locator('#ns165VillageVoiceClose').click();
    assert.equal(await page.evaluate(()=>document.getElementById('ns165VillagePopup').hidden),true,'X closes mic popup');
    assert.deepEqual(errors.filter(e=>/SyntaxError|ReferenceError|TypeError/.test(e)),[],'browser errors');
