@@ -3,8 +3,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const ROOT=path.resolve(__dirname,'../public'),source=fs.readFileSync(path.join(ROOT,'v171-character-creator.js'),'utf8'),html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
 new Function(source);
-assert.match(html,/v171-character-creator\.js\?v=(?:171|172)/);
-assert.match(html,/name="ns-release" content="17[12]"/);
+assert.match(html,/v171-character-creator\.js\?v=17[123]/);
+assert.match(html,/name="ns-release" content="17[123]"/);
 assert.match(html,/v115-village\.js\?v=166&amp;ui=170/);
 assert.match(html,/v140-net-mode\.js\?v=168/);
 assert(!/new WebSocket|fetch\(|XMLHttpRequest|new Audio\(|https?:\/\//.test(source),'isolated, no remote requests or network traffic');

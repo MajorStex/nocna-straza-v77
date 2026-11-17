@@ -38,8 +38,8 @@ const clock=()=>performance.now()/1000;
 function contextReady(){if(!context){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;context=new AC();master=context.createGain();master.gain.value=volume;const comp=context.createDynamicsCompressor();comp.threshold.value=-20;comp.ratio.value=3;master.connect(comp);comp.connect(context.destination)}if(context.state==='suspended')context.resume().catch(()=>{});return context}
 function mixAt(distance,dx){const d=Math.max(0,Number(distance)||0);return {gain:d>700?0:Math.max(.07,1/(1+Math.pow(d/170,1.55))),pan:clamp((Number(dx)||0)/270,-.85,.85)}}
 function stopVoice(v){try{v.source.stop()}catch{}try{v.source.disconnect();v.gain.disconnect();v.pan?.disconnect()}catch{}active=active.filter(a=>a!==v)}
-function stopAll(){epoch++;for(const v of [...active])stopVoice(v);active=[];lastGlobal=-Infinity;bank.clear();lastVariant.clear()}
-function silence(){epoch++;for(const v of [...active])stopVoice(v);active=[];lastGlobal=-Infinity}
+function stopAll(){epoch++;pendingActors.clear();pending=0;for(const v of [...active])stopVoice(v);active=[];lastGlobal=-Infinity;bank.clear();lastVariant.clear()}
+function silence(){epoch++;pendingActors.clear();pending=0;for(const v of [...active])stopVoice(v);active=[];lastGlobal=-Infinity}
 async function decode(clip){let b=decoded.get(clip.key);if(b){decoded.delete(clip.key);decoded.set(clip.key,b);return b}const ac=context;if(!ac)return null;try{b=await ac.decodeAudioData(await clip.blob.arrayBuffer());decoded.set(clip.key,b);while(decoded.size>MAX_CACHE)decoded.delete(decoded.keys().next().value);return b}catch{return null}}
 async function prepare(ids){const e=epoch,owner=scope();const unique=[...new Set(ids.filter(Boolean))];const rows=await Promise.all(unique.map(id=>list(id,owner).catch(()=>[])));if(epoch!==e)return false;for(let i=0;i<unique.length;i++){const events=new Map();for(const c of rows[i]){if(!events.has(c.event))events.set(c.event,[]);events.get(c.event).push(c)}bank.set(unique[i],events)}if(context){let warm=0;for(const map of bank.values())for(const event of ['attack','near','spawn','hurt']){const clip=map.get(event)?.[0];if(clip&&warm++<6)decode(clip).catch(()=>{})}}return true}
 function setVolume(v){volume=clamp(Number(v)||0,0,1);if(master)master.gain.value=volume}
@@ -51,11 +51,13 @@ function candidate(state,id,event,distance,dx,now=clock(),random=Math.random){
  if(rule.priority<8&&random()>rule.chance)return null;
  return {state,id,event,distance,dx,now,priority:rule.priority,clips};
 }
-let pending=0,played=0,playedEvents=Object.create(null);
+let pending=0,played=0,playedEvents=Object.create(null);const pendingActors=new Map();
 function play(c){
  if(!c||!context||context.state==='closed')return false;
  const now=clock();const priority=c.priority;
  if(now-lastGlobal<(priority>=8?.35:1.15))return false;
+ if(pendingActors.has(c.state))return false;
+ const speaking=active.find(v=>v.actor===c.state);if(speaking){if(priority<8||speaking.priority>=priority)return false;stopVoice(speaking)}
  if(active.length+pending>=MAX_ACTIVE){
   const weak=active.filter(v=>v.priority<priority).sort((a,b)=>a.priority-b.priority||a.started-b.started)[0];
   if(!weak||priority<6)return false;stopVoice(weak);
@@ -63,15 +65,15 @@ function play(c){
  const at=mixAt(c.distance,c.dx);if(!at.gain)return false;
  c.state.times[c.event]=c.now;c.state.last=c.now;lastGlobal=now;
  const k=c.id+'|'+c.event,prev=lastVariant.get(k),alternatives=c.clips.filter(x=>x.slot!==prev),pool=alternatives.length?alternatives:c.clips,clip=pool[Math.floor(Math.random()*pool.length)];lastVariant.set(k,clip.slot);
- const gen=epoch;pending++;
+ const gen=epoch;pending++;pendingActors.set(c.state,gen);
  decode(clip).then(buffer=>{
   if(!buffer||gen!==epoch||!voiceEnabled||active.length>=MAX_ACTIVE)return;
   const src=context.createBufferSource(),gain=context.createGain(),pan=context.createStereoPanner?.();
   src.buffer=buffer;gain.gain.value=at.gain*.92;src.connect(gain);if(pan){pan.pan.value=at.pan;gain.connect(pan);pan.connect(master)}else gain.connect(master);
-  const voice={source:src,gain,pan,priority,started:clock()};active.push(voice);
+  const voice={source:src,gain,pan,priority,actor:c.state,started:clock()};active.push(voice);
   src.onended=()=>{active=active.filter(v=>v!==voice);try{src.disconnect();gain.disconnect();pan?.disconnect()}catch{}};
   src.start(0,0,Math.min(buffer.duration,MAX_MS/1000));played++;playedEvents[c.event]=(playedEvents[c.event]||0)+1;
- }).catch(()=>{}).finally(()=>pending=Math.max(0,pending-1));return true;
+ }).catch(()=>{}).finally(()=>{if(gen===epoch){pending=Math.max(0,pending-1);if(pendingActors.get(c.state)===gen)pendingActors.delete(c.state)}});return true;
 }
 function dispatch(candidates){const best=candidates.filter(Boolean).sort((a,b)=>b.priority-a.priority||a.distance-b.distance);for(const c of best)if(play(c))return true;return false}
 let panel=null,host=null,bridge=null,recording=null,recToken=0,previewAudio=null,previewURL=null,renderToken=0,chosenEvent='attack',chosenSlot=0,notice='',busy=false;
