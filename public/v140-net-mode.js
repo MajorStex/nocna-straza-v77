@@ -353,7 +353,7 @@ function ui(){
   if(N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'presence',state:'active'}))}catch{}
   if(N.phase==='reconnecting'&&N.match&&N.ticket){
    if(N.retryTimer){clearTimeout(N.retryTimer);N.retryTimer=null}
-   if(N.ws?.readyState!==1)connect(N.match,N.id,N.ticket,true);
+   if(!N.ws){if(N.lostSince&&Date.now()-N.lostSince>=120000){N.phase='error';status('ISTEKAO ROK ZA POVRATAK · LOBBY')}else connect(N.match,N.id,N.ticket,true)}
   }
  });
  window.addEventListener('keydown',e=>{
@@ -476,6 +476,7 @@ function status(note){
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
 function stop(notify=false){
+ N.prepareAttempt=(N.prepareAttempt||0)+1;
  window.NS159_VOICE?.stop();
  const wasSolo=N.solo;
  if(notify&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'leave'}))}catch{}
@@ -526,6 +527,7 @@ function snapshot(m){
  if(Number.isFinite(m.serverNow))N.serverNow=m.serverNow;
  if(typeof m.globalPaused==='boolean')LAB_PAUSE.paused=m.globalPaused;
  if(Array.isArray(m.allies))LAB_REMOTE={...(LAB_REMOTE||{}),allies:m.allies.slice(0,3).map(a=>({id:a[0],x:a[1]/10,y:a[2]/10,hp:a[3],lastAttack:a[4]}))};
+ N.diagSnapshots=(N.diagSnapshots||0)+1;
  const priorWave=N.wave,priorChoice=N.choice?.seq;
  const weaponHits=new Map();
  for(const row of m.players){
@@ -1069,11 +1071,11 @@ function attachVoiceToArena(){
  else window.addEventListener('ns159VoiceReady',start,{once:true});
 }
 function connect(match,id,ticket,rejoin=false){
- if(rejoin?N.phase!=='reconnecting':N.phase!=='idle')return false;
+ if(rejoin?(N.phase!=='reconnecting'||!!N.ws):N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL){N.phase='error';status('NOVA ZONA privremeno dostupna od nivoa 0');return false}
  if(!rejoin){
   LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
-  N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
+  N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.drops=[];N.lastMyHp=null;N.hurtUntil=0;
  }
@@ -1155,8 +1157,8 @@ function connect(match,id,ticket,rejoin=false){
     if(N.paused&&ws.readyState===1)ws.send(JSON.stringify({t:'pause',paused:true}));
     status('V168 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
-  if(m.t==='s'){snapshot(m);return}
-  if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
+  if(m.t==='s'){const before=N.diagSnapshots||0;snapshot(m);if((N.diagSnapshots||0)>before&&typeof e.data==='string')N.diagChars=(N.diagChars||0)+e.data.length;return}
+  if(m.t==='pong'&&Number.isFinite(m.sent)){N.ping=Math.max(0,performance.now()-m.sent);N.diagRtt=N.ping;}
   if(m.t==='end'){
    window.NS159_VOICE?.stop();
    N.phase='ended';status('TEST ZAVRŠEN: '+String(m.reason||'kraj'));
@@ -1186,19 +1188,40 @@ function connect(match,id,ticket,rejoin=false){
  };
  return true;
 }
+// V179: validate the exact relay contract before any budget claim or ticket offer.
+function arenaRosterIssue(net,roster,minLevel=NS140_TEMP_UNLOCK_LEVEL){
+ if(!Array.isArray(roster)||roster.length<2||roster.length>6)return 'roster_count';
+ const ids=roster.map(p=>p?.id);
+ if(ids.some(id=>typeof id!=='string'||!/^p[1-6]$/.test(id)))return 'roster_seat';
+ if(new Set(ids).size!==ids.length)return 'roster_duplicate';
+ if(ids[0]!==net?.localId)return 'roster_host';
+ if(typeof net.code!=='string'||!/^[A-HJ-NP-Z2-9]{6}$/.test(net.code))return 'roster_code';
+ if(roster.some(p=>!Number.isFinite(Number(p.level))||Number(p.level)<minLevel))return 'roster_level';
+ if(ids.slice(1).some(id=>!net.clients?.get(id)?.open))return 'guest_disconnected';
+ return '';
+}
+function arenaRosterLabel(code){
+ return ({roster_count:'Potrebna su 2–6 igrača',roster_seat:'Nevažeće mesto igrača',roster_duplicate:'Duplirano mesto igrača',roster_host:'Host nije u rosteru',roster_code:'Nevažeći kod sobe',roster_level:'Nivo igrača nije dovoljan',roster_changed:'Sastav sobe se promenio; pokušaj ponovo',invalid_tickets:'Server nije izdao sve ulaznice',guest_disconnected:'Igrač je izgubio vezu',invalid_roster:'Server je odbio roster'})[code]||code;
+}
 async function startHost(){
  const b=B(),net=b.NET,roster=b.currentLobbyRoster?.()||[];
  N.errorCode='';
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
- if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
-  status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
+ const issue=arenaRosterIssue(net,roster);
+ if(issue){N.errorCode=issue;N.phase='error';status('NOVA ZONA: '+arenaRosterLabel(issue));return false}
+ const code=net.code,hostId=net.localId,seats=roster.map(p=>p.id);
+ const attempt=(N.prepareAttempt||0)+1;N.prepareAttempt=attempt;
  N.phase='preparing';status('V168 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({code:net.code,seats:roster.map(p=>p.id)})});
+   body:JSON.stringify({code,seats}),signal:typeof AbortSignal?.timeout==='function'?AbortSignal.timeout(15000):undefined});
   const data=await req.json().catch(()=>null);
+  if(N.prepareAttempt!==attempt||N.phase!=='preparing')return false;
   if(!req.ok||data?.protocol!==140||!data.ok||!data.tickets)throw Error(data?.error||'server_not_deployed');
+  const latest=b.currentLobbyRoster?.()||[];
+  if(net.role!=='host'||net.phase!=='lobby'||net.code!==code||net.localId!==hostId||latest.length!==seats.length||latest.some((p,i)=>p.id!==seats[i])||arenaRosterIssue(net,latest))throw Error('roster_changed');
+  if(!/^[a-f0-9]{24}$/.test(data.match||'')||seats.some(id=>typeof data.tickets[id]!=='string'||!data.tickets[id]))throw Error('invalid_tickets');
   for(const peer of roster){
    if(peer.id===net.localId)continue;
    const c=net.clients.get(peer.id);
@@ -1207,9 +1230,10 @@ async function startHost(){
   }
   N.phase='idle';return connect(data.match,net.localId,data.tickets[net.localId]);
  }catch(err){
+  if(N.prepareAttempt!==attempt||N.phase!=='preparing')return false;
   N.errorCode=String(err?.message||err);
   // Never redirect players to the legacy MP. Host can retry this room in-place.
-  N.phase='error';status('NOVA ZONA NIJE SPREMNA: '+N.errorCode.slice(0,70)+' · POKUŠAJ PONOVO');return false;
+  N.phase='error';status('NOVA ZONA NIJE SPREMNA: '+arenaRosterLabel(N.errorCode).slice(0,70)+' · POKUŠAJ PONOVO');return false;
  }
 }
 function acceptOffer(d){
@@ -1605,7 +1629,7 @@ function frame(now){
  }
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
