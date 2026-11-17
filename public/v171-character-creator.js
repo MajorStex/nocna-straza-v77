@@ -144,10 +144,10 @@ function make(){
  root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const t=b.dataset.tab,a=b.dataset.action;if(t){if(t!=='test')stopTest();tab=t;render();return}
   if(a==='close')close();if(a==='new'){stopTest();draft=clean({...base,role:draft.role,name:draft.role==='hero'?'Novi heroj':'Novo stvorenje'});tab='look';render()}
   if(a==='save')save();if(a==='test'){tab='test';startTest();render()}
-  if(a==='asHero'||a==='asEnemy'){selectedHero=a==='asHero'?'@draft':'';selectedEnemy=a==='asEnemy'?'@draft':'';testTier='auto';tab='test';startTest();render()}
+  if(a==='asHero'||a==='asEnemy'){selectedHero=a==='asHero'?'@draft':'@factory';selectedEnemy=a==='asEnemy'?'@draft':'@factory';testTier='auto';tab='test';startTest();render()}
   if(a==='delete'){if(!draft.id)return;const next=all.filter(x=>x.id!==draft.id);if(persist(next)){V()?.removeCharacter(draft.id).catch(()=>{});all=next;draft=clean(base);stopTest();tab='look';notice='Lik obrisan.';render()}else notice='Čuvanje nije uspelo.'}
   if(a==='random'){for(const k of Object.keys(forms)){if(['role','race','behavior','gait'].includes(k))continue;const ar=forms[k];draft[k]=ar[Math.floor(Math.random()*ar.length)]}render()}
-  if(a==='restart'){startTest();render()}if(a==='next'){if(sim){sim.wave++;resetWave()}}if(a==='pause'&&sim){sim.paused=!sim.paused;b.textContent=sim.paused?'Nastavi':'Pauza'}if(a==='spawn'&&sim)spawnEnemy(1);
+  if(a==='restart'){startTest();render()}if(a==='next'){if(sim){sim.wave++;resetWave()}}if(a==='pause'&&sim){sim.paused=!sim.paused;if(sim.paused){V()?.silence();sim.voiceQueue.length=0}b.textContent=sim.paused?'Nastavi':'Pauza'}if(a==='spawn'&&sim)spawnEnemy(1);
   if(b.dataset.pose){preview=b.dataset.pose;render()}
  });
  root.addEventListener('input',e=>{const n=e.target,k=n.dataset.field;if(k&&k in base){draft=clean({...draft,[k]:n.type==='range'?Number(n.value):n.value});const out=root.querySelector('[data-out="'+k+'"]');if(out)out.textContent=draft[k];updateStats()}if(n.id==='ns171Level'){level=Number(n.value);updateStats()}});
@@ -172,7 +172,7 @@ function render(){
  }else if(tab==='voice'){
  html='<div id="ns172VoiceHost"></div>';
  }else{
- html='<div class="ccGrid"><label>Heroj<select id="ns171TestHero">'+option('','Fabrički / trenutni',!selectedHero)+option('@draft','Trenutni karakter',selectedHero==='@draft')+all.map(x=>option(x.id,x.name+' · '+labels[x.role],selectedHero===x.id)).join('')+'</select></label><label>Protivnik<select id="ns171Enemy">'+option('','Automatski izbor',!selectedEnemy)+option('@draft','Trenutni karakter',selectedEnemy==='@draft')+all.map(x=>option(x.id,x.name+' · '+labels[x.role],selectedEnemy===x.id)).join('')+'</select></label><label class="ccFull">Težina protivnika<select id="ns172Tier">'+[['auto','Po karakteru'],['enemy','Običan'],['mini','Mini-boss'],['boss','Boss']].map(([k,v])=>option(k,v,testTier===k)).join('')+'</select></label><label class="ccFull">Početni nivo <output id="ns171TestLevel">'+level+'</output><input id="ns171Level" type="range" min="1" max="100" value="'+level+'"></label></div><div class="ccRow"><button data-action="restart">Start / reset</button><button data-action="next" '+(!sim?'disabled':'')+'>Sledeći talas</button><button data-action="spawn" '+(!sim?'disabled':'')+'>＋ Protivnik</button><button data-action="pause" '+(!sim?'disabled':'')+'>'+(sim?.paused?'Nastavi':'Pauza')+'</button></div><p>Joystick ili WASD / strelice. Automatski napad, XP kristali i rast nivoa. Samo test: bez pravih nagrada i multiplayera.</p>';
+ html='<div class="ccGrid"><label>Heroj<select id="ns171TestHero">'+option('','Automatski izbor',!selectedHero)+option('@factory','Fabrički stražar',selectedHero==='@factory')+option('@draft','Trenutni karakter',selectedHero==='@draft')+all.map(x=>option(x.id,x.name+' · '+labels[x.role],selectedHero===x.id)).join('')+'</select></label><label>Protivnik<select id="ns171Enemy">'+option('','Automatski izbor',!selectedEnemy)+option('@factory','Fabrički ork',selectedEnemy==='@factory')+option('@draft','Trenutni karakter',selectedEnemy==='@draft')+all.map(x=>option(x.id,x.name+' · '+labels[x.role],selectedEnemy===x.id)).join('')+'</select></label><label class="ccFull">Težina protivnika<select id="ns172Tier">'+[['auto','Po karakteru'],['enemy','Običan'],['mini','Mini-boss'],['boss','Boss']].map(([k,v])=>option(k,v,testTier===k)).join('')+'</select></label><label class="ccFull">Početni nivo <output id="ns171TestLevel">'+level+'</output><input id="ns171Level" type="range" min="1" max="100" value="'+level+'"></label></div><div class="ccRow"><button data-action="restart">Start / reset</button><button data-action="next" '+(!sim?'disabled':'')+'>Sledeći talas</button><button data-action="spawn" '+(!sim?'disabled':'')+'>＋ Protivnik</button><button data-action="pause" '+(!sim?'disabled':'')+'>'+(sim?.paused?'Nastavi':'Pauza')+'</button></div><p>Joystick ili WASD / strelice. Automatski napad, XP kristali i rast nivoa. Samo test: bez pravih nagrada i multiplayera.</p>';
  }
  $('ns171Fields').innerHTML=html;if(tab==='voice')V()?.mount($('ns172VoiceHost'),{get:()=>draft,save});updateStats();grid=null;
 }
@@ -196,8 +196,8 @@ function entity(spec,l,x,y){const c=clean(spec),s=effective(c,l);return {c,s,x,y
 function startTest(){
  V()?.stopAll();V()?.unlock();
  const c=clean(draft),find=id=>id==='@draft'?c:all.find(x=>x.id===id);
- const hero=clean({...((selectedHero&&find(selectedHero))||(c.role==='hero'?c:presets.guardian)),role:'hero'});
- const rawEnemy=clean((selectedEnemy&&find(selectedEnemy))||(c.role!=='hero'?c:presets.orc));
+ const hero=clean({...((selectedHero==='@factory'?presets.guardian:selectedHero&&find(selectedHero))||(c.role==='hero'?c:presets.guardian)),role:'hero'});
+ const rawEnemy=clean((selectedEnemy==='@factory'?presets.orc:selectedEnemy&&find(selectedEnemy))||(c.role!=='hero'?c:presets.orc));
  const enemy=clean({...rawEnemy,role:testTier!=='auto'?testTier:rawEnemy.role==='hero'?'enemy':rawEnemy.role});
  sim={p:entity(hero,level,W/2,H/2),enemy,mobs:[],drops:[],wave:level,xp:0,kills:0,time:0,paused:false,cleared:0,voiceQueue:[],voiceClock:0,waveVoice:true,voicesReady:false};
  const round=sim;V()?.prepare([hero.id,enemy.id]).then(()=>{if(sim===round)round.voicesReady=true}).catch(()=>{});
