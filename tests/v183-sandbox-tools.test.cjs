@@ -49,7 +49,7 @@ try{
  assert.equal(await host.evaluate(()=>NS171_CREATOR.test.simulation.sceneBattle),false);
  console.log('V182 WORKSHOP BATTLE AND IMMERSIVE PASS',JSON.stringify({twoBrowsers:true,hostGuestLayoutsIndependent:true,hostOwnsDamage:true,guestHp:combat.hp,guestMaxHp:combat.maxHp,observe:true}));
  // World editor: selected targeting, static props, copied/deleted layout, undo/redo, reset.
- await host.locator('#ns183Sandbox summary').click();
+ await host.locator('#ns183Sandbox > summary').click();
  await host.locator('[data-action=resetCombat]').click();
  await host.locator('#ns183Selection').selectOption('a0');
  await host.locator('#ns183Targets').selectOption('p2');
@@ -59,7 +59,7 @@ try{
  assert(await host.evaluate(()=>NS171_CREATOR.test.simulation.mobs.some(m=>m.ai.reaction==='passive'&&m.ai.mode==='still')));
  await host.locator('[data-action=observe]').click();
  // Observe renders controls afresh, and zoom remains local.
- await host.locator('#ns183Sandbox summary').click();
+ await host.locator('#ns183Sandbox > summary').click();
  for(let n=0;n<3;n++){if((await host.locator('[data-action=zoom]').innerText()).includes('1.00'))break;await host.locator('[data-action=zoomout]').click()}
  const arena=host.locator('#ns171Canvas');
  const bb=await arena.boundingBox(),sc=Math.min(bb.width/780,bb.height/500);
@@ -90,7 +90,7 @@ try{
  await host.waitForFunction(()=>NS171_CREATOR.test.simulation.usedProps===1);
  await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.usedProps===1);
  assert(await guest.locator('[data-w=useProp]').isHidden());
- await host.locator('#ns183Sandbox summary').click();
+ await host.locator('#ns183Sandbox > summary').click();
  await host.locator('[data-action=resetCombat]').click();
  await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.usedProps===0);
  await guest.locator('[data-w=useProp]').waitFor({state:'visible'});
@@ -113,7 +113,7 @@ try{
  await guest.waitForFunction(d=>{const p=NS177_WORKSHOP.position('p2');return p&&Math.hypot(p.x-d.x,p.y-d.y)<50},destination);
  console.log('V187 WORLD SYNC PASS',JSON.stringify({barrel:true,collisionReleased:true,guestPortal:true,hostGuestSameDestination:true}));
  // V188: apply world settings in the real UI and traverse a portal beyond the old bounds.
- await host.locator('#ns183Sandbox summary').click();
+ await host.locator('#ns183Sandbox > summary').click();
  await host.locator('#ns188Settings summary').click();
  await host.locator('#ns188Size').selectOption('huge');
  await host.locator('#ns188Terrain').selectOption('snow');
