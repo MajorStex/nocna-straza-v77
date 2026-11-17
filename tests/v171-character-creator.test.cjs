@@ -86,6 +86,25 @@ assert(!/new WebSocket|fetch\(|XMLHttpRequest|new Audio\(|https?:\/\//.test(sour
    assert.equal(await page.evaluate(()=>window.NS171_CREATOR.test.saved.length),2,'both character types persisted');
    await page.locator('#ns171Saved').selectOption(id);
    assert.equal(await page.evaluate(()=>window.NS171_CREATOR.test.draft.leg),1.4);
+   await page.locator('[data-tab=look]').click();
+   for(const kind of ['elephant','rotfiend','worm']){
+    await page.locator('#ns171Preset').selectOption(kind);
+    assert.equal(await page.evaluate(()=>window.NS171_CREATOR.test.draft.classicModel),kind);
+   }
+   const art=await page.evaluate(()=>{
+    const a=window.NS171_CREATOR,b=window.__NS110_BRIDGE,out={};
+    for(const kind of ['elephant','rotfiend','worm']){
+     const cv=document.createElement('canvas');cv.width=cv.height=256;const g=cv.getContext('2d');
+     const c=a.clean(a.presets[kind]);a.draw(g,c,128,128,{phase:2,moving:true,attack:.4,side:1});
+     const painted=g.getImageData(0,0,256,256).data.some((v,i)=>i%4===3&&v>0);
+     out[kind]=painted&&c.classicModel===kind&&typeof b.arenaClassicEnemy==='function';
+    }return out;
+   });
+   assert.deepEqual(art,{elephant:true,rotfiend:true,worm:true});
+   await page.locator('[data-action=test]').click();
+   await page.locator('#ns171Enemy').selectOption('@rotfiend');
+   await page.locator('[data-action=restart]').click();
+   assert(await page.evaluate(()=>window.NS171_CREATOR.test.simulation.mobs.some(m=>m.name.includes('Truležni kolos'))),'original enemy available in live editor combat');
    await page.locator('[data-action=close]').click();
    assert.deepEqual(errors.filter(e=>/SyntaxError|ReferenceError|TypeError/.test(e)),[],'browser JavaScript errors');
    console.log('V171 CREATOR PASS',width+'x'+height,JSON.stringify({layout,levels:logic.levels.map(x=>[x.level,x.hp,x.damage,x.speed]),boss:logic.boss.hp,gait:[logic.short,logic.long],saved:2,joystick:moved.x-first.x,mobCap:12}));
