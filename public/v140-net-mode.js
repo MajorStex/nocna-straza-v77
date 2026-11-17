@@ -667,7 +667,7 @@ function nearbyObstacles(world,x,y,r){
  return out;
 }
 function moveLocal(p,dx,dy){
- const w=N.world,r=w.r||14,free=(x,y)=>nearbyObstacles(w,x,y,r).every(o=>{
+ const w=N.world,r=p.bodyRadius||w.r||14,free=(x,y)=>nearbyObstacles(w,x,y,r).every(o=>{
   if(x+r<o.x||x-r>o.x+o.w||y+r<o.y||y-r>o.y+o.h)return true;
   const qx=clamp(x,o.x,o.x+o.w),qy=clamp(y,o.y,o.y+o.h);
   return (x-qx)**2+(y-qy)**2>=r*r;
