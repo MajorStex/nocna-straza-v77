@@ -215,7 +215,7 @@
  // V138: completely separate village sparring state. NEVER touches G.hp, kills,
  // currency, XP, rankings, matchmaking, or an actual game session.
  const PVP=new Map(),PVP_HP=100,PVP_RANGE=84;
- const hitFX=[];let pvpSeq=0,lastPvpSync=0,localRespawnSeq=0,lastSoloHit=0;
+ const hitFX=[];let pvpSeq=0,lastPvpSync=0,localRespawnSeq=0,lastSoloHit=0,lastVillageSwingAt=0,lastVillageSwingAngle=-Math.PI/2;
  const getPvP=id=>{if(!PVP.has(id))PVP.set(id,{opted:false,hp:PVP_HP,respawnAt:0,invulnerableUntil:0,seq:0,x:0,y:0,lastHit:0});return PVP.get(id)};
  const villageHeroPos=id=>id===NET.localId||!NET.role&&id==='p1'?my:avatars.get(id);
  const barnDoor=()=>doorPoint(buildings.find(b=>b.id==='barn'));
@@ -512,7 +512,7 @@
    else if(NET.role==='guest'&&NET.conn?.open){NET.conn.send({t:'ns138PvpToggle'});toast(tr('PVP request sent','Zahtev za PvP poslat'))}
   };
   area.append(btn);
-  const note=document.createElement('p');note.textContent=isLobby()?tr('Attacks start automatically near a valid target. PvP still requires mutual opt-in.','Napad počinje automatski čim priđeš meti. PvP i dalje zahteva saglasnost oba igrača.'):tr('Animals are attacked automatically in solo Village.','Životinje se automatski napadaju u solo selu.');
+  const note=document.createElement('p');note.textContent=isLobby()?tr('Attacks start automatically near a valid target. PvP still requires mutual opt-in.','Napad počinje automatski čim priđeš meti. PvP i dalje zahteva saglasnost oba igrača.'):tr('Animals and crates are automatically attacked in solo Village.','Životinje i kutije se automatski napadaju u solo selu.');
   area.append(note);
  }
 
@@ -906,7 +906,9 @@ function showAchievements(){
    const look=typeof getVillageHeroLook==='function'?getVillageHeroLook(id):heroStyle;
    const ko=PVP.get(id)?.opted&&PVP.get(id)?.hp<=0;
    g.save();if(ko)g.globalAlpha*=.38;
-   drawVillageHero(g,x,y,{id,look,frame:animation.frame||0,walking:!!animation.walking,visualSide:animation.side||1});
+   drawVillageHero(g,x,y,{id,look,frame:animation.frame||0,walking:!!animation.walking,visualSide:animation.side||1,
+    attackT:id===NET.localId?Math.max(0,.30-(Date.now()-lastVillageSwingAt)/1000):0,
+    headFacing:id===NET.localId?lastVillageSwingAngle:-Math.PI/2});
    g.restore();
    if(ko){g.save();g.textAlign='center';g.font='18px sans-serif';g.fillText('💀',x,y-103);g.restore()}
    g.save();g.textAlign='center';g.font='bold 12px system-ui';g.lineWidth=3;g.strokeStyle='#0b191d';
@@ -1056,7 +1058,6 @@ function showAchievements(){
  for(const kind of ['keydown','keyup'])window.addEventListener(kind,e=>{
   if(!opened||/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||''))return;
   const k=e.key.length===1?e.key.toLowerCase():e.key;
-  if(kind==='keydown'&&(k==='j'||k==='f')&&!e.repeat&&pane.classList.contains('ns109Hidden')){e.preventDefault();villageTryStrike();return}
   if(k===' '||k==='Spacebar'){e.preventDefault();if(kind==='keydown'&&!e.repeat&&!pane.classList.contains('ns109Hidden'))return;if(kind==='keydown'&&!e.repeat)$('ns117Dodge')?.click();return;}
   keys[k]=kind==='keydown';
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','a','s','d'].includes(k))e.preventDefault();
@@ -1106,8 +1107,11 @@ function showAchievements(){
   // Reuse the existing shared 60 FPS Village frame; no extra timers.
   if(!knockedOut&&Date.now()-lastSoloHit>=650){
    const target=villageAutoTarget();
-   if(target&&(target.kind==='training'||NET.role!=='guest'||NET.conn?.open)&&villageTryStrike())
+   if(target&&(target.kind==='training'||NET.role!=='guest'||NET.conn?.open)&&villageTryStrike()){
+    lastVillageSwingAt=Date.now();
+    lastVillageSwingAngle=Math.atan2(target.y-my.y,target.x-my.x);
     side=target.x<my.x?-1:1;
+   }
   }
   if(NET.phase==='lobby'&&NET.role==='guest'&&NET.conn?.open&&time-lastSent>110){
    lastSent=time;try{NET.conn.send({t:'ns109Move',x:Math.round(my.x),y:Math.round(my.y)})}catch{}
@@ -1210,7 +1214,7 @@ function showAchievements(){
   if(!canVisit()){toast(tr('Open the village from the main menu or multiplayer lobby.','Otvori selo iz glavnog menija ili multiplayer lobija.'));return false;}
   soloPreview=!isLobby();
   if(!soloPreview){$('coopPanel')?.classList.remove('hidden');$('lobbyArea')?.classList.remove('hidden')}
-  opened=true;walkTo=null;thenEnter=null;route=[];doorLatch=null;doorLabel='';resetStick();stepFrame=0;walking=false;closePane();my.x=840;my.y=506;localRespawnSeq=0;PVP.clear();trainingOn=isLobby();resetVillageTraining();lastRosterCount=trainingOn?getPlayers().length:0;joinNoticeUntil=0;
+  opened=true;walkTo=null;thenEnter=null;route=[];doorLatch=null;doorLabel='';resetStick();stepFrame=0;walking=false;closePane();my.x=840;my.y=506;localRespawnSeq=0;PVP.clear();lastSoloHit=0;lastVillageSwingAt=0;trainingOn=isLobby();resetVillageTraining();lastRosterCount=trainingOn?getPlayers().length:0;joinNoticeUntil=0;
   frameAt=performance.now();villageLastTick=0;villageFrameCredit=VILLAGE_TARGET_MS;
   fpsStart=0;fpsFrames=0;drawMsSum=0;drawMsMax=0;PERF.fps=0;
   root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
