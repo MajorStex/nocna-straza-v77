@@ -87,20 +87,20 @@ assert(!/new WebSocket|fetch\(|XMLHttpRequest|new Audio\(|https?:\/\//.test(sour
    await page.locator('#ns171Saved').selectOption(id);
    assert.equal(await page.evaluate(()=>window.NS171_CREATOR.test.draft.leg),1.4);
    await page.locator('[data-tab=look]').click();
-   for(const kind of ['elephant','rotfiend','worm']){
+   for(const kind of ['elephant','rotfiend','worm','crawler','brute','boss','werewolf','werewolfAlpha']){
     await page.locator('#ns171Preset').selectOption(kind);
     assert.equal(await page.evaluate(()=>window.NS171_CREATOR.test.draft.classicModel),kind);
    }
    const art=await page.evaluate(()=>{
     const a=window.NS171_CREATOR,b=window.__NS110_BRIDGE,out={};
-    for(const kind of ['elephant','rotfiend','worm']){
+    for(const kind of ['elephant','rotfiend','worm','crawler','brute','boss','werewolf','werewolfAlpha']){
      const cv=document.createElement('canvas');cv.width=cv.height=256;const g=cv.getContext('2d');
      const c=a.clean(a.presets[kind]);a.draw(g,c,128,128,{phase:2,moving:true,attack:.4,side:1});
      const painted=g.getImageData(0,0,256,256).data.some((v,i)=>i%4===3&&v>0);
      out[kind]=painted&&c.classicModel===kind&&typeof b.arenaClassicEnemy==='function';
     }return out;
    });
-   assert.deepEqual(art,{elephant:true,rotfiend:true,worm:true});
+   assert.deepEqual(art,{elephant:true,rotfiend:true,worm:true,crawler:true,brute:true,boss:true,werewolf:true,werewolfAlpha:true});
    await page.locator('[data-action=test]').click();
    await page.locator('#ns171Enemy').selectOption('@rotfiend');
    await page.locator('[data-action=restart]').click();
