@@ -41,17 +41,17 @@ function stopVoice(v){try{v.source.stop()}catch{}try{v.source.disconnect();v.gai
 function stopAll(){epoch++;for(const v of [...active])stopVoice(v);active=[];lastGlobal=-Infinity;bank.clear();lastVariant.clear()}
 function silence(){epoch++;for(const v of [...active])stopVoice(v);active=[];lastGlobal=-Infinity}
 async function decode(clip){let b=decoded.get(clip.key);if(b){decoded.delete(clip.key);decoded.set(clip.key,b);return b}const ac=context;if(!ac)return null;try{b=await ac.decodeAudioData(await clip.blob.arrayBuffer());decoded.set(clip.key,b);while(decoded.size>MAX_CACHE)decoded.delete(decoded.keys().next().value);return b}catch{return null}}
-async function prepare(ids){const e=epoch,owner=scope();const unique=[...new Set(ids.filter(Boolean))];const rows=await Promise.all(unique.map(id=>list(id,owner).catch(()=>[])));if(epoch!==e)return false;for(let i=0;i<unique.length;i++){const events=new Map();for(const c of rows[i]){if(!events.has(c.event))events.set(c.event,[]);events.get(c.event).push(c)}bank.set(unique[i],events)}return true}
+async function prepare(ids){const e=epoch,owner=scope();const unique=[...new Set(ids.filter(Boolean))];const rows=await Promise.all(unique.map(id=>list(id,owner).catch(()=>[])));if(epoch!==e)return false;for(let i=0;i<unique.length;i++){const events=new Map();for(const c of rows[i]){if(!events.has(c.event))events.set(c.event,[]);events.get(c.event).push(c)}bank.set(unique[i],events)}if(context){let warm=0;for(const map of bank.values())for(const event of ['attack','near','spawn','hurt']){const clip=map.get(event)?.[0];if(clip&&warm++<6)decode(clip).catch(()=>{})}}return true}
 function setVolume(v){volume=clamp(Number(v)||0,0,1);if(master)master.gain.value=volume}
 function setEnabled(v){voiceEnabled=!!v;if(!voiceEnabled)silence()}
 function emitter(){return {times:Object.create(null),last:-Infinity}}
 function candidate(state,id,event,distance,dx,now=clock(),random=Math.random){
  const rule=EVENTS[event],clips=bank.get(id)?.get(event);
- if(!voiceEnabled||!rule||!clips?.length||!state||distance>700||now-(state.times[event]??-Infinity)<rule.cool||now-state.last<1.9)return null;
+ if(!voiceEnabled||!rule||!clips?.length||!state||distance>700||now-(state.times[event]??-Infinity)<rule.cool||(rule.priority<8&&now-state.last<1.9))return null;
  if(rule.priority<8&&random()>rule.chance)return null;
  return {state,id,event,distance,dx,now,priority:rule.priority,clips};
 }
-let pending=0;
+let pending=0,played=0,playedEvents=Object.create(null);
 function play(c){
  if(!c||!context||context.state==='closed')return false;
  const now=clock();const priority=c.priority;
@@ -70,7 +70,7 @@ function play(c){
   src.buffer=buffer;gain.gain.value=at.gain*.92;src.connect(gain);if(pan){pan.pan.value=at.pan;gain.connect(pan);pan.connect(master)}else gain.connect(master);
   const voice={source:src,gain,pan,priority,started:clock()};active.push(voice);
   src.onended=()=>{active=active.filter(v=>v!==voice);try{src.disconnect();gain.disconnect();pan?.disconnect()}catch{}};
-  src.start(0,0,Math.min(buffer.duration,MAX_MS/1000));
+  src.start(0,0,Math.min(buffer.duration,MAX_MS/1000));played++;playedEvents[c.event]=(playedEvents[c.event]||0)+1;
  }).catch(()=>{}).finally(()=>pending=Math.max(0,pending-1));return true;
 }
 function dispatch(candidates){const best=candidates.filter(Boolean).sort((a,b)=>b.priority-a.priority||a.distance-b.distance);for(const c of best)if(play(c))return true;return false}
@@ -128,5 +128,5 @@ function mount(element,api){
  if(!document.getElementById('ns172VoiceStyle')){const s=document.createElement('style');s.id='ns172VoiceStyle';s.textContent='#ns171Creator .ccVoiceRow{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:6px;align-items:center;margin:6px 0;padding:5px;border:1px solid #52685d;border-radius:9px;font-size:12px}#ns171Creator .ccVoiceStudio button[hidden]{display:none!important}#ns171Creator .ccVoiceStudio button:disabled{opacity:.45}';document.head.append(s)}
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden){discard();silence();if(panel){tell('Snimanje je prekinuto jer je igra sklonjena.');refresh()}}});
-window.NS172_VOICES={EVENTS,MAX_MS,MAX_ACTIVE,MAX_BYTES,VARIANTS,list,put,remove,removeCharacter,mount,unmount,prepare,unlock:contextReady,stopAll,silence,emitter,candidate,dispatch,mixAt,setEnabled,setVolume,test:{get active(){return active.length},get pending(){return pending},get recording(){return !!recording},get busy(){return busy},get cacheSize(){return decoded.size},get scope(){return scope()},get bankSize(){return bank.size},get mime(){return preferredMime()}}};
+window.NS172_VOICES={EVENTS,MAX_MS,MAX_ACTIVE,MAX_BYTES,VARIANTS,list,put,remove,removeCharacter,mount,unmount,prepare,unlock:contextReady,stopAll,silence,emitter,candidate,dispatch,mixAt,setEnabled,setVolume,test:{get played(){return played},get playedEvents(){return {...playedEvents}},get active(){return active.length},get pending(){return pending},get recording(){return !!recording},get busy(){return busy},get cacheSize(){return decoded.size},get scope(){return scope()},get bankSize(){return bank.size},get mime(){return preferredMime()}}};
 })();
