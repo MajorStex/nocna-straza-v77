@@ -1,0 +1,31 @@
+name: V177 shared workshop QA
+on:
+  pull_request:
+    branches: [main]
+    paths: ['public/v177-workshop.js','public/v171-character-creator.js','public/v115-village.js','public/index.html','tests/v177-workshop.test.cjs','.github/workflows/v177-workshop.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  workshop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Two-browser cooperative workshop
+        run: node tests/v177-workshop.test.cjs
+      - name: Solo editor and previous features
+        run: |
+          node tests/v176-scenes.test.cjs
+          node tests/v175-faction-relations.test.cjs
+          node tests/v174-independent-ai.test.cjs
+          node tests/v173-ability-forge.test.cjs
+          node tests/v172-character-voices.test.cjs
+          node tests/v171-character-creator.test.cjs
+          node tests/v138-village-pvp-animals.test.cjs
+          node tests/v166-classic-sync.test.cjs
+          node tests/v168-xp-world.test.cjs
+          node tests/current-deployment.test.cjs

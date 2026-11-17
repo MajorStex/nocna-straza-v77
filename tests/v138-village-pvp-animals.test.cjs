@@ -49,7 +49,7 @@ for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))
       routeLength:route?.length??-1,cached:a.debug.staticBuilds,attackButton:!!document.querySelector('#ns138Attack')};
    });
    assert.deepEqual(ground.world,{width:1660,height:960});
-   assert.equal(ground.buildings,9);
+   assert.equal(ground.buildings,10);
    assert.equal(ground.sheep,7);assert.equal(ground.pigs,5);
    assert.deepEqual(ground.overlaps,[],'cottage spacing '+JSON.stringify(ground.overlaps));
    assert.ok(ground.routeLength>0,'walking path to barn must exist');
