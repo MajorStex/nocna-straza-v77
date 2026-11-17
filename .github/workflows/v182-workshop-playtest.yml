@@ -1,0 +1,19 @@
+name: V182 workshop combat and immersive view QA
+on:
+  pull_request:
+    branches: [main]
+    paths: ['public/v171-character-creator.js','public/v177-workshop.js','public/index.html','tests/v182-workshop-playtest.test.cjs','.github/workflows/v182-workshop-playtest.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  workshop-playtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - run: node --check public/v171-character-creator.js && node --check public/v177-workshop.js
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v182-workshop-playtest.test.cjs
