@@ -30,7 +30,8 @@ function cleanPlacement(raw,template,bounds){
  // Waypoints are instance-relative coordinates and never extend the patrol radius.
  const switched=over.mode&&over.mode!==base.mode&&over.mode!=='hunt';const ai=clean({...base,...(switched?{leash:base.radius,vision:Math.min(base.vision,Math.max(120,base.radius))}:{}),...over},template?.behavior);
  const points=(Array.isArray(raw.points)?raw.points:[]).slice(0,12).map(p=>{let x=val(p?.x,0,-ai.radius,ai.radius),y=val(p?.y,0,-ai.radius,ai.radius);const d=Math.hypot(x,y);if(d>ai.radius){x*=ai.radius/d;y*=ai.radius/d}return {x,y}});
- return {v:1,characterId:String(raw.characterId||template?.id||'').replace(/[^a-z0-9@_-]/gi,'').slice(0,64),x,y,faction,ai,points};
+ const target=typeof raw.target==='string'&&/^(nearest|p[1-6])$/.test(raw.target)?raw.target:null;
+ return {v:1,characterId:String(raw.characterId||template?.id||'').replace(/[^a-z0-9@_-]/gi,'').slice(0,64),x,y,faction,ai,points,...(target?{target}:{})};
 }
 function attach(actor,placement,seed=0){
  const p=cleanPlacement(placement,actor.c);
@@ -59,6 +60,7 @@ function boundMove(actor,x,y){
 function targetValid(actor,t,retain=false){
  const p=actor.placement,ai=p.ai,b=actor.brain;
  if(!t||t.hp<=0||!hostile(actor,t)||ai.reaction==='passive')return false;
+ if(p.target&&(t.faction!=='player'||(p.target!=='nearest'&&t.workshopSeat!==p.target)))return false;
  if(ai.reaction==='defend'&&b.retaliate!==t)return false;
  // Stationary characters can see and attack but cannot pursue.
  const allowed=ai.mode==='still'?Math.max(ai.vision,actor.s?.range||0):territory(actor);
