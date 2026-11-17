@@ -1200,7 +1200,7 @@ function drawArenaHeavy(g,m,now,visible){
  if(m.hp<=0||m.x<visible.left-110||m.x>visible.right+110||m.y<visible.top-145||m.y>visible.bottom+100)return;
  const tick=N.solo?N.soloTick:(N.mobRenderTick??N.tick),alpha=N.solo?clamp(N.soloAcc*30,0,1):1;
  const x=N.solo?(m.prevX??m.x)+(m.x-(m.prevX??m.x))*alpha:m.x,y=N.solo?(m.prevY??m.y)+(m.y-(m.prevY??m.y))*alpha:m.y;
- B().arenaClassicEnemy?.(g,m.kind,{x,y,angle:N.solo?(m.heavyAngle||0):(m.heavyRenderAngle??m.heavyAngle??0),frame:N.solo?(m.heavyGait||0):(m.heavyRenderGait??m.heavyGait??0),bossPhase:m.heavyPhase||1,bossCast:m.heavyCast?.kind===2?{kind:'howlSlow'}:null,attackT:Math.max(0,.36-(tick-m.attackTick)/30),flash:tick-m.hitTick<5?1:0,hp:m.hp,maxHp:m.maxHp,scale:1});
+ B().arenaClassicEnemy?.(g,m.kind,{x,y,angle:N.solo?(m.heavyAngle||0):(m.heavyRenderAngle??m.heavyAngle??0),frame:N.solo?(m.heavyGait||0):(m.heavyRenderGait??m.heavyGait??0),bossPhase:m.heavyPhase||1,bossCast:m.heavyCast?.kind===2?{kind:'howlSlow'}:null,attackT:Math.max(0,(m.kind.startsWith('werewolf')?.66:.36)-(tick-m.attackTick)/30),flash:tick-m.hitTick<5?1:0,hp:m.hp,maxHp:m.maxHp,scale:1});
 }
 function drawArenaHeavyWarnings(g,visible){
  const tick=N.solo?N.soloTick:(N.mobRenderTick??N.tick);
