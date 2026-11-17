@@ -37,3 +37,22 @@ test('diagnostic UI is opt-in and its report excludes credential fields',()=>{
  const report=social.slice(social.indexOf('function debugReport()'),social.indexOf('let debugPanel'));
  assert.doesNotMatch(report,/\.ticket|\.code|\.token|\.friendId|\.data\b/);
 });
+
+test('adaptive quality uses hysteresis, never exceeds device bounds',()=>{
+ const begin=source.indexOf('function newRenderBudget('),end=source.indexOf('let RENDER_Q=',begin);
+ assert.ok(begin>=0&&end>begin);
+ const c=vm.createContext({});vm.runInContext(source.slice(begin,end),c);
+ const q=c.newRenderBudget(3);
+ assert.equal(q.dpr,1.5);
+ c.tuneRenderBudget(q,48,26,16);assert.equal(q.dpr,1.5);
+ c.tuneRenderBudget(q,48,26,16);assert.equal(q.dpr,1.35);
+ for(let i=0;i<30;i++)c.tuneRenderBudget(q,45,30,18);
+ assert.equal(q.dpr,.8);
+ for(let i=0;i<4;i++)c.tuneRenderBudget(q,60,17,8);
+ assert.equal(q.dpr,.8);
+ c.tuneRenderBudget(q,60,17,8);assert.equal(q.dpr,.9);
+ for(let i=0;i<60;i++)c.tuneRenderBudget(q,60,17,8);
+ assert.equal(q.dpr,1.5);
+ const low=c.newRenderBudget(.75);for(let i=0;i<10;i++)c.tuneRenderBudget(low,30,34,20);
+ assert.equal(low.dpr,.75);
+});
