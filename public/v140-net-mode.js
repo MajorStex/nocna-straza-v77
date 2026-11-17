@@ -238,6 +238,16 @@ function stepArenaWorms(mobs,players,world,tick,wave,shots,seq,damage){
 }
 // END V190 ACID WORM
 
+// V192 Classic dodge: fixed ticks, no client-controlled damage or immunity.
+function arenaDodge(p,tick,x,y){
+ if(!p||p.hp<=0||p.knocked||p.finalDead||p.paused||p.background||tick<(p.dodgeReady||0)||!Number.isFinite(x)||!Number.isFinite(y)||Math.abs(x)>1||Math.abs(y)>1)return false;
+ const mag=Math.hypot(x,y);if(mag<=.2)return false;
+ p.dodgeX=x/mag;p.dodgeY=y/mag;p.dodgeUntil=tick+8;p.dodgeReady=tick+84;p.shield=Math.max(p.shield||0,tick+9);return true;
+}
+function arenaDodgeVector(p,tick,x,y){
+ return tick<(p.dodgeUntil||0)?{x:p.dodgeX||0,y:p.dodgeY||0,speed:3.2}:{x,y,speed:1};
+}
+// END V192 Dodge
 // V191 Classic heavy enemies, shared deterministic solo/relay calendar.
 const ARENA_KINDS=['goblin','troll','worm','elephant','rotfiend','crawler','skeleton','brute','boss','werewolf','werewolfAlpha'];
 const arenaSpecial=m=>ARENA_KINDS.indexOf(m.kind)>=3;
@@ -357,6 +367,7 @@ function ui(){
  '#ns158Menu[hidden]{display:none!important}#ns158Menu{position:absolute;z-index:13;right:9px;top:calc(max(9px,env(safe-area-inset-top)) + 57px);display:grid;gap:7px;width:min(250px,calc(100vw - 18px));padding:12px;background:#142f28f5;border:1px solid #abc39d;border-radius:13px;box-shadow:0 12px 30px #0009}'+
  '#ns158Menu button{padding:11px;border-radius:9px;border:1px solid #8da993;background:#2b4b3e;color:#fff4ce;text-align:left;font-weight:800;min-height:42px}#ns158Menu .danger{background:#6c453b;border-color:#c88d79}'+
  '#ns158Menu p{font:11px/1.4 system-ui;color:#c3d4ca;margin:2px 0 1px}'+
+ '#ns192Dodge{position:absolute;right:calc(12px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));width:74px;height:58px;border-radius:16px;background:#284d46e8;border:1px solid #abc6a6;color:#fff0c9;font:bold 12px system-ui;z-index:6;touch-action:none}#ns192Dodge:disabled{opacity:.55}#ns192Dodge[hidden]{display:none}'+
  '#ns160Open{background:#315b53!important;border-color:#c9d099!important}'+
  '#ns158Menu{max-height:calc(100dvh - 77px);overflow-y:auto;overscroll-behavior:contain}'+
  '#ns163VoiceSettings{display:grid;gap:6px;border:1px solid #5e9d82;padding:8px;border-radius:9px;background:#183b33}'+
@@ -372,12 +383,14 @@ function ui(){
  root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V168 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button></div>'+
  '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><div id="ns163VoiceSettings"><strong>🎙 GLASOVNI CHAT · MULTIPLAYER</strong><button id="ns163VoiceMode" type="button">🎙 REŽIM: PTT · DRŽI</button><button id="ns163VoiceMic" type="button">🎙 DRŽI DA PRIČAŠ</button><button id="ns163VoiceOff" type="button">🔇 UGASI MIKROFON</button><p id="ns163VoiceHint">Drži dugme ili V · pusti da se utiša. Zvučnik je iznad heroja.</p></div><button id="ns160Open" type="button">🛠 SANDBOX / TEST LAB</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U MP igra teče dok svi povezani igrači ne izglasaju pauzu. Samo host uređuje Sandbox.</p></div>'+
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns168XpHud" role="status" aria-label="EXP napredak" hidden><span id="ns168XpText">NIVO 1 · EXP 0/160</span><div id="ns168XpTrack"><div id="ns168XpFill"></div></div></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
+ '<button id="ns192Dodge" type="button" hidden>DODGE</button>'+
  '<button id="ns190Revive" type="button" hidden>DRŽI ZA REVIVE</button>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
  '<div id="ns152Choice" hidden><div id="ns152ChoiceCard"><h3 id="ns152ChoiceTitle">OTVOREN SANDUK</h3><p id="ns152ChoiceText"></p><div id="ns152Choices"><button data-pick="edge">⚔ OŠTRIJA OŠTRICA · +20% ŠTETE</button><button data-pick="heart">♥ ČUVAROVO SRCE · +25 HP</button><button data-pick="boots">➤ BRŽE ČIZME · +10% BRZINE</button></div><span id="ns152Timer">7 s</span></div></div>';
  document.body.append(style,root);mountArenaMagic(root,style);
+ el('ns192Dodge').addEventListener('pointerdown',e=>{e.preventDefault();requestArenaDodge()});
  const reviveButton=el('ns190Revive');
  reviveButton.addEventListener('pointerdown',e=>{const target=nearArenaRevive();if(!target)return;e.preventDefault();N.reviveHeld=target.id;N.reviveAt=0;try{reviveButton.setPointerCapture(e.pointerId)}catch{}});
  for(const type of ['pointerup','pointercancel','lostpointercapture'])reviveButton.addEventListener(type,releaseArenaRevive);
@@ -517,6 +530,7 @@ function ui(){
   if(k==='escape'&&!el('ns158Menu')?.hidden){e.preventDefault();closeArenaMenu();return}
   if((k==='escape'||k==='p')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation?.();toggleArenaPause();return}
   if(N.paused)return;
+  if(k===' '||k==='shift'||k==='k'){e.preventDefault();if(!e.repeat)requestArenaDodge();return}
   if(/^[1-8]$/.test(k)){e.preventDefault();if(!e.repeat){spellSlot=Number(k)-1;spellHudAt=0;requestArenaSpell(spellSlot)}return}
   A()?.unlock();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault();
  });
@@ -663,6 +677,18 @@ function rememberLook(id,revision,look){
  const old=N.looks.get(id);if(old&&revision<old.revision)return false;
  N.looks.set(id,{revision,look});return true;
 }
+function requestArenaDodge(){
+ if(N.phase!=='running'||!N.me||N.me.hp<=0||N.me.knocked||N.me.finalDead||N.paused||LAB_PAUSE.paused||N.reviveHeld||N.choice||N.soloChoice||el('ns158Menu')?.hidden===false||(N.solo?N.soloState:N.waveState)!=='play')return false;
+ const v=input(),tick=N.solo?N.soloTick:N.tick,now=performance.now();if(Math.hypot(v.x,v.y)<=.2||tick<(N.me.dodgeReady||0))return false;
+ if(N.solo){if(!arenaDodge(N.me,tick,v.x,v.y))return false;N.soloInvul=Math.max(N.soloInvul,N.me.shield);A()?.play('step',{gain:1});return true}
+ if(!N.dodgeSupported||N.ws?.readyState!==1||N.ws.bufferedAmount>=4000||now-(N.lastDashRequest||-1000)<350)return false;
+ N.lastDashRequest=now;N.ws.send(JSON.stringify({t:'dodge',x:v.x,y:v.y}));return true;
+}
+function refreshArenaDodge(){
+ const b=el('ns192Dodge');if(!b)return;
+ b.hidden=!(N.solo||N.dodgeSupported);const t=N.solo?N.soloTick:N.tick,cd=Math.max(0,(N.me?.dodgeReady||0)-t);
+ b.disabled=!N.me||N.me.hp<=0||N.me.knocked||cd>0;b.textContent=cd?'DODGE '+(cd/30).toFixed(1)+'s':'DODGE';
+}
 function input(){
  const k=N.keys;let x=N.stick.x+(k.has('d')||k.has('arrowright')?1:0)-(k.has('a')||k.has('arrowleft')?1:0);
  let y=N.stick.y+(k.has('s')||k.has('arrowdown')?1:0)-(k.has('w')||k.has('arrowup')?1:0);
@@ -698,8 +724,8 @@ function moveLocal(p,dx,dy){
   const qx=clamp(x,o.x,o.x+o.w),qy=clamp(y,o.y,o.y+o.h);
   return (x-qx)**2+(y-qy)**2>=r*r;
  });
- const x=clamp(p.x+dx,r,w.w-r);if(free(x,p.y))p.x=x;
- const y=clamp(p.y+dy,r,w.h-r);if(free(p.x,y))p.y=y;
+ const steps=Math.max(1,Math.min(40,Math.ceil(Math.hypot(dx,dy)/(w.r*.55))));
+ for(let i=0;i<steps;i++){const x=clamp(p.x+dx/steps,r,w.w-r);if(free(x,p.y))p.x=x;const y=clamp(p.y+dy/steps,r,w.h-r);if(free(p.x,y))p.y=y;}
  if(p.bodyRadius)p.heavyGait=(p.heavyGait||0)+Math.hypot(p.x-oldX,p.y-oldY)/9;
 }
 function snapshot(m){
@@ -782,7 +808,7 @@ function snapshot(m){
    }
   }
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
-   p.revivesUsed=Number(row[15])||0;p.reviveProgress=Number(row[16])||0;p.finalDead=row[17]===1;p.downedUntil=Number(row[18])||0;p.enemySlowUntil=Number(row[19])||0;
+   p.revivesUsed=Number(row[15])||0;p.reviveProgress=Number(row[16])||0;p.finalDead=row[17]===1;p.downedUntil=Number(row[18])||0;p.enemySlowUntil=Number(row[19])||0;const oldDash=p.dodgeUntil||0;p.dodgeUntil=Number(row[20])||0;p.dodgeReady=Number(row[21])||0;p.dodgeX=(Number(row[22])||0)/1000;p.dodgeY=(Number(row[23])||0)/1000;if(id===N.id&&p.dodgeUntil>oldDash&&p.dodgeUntil>N.tick)A()?.play('step',{gain:1});
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
    A()?.play('swing',{weapon:id===N.id?localArenaLook().weapon:N.looks.get(id)?.look?.weapon||B().getVillageHeroLook?.(id)?.weapon||'sword',variant:attackTick,
@@ -1355,7 +1381,7 @@ function connect(match,id,ticket,rejoin=false){
    attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
-    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;magicSupported=m.arenaSpells===189;N.reviveSupported=m.arenaRevive===190;N.rosterSupported=m.arenaRoster===191;N.reviveHeld='';
+    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;magicSupported=m.arenaSpells===189;N.reviveSupported=m.arenaRevive===190;N.rosterSupported=m.arenaRoster===191;N.dodgeSupported=m.arenaDodge===192;N.reviveHeld='';
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
     }
@@ -1636,7 +1662,7 @@ function sessionHud(now){
  const holder=el('ns152Choice'),hud=el('ns152Wave'),remaining=el('ns152Remaining');
  if(!holder||!hud||!remaining)return;
  if(now-N.uiAt>=140||N.choiceUiId!==(choice?(choice.seq+':'+choice.owner):'')){
-  N.uiAt=now;
+  N.uiAt=now;refreshArenaDodge();
   hud.textContent='TALAS '+wave;
   const xpHud=el('ns168XpHud'),xpText=el('ns168XpText'),xpFill=el('ns168XpFill');
   const xpEnabled=N.solo||LAB_SERVER_BUILD>=168;
@@ -1893,7 +1919,8 @@ function frame(now){
  if(selecting||N.reviveHeld||N.me?.knocked||N.me?.finalDead){v.x=0;v.y=0}
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
-  moveLocal(N.me,v.x*N.world.speed*dt*(N.me.speedMult||1)*((N.me.enemySlowUntil||0)>(N.solo?N.soloTick:N.tick)?.58:1),v.y*N.world.speed*dt*(N.me.speedMult||1)*((N.me.enemySlowUntil||0)>(N.solo?N.soloTick:N.tick)?.58:1));
+  const dash=selecting?{x:0,y:0,speed:1}:arenaDodgeVector(N.me,N.solo?N.soloTick:N.tick,v.x,v.y),speed=N.world.speed*dt*dash.speed*(N.me.speedMult||1)*((N.me.enemySlowUntil||0)>(N.solo?N.soloTick:N.tick)?.58:1);
+  moveLocal(N.me,dash.x*speed,dash.y*speed);
   if(N.solo){if(!N.paused)stepSolo(dt);if(N.me.hp<=0){N.phase='solo_ended';status('STRAŽAR JE PAO · SOLO TEST ZAVRŠEN')}}
   else {N.delta.x+=N.me.x-oldX;N.delta.y+=N.me.y-oldY;}
   const away=Math.hypot(N.me.x-N.me.tx,N.me.y-N.me.ty);
