@@ -7544,7 +7544,7 @@ function setupConnection(c){
   if(data.t==='ns155LobbyTransfer'&&NET.role==='guest'){
     NS155_LOBBY.receive(data);return;
    }
-   if(window.NS177_WORKSHOP?.receive?.(data,assigned))return;
+   if((NET.role==='host'?NET.clients.get(assigned)===c:NET.conn===c)&&window.NS177_WORKSHOP?.receive?.(data,assigned))return;
    if(window.NS109_VILLAGE?.onMessage?.(data,assigned))return;
   if(NET.role==='host'&&assigned&&NET.phase==='playing'){
    if(data.t==='ns99VoteRequest'){NS99_TEAM.request(data.kind,assigned);return}
