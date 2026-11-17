@@ -66,7 +66,7 @@ try{
  const point=(x,y)=>({x:(bb.width-780*sc)/2+x*sc,y:(bb.height-500*sc)/2+y*sc});
  await host.locator('#ns183Prop').selectOption('rock');await host.locator('[data-action=placeProp]').click();await arena.click({position:point(105,390)});
  assert.equal(await host.evaluate(()=>NS171_CREATOR.test.simulation.props.length),1);
- await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.rev>0);
+ await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.props===1);
  await host.locator('[data-action=copyItem]').click();await arena.click({position:point(205,390)});
  assert.equal(await host.evaluate(()=>NS171_CREATOR.test.simulation.props.length),2);
  await host.locator('[data-action=undo]').click();
