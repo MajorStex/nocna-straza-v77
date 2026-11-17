@@ -238,6 +238,43 @@ function stepArenaWorms(mobs,players,world,tick,wave,shots,seq,damage){
 }
 // END V190 ACID WORM
 
+// V192 Classic loadout, weapon attributes and inventory rewards.
+const ARENA_CLASSIC_WEAPONS={sword:{range:0,damage:1,arc:1.25},longsword:{range:18,damage:1.13,arc:1.03},axe:{range:8,damage:1.35,arc:1.20},spear:{range:27,damage:.9,arc:.72},halberd:{range:28,damage:1.21,arc:.92},warhammer:{range:4,damage:1.32,arc:.87},mace:{range:1,damage:1.14,arc:1.11},dagger:{range:-24,damage:.91,arc:1.20},falchion:{range:10,damage:1.20,arc:1.31},flail:{range:8,damage:1.16,arc:1.31},rapier:{range:12,damage:1.02,arc:.82},glaive:{range:34,damage:1.18,arc:.84},greataxe:{range:12,damage:1.46,arc:1.08},scimitar:{range:8,damage:1.11,arc:1.38},morningstar:{range:6,damage:1.22,arc:1.18},trollclub:{range:4,damage:1.16,arc:1.06,speed:1.23},trollmaul:{range:0,damage:1.29,arc:.90,speed:1.40}};
+const ARENA_CORE_REWARDS=['edge','heart','boots'];
+const ARENA_EXTRA_REWARDS=['axe','spear','dagger','rapier','glaive','greataxe','scimitar','morningstar','longsword','halberd','warhammer','mace','falchion','flail','trollclub','trollmaul','regen','leech','crit','armor','swift','haste','aegis'];
+const arenaWeapon=p=>ARENA_CLASSIC_WEAPONS[p.activeWeapon]||ARENA_CLASSIC_WEAPONS.sword;
+function arenaAttackPeriod(p){return Math.max(9,Math.round(19*(arenaWeapon(p).speed||1)*(p.perks?.haste?.93:1)))}
+function arenaAttackReach(p,m){return Math.max(30,({werewolfAlpha:125,boss:125,rotfiend:125,elephant:100,troll:95}[m.kind]||83)+arenaWeapon(p).range)}
+function arenaAttackDamage(p,tick){const crit=p.perks?.crit&&((tick*37+(Number(p.id?.slice(1))||1)*13)%100<10);return Math.max(1,Math.round((p.damage||22)*arenaWeapon(p).damage*(crit?1.6:1)))}
+function arenaRewardOptions(p,seq){
+ const pool=ARENA_EXTRA_REWARDS.filter(k=>ARENA_CLASSIC_WEAPONS[k]?k!==p.activeWeapon&&k!==p.secondaryWeapon:!p.perks?.[k]);
+ // Always preserve one safe default and one normal upgrade. Third slot is original treasure.
+ return ['edge','heart',pool.length?pool[(Math.max(1,seq)-1)%pool.length]:'boots'];
+}
+function arenaGrantReward(p,pick,tick){
+ if(!p)return false;
+ if(pick==='edge')p.damage=Math.min(65,Math.round((p.damage||22)*1.2));
+ else if(pick==='heart'){p.maxHp=Math.min(240,(p.maxHp||100)+25);p.hp=Math.min(p.maxHp,p.hp+35)}
+ else if(pick==='boots')p.speedMult=Math.min(1.5,(p.speedMult||1)*1.1);
+ else if(ARENA_CLASSIC_WEAPONS[pick]){if(pick===p.activeWeapon||pick===p.secondaryWeapon)return false;p.secondaryWeapon=pick}
+ else if(ARENA_EXTRA_REWARDS.includes(pick)){p.perks??={};if(p.perks[pick])return false;p.perks[pick]=1;
+  if(pick==='swift')p.speedMult=Math.min(1.5,(p.speedMult||1)*1.05);
+  if(pick==='regen')p.regenAt=tick+360;if(pick==='aegis')p.aegisAt=tick+210;
+  if(pick==='leech')p.leechKills=p.kills||0;
+ }else return false;return true;
+}
+function arenaSwapWeapon(p,tick){
+ if(!p||p.hp<=0||p.knocked||p.finalDead||!ARENA_CLASSIC_WEAPONS[p.secondaryWeapon]||tick<(p.swapReady||0))return false;
+ const old=ARENA_CLASSIC_WEAPONS[p.activeWeapon]?p.activeWeapon:'sword';p.activeWeapon=p.secondaryWeapon;p.secondaryWeapon=old;p.swapReady=tick+12;return true;
+}
+function arenaPerkTick(p,tick){
+ if(!p.perks||p.hp<=0||p.knocked)return;
+ if(p.perks.regen&&tick>=(p.regenAt||0)){p.hp=Math.min(p.maxHp||100,p.hp+5);p.regenAt=tick+360}
+ if(p.perks.aegis&&tick>=(p.aegisAt||0)){p.shield=Math.max(p.shield||0,tick+26);p.aegisAt=tick+210}
+ if(p.perks.leech){const n=Math.floor(((p.kills||0)-(p.leechKills||0))/7);if(n>0){p.hp=Math.min(p.maxHp||100,p.hp+n*3);p.leechKills=(p.leechKills||0)+n*7}}
+}
+function arenaIncoming(p,damage){return Math.max(1,damage-(p.perks?.armor?2:0))}
+ // END V192 Loadout
 // V192 Classic dodge: fixed ticks, no client-controlled damage or immunity.
 function arenaDodge(p,tick,x,y){
  if(!p||p.hp<=0||p.knocked||p.finalDead||p.paused||p.background||tick<(p.dodgeReady||0)||!Number.isFinite(x)||!Number.isFinite(y)||Math.abs(x)>1||Math.abs(y)>1)return false;
@@ -369,6 +406,7 @@ function ui(){
  '#ns158Menu p{font:11px/1.4 system-ui;color:#c3d4ca;margin:2px 0 1px}'+
  '#ns192Dodge{position:absolute;right:calc(12px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));width:74px;height:58px;border-radius:16px;background:#284d46e8;border:1px solid #abc6a6;color:#fff0c9;font:bold 12px system-ui;z-index:6;touch-action:none}#ns192Dodge:disabled{opacity:.55}#ns192Dodge[hidden]{display:none}'+
  '#ns192MapBtn{position:absolute;right:12px;top:172px;z-index:5;width:90px;height:93px;padding:3px;background:#112b25e8;border:1px solid #8da891;border-radius:8px;color:#fff3cb;font:bold 9px system-ui;touch-action:none}#ns192Mini{width:78px;height:72px;display:block;margin:auto}#ns192MapPanel{position:absolute;inset:0;z-index:12;background:#071812eF;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px}#ns192MapPanel[hidden]{display:none!important}#ns192BigMap{width:min(78vw,75dvh);height:min(78vw,75dvh);border:1px solid #94b594;image-rendering:auto}#ns192MapClose{padding:8px 24px;border-radius:8px;border:1px solid #a9c4a4;background:#345d4b;color:white;font-weight:bold}'+
+ '#ns192Swap{position:absolute;right:96px;bottom:calc(23px + env(safe-area-inset-bottom));z-index:6;min-height:43px;max-width:132px;background:#294b39e8;border:1px solid #c6b98c;color:#ffeac0;border-radius:9px;font:bold 10px system-ui}#ns192Swap[hidden]{display:none}'+
  '#ns160Open{background:#315b53!important;border-color:#c9d099!important}'+
  '#ns158Menu{max-height:calc(100dvh - 77px);overflow-y:auto;overscroll-behavior:contain}'+
  '#ns163VoiceSettings{display:grid;gap:6px;border:1px solid #5e9d82;padding:8px;border-radius:9px;background:#183b33}'+
@@ -385,6 +423,7 @@ function ui(){
  '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><div id="ns163VoiceSettings"><strong>🎙 GLASOVNI CHAT · MULTIPLAYER</strong><button id="ns163VoiceMode" type="button">🎙 REŽIM: PTT · DRŽI</button><button id="ns163VoiceMic" type="button">🎙 DRŽI DA PRIČAŠ</button><button id="ns163VoiceOff" type="button">🔇 UGASI MIKROFON</button><p id="ns163VoiceHint">Drži dugme ili V · pusti da se utiša. Zvučnik je iznad heroja.</p></div><button id="ns160Open" type="button">🛠 SANDBOX / TEST LAB</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U MP igra teče dok svi povezani igrači ne izglasaju pauzu. Samo host uređuje Sandbox.</p></div>'+
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns168XpHud" role="status" aria-label="EXP napredak" hidden><span id="ns168XpText">NIVO 1 · EXP 0/160</span><div id="ns168XpTrack"><div id="ns168XpFill"></div></div></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<button id="ns192MapBtn" type="button" aria-label="Otvori mapu"><canvas id="ns192Mini" width="96" height="96"></canvas>MAPA</button><div id="ns192MapPanel" hidden><canvas id="ns192BigMap" width="420" height="420"></canvas><span style="color:#dbe5cf;font:12px system-ui">Plavo: ti · zeleno: tim · žuto: sanduk · sivo: neistraženo</span><button type="button" id="ns192MapClose">ZATVORI MAPU</button></div>'+
+ '<button id="ns192Swap" type="button" hidden>⇄ ORUŽJE</button>'+
  '<button id="ns192Dodge" type="button" hidden>DODGE</button>'+
  '<button id="ns190Revive" type="button" hidden>DRŽI ZA REVIVE</button>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
@@ -392,7 +431,7 @@ function ui(){
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
  '<div id="ns152Choice" hidden><div id="ns152ChoiceCard"><h3 id="ns152ChoiceTitle">OTVOREN SANDUK</h3><p id="ns152ChoiceText"></p><div id="ns152Choices"><button data-pick="edge">⚔ OŠTRIJA OŠTRICA · +20% ŠTETE</button><button data-pick="heart">♥ ČUVAROVO SRCE · +25 HP</button><button data-pick="boots">➤ BRŽE ČIZME · +10% BRZINE</button></div><span id="ns152Timer">7 s</span></div></div>';
  document.body.append(style,root);mountArenaMagic(root,style);
- el('ns192MapBtn').onclick=()=>setArenaMap(true);el('ns192MapClose').onclick=()=>setArenaMap(false);
+ el('ns192Swap').onclick=()=>requestArenaSwap();el('ns192MapBtn').onclick=()=>setArenaMap(true);el('ns192MapClose').onclick=()=>setArenaMap(false);
  el('ns192Dodge').addEventListener('pointerdown',e=>{e.preventDefault();requestArenaDodge()});
  const reviveButton=el('ns190Revive');
  reviveButton.addEventListener('pointerdown',e=>{const target=nearArenaRevive();if(!target)return;e.preventDefault();N.reviveHeld=target.id;N.reviveAt=0;try{reviveButton.setPointerCapture(e.pointerId)}catch{}});
@@ -532,6 +571,7 @@ function ui(){
   const k=e.key.toLowerCase();
   if(k==='escape'&&!el('ns158Menu')?.hidden){e.preventDefault();closeArenaMenu();return}
   if((k==='escape'||k==='p')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation?.();toggleArenaPause();return}
+  if(k==='q'&&!e.repeat){e.preventDefault();requestArenaSwap();return}
   if(k==='m'&&!e.repeat){e.preventDefault();setArenaMap(el('ns192MapPanel').hidden);return}
   if(k==='escape'&&!el('ns192MapPanel').hidden){e.preventDefault();setArenaMap(false);return}
   if(N.paused)return;
@@ -705,6 +745,12 @@ function refreshArenaMap(now){
  }
  draw(el('ns192Mini'));if(!el('ns192MapPanel')?.hidden)draw(el('ns192BigMap'));
 }
+const arenaRewardLabel=k=>({edge:'⚔ OŠTRIJA OŠTRICA · +20% ŠTETE',heart:'♥ ČUVAROVO SRCE · +25 HP',boots:'➤ BRŽE ČIZME · +10% BRZINE',regen:'❤ TRAVARSKI MELEM · 5 HP/12s',leech:'ŽIVOTNI TALISMAN · 3 HP/7 ubistava',crit:'PRECIZAN ZAMAH · 10% kritičnih',armor:'OJAČANI OKLOP · -2 štete',swift:'LAKI KORACI · +5% brzine',haste:'BRŽI NAPADI · -7% cooldown',aegis:'TRENUTAK ČELIKA · zaštita/7s'}[k]||'⚔ '+k.toUpperCase()+' · DRUGI SLOT');
+function requestArenaSwap(){
+ if(!N.me||N.me.hp<=0||N.me.knocked||!N.me.secondaryWeapon||N.phase!=='running'||N.paused||N.choice||N.soloChoice||LAB_PAUSE.paused||!el('ns158Menu')?.hidden)return false;
+ if(N.solo)return arenaSwapWeapon(N.me,N.soloTick);
+ if(N.loadoutSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'weaponSwap'}));return true}return false;
+}
 function requestArenaDodge(){
  if(N.phase!=='running'||!N.me||N.me.hp<=0||N.me.knocked||N.me.finalDead||N.paused||LAB_PAUSE.paused||N.reviveHeld||N.choice||N.soloChoice||el('ns158Menu')?.hidden===false||(N.solo?N.soloState:N.waveState)!=='play')return false;
  const v=input(),tick=N.solo?N.soloTick:N.tick,now=performance.now();if(Math.hypot(v.x,v.y)<=.2||tick<(N.me.dodgeReady||0))return false;
@@ -780,7 +826,7 @@ function snapshot(m){
  if(m.waveState==='play'||m.waveState==='between')N.waveState=m.waveState;
  if(Number.isFinite(m.waveAt))N.waveAt=m.waveAt;
  N.choice=m.choice&&Number.isInteger(m.choice.seq)&&typeof m.choice.owner==='string'?
-  {id:m.choice.id,kind:m.choice.kind==='xp'?'xp':'chest',level:Number(m.choice.level)||1,owner:m.choice.owner,options:['edge','heart','boots'],seq:m.choice.seq,until:m.choice.until}:null;
+  {id:m.choice.id,kind:m.choice.kind==='xp'?'xp':'chest',level:Number(m.choice.level)||1,owner:m.choice.owner,options:Array.isArray(m.choice.options)?m.choice.options.filter(k=>ARENA_CORE_REWARDS.includes(k)||ARENA_EXTRA_REWARDS.includes(k)).slice(0,3):ARENA_CORE_REWARDS,seq:m.choice.seq,until:m.choice.until}:null;
  if(LAB_SERVER_BUILD>=168&&Array.isArray(m.drops))N.drops=m.drops.slice(0,85)
   .filter(d=>Array.isArray(d)&&Number.isInteger(d[0])&&Number.isFinite(d[1])&&Number.isFinite(d[2]))
   .map(d=>({id:d[0],x:d[1]/10,y:d[2]/10,value:Number(d[3])||7}));
@@ -836,10 +882,10 @@ function snapshot(m){
    }
   }
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
-   p.revivesUsed=Number(row[15])||0;p.reviveProgress=Number(row[16])||0;p.finalDead=row[17]===1;p.downedUntil=Number(row[18])||0;p.enemySlowUntil=Number(row[19])||0;const oldDash=p.dodgeUntil||0;p.dodgeUntil=Number(row[20])||0;p.dodgeReady=Number(row[21])||0;p.dodgeX=(Number(row[22])||0)/1000;p.dodgeY=(Number(row[23])||0)/1000;if(id===N.id&&p.dodgeUntil>oldDash&&p.dodgeUntil>N.tick)A()?.play('step',{gain:1});
+   p.revivesUsed=Number(row[15])||0;p.reviveProgress=Number(row[16])||0;p.finalDead=row[17]===1;p.downedUntil=Number(row[18])||0;p.enemySlowUntil=Number(row[19])||0;const oldDash=p.dodgeUntil||0;p.dodgeUntil=Number(row[20])||0;p.dodgeReady=Number(row[21])||0;p.dodgeX=(Number(row[22])||0)/1000;p.dodgeY=(Number(row[23])||0)/1000;p.activeWeapon=ARENA_CLASSIC_WEAPONS[row[24]]?row[24]:undefined;p.secondaryWeapon=ARENA_CLASSIC_WEAPONS[row[25]]?row[25]:null;if(Number.isFinite(row[26]))p.speedMult=clamp(row[26],1,1.5);if(id===N.id&&p.dodgeUntil>oldDash&&p.dodgeUntil>N.tick)A()?.play('step',{gain:1});
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
-   A()?.play('swing',{weapon:id===N.id?localArenaLook().weapon:N.looks.get(id)?.look?.weapon||B().getVillageHeroLook?.(id)?.weapon||'sword',variant:attackTick,
+   A()?.play('swing',{weapon:p.activeWeapon||(id===N.id?localArenaLook().weapon:N.looks.get(id)?.look?.weapon)||B().getVillageHeroLook?.(id)?.weapon||'sword',variant:attackTick,
     x,y,listenerX:myPosition.x,listenerY:myPosition.y,sourceId:id,gain:id===N.id?1:.36});
   }
   if(id===N.id){
@@ -1040,7 +1086,7 @@ function soloWaveDone(){
   y:clamp(me.y+62,35,N.world.h-35),opened:true};
  N.soloChests.push(chest);
  if(N.soloChests.length>12)N.soloChests=N.soloChests.slice(-12);
- N.soloChoice={id:chest.id,kind:'chest',seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
+ N.soloChoice={id:chest.id,kind:'chest',options:arenaRewardOptions(N.me,N.soloChestSeq+1),seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
  N.choiceUiId='';A()?.play('chest');
 }
 
@@ -1059,7 +1105,7 @@ function startSolo(){
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;resetRenderQuality();
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.stick.ptr=null;N.stick.x=N.stick.y=0;
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
- N.me={id:'p1',x:2030,y:2070,tx:2030,ty:2070,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false,xp:0,xpNeed:160,level:1,xpCollected:0,queuedUpgrades:0};
+ N.me={id:'p1',activeWeapon:localArenaLook().weapon||'sword',x:2030,y:2070,tx:2030,ty:2070,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false,xp:0,xpNeed:160,level:1,xpCollected:0,queuedUpgrades:0};
  arenaSpellInit(N.me,localArenaLook().heroClass);N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
  startSoloHorde(1);
  window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
@@ -1128,15 +1174,15 @@ function stepSolo(dt){
    }
    continue;
   }
-  arenaSpellTick(me,N.looks.get('p1')?.look?.heroClass||'warrior');arenaSpellExpire(N.soloMobs,N.soloTick);
+  arenaPerkTick(me,N.soloTick);N.soloInvul=Math.max(N.soloInvul,me.shield||0);arenaSpellTick(me,N.looks.get('p1')?.look?.heroClass||'warrior');arenaSpellExpire(N.soloMobs,N.soloTick);
   // Fixed physics 30Hz, steering only at 15Hz, interpolation at display FPS.
   for(const mob of N.soloMobs){mob.prevX=mob.x;mob.prevY=mob.y}
   if(!LAB.freezeAI){
    const goblins=N.soloMobs.filter(m=>m.kind!=='troll');
    const locked=goblins.filter(m=>m.labFrozen).map(m=>[m,m.x,m.y]);
    if(N.soloTick%2===0)N.soloCrowd.step(goblins,N.players,N.soloTick);
-    const acid=stepArenaWorms(N.soloMobs,N.players,N.world,N.soloTick,N.soloWave,N.acidShots||[],N.acidSeq||0,(p,d)=>{if(LAB.godMode||N.soloTick<=N.soloInvul)return;p.hp=Math.max(0,p.hp-d);N.hurtUntil=performance.now()+290;N.soloInvul=N.soloTick+28;A()?.play('hurt')});if(acid.seq>(N.acidSeq||0)&&acid.shots.some(s=>s.id>(N.acidSeq||0)&&(s.x-me.x)**2+(s.y-me.y)**2<550**2))B().arenaWormSound?.();N.acidShots=acid.shots;N.acidSeq=acid.seq;
-   stepArenaHeavy(N.soloMobs,N.players,N.world,N.soloTick,N.soloWave,(p,d)=>{if(LAB.godMode||N.soloTick<=N.soloInvul)return;p.hp=Math.max(0,p.hp-d);N.hurtUntil=performance.now()+290;N.soloInvul=N.soloTick+28;A()?.play('hurt')});
+    const acid=stepArenaWorms(N.soloMobs,N.players,N.world,N.soloTick,N.soloWave,N.acidShots||[],N.acidSeq||0,(p,d)=>{if(LAB.godMode||N.soloTick<=N.soloInvul)return;p.hp=Math.max(0,p.hp-arenaIncoming(p,d));N.hurtUntil=performance.now()+290;N.soloInvul=N.soloTick+28;A()?.play('hurt')});if(acid.seq>(N.acidSeq||0)&&acid.shots.some(s=>s.id>(N.acidSeq||0)&&(s.x-me.x)**2+(s.y-me.y)**2<550**2))B().arenaWormSound?.();N.acidShots=acid.shots;N.acidSeq=acid.seq;
+   stepArenaHeavy(N.soloMobs,N.players,N.world,N.soloTick,N.soloWave,(p,d)=>{if(LAB.godMode||N.soloTick<=N.soloInvul)return;p.hp=Math.max(0,p.hp-arenaIncoming(p,d));N.hurtUntil=performance.now()+290;N.soloInvul=N.soloTick+28;A()?.play('hurt')});
    N.soloCrowd.advance(goblins,N.players);
    for(const [m,x,y] of locked){m.x=x;m.y=y;m.prevX=x;m.prevY=y;m.vx=m.vy=0}
    for(const boss of N.soloMobs)if(boss.kind==='troll'&&boss.hp>0&&!boss.labFrozen){
@@ -1150,28 +1196,28 @@ function stepSolo(dt){
    if(mob.hp<=0||mob.labFrozen||(mob.kind==='worm'||arenaSpecial(mob)))continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
    if(!LAB.godMode&&d2<=(mob.kind==='troll'?65:34)**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
-    me.hp=Math.max(0,me.hp-Math.min(mob.kind==='troll'?60:30,Math.round((mob.kind==='troll'?17:7)*(1+.06*(N.soloWave-1)))));N.hurtUntil=performance.now()+290;
+    me.hp=Math.max(0,me.hp-arenaIncoming(me,Math.min(mob.kind==='troll'?60:30,Math.round((mob.kind==='troll'?17:7)*(1+.06*(N.soloWave-1))))));N.hurtUntil=performance.now()+290;
     A()?.play('hurt');
     mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+(mob.kind==='troll'?77:39+(mob.id%5)*4);
     N.soloInvul=N.soloTick+28;
    }
   }
   // Auto-attack the nearest living enemy only when in 83px weapon range.
-  if(N.soloTick-N.soloSwing>=19){
-   let target=null,distSq=125**2;
+  if(N.soloTick-N.soloSwing>=arenaAttackPeriod(me)){
+   let target=null,distSq=160**2;
    for(const mob of N.soloMobs){
     if(mob.hp<=0)continue;
     const dx=mob.x-me.x,dy=mob.y-me.y,d=dx*dx+dy*dy;
-    if(d<distSq&&d<(mob.kind==='werewolfAlpha'||mob.kind==='boss'||mob.kind==='rotfiend'?125:mob.kind==='elephant'?100:mob.kind==='troll'?95:83)**2){target=mob;distSq=d}
+    if(d<distSq&&d<arenaAttackReach(me,mob)**2){target=mob;distSq=d}
    }
    if(target){
     N.soloSwing=N.soloTick;me.attackTick=N.soloTick;
     me.attackAngle=Math.atan2(target.y-me.y,target.x-me.x);
     me.facingAngle=me.attackAngle;
     target.hitTick=N.soloTick;
-    target.hp=Math.max(0,target.hp-(me.damage||22));
-    A()?.play('swing',{weapon:localArenaLook().weapon||'sword'});
-    A()?.play('hit',{weapon:localArenaLook().weapon||'sword',variant:N.soloTick,gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
+    target.hp=Math.max(0,target.hp-arenaAttackDamage(me,N.soloTick));
+    A()?.play('swing',{weapon:N.me?.activeWeapon||localArenaLook().weapon||'sword'});
+    A()?.play('hit',{weapon:N.me?.activeWeapon||localArenaLook().weapon||'sword',variant:N.soloTick,gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
     if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++;me.kills++;spawnSoloXpCrystal(target)}
    }
   }
@@ -1180,7 +1226,7 @@ function stepSolo(dt){
   if(!N.soloChoice){
    const chest=N.soloChests.find(c=>!c.opened&&(c.x-me.x)**2+(c.y-me.y)**2<=64**2);
    if(chest){
-    chest.opened=true;N.soloChoice={id:chest.id,kind:'chest',seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
+    chest.opened=true;N.soloChoice={id:chest.id,kind:'chest',options:arenaRewardOptions(N.me,N.soloChestSeq+1),seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
     N.choiceUiId='';A()?.play('chest');
    }
   }
@@ -1409,7 +1455,7 @@ function connect(match,id,ticket,rejoin=false){
    attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
-    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;magicSupported=m.arenaSpells===189;N.reviveSupported=m.arenaRevive===190;N.rosterSupported=m.arenaRoster===191;N.dodgeSupported=m.arenaDodge===192;N.reviveHeld='';
+    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;magicSupported=m.arenaSpells===189;N.reviveSupported=m.arenaRevive===190;N.rosterSupported=m.arenaRoster===191;N.dodgeSupported=m.arenaDodge===192;N.loadoutSupported=m.arenaLoadout===192;N.reviveHeld='';
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
     }
@@ -1622,11 +1668,8 @@ function drawArenaChests(g,chests,view){
  }
 }
 function resolveSoloChest(option){
- if(!N.soloChoice||!['edge','heart','boots'].includes(option))return false;
- const me=N.me,pick=option;
- if(pick==='edge')me.damage=Math.min(65,Math.round((me.damage||22)*1.2));
- if(pick==='heart'){me.maxHp=Math.min(240,(me.maxHp||100)+25);me.hp=Math.min(me.maxHp,me.hp+35)}
- if(pick==='boots')me.speedMult=Math.min(1.5,(me.speedMult||1)*1.1);
+ if(!N.soloChoice||!(N.soloChoice.options||ARENA_CORE_REWARDS).includes(option))return false;
+ const me=N.me,pick=option;arenaGrantReward(me,pick,N.soloTick);
  const isXp=N.soloChoice.kind==='xp';N.soloChoice=null;N.choiceUiId='';
  if(!isXp)N.soloBetweenUntil=Date.now()+1750;
  A()?.play('choose');return true;
@@ -1690,7 +1733,7 @@ function sessionHud(now){
  const holder=el('ns152Choice'),hud=el('ns152Wave'),remaining=el('ns152Remaining');
  if(!holder||!hud||!remaining)return;
  if(now-N.uiAt>=140||N.choiceUiId!==(choice?(choice.seq+':'+choice.owner):'')){
-  N.uiAt=now;refreshArenaDodge();
+  N.uiAt=now;refreshArenaDodge();const swap=el('ns192Swap');if(swap){swap.hidden=!(N.solo||N.loadoutSupported)||!N.me?.secondaryWeapon||N.me.hp<=0;swap.textContent='⇄ '+(N.me?.activeWeapon||'sword')+' / '+(N.me?.secondaryWeapon||'')}
   hud.textContent='TALAS '+wave;
   const xpHud=el('ns168XpHud'),xpText=el('ns168XpText'),xpFill=el('ns168XpFill');
   const xpEnabled=N.solo||LAB_SERVER_BUILD>=168;
@@ -1719,7 +1762,7 @@ function sessionHud(now){
     el('ns152ChoiceText').textContent=mine?
      'Izaberi nadogradnju. Ako ne stigneš, automatski se bira OŠTRICA.':
      'Čeka se '+choice.owner.toUpperCase()+' · izbor se automatski završava.';
-    for(const btn of holder.querySelectorAll('[data-pick]')){btn.hidden=!mine;btn.disabled=false}
+    const options=choice.options?.length?choice.options:ARENA_CORE_REWARDS;let i=0;for(const btn of holder.querySelectorAll('[data-pick]')){const k=options[i++];btn.hidden=!mine||!k;btn.disabled=false;if(k){btn.dataset.pick=k;btn.textContent=arenaRewardLabel(k)}}
    }
    const rest=N.solo?choice.until-Date.now():
     (choice.until-N.serverNow)-(now-N.lastState);
@@ -1736,7 +1779,7 @@ function sessionHud(now){
 function drawArenaPlayerBody(g,p,now,dt){
  g.save();if(p.hp<=0){g.globalAlpha=p.knocked?.8:.38;g.translate(p.x,p.y);g.rotate(-Math.PI/2);g.translate(-p.x,-p.y);}
  const motion=updateHeroMotion(p,dt),age=swordAge(p,now);
- const b=B(),look=N.looks.get(p.id)?.look||(p.id===N.id?localArenaLook():b.getVillageHeroLook?.(p.id));
+ const b=B(),baseLook=N.looks.get(p.id)?.look||(p.id===N.id?localArenaLook():b.getVillageHeroLook?.(p.id));const look=p.activeWeapon?{...baseLook,weapon:p.activeWeapon}:baseLook;
  if(typeof b.drawVillageHero==='function'){
   if(!motion.walking)g.translate(0,Math.sin(now/900+(p.id==='p1'?0:1))*.85);
   b.drawVillageHero(g,p.x,p.y,{id:p.id,look:look||b.heroStyle,netArena:true,
