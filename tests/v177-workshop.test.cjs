@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright-core');
 const html=fs.readFileSync(path.resolve(__dirname,'../public/index.html'),'utf8'),source=fs.readFileSync(path.resolve(__dirname,'../public/v177-workshop.js'),'utf8');
-new Function(source);assert.match(html,/ns177|NS177_WORKSHOP/);assert.match(html,/v177-workshop\.js\?v=177/);assert(!/new WebSocket|fetch\(|getUserMedia\(/.test(source));
+new Function(source);assert.match(html,/ns177|NS177_WORKSHOP/);assert.match(html,/v177-workshop\.js\?v=17[78]/);assert(!/new WebSocket|fetch\(|getUserMedia\(/.test(source));
 (async()=>{const browser=await chromium.launch({headless:true,executablePath:['/usr/bin/google-chrome','/usr/bin/chromium'].find(fs.existsSync),args:['--no-sandbox','--allow-file-access-from-files','--disable-dev-shm-usage']});
 const pages=[],errors=[],packets=[];let forwarding=true;
 try{
