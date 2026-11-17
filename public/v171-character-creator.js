@@ -39,7 +39,7 @@ function effective(raw,level=1){
 }
 const presets={
  elephant:{...base,name:'Oklopljeni slon · Classic',classicModel:'elephant',role:'enemy',race:'orc',weapon:'spear',hp:240,speed:82,damage:17,attackRate:1.22,gait:'heavy',size:1},
- rotfiend:{...base,name:'Truležni kolos · Classic',classicModel:'rotfiend',role:'boss',race:'troll',weapon:'claws',hp:172,speed:70,damage:19,attackRate:1.42,gait:'heavy',size:1,boss:{enabled:true}},
+ rotfiend:{...base,name:'Truležni kolos · Classic',classicModel:'rotfiend',role:'boss',race:'troll',weapon:'claws',hp:172,speed:70,damage:19,attackRate:1.42,gait:'heavy',size:1,boss:{enabled:true,phase2:65,phase3:30,rage:25,special:'slam',power:25,radius:112,windup:1.48,cooldown:8.2}},
  worm:{...base,name:'Kiseli crv · Classic',classicModel:'worm',role:'enemy',race:'undead',weapon:'staff',hp:81,speed:72,damage:10,attackRate:1.6,behavior:'ranged',size:1},
  guardian:{...base,name:'Gvozdeni stražar'},
  scout:{...base,name:'Šumski izviđač',race:'elf',helmet:'hood',torso:'leather',shoulders:'none',arms:'bare',legs:'cloth',boots:'light',weapon:'bow',offhand:'cape',gait:'agile',armor:'#52674d',accent:'#b0c78a',width:.83,leg:1.16,speed:175,hp:80,damage:21},
