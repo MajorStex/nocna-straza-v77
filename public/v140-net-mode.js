@@ -235,45 +235,67 @@ function stepArenaWorms(mobs,players,world,tick,wave,shots,seq,damage){
 // END V190 ACID WORM
 
 // V191 Classic heavy enemies, shared deterministic solo/relay calendar.
+const ARENA_KINDS=['goblin','troll','worm','elephant','rotfiend','crawler','skeleton','brute','boss','werewolf','werewolfAlpha'];
+const arenaSpecial=m=>ARENA_KINDS.indexOf(m.kind)>=3;
 function arenaHeavyStats(kind,wave){
- const n=Math.max(0,wave-1);
- if(kind==='elephant')return {kind,hp:240+n*12,maxHp:240+n*12,moveSpeed:Math.min(108,75+n*1.2),bodyRadius:28};
- if(kind==='rotfiend')return {kind,hp:620+n*45,maxHp:620+n*45,moveSpeed:Math.min(90,60+n*.5),bodyRadius:48};
- return null;
+ const n=Math.max(0,wave-1),spec={
+ elephant:[240,12,75,1.2,28],rotfiend:[620,45,60,.5,48],
+ crawler:[48,7,103,2,15],skeleton:[67,8,95,2,15],brute:[155,12,82,1.5,22],
+ boss:[450,38,85,.8,52],werewolf:[130,10,120,1.1,19],werewolfAlpha:[1120,30,95,.7,65]}[kind];
+ if(!spec)return null;const [base,growth,speed,rate,bodyRadius]=spec,hp=base+n*growth;
+ return {kind,hp,maxHp:hp,moveSpeed:Math.min(kind==='werewolf'?165:kind==='rotfiend'?90:145,speed+n*rate),bodyRadius};
 }
 function arenaHeavyWave(mobs,wave,batch,world){
  const clear=(m,r)=>arenaAcidClear(world,m.x,m.y,m.x,m.y,r);
- if(wave>=8)for(const m of mobs)if(m.kind!=='troll'&&(m.id*37+batch*7)%100<14&&clear(m,28))Object.assign(m,arenaHeavyStats('elephant',wave));
- if(batch===0&&(wave===20||wave===30)){
-  const m=mobs.find(m=>m.kind!=='troll'&&clear(m,48));
-  if(m)Object.assign(m,arenaHeavyStats('rotfiend',wave));
+ for(const m of mobs){
+  if(m.kind==='troll'||m.kind==='worm')continue;
+  const roll=((m.id*37+batch*7)%100);
+  const kind=wave>=8&&roll<14?'elephant':wave>=5&&roll<28?'brute':wave>=2&&roll<24?'brute':roll<49?'crawler':roll<72?'skeleton':null;
+  const stat=arenaHeavyStats(kind,wave);if(stat&&clear(m,stat.bodyRadius))Object.assign(m,stat);
  }
+ const replace=kind=>{const stat=arenaHeavyStats(kind,wave),m=mobs.find(m=>!['troll','rotfiend','boss','werewolfAlpha','werewolf'].includes(m.kind)&&clear(m,stat.bodyRadius));if(m)Object.assign(m,stat);return m};
+ if(batch===0&&(wave===20||wave===30))replace('rotfiend');
+ if(batch===0&&wave===40){replace('werewolfAlpha');for(let i=0;i<4;i++)replace('werewolf')}
+ if(batch===0&&wave%10===0&&wave!==20&&wave!==30&&wave!==40)replace('boss');
+ if(wave>40)for(const m of mobs)if(['crawler','skeleton','goblin'].includes(m.kind)&&(m.id*17+batch)%100<9&&clear(m,19))Object.assign(m,arenaHeavyStats('werewolf',wave));
  return mobs;
 }
 function stepArenaHeavy(mobs,players,world,tick,wave,damage){
  const alive=[...players.values()].filter(p=>p.online&&p.hp>0&&!p.knocked&&!p.finalDead);
  for(const m of mobs){
-  if((m.kind!=='elephant'&&m.kind!=='rotfiend')||m.hp<=0||m.labFrozen)continue;
+  if(!arenaSpecial(m)||m.hp<=0||m.labFrozen)continue;
   let p=alive.find(p=>p.id===m.targetId);if(!p){let d=Infinity;for(const q of alive){let n=(q.x-m.x)**2+(q.y-m.y)**2;if(n<d){p=q;d=n}}}
   m.wormHold=false;if(!p){m.heavyCast=null;continue}
-  let dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy;
-  m.heavyAngle=Math.atan2(dy,dx);const boss=m.kind==='rotfiend',phase=m.hp<=m.maxHp*.3?3:m.hp<=m.maxHp*.65?2:1;
-  m.heavyPhase=phase;
-  if(boss&&phase===3&&!m.heavyEnraged){m.heavyEnraged=true;m.moveSpeed=Math.min(110,m.moveSpeed*1.25)}
+  const dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy,boss=['rotfiend','boss','werewolfAlpha'].includes(m.kind),wolf=m.kind==='werewolf'||m.kind==='werewolfAlpha';
+  const phase=boss?(m.hp<=m.maxHp*.3?3:m.hp<=m.maxHp*.65?2:1):1;m.heavyPhase=phase;
+  if(boss&&phase===3&&!m.heavyEnraged){m.heavyEnraged=true;m.moveSpeed=Math.min(165,m.moveSpeed*1.25)}
   if(m.heavyCast){
-   m.wormHold=true;const c=m.heavyCast;
-   if(tick<c.end)continue;
-   for(const a of alive)if(a.hp>0&&!a.knocked&&(a.x-c.x)**2+(a.y-c.y)**2<=(c.r+3)**2)damage(a,10+5*c.phase);
-   m.heavyCast=null;m.attackTick=tick;m.heavyNext=tick+(phase===3?132:phase===2?189:246);continue;
+   m.wormHold=true;const c=m.heavyCast;if(tick<c.end)continue;
+   for(const a of alive){if(a.hp<=0||a.knocked)continue;const x=a.x-c.x,y=a.y-c.y;
+    if(c.kind===1){const u=Math.cos(c.angle),v=Math.sin(c.angle),along=x*u+y*v,across=Math.abs(-x*v+y*u);if(along>=0&&along<=c.length&&across<=c.r+3)damage(a,12+5*c.phase)}
+    else if(c.kind===2){if(x*x+y*y<=(c.r+3)**2)a.enemySlowUntil=Math.max(a.enemySlowUntil||0,tick+77)}
+    else if(c.kind===3){if(a.id===c.victim&&x*x+y*y<=(c.r+3)**2&&arenaAcidClear(world,c.x,c.y,a.x,a.y,8)){const angle=Math.atan2(y,x)-c.angle;if(Math.abs(Math.atan2(Math.sin(angle),Math.cos(angle)))<=1.2)damage(a,Math.round((m.kind==='werewolfAlpha'?19:12)*(1+Math.min(1,wave*.015))))}}
+    else if(x*x+y*y<=(c.r+3)**2)damage(a,10+5*c.phase);
+   }
+   m.heavyCast=null;if(c.kind!==2)m.attackTick=tick;if(c.kind!==3)m.heavyNext=tick+(phase===3?132:phase===2?189:246);continue;
   }
+  m.heavyAngle=Math.atan2(dy,dx);
   if(boss&&m.heavyNext===undefined)m.heavyNext=tick+114;
-  if(boss&&tick>=m.heavyNext&&d2<700**2){
-   m.heavyCast={x:Math.round(p.x),y:Math.round(p.y),r:phase===3?150:phase===2?131:112,start:tick,end:tick+(phase===3?30:phase===2?38:44),phase};m.wormHold=true;continue;
+  if(m.kind==='werewolf'&&m.heavyNext===undefined)m.heavyNext=tick+174+(m.id%10)*9;
+  if((boss||m.kind==='werewolf')&&tick>=m.heavyNext&&d2<(m.kind==='werewolf'?440:700)**2){
+   if(m.kind==='boss')m.heavyCast={kind:1,x:m.x,y:m.y,r:phase===3?56:phase===2?47:39,length:phase===3?475:phase===2?425:380,angle:m.heavyAngle,start:tick,end:tick+(phase===3?33:phase===2?40:47),phase};
+   else if(m.kind==='werewolfAlpha')m.heavyCast={kind:2,x:Math.round(p.x),y:Math.round(p.y),r:phase===3?163:phase===2?145:124,start:tick,end:tick+(phase===3?33:phase===2?39:47),phase};
+   else if(m.kind==='werewolf'){m.heavyRageUntil=tick+112;m.heavyNext=tick+270+(m.id%9)*13;m.heavyCast={kind:2,x:m.x,y:m.y,r:0,start:tick,end:tick+28,phase:1};}
+   else m.heavyCast={kind:0,x:Math.round(p.x),y:Math.round(p.y),r:phase===3?150:phase===2?131:112,start:tick,end:tick+(phase===3?30:phase===2?38:44),phase};
+   m.wormHold=true;continue;
   }
-  const range=boss?100:78;
+  const range={boss:142,rotfiend:100,elephant:78,crawler:66,skeleton:66,brute:91,werewolf:53,werewolfAlpha:110}[m.kind]||78;
   if(d2<=range**2&&arenaAcidClear(world,m.x,m.y,p.x,p.y,8)){
-   m.wormHold=true;
-   if(tick>=(m.attackAt||0)){m.attackAt=tick+(boss?63:37);m.attackTick=tick;damage(p,Math.min(48,Math.round((boss?19:17)*(1+.035*(wave-1))*(boss&&phase===3?1.16:1))))}
+   m.wormHold=true;if(tick<(m.attackAt||0))continue;
+   m.attackAt=tick+({boss:38,rotfiend:63,brute:41,werewolf:tick<(m.heavyRageUntil||0)?28:41,werewolfAlpha:44}[m.kind]||37);
+   m.attackTick=tick;
+   if(wolf){m.heavyCast={kind:3,x:m.x,y:m.y,r:range,angle:m.heavyAngle,victim:p.id,start:tick,end:tick+(boss?13:10),phase};continue}
+   damage(p,Math.min(60,Math.round(({boss:23,rotfiend:19,elephant:17,brute:15,crawler:8,skeleton:8}[m.kind]||8)*(1+.035*(wave-1))*(boss&&phase===3?1.16:1))));
   }
  }
 }
@@ -729,7 +751,7 @@ function snapshot(m){
     A()?.play('hit',{weapon:weaponHits.get(q[0])||'sword',variant:hitTick,x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
-   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=q[8]===1?'troll':q[8]===2?'worm':q[8]===3?'elephant':q[8]===4?'rotfiend':'goblin';mob.heavyAngle=(Number(q[10])||0)/100;mob.heavyCast=Array.isArray(q[11])&&q[11].length===5&&q[11].every(Number.isFinite)?{x:q[11][0],y:q[11][1],r:q[11][2],start:q[11][3],end:q[11][4]}:null;mob.heavyPhase=Number(q[12])||1;mob.heavyGait=Number.isFinite(q[13])?q[13]/100:0;mob.wormWindup=m.tick+(Number(q[9])||0);mob.wormAngle=(Number(q[10])||0)/100;
+   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=ARENA_KINDS[q[8]]||'goblin';mob.heavyAngle=(Number(q[10])||0)/100;mob.heavyCast=Array.isArray(q[11])&&q[11].length>=5&&q[11].every(Number.isFinite)?{x:q[11][0],y:q[11][1],r:q[11][2],start:q[11][3],end:q[11][4],kind:q[11][5]||0,angle:q[11][6]||0,length:q[11][7]||0}:null;mob.heavyPhase=Number(q[12])||1;mob.heavyGait=Number.isFinite(q[13])?q[13]/100:0;mob.wormWindup=m.tick+(Number(q[9])||0);mob.wormAngle=(Number(q[10])||0)/100;
    return mob;
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
@@ -756,7 +778,7 @@ function snapshot(m){
    }
   }
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
-   p.revivesUsed=Number(row[15])||0;p.reviveProgress=Number(row[16])||0;p.finalDead=row[17]===1;p.downedUntil=Number(row[18])||0;
+   p.revivesUsed=Number(row[15])||0;p.reviveProgress=Number(row[16])||0;p.finalDead=row[17]===1;p.downedUntil=Number(row[18])||0;p.enemySlowUntil=Number(row[19])||0;
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
    A()?.play('swing',{weapon:id===N.id?localArenaLook().weapon:N.looks.get(id)?.look?.weapon||B().getVillageHeroLook?.(id)?.weapon||'sword',variant:attackTick,
@@ -1076,7 +1098,7 @@ function stepSolo(dt){
   }
   if(LAB.allies.length)stepSoloAllies();
   if(!LAB.freezeAI)for(const mob of N.soloMobs){
-   if(mob.hp<=0||mob.labFrozen||['worm','elephant','rotfiend'].includes(mob.kind))continue; // no individual respawns during a wave
+   if(mob.hp<=0||mob.labFrozen||(mob.kind==='worm'||arenaSpecial(mob)))continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
    if(!LAB.godMode&&d2<=(mob.kind==='troll'?65:34)**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
     me.hp=Math.max(0,me.hp-Math.min(mob.kind==='troll'?60:30,Math.round((mob.kind==='troll'?17:7)*(1+.06*(N.soloWave-1)))));N.hurtUntil=performance.now()+290;
@@ -1091,7 +1113,7 @@ function stepSolo(dt){
    for(const mob of N.soloMobs){
     if(mob.hp<=0)continue;
     const dx=mob.x-me.x,dy=mob.y-me.y,d=dx*dx+dy*dy;
-    if(d<distSq&&d<(mob.kind==='rotfiend'?125:mob.kind==='elephant'?100:mob.kind==='troll'?95:83)**2){target=mob;distSq=d}
+    if(d<distSq&&d<(mob.kind==='werewolfAlpha'||mob.kind==='boss'||mob.kind==='rotfiend'?125:mob.kind==='elephant'?100:mob.kind==='troll'?95:83)**2){target=mob;distSq=d}
    }
    if(target){
     N.soloSwing=N.soloTick;me.attackTick=N.soloTick;
@@ -1187,16 +1209,16 @@ function drawArenaHeavy(g,m,now,visible){
  if(m.hp<=0||m.x<visible.left-110||m.x>visible.right+110||m.y<visible.top-145||m.y>visible.bottom+100)return;
  const tick=N.solo?N.soloTick:(N.mobRenderTick??N.tick),alpha=N.solo?clamp(N.soloAcc*30,0,1):1;
  const x=N.solo?(m.prevX??m.x)+(m.x-(m.prevX??m.x))*alpha:m.x,y=N.solo?(m.prevY??m.y)+(m.y-(m.prevY??m.y))*alpha:m.y;
- B().arenaClassicEnemy?.(g,m.kind,{x,y,angle:N.solo?(m.heavyAngle||0):(m.heavyRenderAngle??m.heavyAngle??0),frame:N.solo?(m.heavyGait||0):(m.heavyRenderGait??m.heavyGait??0),attackT:Math.max(0,.36-(tick-m.attackTick)/30),flash:tick-m.hitTick<5?1:0,hp:m.hp,maxHp:m.maxHp,scale:1});
+ B().arenaClassicEnemy?.(g,m.kind,{x,y,angle:N.solo?(m.heavyAngle||0):(m.heavyRenderAngle??m.heavyAngle??0),frame:N.solo?(m.heavyGait||0):(m.heavyRenderGait??m.heavyGait??0),bossPhase:m.heavyPhase||1,bossCast:m.heavyCast?.kind===2?{kind:'howlSlow'}:null,attackT:Math.max(0,.36-(tick-m.attackTick)/30),flash:tick-m.hitTick<5?1:0,hp:m.hp,maxHp:m.maxHp,scale:1});
 }
 function drawArenaHeavyWarnings(g,visible){
  const tick=N.solo?N.soloTick:(N.mobRenderTick??N.tick);
  for(const m of N.solo?N.soloMobs:N.mpMobs){const c=m.heavyCast;if(!c||m.hp<=0||c.end<=tick||c.x+c.r<visible.left||c.x-c.r>visible.right||c.y+c.r<visible.top||c.y-c.r>visible.bottom)continue;
- const k=clamp((tick-c.start)/Math.max(1,c.end-c.start),0,1);g.save();g.strokeStyle=k>.76?'#fff0a5':'#ff5752';g.fillStyle='#f14a4b24';g.lineWidth=3.5;g.beginPath();g.arc(c.x,c.y,c.r,0,Math.PI*2);g.fill();g.stroke();g.beginPath();g.arc(c.x,c.y,c.r*(1-k),0,Math.PI*2);g.stroke();g.restore();
+ const k=clamp((tick-c.start)/Math.max(1,c.end-c.start),0,1);g.save();g.strokeStyle=k>.76?'#fff0a5':'#ff5752';g.fillStyle='#f14a4b24';g.lineWidth=3.5;if(c.kind===1){g.translate(c.x,c.y);g.rotate(c.angle);g.fillRect(0,-c.r,c.length,c.r*2);g.strokeRect(0,-c.r,c.length,c.r*2);g.fillRect(0,-2,c.length*k,4)}else if(c.kind!==3&&c.r>0){if(c.kind===2){g.strokeStyle='#81c6ba';g.fillStyle='#68aaa629'}g.beginPath();g.arc(c.x,c.y,c.r,0,Math.PI*2);g.fill();g.stroke();g.beginPath();g.arc(c.x,c.y,c.r*(1-k),0,Math.PI*2);g.stroke()}g.restore();
  }
 }
 function drawArenaMobs(g,now,dt,visible){
- const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>!['troll','worm','elephant','rotfiend'].includes(m.kind)),tick=N.solo?N.soloTick:N.tick;
+ const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll'&&m.kind!=='worm'&&!arenaSpecial(m)),tick=N.solo?N.soloTick:N.tick;
  if(!N.solo)sampleOnlineMobs(now,dt);
  // V154: cached sprite sheet + viewport culling; fallback retains old graphics in isolated QA.
  if(window.NS154_GOBLINS){
@@ -1709,14 +1731,14 @@ function drawDepthSortedWorld(g,now,dt,visible){
   drawArenaBuildings(g,N.world.obstacles,visible);
   drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
   drawArenaMobs(g,now,dt,visible);
-  for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm')drawArenaWorm(g,m,now,visible);else if(m.kind==='elephant'||m.kind==='rotfiend')drawArenaHeavy(g,m,now,visible);
+  for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm')drawArenaWorm(g,m,now,visible);else if(arenaSpecial(m))drawArenaHeavy(g,m,now,visible);
   for(const p of N.players.values())if(p.online)drawArenaPlayerBody(g,p,now,dt);
   for(const p of N.players.values())if(p.online)drawArenaPlayerLabel(g,p);
   for(const boss of (N.solo?N.soloMobs:N.mpMobs))if(boss.kind==='troll')window.NS162_TROLL?.drawOne(g,boss,{now,tick:N.solo?N.soloTick:N.tick,visible});
   return;
  }
  if(!N.solo)sampleOnlineMobs(now,dt);
- const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>!['troll','worm','elephant','rotfiend'].includes(m.kind));
+ const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll'&&m.kind!=='worm'&&!arenaSpecial(m));
  const bufferedTick=N.solo?N.soloTick:(N.mobRenderTick??N.tick);
  const opt={solo:N.solo,tick:bufferedTick,now,lastState:N.solo?N.lastState:now,
   alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible};
@@ -1751,7 +1773,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   jobs.push({depth:p.y+13,kind:2,id:Number(p.id.slice(1)),p});
  }
  for(const entry of prepared)jobs.push({depth:entry.depth,kind:3,id:entry.mob.id,entry});
- for(const m of N.solo?N.soloMobs:N.mpMobs)if(['elephant','rotfiend'].includes(m.kind)&&m.hp>0&&m.x>=visible.left-110&&m.x<=visible.right+110&&m.y>=visible.top-145&&m.y<=visible.bottom+100)jobs.push({depth:m.y+15,kind:7,id:m.id,m});
+ for(const m of N.solo?N.soloMobs:N.mpMobs)if(arenaSpecial(m)&&m.hp>0&&m.x>=visible.left-110&&m.x<=visible.right+110&&m.y>=visible.top-145&&m.y<=visible.bottom+100)jobs.push({depth:m.y+15,kind:7,id:m.id,m});
  for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm'&&m.hp>0&&m.x>=visible.left-45&&m.x<=visible.right+45&&m.y>=visible.top-55&&m.y<=visible.bottom+55)jobs.push({depth:m.y+12,kind:6,id:m.id,m});
  for(const boss of (N.solo?N.soloMobs:N.mpMobs)){
   if(boss.kind!=='troll'||boss.hp<=0||boss.x<visible.left-80||boss.x>visible.right+80||boss.y<visible.top-160||boss.y>visible.bottom+40)continue;
@@ -1865,7 +1887,7 @@ function frame(now){
  if(selecting||N.reviveHeld||N.me?.knocked||N.me?.finalDead){v.x=0;v.y=0}
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
-  moveLocal(N.me,v.x*N.world.speed*dt*(N.me.speedMult||1),v.y*N.world.speed*dt*(N.me.speedMult||1));
+  moveLocal(N.me,v.x*N.world.speed*dt*(N.me.speedMult||1)*((N.me.enemySlowUntil||0)>(N.solo?N.soloTick:N.tick)?.58:1),v.y*N.world.speed*dt*(N.me.speedMult||1)*((N.me.enemySlowUntil||0)>(N.solo?N.soloTick:N.tick)?.58:1));
   if(N.solo){if(!N.paused)stepSolo(dt);if(N.me.hp<=0){N.phase='solo_ended';status('STRAŽAR JE PAO · SOLO TEST ZAVRŠEN')}}
   else {N.delta.x+=N.me.x-oldX;N.delta.y+=N.me.y-oldY;}
   const away=Math.hypot(N.me.x-N.me.tx,N.me.y-N.me.ty);
