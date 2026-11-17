@@ -49,7 +49,7 @@ try{
  assert.equal(await host.evaluate(()=>NS171_CREATOR.test.simulation.sceneBattle),false);
  console.log('V182 WORKSHOP BATTLE AND IMMERSIVE PASS',JSON.stringify({twoBrowsers:true,hostGuestLayoutsIndependent:true,hostOwnsDamage:true,guestHp:combat.hp,guestMaxHp:combat.maxHp,observe:true}));
  // World editor: selected targeting, static props, copied/deleted layout, undo/redo, reset.
- await host.locator('#ns183Sandbox summary').click();
+ await host.locator('#ns183Sandbox > summary').click();
  await host.locator('[data-action=resetCombat]').click();
  await host.locator('#ns183Selection').selectOption('a0');
  await host.locator('#ns183Targets').selectOption('p2');
@@ -59,7 +59,7 @@ try{
  assert(await host.evaluate(()=>NS171_CREATOR.test.simulation.mobs.some(m=>m.ai.reaction==='passive'&&m.ai.mode==='still')));
  await host.locator('[data-action=observe]').click();
  // Observe renders controls afresh, and zoom remains local.
- await host.locator('#ns183Sandbox summary').click();
+ await host.locator('#ns183Sandbox > summary').click();
  for(let n=0;n<3;n++){if((await host.locator('[data-action=zoom]').innerText()).includes('1.00'))break;await host.locator('[data-action=zoomout]').click()}
  const arena=host.locator('#ns171Canvas');
  const bb=await arena.boundingBox(),sc=Math.min(bb.width/780,bb.height/500);
@@ -90,7 +90,7 @@ try{
  await host.waitForFunction(()=>NS171_CREATOR.test.simulation.usedProps===1);
  await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.usedProps===1);
  assert(await guest.locator('[data-w=useProp]').isHidden());
- await host.locator('#ns183Sandbox summary').click();
+ await host.locator('#ns183Sandbox > summary').click();
  await host.locator('[data-action=resetCombat]').click();
  await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.usedProps===0);
  await guest.locator('[data-w=useProp]').waitFor({state:'visible'});
@@ -112,6 +112,31 @@ try{
  await action.click();await host.waitForFunction(d=>{const p=NS177_WORKSHOP.position('p2');return Math.hypot(p.x-d.x,p.y-d.y)<50},destination);
  await guest.waitForFunction(d=>{const p=NS177_WORKSHOP.position('p2');return p&&Math.hypot(p.x-d.x,p.y-d.y)<50},destination);
  console.log('V187 WORLD SYNC PASS',JSON.stringify({barrel:true,collisionReleased:true,guestPortal:true,hostGuestSameDestination:true}));
+ // V188: apply world settings in the real UI and traverse a portal beyond the old bounds.
+ await host.locator('#ns183Sandbox > summary').click();
+ await host.locator('#ns188Settings summary').click();
+ await host.locator('#ns188Size').selectOption('huge');
+ await host.locator('#ns188Terrain').selectOption('snow');
+ await host.locator('#ns188Light').selectOption('night');
+ await host.locator('#ns188Weather').selectOption('rain');
+ await host.locator('#ns188Every').fill('6');
+ await host.locator('#ns188Max').fill('8');
+ await host.locator('#ns188Batch').fill('2');
+ await host.locator('[data-action=worldApply]').click();
+ await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.worldBounds.w===1560&&NS177_WORKSHOP.diagnostics.world?.weather==='rain');
+ const world=await host.evaluate(()=>NS171_CREATOR.test.simulation.world);
+ assert.equal(world.size,'huge');assert.equal(world.spawnEvery,6);assert.equal(world.spawnBatch,2);
+ const target=await host.evaluate(()=>{const p=NS177_WORKSHOP.position('p2'),x=p.x>680?p.x-40:p.x+40;const raw={id:'big-qa',name:'Big QA',level:1,hero:NS171_CREATOR.presets.guardian,actors:[],relations:{},world:NS171_CREATOR.test.simulation.world,props:[{kind:'portal',x,y:p.y},{kind:'portal',x:1350,y:820},{kind:'river',x:1000,y:500},{kind:'bridge',x:1000,y:500},{kind:'sheep',x:1300,y:500},{kind:'pig',x:1400,y:500}]};if(!NS171_CREATOR.workshopImport(raw))throw Error('big fixture');return{x:1350,y:850}});
+ await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.props===6);
+ await host.locator('[data-action=battle]').click();
+ await guest.waitForFunction(()=>{const b=document.querySelector('[data-w=useProp]');return b&&!b.hidden&&b.textContent==='Teleport'});
+ await guest.locator('[data-w=useProp]').click();
+ await host.waitForFunction(d=>{const p=NS177_WORKSHOP.position('p2');return Math.hypot(p.x-d.x,p.y-d.y)<50},target);
+ await guest.waitForFunction(d=>{const p=NS177_WORKSHOP.position('p2');return p&&Math.hypot(p.x-d.x,p.y-d.y)<50},target);
+ await guest.locator('[data-w=save]').click();
+ await guest.waitForFunction(()=>NS176_SCENES.list(NS171_CREATOR.clean,NS174_AI,NS175_FACTIONS).some(s=>s.world?.size==='huge'&&s.props.some(p=>p.x===1350)));
+ const crossing=await host.evaluate(()=>{const S=NS176_SCENES,p=NS171_CREATOR.test.simulation.props;return !S.blocked(p,1000,500)&&S.blocked(p,1000,530)});assert(crossing);
+ console.log('V188 LARGE WORLD PASS',JSON.stringify({hostGuestBounds:true,portalBeyond780:true,save:true,bridge:true,weather:world.weather,spawnEvery:world.spawnEvery,spawnBatch:world.spawnBatch}));
  const previous=await guest.evaluate(()=>NS177_WORKSHOP.diagnostics.remoteSeq);await guest.evaluate(()=>NS177_WORKSHOP.receive({t:'ns177WorkshopState',room:'QA177',epoch:NS177_WORKSHOP.diagnostics.epoch,rev:0,seq:-1,rows:[],players:[]},'p1'));assert((await guest.evaluate(()=>NS177_WORKSHOP.diagnostics.remoteSeq))>=previous);
  await guest.locator('[data-w=exit]').click();await host.waitForFunction(()=>NS177_WORKSHOP.diagnostics.guests===0);assert(await guest.locator('#ns109Village').isVisible());await host.locator('#ns171Creator [data-action=close]').click();assert(await host.locator('#ns109Village').isVisible());
  const state=packets.filter(p=>p.t==='ns177WorkshopState');assert(state.length>5);const avg=Math.round(state.reduce((n,p)=>n+p.bytes,0)/state.length);assert(avg<3000);
