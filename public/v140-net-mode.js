@@ -20,7 +20,7 @@ const ARENA_SPELLS=[
 function arenaSpellInit(p,cls){const mage=cls==='mage',max=mage?102:64;if(!Number.isFinite(p.spellMana)){p.spellMana=max;p.spellCd=Array(8).fill(0)}p.spellMax=max;p.spellMana=Math.min(max,p.spellMana);p.spellRegen=mage?4.3:2.5;if(!Array.isArray(p.spellCd)||p.spellCd.length!==8)p.spellCd=Array(8).fill(0)}
 function arenaSpellTick(p,cls){arenaSpellInit(p,cls);p.spellMana=Math.min(p.spellMax,p.spellMana+p.spellRegen/30)}
 function arenaSpellState(p,tick){return [Math.round((p.spellMana||0)*10),p.spellMax||64,(p.spellCd||Array(8).fill(0)).map(t=>Math.max(0,t-tick)),p.spellSeq||0]}
-function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2)return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.kind==='troll'?34:14),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2)victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(m.kind==='troll'?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-damage);m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
+function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2)return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.bodyRadius||(m.kind==='troll'?34:14)),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2)victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(['troll','rotfiend'].includes(m.kind)?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-damage);m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
 function arenaSpellExpire(mobs,tick){for(const m of mobs)if(m.spellSlowFactor&&tick>=m.spellSlowUntil){m.spellSlowFactor=0;m.spellSlowUntil=0}}
 function arenaSpellEvents(events,tick){return events.filter(e=>tick-e[4]<=24).slice(-18)}
 // END V189 SPELL MECHANICS
@@ -243,7 +243,7 @@ function arenaHeavyStats(kind,wave){
 }
 function arenaHeavyWave(mobs,wave,batch,world){
  const clear=(m,r)=>arenaAcidClear(world,m.x,m.y,m.x,m.y,r);
- if(wave>=8)for(const m of mobs)if(m.kind!=='troll'&&(m.id+batch*7)%100<14&&clear(m,28))Object.assign(m,arenaHeavyStats('elephant',wave));
+ if(wave>=8)for(const m of mobs)if(m.kind!=='troll'&&(m.id*37+batch*7)%100<14&&clear(m,28))Object.assign(m,arenaHeavyStats('elephant',wave));
  if(batch===0&&(wave===20||wave===30)){
   const m=mobs.find(m=>m.kind!=='troll'&&clear(m,48));
   if(m)Object.assign(m,arenaHeavyStats('rotfiend',wave));
@@ -667,13 +667,14 @@ function nearbyObstacles(world,x,y,r){
  return out;
 }
 function moveLocal(p,dx,dy){
- const w=N.world,r=p.bodyRadius||w.r||14,free=(x,y)=>nearbyObstacles(w,x,y,r).every(o=>{
+ const oldX=p.x,oldY=p.y,w=N.world,r=p.bodyRadius||w.r||14,free=(x,y)=>nearbyObstacles(w,x,y,r).every(o=>{
   if(x+r<o.x||x-r>o.x+o.w||y+r<o.y||y-r>o.y+o.h)return true;
   const qx=clamp(x,o.x,o.x+o.w),qy=clamp(y,o.y,o.y+o.h);
   return (x-qx)**2+(y-qy)**2>=r*r;
  });
  const x=clamp(p.x+dx,r,w.w-r);if(free(x,p.y))p.x=x;
  const y=clamp(p.y+dy,r,w.h-r);if(free(p.x,y))p.y=y;
+ if(p.bodyRadius)p.heavyGait=(p.heavyGait||0)+Math.hypot(p.x-oldX,p.y-oldY)/9;
 }
 function snapshot(m){
  if(!Number.isInteger(m.tick)||m.tick<=N.tick||!Array.isArray(m.players))return;
@@ -728,12 +729,12 @@ function snapshot(m){
     A()?.play('hit',{weapon:weaponHits.get(q[0])||'sword',variant:hitTick,x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
-   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=q[8]===1?'troll':q[8]===2?'worm':q[8]===3?'elephant':q[8]===4?'rotfiend':'goblin';mob.heavyAngle=(Number(q[10])||0)/100;mob.heavyCast=Array.isArray(q[11])&&q[11].length===5&&q[11].every(Number.isFinite)?{x:q[11][0],y:q[11][1],r:q[11][2],start:q[11][3],end:q[11][4]}:null;mob.heavyPhase=Number(q[12])||1;mob.wormWindup=m.tick+(Number(q[9])||0);mob.wormAngle=(Number(q[10])||0)/100;
+   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=q[8]===1?'troll':q[8]===2?'worm':q[8]===3?'elephant':q[8]===4?'rotfiend':'goblin';mob.heavyAngle=(Number(q[10])||0)/100;mob.heavyCast=Array.isArray(q[11])&&q[11].length===5&&q[11].every(Number.isFinite)?{x:q[11][0],y:q[11][1],r:q[11][2],start:q[11][3],end:q[11][4]}:null;mob.heavyPhase=Number(q[12])||1;mob.heavyGait=Number.isFinite(q[13])?q[13]/100:0;mob.wormWindup=m.tick+(Number(q[9])||0);mob.wormAngle=(Number(q[10])||0)/100;
    return mob;
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
   // Render two network frames behind to hide 15Hz arrivals and mild jitter.
-  N.mobHistory.push({tick:m.tick,positions:new Map(N.mpMobs.map(q=>[q.id,[q.tx,q.ty]])),heroes:new Map(m.players.filter(row=>Array.isArray(row)&&/^p[1-6]$/.test(row[0])&&Number.isFinite(row[1])&&Number.isFinite(row[2])).map(row=>[row[0],[row[1]/10,row[2]/10,!!row[5]]]))});
+  N.mobHistory.push({tick:m.tick,positions:new Map(N.mpMobs.map(q=>[q.id,[q.tx,q.ty,q.heavyGait||0,q.heavyAngle||0]])),heroes:new Map(m.players.filter(row=>Array.isArray(row)&&/^p[1-6]$/.test(row[0])&&Number.isFinite(row[1])&&Number.isFinite(row[2])).map(row=>[row[0],[row[1]/10,row[2]/10,!!row[5]]]))});
   if(N.mobHistory.length>12)N.mobHistory.shift();
  }
  for(const row of m.players){
@@ -996,7 +997,7 @@ function startSolo(){
 }
 
 function spawnSoloXpCrystal(mob){
- const d={id:++N.dropSeq,x:mob.x,y:mob.y,value:mob.kind==='troll'?45:7,expires:N.soloTick+1800};
+ const d={id:++N.dropSeq,x:mob.x,y:mob.y,value:['troll','rotfiend'].includes(mob.kind)?45:mob.kind==='elephant'?14:7,expires:N.soloTick+1800};
  N.soloDrops.push(d);
  if(N.soloDrops.length>XP_CAP)N.soloDrops.shift();
 }
@@ -1140,10 +1141,12 @@ function sampleOnlineMobs(now,dt){
   const old=before.positions.get(mob.id),next=after.positions.get(mob.id);
   if(!next)continue;
   if(!old||(next[0]-old[0])**2+(next[1]-old[1])**2>90**2){
-   mob.x=next[0];mob.y=next[1];continue;
+   mob.x=next[0];mob.y=next[1];mob.heavyRenderGait=next[2]||0;mob.heavyRenderAngle=next[3]||0;continue;
   }
   mob.x=old[0]+(next[0]-old[0])*fraction;
   mob.y=old[1]+(next[1]-old[1])*fraction;
+  mob.heavyRenderGait=(old[2]||0)+((next[2]||0)-(old[2]||0))*fraction;
+  const from=old[3]||0,turn=(next[3]||0)-from;mob.heavyRenderAngle=from+Math.atan2(Math.sin(turn),Math.cos(turn))*fraction;
  }
  // Remote heroes share the same render timeline; local prediction stays immediate.
  if(N.players)for(const p of N.players.values()){
@@ -1184,8 +1187,7 @@ function drawArenaHeavy(g,m,now,visible){
  if(m.hp<=0||m.x<visible.left-110||m.x>visible.right+110||m.y<visible.top-145||m.y>visible.bottom+100)return;
  const tick=N.solo?N.soloTick:(N.mobRenderTick??N.tick),alpha=N.solo?clamp(N.soloAcc*30,0,1):1;
  const x=N.solo?(m.prevX??m.x)+(m.x-(m.prevX??m.x))*alpha:m.x,y=N.solo?(m.prevY??m.y)+(m.y-(m.prevY??m.y))*alpha:m.y;
- const d=Math.hypot(x-(m.heavyDrawX??x),y-(m.heavyDrawY??y));m.heavyDrawX=x;m.heavyDrawY=y;m.heavyDistance=(m.heavyDistance||0)+Math.min(20,d);
- B().arenaClassicEnemy?.(g,m.kind,{x,y,angle:m.heavyAngle||0,frame:m.heavyDistance/9,attackT:Math.max(0,.36-(tick-m.attackTick)/30),flash:tick-m.hitTick<5?1:0,hp:m.hp,maxHp:m.maxHp,scale:1});
+ B().arenaClassicEnemy?.(g,m.kind,{x,y,angle:N.solo?(m.heavyAngle||0):(m.heavyRenderAngle??m.heavyAngle??0),frame:N.solo?(m.heavyGait||0):(m.heavyRenderGait??m.heavyGait??0),attackT:Math.max(0,.36-(tick-m.attackTick)/30),flash:tick-m.hitTick<5?1:0,hp:m.hp,maxHp:m.maxHp,scale:1});
 }
 function drawArenaHeavyWarnings(g,visible){
  const tick=N.solo?N.soloTick:(N.mobRenderTick??N.tick);
