@@ -28,7 +28,7 @@ function cleanPlacement(raw,template,bounds){
  const x=val(raw.x,0,bounds?.minX??-100000,bounds?.maxX??100000),y=val(raw.y,0,bounds?.minY??-100000,bounds?.maxY??100000);
  const faction=enumOf(FACTIONS,raw.faction,'enemy'),base=clean(template?.ai,template?.behavior),over=raw.ai&&typeof raw.ai==='object'?raw.ai:{};
  // Waypoints are instance-relative coordinates and never extend the patrol radius.
- const ai=clean({...base,...over},template?.behavior);
+ const switched=over.mode&&over.mode!==base.mode&&over.mode!=='hunt';const ai=clean({...base,...(switched?{leash:base.radius,vision:Math.min(base.vision,Math.max(120,base.radius))}:{}),...over},template?.behavior);
  const points=(Array.isArray(raw.points)?raw.points:[]).slice(0,12).map(p=>{let x=val(p?.x,0,-ai.radius,ai.radius),y=val(p?.y,0,-ai.radius,ai.radius);const d=Math.hypot(x,y);if(d>ai.radius){x*=ai.radius/d;y*=ai.radius/d}return {x,y}});
  return {v:1,characterId:String(raw.characterId||template?.id||'').replace(/[^a-z0-9@_-]/gi,'').slice(0,64),x,y,faction,ai,points};
 }
@@ -95,8 +95,8 @@ function decide(actor,actors,now,dt){
  if(mode==='still'||mode==='guard'||mode==='hunt'){if(mode==='guard'&&atHome>3)return toward(actor,p,speed,dt,'return');return idle(actor,mode==='guard'?'guard':'idle')}
  if(now<b.waitUntil)return idle(actor,mode==='patrol'?'patrol':'roam');
  if(!b.waypoint)b.waypoint=nextWaypoint(actor);
- if(distance(actor,b.waypoint)<4){b.waypoint=null;b.waitUntil=now+ai.wait;return idle(actor,mode)}
- return toward(actor,b.waypoint,speed*ai.pace,dt,mode);
+ if(distance(actor,b.waypoint)<4||(!actor.moving&&b.lastWaypoint===b.waypoint&&now-(b.lastWaypointTime||0)>1)){b.waypoint=null;b.waitUntil=now+ai.wait;return idle(actor,mode)}
+ if(b.lastWaypoint!==b.waypoint){b.lastWaypoint=b.waypoint;b.lastWaypointTime=now}return toward(actor,b.waypoint,speed*ai.pace,dt,mode);
 }
 function phaseBuff(actor){
  const b=actor.boss;if(!b?.config.enabled||!['mini','boss'].includes(actor.c.role))return {stage:1,speed:1,damage:1};
@@ -108,11 +108,11 @@ function bossTick(actor,opponents,target,dt,callbacks={}){
  const c=b.config,frac=actor.hp/Math.max(1,actor.s.hp)*100,stage=frac<=c.phase3?3:frac<=c.phase2?2:1;
  if(stage>b.stage){b.stage=stage;callbacks.phase?.(actor,stage)}
  b.cooldown=Math.max(0,b.cooldown-dt);
- if(b.cast){b.cast.remaining-=dt;if(b.cast.remaining>0)return true;const cast=b.cast;b.cast=null;
+ if(b.cast){actor.brain.state='cast';b.cast.remaining-=dt;if(b.cast.remaining>0)return true;const cast=b.cast;b.cast=null;
   for(const t of opponents){if(!hostile(actor,t)||distance(t,cast)>cast.radius)continue;callbacks.damage?.(actor,t,Math.round(c.power*phaseBuff(actor).damage*(1+Math.min(.8,(actor.s.level-1)*.009))));if(c.special==='frost'&&t.hp>0)t.slow=Math.max(t.slow||0,2.5)}
   callbacks.impact?.(actor,cast);b.cooldown=c.cooldown;return true}
  if(c.special==='none'||b.stage<2||b.cooldown>0||!target||!hostile(actor,target)||distance(actor,target)>Math.min(320,c.radius*2.2))return false;
- b.cast={x:target.x,y:target.y,radius:c.radius,remaining:c.windup,total:c.windup,type:c.special};b.state='cast';callbacks.warn?.(actor,b.cast);return true;
+ b.cast={x:target.x,y:target.y,radius:c.radius,remaining:c.windup,total:c.windup,type:c.special};actor.brain.state='cast';callbacks.warn?.(actor,b.cast);return true;
 }
 function cancelCast(actor){if(actor.boss?.cast){actor.boss.cast=null;actor.boss.cooldown=Math.max(actor.boss.cooldown,1)}}
 const esc=s=>String(s).replace(/[&<>"']/g,k=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[k]));
