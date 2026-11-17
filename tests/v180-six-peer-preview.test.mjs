@@ -29,9 +29,14 @@ try{
  while(Date.now()-begin<4000){
   await Promise.all(six.map(async(p,i)=>{await sleep((i+1)*50);if(p.ws.readyState===1)p.ws.send(JSON.stringify({t:'i',seq:++p.seq,ax:i%2?30:-30,ay:0,attack:0}))}));
  }
+ const host=six[0],guest=six[1],hostTick=guest.latest.tick;
+ host.ws.close();await until(()=>guest.latest?.tick>=hostTick+25);
+ assert.equal(guest.latest.players.length,6,'server retains seats after original host disconnect');
+ const rehost=connect(host.id);await until(()=>rehost.welcome&&rehost.start&&rehost.latest?.tick>hostTick);
+ assert(rehost.latest.players.some(row=>row[0]===host.id),'host seat restored');
  const old=six[5],oldTick=old.latest.tick;old.ws.close();await sleep(900);
  const returned=connect(old.id);await until(()=>returned.welcome&&returned.start&&returned.latest?.tick>oldTick);
  assert(returned.latest.players.some(row=>row[0]===old.id),'same seat restored');
- for(const p of [...six.slice(0,5),returned]){assert(p.ticks.every((t,i)=>i===0||t>p.ticks[i-1]),'monotonic server ticks');assert(p.latest.players.length===6)}
- console.log('V180 PREVIEW SIX PEERS',JSON.stringify({players:6,serverMobCount:returned.latest.mobs?.length,delayedInputMs:[50,100,150,200,250,300],applicationDiscard:six.map(p=>[p.id,p.dropped,p.received]),sameSeatReconnect:true,tickAfterReconnect:returned.latest.tick}));
+ for(const p of [rehost,...six.slice(1,5),returned]){assert(p.ticks.every((t,i)=>i===0||t>p.ticks[i-1]),'monotonic server ticks');assert(p.latest.players.length===6)}
+ console.log('V180 PREVIEW SIX PEERS',JSON.stringify({players:6,serverMobCount:returned.latest.mobs?.length,delayedInputMs:[50,100,150,200,250,300],applicationDiscard:six.map(p=>[p.id,p.dropped,p.received]),sameSeatReconnect:true,hostContinuity:true,hostSeatRestored:true,tickAfterReconnect:returned.latest.tick}));
 }finally{for(const p of peers)try{p.ws.close()}catch{}}
