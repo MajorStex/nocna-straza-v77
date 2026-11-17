@@ -7,11 +7,13 @@ const begin=src.indexOf('let lobbyAutoStartTimer=null');
 const end=src.indexOf('function broadcastLobby(){',begin);
 assert.ok(begin>0&&end>begin,'host has isolated auto-Ready scheduler');
 const snippet=src.slice(begin,end);
+const unlock=src.match(/const NS140_TEMP_UNLOCK_LEVEL=(\d+);/);
+assert.ok(unlock,'arena unlock level is declared in real client');
 function scenario({players=2,synced=true,ready=true,mode='normal',post=false,busy=false}={}){
  const roster=Array.from({length:players},(_,i)=>({id:'p'+(i+1),ready,level:10}));
  const timers=new Map();let next=0,started=0;
  const net={role:'host',phase:'lobby',code:'ABCDEF',round:0,localId:'p1',worldReadyPlayers:new Map(roster.slice(1).map(p=>[p.id,synced]))};
- const env={NET:net,NS97_POST:{active:post},selectedMode:mode,window:{NS140_ARENA:{busy}},lobbyPendingReturn:()=>[],
+ const env={NS140_TEMP_UNLOCK_LEVEL:Number(unlock[1]),NET:net,NS97_POST:{active:post},selectedMode:mode,window:{NS140_ARENA:{busy}},lobbyPendingReturn:()=>[],
   currentLobbyRoster:()=>roster,startLobbyMatch:()=>{started++;return true;},
   setTimeout:fn=>{const id=++next;timers.set(id,fn);return id},
   clearTimeout:id=>timers.delete(id)};
