@@ -21,7 +21,7 @@ assert.match(village,/voicePosition:id=>/);
 assert.match(village,/NS165_CLASSIC_VOICE\?\.drawBadge/);
 assert.match(controller,/const API='https:\/\/nocna-straza-relay/);
 assert.match(controller,/classic-voice\/create/);
-assert.match(controller,/v159-voice\.js\?v=166/);
+assert.match(controller,/v159-voice\.js\?v=(?:166|178)/);
 assert.match(controller,/function toggleMode/);
 assert.match(controller,/function syncAll/);
 assert.match(controller,/const ownVoice=/);

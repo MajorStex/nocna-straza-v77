@@ -102,7 +102,7 @@ function distanceGain(id){
  if(typeof get!=='function')return .48;
  const a=get(session.id),b=get(id);
  if(!a||!b||!Number.isFinite(a.x)||!Number.isFinite(a.y)||!Number.isFinite(b.x)||!Number.isFinite(b.y))return .48;
- const d=Math.hypot(a.x-b.x,a.y-b.y);
+ if(a.zone&&b.zone&&a.zone!==b.zone)return .16;const d=Math.hypot(a.x-b.x,a.y-b.y);
  return .16+.84*Math.pow(Math.max(0,1-Math.min(1500,d)/1500),1.5);
 }
 function playback(packet){
@@ -272,7 +272,8 @@ document.addEventListener('keydown',event=>{
  event.preventDefault();beginPTT();
 });
 window.addEventListener('pageshow',()=>{if(session&&!socket&&!document.hidden)connect()});
-window.NS159_VOICE={mount,stop,badgeState,setMode,toggleMic,beginPTT,endPTT,bindControl,disableMic:stopMic,
+function cloneMicForRecording(){const t=mic?.getAudioTracks().find(t=>t.readyState==='live');if(!t)return null;const clone=t.clone();clone.enabled=true;return new MediaStream([clone])}
+window.NS159_VOICE={mount,stop,cloneMicForRecording,badgeState,setMode,toggleMic,beginPTT,endPTT,bindControl,disableMic:stopMic,
  get connected(){return ready},get microphoneOn(){return micOn},get transmitting(){return transmitting()},get mode(){return mode},get activeMatch(){return session?.match||''},get classic(){return !!session?.classic}};
 window.dispatchEvent(new Event('ns159VoiceReady'));
 })();
