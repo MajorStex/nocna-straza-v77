@@ -183,13 +183,13 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:4200,h:4200,r:14,speed:156
  wave:1,waveState:'play',waveAt:0,chests:[],choice:null,serverNow:0,lastMyHp:null,hurtUntil:0,hitMarkers:new Map(),lastStepSound:0,hordeStepAt:0,uiAt:0,choiceUiId:'',paused:false,pausedAt:0,
  soloWave:1,soloState:'play',soloChoice:null,soloBetweenUntil:0,soloChests:[],soloChestSeq:0,
  soloDrops:[],drops:[],dropSeq:0,soloUpgradeSeq:0,
- solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:80,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
+ solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:100,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 // V160 sandbox state lives only in this isolated runtime, never in saved progression.
 let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};
 let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null;
 let LAB_SUPPORTED=false,LAB_LOOK=null,LAB_UNDO=null,LAB_SERVER_BUILD=0;
 const LAB_WEAPONS=new Set(['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul']);
-const labDefaultCount=wave=>Math.min(160,80+Math.max(0,wave-1)*15);
+const labDefaultCount=wave=>100+Math.max(0,wave-1)*20;
 const arenaMobSpeed=(wave,id)=>Math.min(145,98+Math.max(0,wave-1)*3.4+(id%5)*4+(id%7===0?12:0));
 // Matches Classic slow XP curve. Only RUN EXP is awarded: no account/paid XP.
 const xpNeeded=(level)=>{let v=160;for(let n=1;n<Math.min(level,100);n++)v=Math.round(v*1.12+18);return v};
@@ -621,8 +621,11 @@ function snapshot(m){
  if(N.choice&&N.choice.seq!==priorChoice){A()?.play('chest');N.choiceUiId=''}
  if(!N.choice&&priorChoice!==undefined)A()?.play('choose');
  if(Number.isInteger(m.totalMobs)&&m.totalMobs>=0&&m.totalMobs<=160)N.hordeTotal=m.totalMobs;
+ N.waveTotal=Number.isInteger(m.waveTotal)&&m.waveTotal>=0&&m.waveTotal<=20100?m.waveTotal:N.hordeTotal;
+ N.waveReserve=Number.isInteger(m.waveReserve)&&m.waveReserve>=0&&m.waveReserve<=N.waveTotal?m.waveReserve:0;
+ const batch=Number.isInteger(m.waveBatch)?m.waveBatch:0,batchChanged=N.waveBatch!==batch;N.waveBatch=batch;
  if(Array.isArray(m.mobs)){
-  const waveChanged=N.wave!==priorWave;
+  const waveChanged=N.wave!==priorWave||batchChanged;
   if(waveChanged){N.mobHistory=[];N.mobRenderTick=null;}
   const previous=new Map(waveChanged?[]:N.mpMobs.map(q=>[q.id,q]));
   N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<161&&
@@ -717,10 +720,10 @@ function soloHordePoints(){
  }
  return N.soloSpawnCache=points;
 }
-function buildSoloWave(wave){
- const points=soloHordePoints(),count=Math.min(LAB.customCount===null?labDefaultCount(wave):LAB.customCount,points.length);
+function buildSoloWave(wave,requested=LAB.customCount===null?labDefaultCount(wave):LAB.customCount,batch=0){
+ const points=soloHordePoints(),count=Math.min(160,requested,points.length);
  const alive=[...N.players.values()].filter(p=>p.hp>0&&!p.knocked);
- const shift=Math.max(1,wave)*17%points.length;
+ const shift=(Math.max(1,wave)*17+batch*31)%points.length;
  const ranked=points.map((pt,i)=>({
   pt,i,dist:alive.length?Math.min(...alive.map(p=>Math.hypot(pt[0]-p.x,pt[1]-p.y))):9999
  }));
@@ -734,7 +737,7 @@ function buildSoloWave(wave){
    hitTick:-100,vx:0,vy:0,targetId:'',retargetAt:0,
    animDistance:0,animX:pt[0],animY:pt[1],facing:1,movingUntil:0};
  });
- if(wave===10&&spawnList.length){
+ if(batch===0&&wave===10&&spawnList.length){
   const pos=spawnList.pop();
   spawnList.push({...pos,id:95,kind:'troll',hp:900,maxHp:900,moveSpeed:98,
    attackAt:0,attackTick:-100,hitTick:-100,targetId:''});
@@ -762,14 +765,14 @@ function nearSoloPoint(offset=0){
 function soloLabAction(m){
  if(!N.solo||N.phase!=='running')return false;
  const a=m.action,int=(x,min,max,d)=>Number.isFinite(Number(x))?clamp(Math.round(Number(x)),min,max):d;
- const resetWave=()=>{N.soloMobs=buildSoloWave(N.soloWave);N.soloState='play';N.soloChoice=null;N.soloBetweenUntil=0;N.choiceUiId='';N.soloCrowd.clear()};
+ const resetWave=()=>{startSoloHorde(N.soloWave);N.soloState='play';N.soloChoice=null;N.soloBetweenUntil=0;N.choiceUiId='';N.soloCrowd.clear()};
  const allowed=new Set(['wave','count','resetCount','resetWave','spawnMob','clearMobs','setMob','removeMob','toggleMobFreeze','freezeAI','godMode','enemyHp','spawnChest','clearChests','spawnAlly','clearAllies','spawnProp','clearProps','heal','damage','weapon','heroLook','undo','resetLab']);
  if(!allowed.has(a))return false;
  if(a==='undo'){
   if(!LAB_UNDO)return false;
   const old=LAB_UNDO;LAB_UNDO=null;
   LAB=old.lab;LAB_WEAPON=old.weapon;LAB_LOOK=old.look;
-  N.soloWave=old.wave;N.soloState=old.state;N.soloMobs=old.mobs;
+  N.soloWave=old.wave;N.soloState=old.state;N.soloMobs=old.mobs;N.soloTotal=old.total;N.soloReserve=old.reserve;N.soloBatch=old.batch;
   N.soloChests=old.chests;N.soloChoice=old.choice;N.soloBetweenUntil=old.between;
   N.me.hp=old.hp;N.me.maxHp=old.maxHp;N.me.damage=old.damage;N.me.speedMult=old.speedMult;
   N.soloCrowd.clear();N.soloAcc=0;N.uiAt=0;
@@ -777,7 +780,7 @@ function soloLabAction(m){
   window.NS160_LAB?.refresh();return true;
  }
  const previous=JSON.parse(JSON.stringify({lab:LAB,weapon:LAB_WEAPON,look:LAB_LOOK,
-  wave:N.soloWave,state:N.soloState,mobs:N.soloMobs,chests:N.soloChests,choice:N.soloChoice,
+  wave:N.soloWave,state:N.soloState,mobs:N.soloMobs,total:N.soloTotal,reserve:N.soloReserve,batch:N.soloBatch,chests:N.soloChests,choice:N.soloChoice,
   between:N.soloBetweenUntil,hp:N.me.hp,maxHp:N.me.maxHp,damage:N.me.damage,speedMult:N.me.speedMult}));
  if(a==='wave'){N.soloWave=int(m.value,1,99,1);resetWave()}
  else if(a==='count'||a==='resetCount'){LAB.customCount=a==='resetCount'?null:int(m.value,1,80,60);resetWave()}
@@ -854,6 +857,12 @@ function stepSoloAllies(){
   }
  }
 }
+function startSoloHorde(wave){
+ N.soloBatch=0;N.soloMobs=buildSoloWave(wave);N.soloTotal=(LAB.enabled||LAB.customCount!==null)?N.soloMobs.length:labDefaultCount(wave);N.soloReserve=Math.max(0,N.soloTotal-N.soloMobs.length);
+}
+function nextSoloHorde(){
+ if(!(N.soloReserve>0))return false;const next=buildSoloWave(N.soloWave,N.soloReserve,(N.soloBatch||0)+1);if(!next.length)return false;N.soloBatch=(N.soloBatch||0)+1;N.soloReserve-=next.length;N.soloMobs=next;N.soloCrowd.clear();announceArena('STIŽE POJAČANJE · '+next.length);return true;
+}
 function soloWaveDone(){
  N.soloState='between';const me=N.me;
  const chest={id:100+N.soloWave,x:clamp(me.x+62,35,N.world.w-35),
@@ -880,7 +889,7 @@ function startSolo(){
  // Solo uses precisely the same seeded trunks/rocks as the multiplayer server.
  N.world.obstacles.push(...(window.NS157_SCENERY?.colliders?.(N.world)||[]));
  N.seq=N.ack=N.soloTick=N.soloKills=N.dropSeq=N.soloUpgradeSeq=0;N.tick=-1;N.soloDrops=[];N.drops=[];
- N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=80;
+ N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=100;
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
  N.soloChests=[{id:1,x:1790,y:2025,opened:false},{id:2,x:2220,y:2140,opened:false},{id:3,x:2730,y:2380,opened:false}];
  N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();B().unlockSound?.();
@@ -890,7 +899,7 @@ function startSolo(){
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
  N.me={id:'p1',x:2030,y:2070,tx:2030,ty:2070,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false,xp:0,xpNeed:160,level:1,xpCollected:0,queuedUpgrades:0};
  arenaSpellInit(N.me,localArenaLook().heroClass);N.players.set('p1',N.me);rememberLook('p1',0,localArenaLook());
- N.soloMobs=buildSoloWave(1);
+ startSoloHorde(1);
  window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
  status('V190 · SOLO · PLAVI EXP KRISTALI · MAPA 4200×4200');
  return true;
@@ -952,7 +961,7 @@ function stepSolo(dt){
   }
   if(N.soloState==='between'){
    if(Date.now()>=N.soloBetweenUntil){
-    N.soloWave++;N.soloMobs=buildSoloWave(N.soloWave);
+    N.soloWave++;startSoloHorde(N.soloWave);
     N.soloState='play';N.soloCrowd.clear();A()?.play('wave');
    }
    continue;
@@ -1011,7 +1020,7 @@ function stepSolo(dt){
     N.choiceUiId='';A()?.play('chest');
    }
   }
-  if(!LAB.enabled&&N.soloState==='play'&&N.soloMobs.every(m=>m.hp<=0))soloWaveDone();
+  if(!LAB.enabled&&N.soloState==='play'&&N.soloMobs.every(m=>m.hp<=0)){if(N.soloReserve>0)nextSoloHorde();else soloWaveDone();}
  }
 }
 // V151: interpolate authoritative positions on a stable tick timeline,
@@ -1466,7 +1475,7 @@ function arenaEdgePoint(dx,dy,w,h){
 function drawArenaDirections(g,w,h,zoom,me){
  const draw=(p,color,label)=>{const q=arenaEdgePoint((p.x-me.x)*zoom,(p.y-me.y)*zoom,w,h);if(!q)return;g.save();g.translate(q.x,q.y);g.rotate(q.a);g.beginPath();g.moveTo(10,0);g.lineTo(-7,-7);g.lineTo(-4,0);g.lineTo(-7,7);g.closePath();g.fillStyle=color;g.strokeStyle='#10221e';g.lineWidth=2;g.stroke();g.fill();g.restore();if(label){g.save();g.textAlign='center';g.font='bold 10px system-ui';g.fillStyle=color;g.strokeStyle='#10221e';g.lineWidth=3;const x=clamp(q.x,36,w-36),y=q.y+(q.y<h/2?16:-12);g.strokeText(label,x,y);g.fillText(label,x,y);g.restore()}};
  const mobs=N.solo?N.soloMobs:N.mpMobs;let alive=0;for(const m of mobs)if(m.hp>0)alive++;
- if(alive>0&&alive<10)for(const m of mobs)if(m.hp>0)draw(m,'#ff6363','');
+ if(alive>0&&alive<10&&!(N.solo?N.soloReserve:N.waveReserve))for(const m of mobs)if(m.hp>0)draw(m,'#ff6363','');
  for(const p of N.players.values())if(p.id!==N.id&&p.online&&!p.finalDead)draw(p,p.knocked?'#ffbf59':'#62dcff',p.knocked?'REVIVE':String(N.looks.get(p.id)?.look?.name||p.id).slice(0,10));
 }
 function sessionHud(now){
@@ -1485,10 +1494,10 @@ function sessionHud(now){
    if(xpText)xpText.textContent='✦ NIVO '+level+' · EXP '+Math.floor(current)+' / '+needed;
    if(xpFill)xpFill.style.width=Math.min(100,current/needed*100).toFixed(1)+'%';
   }
-  const count=mobs.filter(m=>m.hp>0).length;
+  const count=mobs.filter(m=>m.hp>0).length+(N.solo?(LAB.enabled?0:N.soloReserve||0):(N.waveReserve||0));
   const bosses=mobs.filter(m=>m.kind==='troll'&&m.hp>0).length;
   remaining.textContent=state==='between'?'ODMOR · NOVI TALAS USKORO':
-   (bosses?'🧌 BOSS TROL · ':'')+'NEPRIJATELJI '+count+'/'+(N.solo?mobs.length:N.hordeTotal);
+   (bosses?'🧌 BOSS TROL · ':'')+'NEPRIJATELJI '+count+'/'+(N.solo?(LAB.enabled?mobs.length:N.soloTotal||mobs.length):N.waveTotal||N.hordeTotal);
   if(!N.solo&&N.reviveSupported&&N.me?.knocked)remaining.textContent='OBORAN · '+Math.max(0,Math.ceil((N.me.downedUntil-N.tick)/30))+' s · čekaš REVIVE';
   if(!N.solo&&N.me?.finalDead)remaining.textContent='ELIMINISAN · POSMATRAŠ';
   const key=choice?(choice.seq+':'+choice.owner):'';
