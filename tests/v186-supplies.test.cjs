@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const window={};vm.runInNewContext(fs.readFileSync('public/v176-scenes.js','utf8'),{window});const S=window.NS176_SCENES;
+const props=S.cleanProps([{kind:'fruit',x:100,y:100},{kind:'potion',x:100,y:100},{kind:'chest',x:150,y:100},{kind:'rock',x:300,y:300}]);
+const actor=(seat,x,y,hp=50,mana=20)=>({workshopSeat:seat,x,y,hp,mana,maxMana:100,s:{hp:100}});
+const a=actor('p1',100,100),b=actor('p2',100,100),sim={sceneBattle:true,paused:false,props};
+S.collectProps(sim,[b,a]);assert.equal(a.hp,75);assert.equal(a.mana,55);assert.equal(b.hp,50);assert.equal(S.propMask(sim),3);
+assert.equal(S.useProp(sim,b,props[0]),false);assert.equal(S.useProp(sim,a,props[2],true),true);assert.equal(a.hp,100);assert.equal(a.mana,90);assert.equal(S.useProp(sim,b,props[2],true),false);assert.equal(S.propMask(sim),7);
+assert.equal(S.blocked([props[0],props[1]],100,100),false);assert(S.blocked([props[2]],150,100));
+sim.usedProps=new WeakSet();assert.equal(S.propMask(sim),0);b.x=500;assert.equal(S.useProp(sim,b,props[2],true),false);b.x=100;b.hp=0;assert.equal(S.useProp(sim,b,props[2],true),false);sim.paused=true;assert.equal(S.useProp(sim,a,props[2],true),false);
+const many=S.cleanProps(Array.from({length:32},()=>({kind:'chest',x:150,y:100})));const other={props:many,sceneBattle:true,paused:false};assert(S.useProp(other,a,many[31],true));assert.equal(S.propMask(other),2147483648);
+assert(!Object.hasOwn(S.cleanProps([{kind:'chest',x:150,y:100,used:true}])[0],'used'));
+console.log('V186 SUPPLY LOGIC PASS',JSON.stringify({singleClaim:true,hp:25,mana:35,reset:true,range:true,paused:true,deadRejected:true,bit31:true}));

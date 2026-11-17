@@ -82,6 +82,21 @@ try{
  await guest.waitForFunction(()=>NS176_SCENES.list(NS171_CREATOR.clean,NS174_AI,NS175_FACTIONS).some(s=>s.props?.length===2));
  console.log('V183 EDITOR PASS',JSON.stringify({targeted:true,stop:true,undoRedo:true,props:2,guestSave:true,collision:true}));
 
+ // Import a clean test layout with a chest in the guest's reach.
+ await host.evaluate(()=>{const p=NS177_WORKSHOP.position('p2');const x=p.x>680?p.x-45:p.x+45;if(!NS171_CREATOR.workshopImport({id:'supply-qa',name:'Supply QA',level:1,hero:NS171_CREATOR.presets.guardian,actors:[],relations:{},props:[{kind:'chest',x,y:p.y}]}))throw Error('Supply fixture')});
+ await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.props===1);
+ await host.locator('[data-action=battle]').click();
+ await guest.locator('[data-w=useProp]').click();
+ await host.waitForFunction(()=>NS171_CREATOR.test.simulation.usedProps===1);
+ await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.usedProps===1);
+ assert(await guest.locator('[data-w=useProp]').isHidden());
+ await host.locator('#ns183Sandbox summary').click();
+ await host.locator('[data-action=resetCombat]').click();
+ await guest.waitForFunction(()=>NS177_WORKSHOP.diagnostics.usedProps===0);
+ await guest.locator('[data-w=useProp]').waitFor({state:'visible'});
+ await host.evaluate(()=>NS177_WORKSHOP.receive({t:'ns177WorkshopUseProp',room:'QA177',epoch:NS177_WORKSHOP.diagnostics.epoch,actionSeq:1},'p2'));
+ assert.equal(await host.evaluate(()=>NS171_CREATOR.test.simulation.usedProps),0);
+ console.log('V186 CHEST SYNC PASS',JSON.stringify({guestAction:true,hostAuthority:true,oneClaim:true,reset:true,replayRejected:true}));
  const previous=await guest.evaluate(()=>NS177_WORKSHOP.diagnostics.remoteSeq);await guest.evaluate(()=>NS177_WORKSHOP.receive({t:'ns177WorkshopState',room:'QA177',epoch:NS177_WORKSHOP.diagnostics.epoch,rev:0,seq:-1,rows:[],players:[]},'p1'));assert((await guest.evaluate(()=>NS177_WORKSHOP.diagnostics.remoteSeq))>=previous);
  await guest.locator('[data-w=exit]').click();await host.waitForFunction(()=>NS177_WORKSHOP.diagnostics.guests===0);assert(await guest.locator('#ns109Village').isVisible());await host.locator('#ns171Creator [data-action=close]').click();assert(await host.locator('#ns109Village').isVisible());
  const state=packets.filter(p=>p.t==='ns177WorkshopState');assert(state.length>5);const avg=Math.round(state.reduce((n,p)=>n+p.bytes,0)/state.length);assert(avg<3000);
