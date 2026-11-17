@@ -19,7 +19,7 @@ function rosterName(id){const row=B()?.currentLobbyRoster?.()?.find(p=>p.id===id
 function makeVoiceButton(parent){const b=document.createElement('button');b.type='button';b.className='ns177Mic';b.textContent='🎙 Glas';const v=V();if(v?.bindControl)v.bindControl(b);
  b.addEventListener('click',()=>{if(!V()?.connected){tell('Glas još nije povezan.');return}if(!V()?.bindControl)V()?.toggleMic?.()});parent.append(b);
  const m=document.createElement('button');m.type='button';m.textContent='PTT / toggle';m.onclick=()=>{const v=V();if(v?.connected)v.setMode(v.mode==='toggle'?'ptt':'toggle');refreshVoice()};parent.append(m);return b}
-function refreshVoice(){for(const n of document.querySelectorAll('.ns177Mic')){const v=V();const label=!v?.connected?'🎙 Čeka glas':v.transmitting?'● GOVORIŠ':v.mode==='toggle'?(v.microphoneOn?'🎙 MIC ON':'🎙 MIC OFF'):'🎙 DRŽI';if(n.textContent!==label)n.textContent=label;n.disabled=!v?.connected}}
+function refreshVoice(){for(const n of document.querySelectorAll('.ns177Mic')){const v=V();if(v?.bindControl&&!n.dataset.nsPttBound)v.bindControl(n);const label=!v?.connected?'🎙 Čeka glas':v.transmitting?'● GOVORIŠ':v.mode==='toggle'?(v.microphoneOn?'🎙 MIC ON':'🎙 MIC OFF'):'🎙 DRŽI';if(n.textContent!==label)n.textContent=label;n.disabled=!v?.connected}}
 function suspendVillage(cb){restore=typeof cb==='function'?cb:null;const v=$('ns109Village');v?.classList.add('ns109Hidden');$('ns109Hint')?.blur();}
 function resumeVillage(){const cb=restore;restore=null;if(cb)cb();else if(window.NS109_VILLAGE?.opened&&lobby())$('ns109Village')?.classList.remove('ns109Hidden')}
 function reset(){clipAt=guestClipAt=-10000;seq=rev=0;lastSend=lastMove=lastJoin=lastStatus=lastVoice=0;manifest=null;signature='';guests.clear();proposals.clear();remoteRows.clear();remotePlayers.clear();remoteFx=[];remoteSeq=remoteRev=-1;lastRx=lastManifestAt=0;keys.clear();stick={id:null,x:0,y:0,dx:0,dy:0};savedId='';hostUid=new WeakMap();uid=0;localPos=null;lastFrame=0;waiting='';dirty=true}
@@ -107,5 +107,6 @@ function editLocal(){if(mode!=='guest'||guestEditing)return;guestEditing=true;vi
 function netClose(){enteredRoom='';close()}
 function joinCode(code){if(mode!=='solo'||!/^[A-HJ-NP-Z2-9]{6}$/.test(code))return false;C()?.workshopQuickSave?.();close();window.NS109_VILLAGE?.close();$('coopBtn')?.click();$('joinCode').value=code;window.__NS178_JOIN_CODE=code;$('joinBtn')?.click();return true}
 function creatorClose(){if(guestEditing&&mode==='guest'){guestEditing=false;$('ns178LocalBar')?.remove();if(view)view.hidden=false;refreshChoices();return}close(true)}
+window.addEventListener('ns159VoiceReady',refreshVoice);window.addEventListener('nsVoiceChanged',refreshVoice);
 window.NS177_WORKSHOP={open,close,creatorClose,receive,hostTick,hostVisitors,position,members,vote,preview,promote,onLobby,netClose,joinCode,get guestEditing(){return guestEditing},get active(){return !!mode},get mode(){return mode},get blocksStart(){return mode==='host'},get diagnostics(){return {mode,guests:guests.size,rev,seq,remoteSeq,rows:remoteRows.size,players:remotePlayers.size,proposals:proposals.size,epoch}}};
 })();
