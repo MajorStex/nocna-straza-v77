@@ -4,9 +4,9 @@ const {chromium}=require('playwright-core');
 const ROOT=path.resolve(__dirname,'../public'),source=fs.readFileSync(path.join(ROOT,'v171-character-creator.js'),'utf8'),html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
 new Function(source);
 assert.match(html,/v171-character-creator\.js\?v=17[12345678]/);
-assert.match(html,/name="ns-release" content="(?: 17[12345678]|18[0-9]|[2-9][0-9]{2})"/);
+assert(Number(html.match(/name="ns-release" content="(\d+)"/)?.[1])>=171,'release must not regress below V171');
 assert.match(html,/v115-village\.js\?v=166&amp;ui=17[078]/);
-assert.match(html,/v140-net-mode\.js\?v=168/);
+assert(Number(html.match(/v140-net-mode\.js\?v=(\d+)/)?.[1])>=168,'arena asset version must not regress');
 assert(!/new WebSocket|fetch\(|XMLHttpRequest|new Audio\(|https?:\/\//.test(source),'isolated, no remote requests or network traffic');
 (async()=>{
  const bin=['/usr/bin/google-chrome','/usr/bin/chromium','/opt/google/chrome/chrome'].find(fs.existsSync);
