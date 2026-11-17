@@ -123,7 +123,7 @@ function draw(g,c,x,y,op={}){
  g.restore();
 }
 let root=null,canvas=null,g=null,open=false,raf=0,last=0,lastDraw=0,all=[],draft=clean(base),tab='look',preview='idle',level=1,sim=null,notice='',selectedEnemy='',hidHome=false;
-let stick={id:null,x:0,y:0,vx:0,vy:0},keys=new Set(),grid=null;
+let stick={id:null,x:0,y:0,vx:0,vy:0},keys=new Set(),grid=null,selectedHero='';
 const esc=v=>String(v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const option=(v,label,on=false)=>'<option value="'+esc(v)+'"'+(on?' selected':'')+'>'+esc(label)+'</option>';
 const select=(k,title)=>'<label>'+title+'<select data-field="'+k+'">'+forms[k].map(v=>option(v,labels[v]||v,draft[k]===v)).join('')+'</select></label>';
@@ -150,7 +150,7 @@ function make(){
   if(b.dataset.pose){preview=b.dataset.pose;render()}
  });
  root.addEventListener('input',e=>{const n=e.target,k=n.dataset.field;if(k&&k in base){draft=clean({...draft,[k]:n.type==='range'?Number(n.value):n.value});const out=root.querySelector('[data-out="'+k+'"]');if(out)out.textContent=draft[k];updateStats()}if(n.id==='ns171Level'){level=Number(n.value);updateStats()}});
- root.addEventListener('change',e=>{const n=e.target;if(n.id==='ns171Saved'){const old=all.find(x=>x.id===n.value);if(old){stopTest();draft=clean(old);render()}}if(n.id==='ns171Preset'&&presets[n.value]){const role=draft.role;draft=clean({...presets[n.value],id:'',role:role==='hero'?'hero':presets[n.value].role==='hero'?role:presets[n.value].role});render()}if(n.id==='ns171Enemy')selectedEnemy=n.value;if(n.dataset.field==='role'){stopTest();render()}});
+ root.addEventListener('change',e=>{const n=e.target;if(n.id==='ns171Saved'){const old=all.find(x=>x.id===n.value);if(old){stopTest();draft=clean(old);render()}}if(n.id==='ns171Preset'&&presets[n.value]){const role=draft.role;draft=clean({...presets[n.value],id:'',role:role==='hero'?'hero':presets[n.value].role==='hero'?role:presets[n.value].role});render()}if(n.id==='ns171Enemy')selectedEnemy=n.value;if(n.id==='ns171TestHero')selectedHero=n.value;if(n.dataset.field==='role'){stopTest();render()}});
  const move=e=>{if(e.pointerId!==stick.id)return;const dx=e.clientX-stick.x,dy=e.clientY-stick.y,d=Math.hypot(dx,dy);stick.vx=d>5?dx/Math.max(40,d):0;stick.vy=d>5?dy/Math.max(40,d):0;root.querySelector('.ccStick i').style.transform='translate('+clamp(dx,-25,25)+'px,'+clamp(dy,-25,25)+'px)'};
  canvas.addEventListener('pointerdown',e=>{if(!sim||stick.id!==null)return;e.preventDefault();stick={id:e.pointerId,x:e.clientX,y:e.clientY,vx:0,vy:0};const r=canvas.getBoundingClientRect(),s=root.querySelector('.ccStick');s.hidden=false;s.style.left=e.clientX-r.left+'px';s.style.top=e.clientY-r.top+'px';try{canvas.setPointerCapture(e.pointerId)}catch{}});
  canvas.addEventListener('pointermove',move);for(const k of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(k,e=>{if(e.pointerId===stick.id)resetStick()});
@@ -158,7 +158,7 @@ function make(){
  document.addEventListener('keyup',e=>{if(open)keys.delete(e.key.toLowerCase())},true);window.addEventListener('blur',()=>{keys.clear();if(root)resetStick()});
 }
 function resetStick(){stick={id:null,x:0,y:0,vx:0,vy:0};root.querySelector('.ccStick').hidden=true;root.querySelector('.ccStick i').style.transform=''}
-function updateStats(){const o=$('ns171Computed');if(o){const s=effective(draft,level);o.textContent='Nivo '+s.level+' · HP '+s.hp+' · šteta '+s.damage+' · brzina '+s.speed+' · oklop '+s.armor+'% · napad '+s.interval.toFixed(2)+' s'}}
+function updateStats(){const show=$('ns171TestLevel');if(show)show.textContent=level;const o=$('ns171Computed');if(o){const s=effective(draft,level);o.textContent='Nivo '+s.level+' · HP '+s.hp+' · šteta '+s.damage+' · brzina '+s.speed+' · oklop '+s.armor+'% · napad '+s.interval.toFixed(2)+' s'}}
 function render(){
  root.classList.toggle('ccTesting',!!sim);for(const b of root.querySelectorAll('[data-tab]'))b.setAttribute('aria-selected',String(b.dataset.tab===tab));
  let html='';
@@ -169,7 +169,7 @@ function render(){
  }else if(tab==='motion'){
  html='<div class="ccGrid">'+select('gait','Stil hodanja')+select('behavior','Ponašanje neprijatelja')+'</div><div class="ccRow">'+[['idle','Miruje'],['walk','Hoda'],['run','Trči'],['attack','Napada']].map(([k,v])=>'<button data-pose="'+k+'" aria-pressed="'+(preview===k)+'">'+v+'</button>').join('')+'</div><p>Animacija koristi dužinu nogu, veličinu, brzinu i pređenu udaljenost. Ruke se kreću nasuprot nogama, a stopala ostaju pri tlu.</p>';
  }else{
- html='<div class="ccGrid"><label>Protivnik<select id="ns171Enemy">'+option('','Automatski izbor')+all.filter(x=>x.role!=='hero').map(x=>option(x.id,x.name,selectedEnemy===x.id)).join('')+'</select></label><label>Početni nivo<input id="ns171Level" type="range" min="1" max="100" value="'+level+'"></label></div><div class="ccRow"><button data-action="restart">Start / reset</button><button data-action="next" '+(!sim?'disabled':'')+'>Sledeći talas</button><button data-action="spawn" '+(!sim?'disabled':'')+'>＋ Protivnik</button><button data-action="pause" '+(!sim?'disabled':'')+'>'+(sim?.paused?'Nastavi':'Pauza')+'</button></div><p>Joystick ili WASD / strelice. Automatski napad, XP kristali i rast nivoa. Samo test: bez pravih nagrada i multiplayera.</p>';
+ html='<div class="ccGrid"><label>Heroj<select id="ns171TestHero">'+option('','Fabrički / trenutni')+all.filter(x=>x.role==='hero').map(x=>option(x.id,x.name,selectedHero===x.id)).join('')+'</select></label><label>Protivnik<select id="ns171Enemy">'+option('','Automatski izbor')+all.filter(x=>x.role!=='hero').map(x=>option(x.id,x.name,selectedEnemy===x.id)).join('')+'</select></label><label class="ccFull">Početni nivo <output id="ns171TestLevel">'+level+'</output><input id="ns171Level" type="range" min="1" max="100" value="'+level+'"></label></div><div class="ccRow"><button data-action="restart">Start / reset</button><button data-action="next" '+(!sim?'disabled':'')+'>Sledeći talas</button><button data-action="spawn" '+(!sim?'disabled':'')+'>＋ Protivnik</button><button data-action="pause" '+(!sim?'disabled':'')+'>'+(sim?.paused?'Nastavi':'Pauza')+'</button></div><p>Joystick ili WASD / strelice. Automatski napad, XP kristali i rast nivoa. Samo test: bez pravih nagrada i multiplayera.</p>';
  }
  $('ns171Fields').innerHTML=html;updateStats();grid=null;
 }
@@ -191,7 +191,7 @@ function stopTest(){sim=null;keys.clear();if(root)resetStick()}
 const W=780,H=500,MAX_MOBS=12;
 function entity(spec,l,x,y){const c=clean(spec),s=effective(c,l);return {c,s,x,y,hp:s.hp,phase:0,side:1,moving:false,cd:0,swing:0}}
 function startTest(){
- const c=clean(draft),hero=c.role==='hero'?c:clean(presets.guardian);sim={p:entity(hero,level,W/2,H/2),enemy:c.role!=='hero'?c:clean(all.find(x=>x.id===selectedEnemy&&x.role!=='hero')||presets.orc),mobs:[],drops:[],wave:level,xp:0,kills:0,time:0,paused:false,cleared:0};
+ const c=clean(draft),hero=c.role==='hero'?c:clean(all.find(x=>x.id===selectedHero&&x.role==='hero')||presets.guardian);sim={p:entity(hero,level,W/2,H/2),enemy:c.role!=='hero'?c:clean(all.find(x=>x.id===selectedEnemy&&x.role!=='hero')||presets.orc),mobs:[],drops:[],wave:level,xp:0,kills:0,time:0,paused:false,cleared:0};
  resetWave();keys.clear();resetStick();notice='';
 }
 function resetWave(){if(!sim)return;sim.mobs=[];sim.drops=[];sim.cleared=0;sim.p.hp=sim.p.s.hp;sim.p.x=W/2;sim.p.y=H/2;spawnEnemy(Math.min(7,sim.enemy.role==='boss'?1:sim.enemy.role==='mini'?2:3+Math.floor(sim.wave/5)))}
@@ -220,10 +220,10 @@ function drawTest(w,h,now){
 }
 function frame(now){if(!open)return;raf=requestAnimationFrame(frame);if(document.hidden){last=0;return}const dt=last?clamp((now-last)/1000,0,.065):0;last=now;if(sim)step(dt);
  if(!sim&&now-lastDraw<32)return;lastDraw=now;const [w,h]=dimensions();background(w,h,!!sim);let status;
- if(sim)status=drawTest(w,h,now);else{const moving=preview==='walk'||preview==='run',phase=gaitStep(draft,now*.001*draft.speed*(preview==='run'?1.55:1));draw(g,draft,w/2,h*.83,{phase,moving,attack:preview==='attack'?(Math.sin(now*.008)+1)/2:0,side:1,scale:Math.min(w/100,h/115)/draft.size,now});status=labels[draft.role].toUpperCase()+' · '+draft.name+' · '+labels[draft.race]}
+ if(sim)status=drawTest(w,h,now);else{const moving=preview==='walk'||preview==='run',phase=gaitStep(draft,now*.001*draft.speed*(preview==='run'?1.55:1));draw(g,draft,w/2,h*.83,{phase,moving,attack:preview==='attack'?(Math.sin(now*.008)+1)/2:0,side:1,scale:Math.min(w/115,h/175),now});status=labels[draft.role].toUpperCase()+' · '+draft.name+' · '+labels[draft.race]}
  if(notice)status+='\n'+notice;const node=$('ns171Status');if(node.textContent!==status)node.textContent=status;
 }
 function install(){const parent=$('ns50MenuCreate')?.querySelector('.ns50GroupBody');if(!parent||$('ns171HeroBtn'))return;for(const [id,title,role] of [['ns171HeroBtn','♟ CREATE MY HERO','hero'],['ns171CharacterBtn','◇ CREATE CHARACTER · HERO / ENEMY','enemy']]){const b=document.createElement('button');b.id=id;b.textContent=title;b.onclick=()=>openEditor(role);parent.append(b)}}
-window.NS171_CREATOR={open:openEditor,close,clean,effective,gaitStep,draw,presets, get opened(){return open},test:{get draft(){return {...draft}},get saved(){return all.map(x=>({...x}))},get simulation(){return sim?{wave:sim.wave,level:sim.p.s.level,hp:sim.p.hp,mobs:sim.mobs.map(m=>({name:m.c.name,hp:m.hp,role:m.c.role})),kills:sim.kills}:null},get raf(){return !!raf}}};
+window.NS171_CREATOR={open:openEditor,close,clean,effective,gaitStep,draw,presets, get opened(){return open},test:{get draft(){return {...draft}},get saved(){return all.map(x=>({...x}))},get simulation(){return sim?{wave:sim.wave,level:sim.p.s.level,hp:sim.p.hp,maxHp:sim.p.s.hp,hero:sim.p.c.name,x:sim.p.x,y:sim.p.y,paused:sim.paused,mobs:sim.mobs.map(m=>({name:m.c.name,hp:m.hp,role:m.c.role})),kills:sim.kills}:null},get raf(){return !!raf}}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
