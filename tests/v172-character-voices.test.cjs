@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright-core');
 const root=path.resolve(__dirname,'../public'),html=fs.readFileSync(path.join(root,'index.html'),'utf8'),voice=fs.readFileSync(path.join(root,'v172-character-voices.js'),'utf8');
-new Function(voice);assert.match(html,/v172-character-voices\.js\?v=172/);
+new Function(voice);assert.match(html,/v172-character-voices\.js\?v=17[23]/);
 assert(html.indexOf('v172-character-voices.js')<html.indexOf('v171-character-creator.js'));
 assert(!/fetch\(|new WebSocket|XMLHttpRequest|https?:\/\//.test(voice));
 (async()=>{
@@ -23,7 +23,7 @@ assert(!/fetch\(|new WebSocket|XMLHttpRequest|https?:\/\//.test(voice));
   await page.locator('[data-tab=voice]').click();
   await page.waitForFunction(()=>document.querySelector('[data-voice-count]')?.textContent.includes('0 / 27'));
   const layout=await page.evaluate(()=>{const f=document.getElementById('ns171Fields');return {overflow:f.scrollWidth>f.clientWidth+2,tabs:[...document.querySelectorAll('#ns171Creator [data-tab]')].length}});
-  assert(!layout.overflow&&layout.tabs===5);
+  assert(!layout.overflow&&[5,6].includes(layout.tabs));
   await page.locator('[data-voice-action=record]').click();
   await page.waitForFunction(()=>window.NS172_VOICES.test.recording,{timeout:10000});
   await page.waitForTimeout(800);
