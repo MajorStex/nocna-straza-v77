@@ -35,6 +35,7 @@ for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))
    await page.goto('file://'+path.resolve(__dirname,'../public/index.html')+'?village-test=1&lang=sr',
     {waitUntil:'domcontentloaded'});
    await page.waitForFunction(()=>window.__VILLAGE_PREVIEW_STATUS?.open===true,{timeout:16000});
+   await page.evaluate(()=>document.querySelector('#ns82-auth')?.remove());
    await page.waitForTimeout(450);
    const ground=await page.evaluate(()=>{
     const api=window.NS109_VILLAGE, a=api.test,
