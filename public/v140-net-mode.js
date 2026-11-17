@@ -259,6 +259,9 @@ function ui(){
   if(N.solo){closeArenaMenu();if(N.paused)toggleArenaPause(false)}
   else {if(!LAB_SUPPORTED)announceArena('Glasanje zahteva novi V160 relay server');else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:LAB_PAUSE.paused?'globalResume':'pauseVote',vote:true}));closeArenaMenu()}
  };
+ if(window.NS179_DIAGNOSTICS?.allowed()){
+  const diag=document.createElement('button');diag.type='button';diag.textContent='⚙ DEVELOPER DIAGNOSTICS';diag.onclick=()=>window.NS179_DIAGNOSTICS?.open();el('ns158Menu').insertBefore(diag,el('ns158MenuLeave'));
+ }
  el('ns160Open').onclick=()=>openSandbox();
  el('ns158MenuLeave').onclick=()=>{closeArenaMenu();stop(true)};
  const musicButton=el('ns152Music'),soundButton=el('ns152Sound');
@@ -477,6 +480,7 @@ function status(note){
 }
 function stop(notify=false){
  N.prepareAttempt=(N.prepareAttempt||0)+1;
+ window.NS179_DIAGNOSTICS?.close();
  window.NS159_VOICE?.stop();
  const wasSolo=N.solo;
  if(notify&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'leave'}))}catch{}
@@ -1215,7 +1219,7 @@ async function startHost(){
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({code,seats}),signal:typeof AbortSignal?.timeout==='function'?AbortSignal.timeout(15000):undefined});
+   body:JSON.stringify({code,seats}),signal:typeof globalThis.AbortSignal?.timeout==='function'?globalThis.AbortSignal.timeout(15000):undefined});
   const data=await req.json().catch(()=>null);
   if(N.prepareAttempt!==attempt||N.phase!=='preparing')return false;
   if(!req.ok||data?.protocol!==140||!data.ok||!data.tickets)throw Error(data?.error||'server_not_deployed');
