@@ -1,0 +1,32 @@
+name: V172 Character Voice Studio and dual role QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/v172-character-voices.js'
+      - 'public/v171-character-creator.js'
+      - 'public/index.html'
+      - 'tests/v172-character-voices.test.cjs'
+      - '.github/workflows/v172-character-voices.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Chromium test harness
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Voice capture playback storage and role independent combat
+        run: node tests/v172-character-voices.test.cjs
+      - name: Preserve creator and original game systems
+        run: |
+          node tests/v171-character-creator.test.cjs
+          node tests/current-deployment.test.cjs
+          node tests/v138-village-pvp-animals.test.cjs
+          node tests/v168-xp-world.test.cjs

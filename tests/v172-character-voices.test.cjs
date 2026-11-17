@@ -1,0 +1,85 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {chromium}=require('playwright-core');
+const root=path.resolve(__dirname,'../public'),html=fs.readFileSync(path.join(root,'index.html'),'utf8'),voice=fs.readFileSync(path.join(root,'v172-character-voices.js'),'utf8');
+new Function(voice);assert.match(html,/v172-character-voices\.js\?v=172/);
+assert(html.indexOf('v172-character-voices.js')<html.indexOf('v171-character-creator.js'));
+assert(!/fetch\(|new WebSocket|XMLHttpRequest|https?:\/\//.test(voice));
+(async()=>{
+ const bin=['/usr/bin/google-chrome','/usr/bin/chromium','/opt/google/chrome/chrome'].find(fs.existsSync);if(!bin)throw Error('Chromium required');
+ const browser=await chromium.launch({headless:true,executablePath:bin,args:['--no-sandbox','--allow-file-access-from-files','--disable-dev-shm-usage','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--autoplay-policy=no-user-gesture-required']});
+ try{
+ for(const width of [360,412]){
+  const page=await browser.newPage({viewport:{width,height:844},hasTouch:true,isMobile:true});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('file://'+path.join(root,'index.html')+'?creator-test=1',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>!!window.NS172_VOICES&&!!window.NS171_CREATOR);
+  await page.evaluate(()=>{document.querySelector('#ns82-auth')?.remove();document.querySelector('#ns50MenuCreate').open=true});
+  await page.locator('#ns171CharacterBtn').click();
+  await page.locator('[data-field=name]').fill('Voice boss');
+  await page.locator('[data-field=role]').selectOption('boss');
+  await page.locator('[data-action=save]').click();
+  const id=await page.evaluate(()=>window.NS171_CREATOR.test.draft.id);assert(id);
+  await page.locator('[data-tab=voice]').click();
+  await page.waitForFunction(()=>document.querySelector('[data-voice-count]')?.textContent.includes('0 / 27'));
+  const layout=await page.evaluate(()=>{const f=document.getElementById('ns171Fields');return {overflow:f.scrollWidth>f.clientWidth+2,tabs:[...document.querySelectorAll('#ns171Creator [data-tab]')].length}});
+  assert(!layout.overflow&&layout.tabs===5);
+  await page.locator('[data-voice-action=record]').click();
+  await page.waitForFunction(()=>window.NS172_VOICES.test.recording,{timeout:10000});
+  await page.waitForTimeout(800);
+  await page.locator('[data-voice-action=stop]').click();
+  await page.waitForFunction(async id=>(await window.NS172_VOICES.list(id)).length===1&&window.NS172_VOICES.test.busy===false,id,{timeout:10000});
+  const clips=await page.evaluate(async id=>(await window.NS172_VOICES.list(id)).map(x=>({slot:x.slot,event:x.event,bytes:x.blob.size,type:x.blob.type,ms:x.ms})),id);
+  assert.equal(clips[0].event,'attack');assert(clips[0].bytes>0&&clips[0].bytes<=192000&&clips[0].type.startsWith('audio/'));
+  await page.locator('[data-voice-action=listen][data-slot="0"]').click();
+  await page.waitForTimeout(300);
+  // Exercise real IndexedDB records, decode, priority, cooldown and attenuation without copyrighted clips.
+  const policy=await page.evaluate(async id=>{
+    const v=window.NS172_VOICES,row=(await v.list(id))[0];await v.put(id,'spawn',0,row.blob,row.ms);await v.put(id,'death',0,row.blob,row.ms);
+    v.unlock();await v.prepare([id]);const c=v.emitter(),now=performance.now()/1000;
+    const attack=v.candidate(c,id,'attack',0,0,now,()=>0),out=v.candidate(c,id,'attack',900,900,now,()=>0);
+    const accepted=v.dispatch([attack]);const repeated=v.candidate(c,id,'attack',0,0,now+.1,()=>0);
+    const death=v.candidate(c,id,'death',20,0,now+.2,()=>0);
+    return {accepted,blocked:!repeated,distant:!out,death:death?.priority,near:v.mixAt(20,20),far:v.mixAt(450,-130),cap:v.MAX_ACTIVE,events:Object.keys(v.EVENTS).length};
+  },id);
+  assert(policy.accepted&&policy.blocked&&policy.distant);assert.equal(policy.death,9);assert(policy.near.gain>policy.far.gain&&policy.far.pan<0);assert.equal(policy.cap,2);assert.equal(policy.events,9);
+  await page.waitForFunction(()=>window.NS172_VOICES.test.played>=1,{timeout:8000});
+  await page.locator('[data-tab=look]').click();
+  await page.locator('[data-action=asHero]').click();
+  await page.waitForFunction(()=>window.NS171_CREATOR.test.simulation?.voicesReady);
+  const asHero=await page.evaluate(()=>window.NS171_CREATOR.test.simulation);
+  assert.equal(asHero.heroId,id);assert.equal(asHero.heroRole,'hero');assert.equal(asHero.enemyRole,'enemy');
+  assert.equal(asHero.maxHp,100,'boss multiplier does not transfer to player');
+  await page.locator('#ns171Enemy').selectOption(id);
+  await page.locator('#ns172Tier').selectOption('mini');
+  await page.locator('[data-action=restart]').click();
+  await page.waitForFunction(()=>window.NS171_CREATOR.test.simulation?.voicesReady);
+  const both=await page.evaluate(()=>window.NS171_CREATOR.test.simulation);
+  assert.equal(both.heroId,id);assert.equal(both.enemyId,id);assert.equal(both.enemyRole,'mini');
+  assert.equal(both.mobs.length,2);
+  await page.locator('[data-tab=look]').click();
+  await page.locator('[data-action=asEnemy]').click();
+  await page.waitForFunction(()=>window.NS171_CREATOR.test.simulation?.voicesReady);
+  const asEnemy=await page.evaluate(()=>window.NS171_CREATOR.test.simulation);
+  assert.equal(asEnemy.enemyId,id);assert.equal(asEnemy.enemyRole,'boss');assert.notEqual(asEnemy.heroId,id);
+  await page.locator('[data-tab=voice]').click();
+  await page.locator('[data-voice-event]').selectOption('far');
+  await page.locator('[data-voice-action=record]').click();
+  await page.waitForFunction(()=>window.NS172_VOICES.test.recording);
+  await page.locator('[data-action=close]').click();
+  await page.waitForFunction(()=>!window.NS172_VOICES.test.recording&&!window.NS172_VOICES.test.busy);
+  await page.waitForTimeout(250);
+  assert.equal(await page.evaluate(async id=>(await window.NS172_VOICES.list(id)).length,id),3,'closing discards unfinished clip');
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>!!window.NS172_VOICES&&!!window.NS171_CREATOR);
+  await page.evaluate(()=>{document.querySelector('#ns82-auth')?.remove();document.querySelector('#ns50MenuCreate').open=true});
+  await page.locator('#ns171HeroBtn').click();await page.locator('#ns171Saved').selectOption(id);await page.locator('[data-tab=voice]').click();
+  await page.waitForFunction(()=>document.querySelector('[data-voice-count]')?.textContent.includes('3 / 27'));
+  await page.locator('[data-voice-action=delete][data-slot="0"]').click();
+  await page.waitForFunction(async id=>(await window.NS172_VOICES.list(id)).length===2,id);
+  assert.deepEqual(errors.filter(e=>/SyntaxError|ReferenceError|TypeError/.test(e)),[]);
+  console.log('V172 VOICE PASS',width,JSON.stringify({clips,policy,asHero:asHero.heroRole,asEnemy:asEnemy.enemyRole,both:both.enemyRole,layout,persisted:2}));
+  await page.close();
+ }
+ }finally{await browser.close()}
+})().catch(e=>{console.error(e);process.exitCode=1});
