@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright-core');
 const root=path.resolve(__dirname,'../public'),html=fs.readFileSync(path.join(root,'index.html'),'utf8'),voice=fs.readFileSync(path.join(root,'v172-character-voices.js'),'utf8');
-new Function(voice);assert.match(html,/v172-character-voices\.js\?v=17[23]/);
+new Function(voice);assert.match(html,/v172-character-voices\.js\?v=17[236]/);
 assert(html.indexOf('v172-character-voices.js')<html.indexOf('v171-character-creator.js'));
 assert(!/fetch\(|new WebSocket|XMLHttpRequest|https?:\/\//.test(voice));
 (async()=>{
