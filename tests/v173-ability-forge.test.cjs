@@ -3,10 +3,10 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const root=path.resolve(__dirname,'../public'),read=f=>fs.readFileSync(path.join(root,f),'utf8'),forge=read('v173-ability-forge.js'),creator=read('v171-character-creator.js'),voice=read('v172-character-voices.js'),html=read('index.html');
 for(const code of [forge,creator,voice])new Function(code);
-assert.match(html,/name="ns-release" content="173"/);assert.match(html,/v173-ability-forge\.js\?v=173/);
+assert.match(html,/name="ns-release" content="17[34]"/);assert.match(html,/v173-ability-forge\.js\?v=173/);
 assert(html.indexOf('v173-ability-forge.js')<html.indexOf('v171-character-creator.js'));
 assert(!/fetch\(|setInterval\(|requestAnimationFrame\(|new WebSocket/.test(forge));
-const w={};vm.runInNewContext(forge,{window:w});const A=w.NS173_ABILITIES;
+const w={};vm.runInNewContext(forge,{window:w});vm.runInNewContext(read("v174-independent-ai.js"),{window:w});const A=w.NS173_ABILITIES,I=w.NS174_AI;
 const models=creator.slice(creator.indexOf('const clamp='),creator.indexOf('const key='));
 const mechanics=creator.slice(creator.indexOf('const W=780'),creator.indexOf('function dimensions()'));
 function cases(){
@@ -24,8 +24,8 @@ function cases(){
  setup(base,{...base,role:'enemy',hp:40});sim.mobs=[entity(sim.enemy,1,sim.p.x+20,sim.p.y)];labInvulnerable=true;const immune=dealDamage(sim.mobs[0],sim.p,10000);report.lab={immune,heroHp:sim.p.hp};labInvulnerable=false;
  return report;
 }
-const run=new Function('A0',models+'\nconst A=()=>A0,V=()=>null,$=()=>null,resetStick=()=>{},gaitStep=(c,d)=>d/Math.max(16,37*c.leg*c.size)*Math.PI*2;\nlet sim=null,stick={vx:0,vy:0},keys=new Set(),level=1,draft=base,selectedHero="",selectedEnemy="",testTier="auto",all=[],notice="",labInvulnerable=false,lastAbilityHud=0;\n'+mechanics+'\nreturn ('+cases.toString()+')()');
-const logic=run(A);
+const run=new Function('A0','I0',models+'\nconst A=()=>A0,I=()=>I0,V=()=>null,$=()=>null,resetStick=()=>{},gaitStep=(c,d)=>d/Math.max(16,37*c.leg*c.size)*Math.PI*2;\nlet sim=null,stick={vx:0,vy:0},keys=new Set(),level=1,draft=base,selectedHero="",selectedEnemy="",testTier="auto",all=[],notice="",labInvulnerable=false,lastAbilityHud=0;\n'+mechanics+'\nreturn ('+cases.toString()+')()');
+const logic=run(A,I);
 assert.equal(logic.fire.locked,false);assert.equal(logic.fire.cast,true);assert.equal(logic.fire.second,false);assert.equal(logic.fire.kill,1);assert.equal(logic.fire.drops,1);
 assert.equal(logic.defense.hpHeal,75);assert.equal(logic.defense.damage,19);assert(logic.defense.shieldExpired&&logic.defense.regenerated);
 assert.deepEqual(logic.frost.slows,[3,3,0]);assert.equal(logic.sword.hp,100);assert.equal(logic.sword.range,65);
@@ -63,7 +63,7 @@ const simulateVoice=new Function(defs+'\nlet t=0;\n'+mixer+'\nreturn ('+audioCas
  await page.locator('[data-action=save]').click();
  const saved=await page.evaluate(()=>window.NS171_CREATOR.test.draft);assert.equal(saved.abilities[0].type,'fireball');assert.equal(saved.abilities[0].unlock,5);assert.equal(saved.abilities[0].name,'Ember');assert.equal(saved.abilities[1].type,'shield');
  const layout=await page.evaluate(()=>{const f=document.getElementById('ns171Fields'),r=document.getElementById('ns171Creator').getBoundingClientRect();return {w:r.width,h:r.height,overflow:f.scrollWidth>f.clientWidth+2,tabs:document.querySelectorAll('#ns171Creator [data-tab]').length}});
- assert(!layout.overflow&&layout.w<=width+1&&layout.h<=height+1&&layout.tabs===6);
+ assert(!layout.overflow&&layout.w<=width+1&&layout.h<=height+1&&[6,7].includes(layout.tabs));
  await page.locator('[data-action=asHero]').click();
  await page.waitForFunction(()=>window.NS171_CREATOR.test.simulation?.abilities[1].type==='shield');
  assert.equal(await page.locator('[data-cast="0"]').isDisabled(),true);assert.equal(await page.locator('[data-cast="1"]').isDisabled(),false);

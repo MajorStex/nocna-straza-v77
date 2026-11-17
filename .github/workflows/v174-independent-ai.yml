@@ -1,0 +1,33 @@
+name: V174 Independent AI and Boss editor QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/v174-independent-ai.js'
+      - 'public/v171-character-creator.js'
+      - 'public/index.html'
+      - 'tests/v174-independent-ai.test.cjs'
+      - '.github/workflows/v174-independent-ai.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ai:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Install Chromium test harness
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: AI patrol factions boss telegraphs and real editor
+        run: node tests/v174-independent-ai.test.cjs
+      - name: Character editor, ability, voice and game regressions
+        run: |
+          node tests/v173-ability-forge.test.cjs
+          node tests/v172-character-voices.test.cjs
+          node tests/v171-character-creator.test.cjs
+          node tests/current-deployment.test.cjs
+          node tests/v138-village-pvp-animals.test.cjs
+          node tests/v168-xp-world.test.cjs
