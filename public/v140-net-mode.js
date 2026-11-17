@@ -533,7 +533,7 @@ function sandboxState(){
   weapon:LAB_WEAPON||localArenaLook().weapon||'sword',
   skin:localArenaLook().skin,visualSize:localArenaLook().visualSize,
   heroClass:localArenaLook().heroClass,bodyStyle:localArenaLook().bodyStyle,
-  bossAvailable:N.solo||LAB_SERVER_BUILD>=162};
+  bossAvailable:N.solo||LAB_SERVER_BUILD>=162,rosterAvailable:N.solo||N.rosterSupported};
 }
 function openSandbox(){
  if(N.phase!=='running')return;
@@ -569,7 +569,7 @@ function openSandbox(){
  let script=el('ns160LabScript');
  if(!script){
   script=document.createElement('script');script.id='ns160LabScript';
-  script.src='./v162-sandbox.js?v=162';script.async=true;
+  script.src='./v162-sandbox.js?v=162&release=190';script.async=true;
   document.head.append(script);
  }
  script.addEventListener('load',activate,{once:true});
@@ -903,32 +903,32 @@ function soloLabAction(m){
  else if(a==='count'||a==='resetCount'){LAB.customCount=a==='resetCount'?null:int(m.value,1,80,60);resetWave()}
  else if(a==='resetWave')resetWave();
  else if(a==='spawnMob'){
-  const kind=m.kind==='troll'?'troll':'goblin';
+  const kind=ARENA_KINDS.includes(m.kind)?m.kind:'goblin';
   if(kind==='troll')N.soloMobs=N.soloMobs.filter(m=>!(m.kind==='troll'&&m.hp<=0));
   const qty=kind==='troll'?1:int(m.quantity,1,10,1),ids=new Set(N.soloMobs.map(x=>x.id));
   if(kind==='troll'&&N.soloMobs.some(x=>x.kind==='troll'&&x.hp>0))return false;
-  for(let i=0;i<qty&&N.soloMobs.filter(q=>q.hp>0).length<80;i++){
+  for(let i=0;i<qty&&N.soloMobs.filter(q=>q.hp>0).length<160;i++){
    let id=kind==='troll'?95:0;
    if(kind==='troll'&&ids.has(95))break;
-   while(kind!=='troll'&&ids.has(id)&&id<95)id++;
-   if(id>=96||kind!=='troll'&&id>=95)break;
-   const p=nearSoloPoint(i+LAB.rev*7),hp=int(m.hp,1,kind==='troll'?2000:500,kind==='troll'?900:35);
-   N.soloMobs.push({id,kind,x:p.x,y:p.y,sx:p.x,sy:p.y,prevX:p.x,prevY:p.y,hp,maxHp:hp,
+   while(kind!=='troll'&&(ids.has(id)||id===95)&&id<161)id++;
+   if(id>=161)break;
+   const stat=arenaHeavyStats(kind,N.soloWave),p=nearSoloPoint(i+LAB.rev*7),hp=int(m.hp,1,10000,kind==='troll'?900:stat?.hp||(kind==='worm'?81:35));if(!arenaAcidClear(N.world,p.x,p.y,p.x,p.y,stat?.bodyRadius||20))continue;
+   N.soloMobs.push({...stat,id,kind,moveSpeed:stat?.moveSpeed||(kind==='worm'?72:kind==='troll'?98:112),x:p.x,y:p.y,sx:p.x,sy:p.y,prevX:p.x,prevY:p.y,hp,maxHp:hp,
     attackAt:0,attackTick:-100,deadUntil:0,hitTick:-100,vx:0,vy:0,targetId:'',
     retargetAt:0,animDistance:0,animX:p.x,animY:p.y,facing:1,movingUntil:0});
    ids.add(id);
   }
   N.soloState='play';N.soloChoice=null;N.soloCrowd.clear();
  }else if(a==='clearMobs'){N.soloMobs=[];N.soloState='play';N.soloChoice=null;N.soloCrowd.clear()}
- else if(a==='setMob'){const mob=N.soloMobs.find(q=>q.id===int(m.id,0,95,-1));if(mob){mob.hp=mob.maxHp=int(m.hp,1,mob.kind==='troll'?2000:500,35)}}
- else if(a==='removeMob'){const id=int(m.id,0,95,-1);N.soloMobs=N.soloMobs.filter(q=>q.id!==id);N.soloCrowd.clear()}
- else if(a==='toggleMobFreeze'){const mob=N.soloMobs.find(q=>q.id===int(m.id,0,95,-1));if(mob){mob.labFrozen=!mob.labFrozen;mob.vx=mob.vy=0}}
+ else if(a==='setMob'){const mob=N.soloMobs.find(q=>q.id===int(m.id,0,160,-1));if(mob){mob.hp=mob.maxHp=int(m.hp,1,mob.kind==='troll'?2000:500,35)}}
+ else if(a==='removeMob'){const id=int(m.id,0,160,-1);N.soloMobs=N.soloMobs.filter(q=>q.id!==id);N.soloCrowd.clear()}
+ else if(a==='toggleMobFreeze'){const mob=N.soloMobs.find(q=>q.id===int(m.id,0,160,-1));if(mob){mob.labFrozen=!mob.labFrozen;mob.vx=mob.vy=0}}
  else if(a==='freezeAI')LAB.freezeAI=!!m.value;
  else if(a==='godMode')LAB.godMode=!!m.value;
  else if(a==='enemyHp'){const hp=int(m.value,1,500,35);for(const mob of N.soloMobs)if(mob.hp>0){mob.hp=hp;mob.maxHp=hp}}
  else if(a==='spawnChest'){
   if(N.soloChests.length>=12)return false;
-  const p=nearSoloPoint();N.soloChests.push({id:1000+LAB.rev,x:p.x,y:p.y,opened:false});
+  const p=nearSoloPoint();N.soloChests.push({id:1000+LAB.rev,x:p.x,y:p.y,opened:false,style:m.style==='arena'?'arena':'classic'});
  }else if(a==='clearChests'){N.soloChests=[];N.soloChoice=null}
  else if(a==='spawnAlly'){
   if(LAB.allies.length>=3)return false;
@@ -1355,7 +1355,7 @@ function connect(match,id,ticket,rejoin=false){
    attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
-    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;magicSupported=m.arenaSpells===189;N.reviveSupported=m.arenaRevive===190;N.reviveHeld='';
+    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;magicSupported=m.arenaSpells===189;N.reviveSupported=m.arenaRevive===190;N.rosterSupported=m.arenaRoster===191;N.reviveHeld='';
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
     }
