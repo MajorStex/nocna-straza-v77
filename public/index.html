@@ -7082,7 +7082,7 @@ function resetLobbyUI(){
  $('hostBtn').disabled=false;$('joinBtn').disabled=false;$('retrySyncBtn').classList.add('hidden');
 }
 function closeNet(){
- window.NS177_WORKSHOP?.close();NET.ns102InputAt?.clear();NET.ns102InputAt=null;
+ window.NS177_WORKSHOP?.netClose();NET.ns102InputAt?.clear();NET.ns102InputAt=null;
  NS99_TEAM.reset();if(NET.role==='host')NS92_DIR.publish(false,true);NS92_DIR.stop();NS76CHAT.reset();coopVoiceReset();window.NS165_CLASSIC_VOICE?.leave?.();NETMIG.reset();NETLAB.clear();NET.sessionToken=null;NET.lastEarned=null;clearTimeout(NET.joinRetryTimer);NET.joinRetryTimer=null;NET.joinRetryCount=0;NET.lastConnectError='';const clients=[...NET.clients.values()],connection=NET.conn,peer=NET.peer;
  // Reset role BEFORE disconnect events fire to avoid a recursive menu change.
  NET.role='';NET.phase='idle';NET.hostId='p1';NET.migrationTarget=null;NET.migrationEpoch=0;NET.round=0;NET.lastRoundText='';NS97_POST.clear();NET.peer=null;NET.conn=null;NET.localId='p1';
@@ -7280,7 +7280,7 @@ function scheduleLobbyAutoStart(){
  // Only the real host may start, and only after every connected peer has
  // completed world sync and explicitly confirmed READY. Never start during
  // a post-match vote, which has its own rematch protocol.
- const canHost=NET.role==='host'&&NET.phase==='lobby'&&!NS97_POST.active;
+ const canHost=NET.role==='host'&&NET.phase==='lobby'&&!NS97_POST.active&&!window.NS177_WORKSHOP?.blocksStart;
  const roster=canHost?currentLobbyRoster():[];
  const ready=canHost&&roster.length>=2&&lobbyPendingReturn().length===0&&roster.every(p=>p.ready)&&
   roster.slice(1).every(p=>NET.worldReadyPlayers.get(p.id))&&
@@ -7721,7 +7721,7 @@ function setupConnection(c){
        NET.hostProps=sanitizeProps(d.props)||[];
        props=prepareChestLocks(cloneProps(NET.hostProps));activePlayMap=props;
        for(const type of Object.keys(DEFAULT))Object.assign(configs[type],d.models?.[type]||{});
-       cfgSettings={...cfgSettings,...d.settings};ns111PreloadWorld();NET.worldReady=true;
+       cfgSettings={...cfgSettings,...d.settings};ns111PreloadWorld();NET.worldReady=true;queueMicrotask(()=>window.NS177_WORKSHOP?.onLobby());
        netStatus('Mapa je učitana. Automatski si SPREMAN — domaćin pokreće igru.');
        safeSend({t:'worldDone'});NET.localReady=true;safeSend({t:'ready',ready:true});renderLobby();
       }catch(err){if(worldReceive===batch){worldReceive=null;netStatus('Prenos mape nije uspeo; pokušavam ponovo...');safeSend({t:'worldRetry'})}}
@@ -9693,6 +9693,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   <div class="ns82-footer"><button id="ns82-guest" type="button" class="ns82-muted" data-ns82-en="PLAY LOCALLY AS GUEST" data-ns82-sr="IGRAJ LOKALNO KAO GOST">PLAY LOCALLY AS GUEST</button><button id="ns82-close" type="button" class="ns82-muted" data-ns82-en="CLOSE" data-ns82-sr="ZATVORI">CLOSE</button></div>
  </section>
 </div>
-<script src="./firebase-config.js?v=92"></script><script src="./v115-village.js?v=166&amp;ui=178"></script><script src="./v172-character-voices.js?v=178"></script><script src="./v173-ability-forge.js?v=173"></script><script src="./v175-faction-relations.js?v=176"></script><script src="./v174-independent-ai.js?v=175"></script><script src="./v176-scenes.js?v=176"></script><script src="./v178-workshop-social.js?v=178"></script><script src="./v177-workshop.js?v=178"></script><script src="./v171-character-creator.js?v=178"></script><script src="./v165-classic-voice.js?v=166&amp;ui=169"></script>
+<script src="./firebase-config.js?v=92"></script><script src="./v115-village.js?v=166&amp;ui=178"></script><script src="./v172-character-voices.js?v=178"></script><script src="./v173-ability-forge.js?v=173"></script><script src="./v175-faction-relations.js?v=176"></script><script src="./v174-independent-ai.js?v=175"></script><script src="./v176-scenes.js?v=176"></script><script src="./v178-workshop-social.js?v=178"></script><script src="./v177-workshop.js?v=178"></script><script src="./v171-character-creator.js?v=178"></script><script src="./v165-classic-voice.js?v=166&amp;ui=178"></script>
 <script src="./v152-arena-audio.js?v=168"></script><script src="./v154-goblin-renderer.js?v=157"></script><script src="./v157-arena-scenery.js?v=168"></script><script src="./v162-troll.js?v=162"></script><script src="./v140-net-mode.js?v=168"></script><script type="module" src="./auth-v82.js?v=92"></script>
 </body></html>
