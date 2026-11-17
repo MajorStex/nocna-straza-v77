@@ -1,0 +1,32 @@
+name: V178 workshop invite microphone and voting QA
+on:
+  pull_request:
+    branches: [main]
+    paths: ['public/**','tests/v178-workshop-social.test.cjs','.github/workflows/v178-workshop-social.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  workshop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Two-browser workshop and microphone coexistence
+        run: node tests/v178-workshop-social.test.cjs
+      - name: Existing features
+        run: |
+          node tests/v177-workshop.test.cjs
+          node tests/v176-scenes.test.cjs
+          node tests/v175-faction-relations.test.cjs
+          node tests/v174-independent-ai.test.cjs
+          node tests/v173-ability-forge.test.cjs
+          node tests/v172-character-voices.test.cjs
+          node tests/v171-character-creator.test.cjs
+          node tests/v138-village-pvp-animals.test.cjs
+          node tests/v166-classic-sync.test.cjs
+          node tests/v168-xp-world.test.cjs
+          node tests/current-deployment.test.cjs
