@@ -52,26 +52,51 @@ for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))
    assert.equal(ground.sheep,7);assert.equal(ground.pigs,5);
    assert.deepEqual(ground.overlaps,[],'cottage spacing '+JSON.stringify(ground.overlaps));
    assert.ok(ground.routeLength>0,'walking path to barn must exist');
-   assert.ok(ground.attackButton,'mobile attack button required');
-   const first=await page.evaluate(()=>{
-    const api=window.NS109_VILLAGE,a=api.test,pig=a.animals.find(o=>o.kind==='pig');
-    const moved=a.testMove(pig.x,pig.y),G=window.__NS110_BRIDGE.G,
-      before=[G.kills,G.runKills,G.xp];
-    const hit=a.attack(),after=a.animals.find(o=>o.id===pig.id);
-    return {moved,hit,hp:after.hp,before,afterStats:[G.kills,G.runKills,G.xp],id:pig.id};
+
+   assert.equal(ground.attackButton,false,'V170 Village uses auto-attack, no manual button');
+   const before=await page.evaluate(()=>{
+    const a=window.NS109_VILLAGE.test,pig=a.animals.find(o=>o.kind==='pig');
+    const moved=a.testMove(pig.x,pig.y),G=window.__NS110_BRIDGE.G;
+    return {moved,id:pig.id,before:[G.kills,G.runKills,G.xp]};
    });
-   assert.equal(first.moved,true);assert.equal(first.hit,true);
-   assert.equal(first.hp,1,'first swing wounds a pig');
-   assert.deepEqual(first.afterStats,first.before,'animals cannot grant game rewards');
-   await page.waitForTimeout(725);
+   assert.equal(before.moved,true);
+   await page.waitForFunction(id=>{
+    const pig=window.NS109_VILLAGE.test.animals.find(o=>o.id===id);
+    return pig.hp===1;
+   },before.id,{timeout:2500});
+   const first=await page.evaluate(id=>{
+    const pig=window.NS109_VILLAGE.test.animals.find(o=>o.id===id);
+    const G=window.__NS110_BRIDGE.G;
+    return {id,hp:pig.hp,afterStats:[G.kills,G.runKills,G.xp]};
+   },before.id);
+   assert.equal(first.hp,1,'proximity auto-attack damages pig');
+   assert.deepEqual(first.afterStats,before.before,'animal hits grant no run rewards');
+   await page.waitForFunction(id=>{
+    const pig=window.NS109_VILLAGE.test.animals.find(o=>o.id===id);
+    return pig.deadUntil>Date.now()+10000;
+   },before.id,{timeout:4000});
    const second=await page.evaluate(id=>{
-    const a=window.NS109_VILLAGE.test,G=window.__NS110_BRIDGE.G,
-      before=[G.kills,G.runKills,G.xp],hit=a.attack(),
-      pig=a.animals.find(o=>o.id===id);
-    return {hit,hiddenUntil:pig.deadUntil,hp:pig.hp,afterStats:[G.kills,G.runKills,G.xp],before};
-   },first.id);
-   assert.equal(second.hit,true);assert.ok(second.hiddenUntil>Date.now()+10000,'pig respawns after temporary KO');
-   assert.deepEqual(second.afterStats,second.before,'second animal hit grants zero stats');
+    const pig=window.NS109_VILLAGE.test.animals.find(o=>o.id===id);
+    const G=window.__NS110_BRIDGE.G;
+    return {hiddenUntil:pig.deadUntil,hp:pig.hp,stats:[G.kills,G.runKills,G.xp]};
+   },before.id);
+   assert.ok(second.hiddenUntil>Date.now()+10000,'pig temporarily despawns after automatic melee');
+   assert.deepEqual(second.stats,before.before,'automatic attacks grant zero stats');
+   const crate=await page.evaluate(()=>{
+    const a=window.NS109_VILLAGE.test,c=a.crates[0];
+    return {id:c.id,moved:a.testMove(c.x,c.y)};
+   });
+   assert.equal(crate.moved,true,'walk to Village crate');
+   await page.waitForFunction(id=>window.NS109_VILLAGE.test.crates.find(c=>c.id===id).hp<3,
+     crate.id,{timeout:3000});
+   await page.locator('#ns141Training').click();
+   const training=await page.evaluate(()=>{
+    const a=window.NS109_VILLAGE.test,m=a.practice.mobs[0];
+    return {id:m.id,moved:a.testMove(m.x,m.y)};
+   });
+   assert.equal(training.moved,true,'walk to practice enemy');
+   await page.waitForFunction(id=>window.NS109_VILLAGE.test.practice.mobs.find(m=>m.id===id).hp<3,
+     training.id,{timeout:3000});
    const barn=await page.evaluate(()=>{
     const b=window.__NS110_BRIDGE,net=b.NET,a=window.NS109_VILLAGE.test;
     net.role='host';net.phase='lobby';net.localId='p1';net.code='TESTXX';
