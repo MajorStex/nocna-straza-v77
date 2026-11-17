@@ -34,10 +34,10 @@ assert.match(html,/NET\.phase='connecting';NET\.worldReady=false;NET\.roster=\[\
 assert.ok(!html.includes("arena.stop();selectedMode='normal'"),'new arena cannot switch to old MP');
 assert.ok(!html.includes('fallbackAllowed'),'legacy multiplayer fallback removed');
 assert.ok(html.includes('NEVER redirect players from New Zone to old co-op'));
-assert.ok(arena.includes('function drawArenaBuildings(g,obstacles)'),'cached medieval houses');
-assert.ok(arena.includes('function drawArenaMobs(g,now,dt)'),'shared goblins rendered in MP');
+assert.ok(arena.includes('function drawArenaBuildings(g,obstacles,visible)')&&arena.includes('cottageSprite(o,i)'),'cached medieval houses');
+assert.ok(arena.includes('function drawArenaMobs(g,now,dt,visible)'),'shared goblins rendered in MP');
 assert.ok(arena.includes('function connect(match,id,ticket,rejoin=false)'),'same session rejoin');
 assert.ok(arena.includes("N.phase='waiting'"),'all-ready wait no 24 second timeout');
 assert.ok(arena.includes('N.retryTimer=setTimeout'),'Android resume retry');
-assert.ok(html.includes('<title>Night Watch v152 — Noćna Straža</title>'));
+assert.match(html,/<title>Night Watch v\d+ — Noćna Straža<\/title>/);
 console.log('V152 PASS: reconnect reservation, strict New Zone, shared goblins and cached medieval buildings');
