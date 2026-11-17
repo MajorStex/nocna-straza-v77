@@ -516,8 +516,31 @@ function input(){
  const d=Math.hypot(x,y);if(d>1){x/=d;y/=d}
  return {x,y};
 }
+// V180: static world collision buckets. The exact circle-vs-rectangle test
+// is still applied to every possible collider; no offscreen physics is skipped.
+let obstacleGridCache=null;
+function nearbyObstacles(world,x,y,r){
+ const obstacles=world.obstacles||[],size=128;
+ if(!obstacleGridCache||obstacleGridCache.world!==world||obstacleGridCache.source!==obstacles||obstacleGridCache.count!==obstacles.length){
+  const cells=new Map();
+  for(const o of obstacles){
+   for(let cy=Math.floor(o.y/size);cy<=Math.floor((o.y+o.h)/size);cy++)
+    for(let cx=Math.floor(o.x/size);cx<=Math.floor((o.x+o.w)/size);cx++){
+     const key=cx+','+cy;let list=cells.get(key);if(!list)cells.set(key,list=[]);list.push(o);
+    }
+  }
+  obstacleGridCache={world,source:obstacles,count:obstacles.length,cells};
+ }
+ const cells=obstacleGridCache.cells,ax=Math.floor((x-r)/size),bx=Math.floor((x+r)/size),ay=Math.floor((y-r)/size),by=Math.floor((y+r)/size);
+ if(ax===bx&&ay===by)return cells.get(ax+','+ay)||[];
+ const out=[];
+ for(let cy=ay;cy<=by;cy++)for(let cx=ax;cx<=bx;cx++){
+  const list=cells.get(cx+','+cy);if(list)for(const o of list)if(!out.includes(o))out.push(o);
+ }
+ return out;
+}
 function moveLocal(p,dx,dy){
- const w=N.world,r=w.r||14,free=(x,y)=>(w.obstacles||[]).every(o=>{
+ const w=N.world,r=w.r||14,free=(x,y)=>nearbyObstacles(w,x,y,r).every(o=>{
   if(x+r<o.x||x-r>o.x+o.w||y+r<o.y||y-r>o.y+o.h)return true;
   const qx=clamp(x,o.x,o.x+o.w),qy=clamp(y,o.y,o.y+o.h);
   return (x-qx)**2+(y-qy)**2>=r*r;
@@ -1330,27 +1353,33 @@ function resolveSoloChest(option){
  if(!isXp)N.soloBetweenUntil=Date.now()+1750;
  A()?.play('choose');return true;
 }
+// Two pre-rendered blue crystal variants; retain individual pulse, depth and culling.
+const xpCrystalSprites=new Map();
+function xpCrystalSprite(r){
+ if(xpCrystalSprites.has(r))return xpCrystalSprites.get(r);
+ const canvas=document.createElement('canvas');canvas.width=40;canvas.height=44;
+ const g=canvas.getContext('2d');if(!g)return null;g.translate(20,22);
+ g.fillStyle='#153c5a88';g.beginPath();g.ellipse(1,8,r+5,4,0,0,Math.PI*2);g.fill();
+ g.fillStyle='#62d5f8';g.strokeStyle='#c4f0ff';g.lineWidth=1.2;
+ g.beginPath();g.moveTo(0,-r*1.5);g.lineTo(r,0);g.lineTo(1,r*1.2);g.lineTo(-r,0);g.closePath();g.fill();g.stroke();
+ g.fillStyle='#2285b4';g.beginPath();g.moveTo(0,-r*1.5);g.lineTo(1,r*1.2);g.lineTo(-r,0);g.closePath();g.fill();
+ xpCrystalSprites.set(r,canvas);return canvas;
+}
 function drawArenaXpCrystals(g,now,view){
- const drops=N.solo?N.soloDrops:N.drops;
+ const drops=N.solo?N.soloDrops:N.drops;g.save();const alpha=g.globalAlpha;
  for(const d of drops){
   if(d.x<view.left-24||d.x>view.right+24||d.y<view.top-24||d.y>view.bottom+24)continue;
-  const r=d.value>=40?10:7,pulse=.82+.18*Math.sin(now/250+d.id);
-  g.save();g.translate(d.x,d.y);g.globalAlpha=pulse;
-  g.fillStyle='#153c5a88';g.beginPath();g.ellipse(1,8,r+5,4,0,0,Math.PI*2);g.fill();
-  // Classic four-point blue XP crystal. No mobile-expensive shadowBlur.
-  g.fillStyle='#62d5f8';g.strokeStyle='#c4f0ff';g.lineWidth=1.2;
-  g.beginPath();g.moveTo(0,-r*1.5);g.lineTo(r,0);
-  g.lineTo(1,r*1.2);g.lineTo(-r,0);g.closePath();g.fill();g.stroke();
-  g.fillStyle='#2285b4';g.beginPath();g.moveTo(0,-r*1.5);g.lineTo(1,r*1.2);g.lineTo(-r,0);g.closePath();g.fill();
-  g.restore();
+  const r=d.value>=40?10:7,sprite=xpCrystalSprite(r);
+  if(sprite){g.globalAlpha=alpha*(.82+.18*Math.sin(now/250+d.id));g.drawImage(sprite,d.x-20,d.y-22)}
  }
+ g.restore();
 }
 function sessionHud(now){
  const wave=N.solo?N.soloWave:N.wave,state=N.solo?N.soloState:N.waveState;
  const mobs=N.solo?N.soloMobs:N.mpMobs,choice=N.solo?N.soloChoice:N.choice;
  const holder=el('ns152Choice'),hud=el('ns152Wave'),remaining=el('ns152Remaining');
  if(!holder||!hud||!remaining)return;
- if(now-N.uiAt>=140||N.choiceUiId!==(choice?.seq??'')){
+ if(now-N.uiAt>=140||N.choiceUiId!==(choice?(choice.seq+':'+choice.owner):'')){
   N.uiAt=now;
   hud.textContent='TALAS '+wave;
   const xpHud=el('ns168XpHud'),xpText=el('ns168XpText'),xpFill=el('ns168XpFill');
@@ -1632,13 +1661,14 @@ function frame(now){
  g.fillStyle='#395443';g.fillRect(Math.max(0,visible.left),Math.max(0,visible.top),
   Math.min(N.world.w,visible.right)-Math.max(0,visible.left),
   Math.min(N.world.h,visible.bottom)-Math.max(0,visible.top));
- g.strokeStyle='#536b55';
+ g.strokeStyle='#536b55';g.beginPath();
  for(let x=Math.max(0,Math.floor(visible.left/55)*55);x<=Math.min(N.world.w,visible.right);x+=55){
-  g.beginPath();g.moveTo(x,Math.max(0,visible.top));g.lineTo(x,Math.min(N.world.h,visible.bottom));g.stroke();
+  g.moveTo(x,Math.max(0,visible.top));g.lineTo(x,Math.min(N.world.h,visible.bottom));
  }
  for(let y=Math.max(0,Math.floor(visible.top/55)*55);y<=Math.min(N.world.h,visible.bottom);y+=55){
-  g.beginPath();g.moveTo(Math.max(0,visible.left),y);g.lineTo(Math.min(N.world.w,visible.right),y);g.stroke();
+  g.moveTo(Math.max(0,visible.left),y);g.lineTo(Math.min(N.world.w,visible.right),y);
  }
+ g.stroke();
  drawDepthSortedWorld(g,now,dt,visible);
  drawArenaXpCrystals(g,now,visible);
  drawLabThings(g,now,visible);
