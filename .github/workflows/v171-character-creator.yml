@@ -1,0 +1,31 @@
+name: V171 Character Creator mobile and solo QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/v171-character-creator.js'
+      - 'public/index.html'
+      - 'tests/v171-character-creator.test.cjs'
+      - '.github/workflows/v171-character-creator.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  creator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install small Chromium test harness
+        run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - name: Test production menu and creator on mobile and desktop
+        run: node tests/v171-character-creator.test.cjs
+      - name: Protect earlier V170 and V168 game modes
+        run: |
+          node tests/current-deployment.test.cjs
+          node tests/v166-classic-sync.test.cjs
+          node tests/v168-xp-world.test.cjs
+          node tests/v138-village-pvp-animals.test.cjs
