@@ -6,7 +6,7 @@ for(const code of [forge,creator,voice])new Function(code);
 assert.match(html,/name="ns-release" content="(?: 17[345678]|18[0-9]|[2-9][0-9]{2})"/);assert.match(html,/v173-ability-forge\.js\?v=173/);
 assert(html.indexOf('v173-ability-forge.js')<html.indexOf('v171-character-creator.js'));
 assert(!/fetch\(|setInterval\(|requestAnimationFrame\(|new WebSocket/.test(forge));
-const w={};vm.runInNewContext(forge,{window:w});vm.runInNewContext(read("v174-independent-ai.js"),{window:w});const A=w.NS173_ABILITIES,I=w.NS174_AI;
+const w={};vm.runInNewContext(forge,{window:w});vm.runInNewContext(read("v174-independent-ai.js"),{window:w});vm.runInNewContext(read("v176-scenes.js"),{window:w});const A=w.NS173_ABILITIES,I=w.NS174_AI,S=w.NS176_SCENES;
 const models=creator.slice(creator.indexOf('const clamp='),creator.indexOf('const key='));
 const mechanics=creator.slice(creator.indexOf('const W=780'),creator.indexOf('function dimensions()'));
 function cases(){
@@ -24,8 +24,8 @@ function cases(){
  setup(base,{...base,role:'enemy',hp:40});sim.mobs=[entity(sim.enemy,1,sim.p.x+20,sim.p.y)];labInvulnerable=true;const immune=dealDamage(sim.mobs[0],sim.p,10000);report.lab={immune,heroHp:sim.p.hp};labInvulnerable=false;
  return report;
 }
-const run=new Function('A0','I0',models+'\nconst A=()=>A0,I=()=>I0,V=()=>null,$=()=>null,resetStick=()=>{},gaitStep=(c,d)=>d/Math.max(16,37*c.leg*c.size)*Math.PI*2;\nlet sim=null,stick={vx:0,vy:0},keys=new Set(),level=1,draft=base,selectedHero="",selectedEnemy="",testTier="auto",all=[],notice="",labInvulnerable=false,lastAbilityHud=0;\n'+mechanics+'\nreturn ('+cases.toString()+')()');
-const logic=run(A,I);
+const run=new Function('A0','I0','S0',models+'\nconst A=()=>A0,I=()=>I0,S=()=>S0,V=()=>null,$=()=>null,resetStick=()=>{},gaitStep=(c,d)=>d/Math.max(16,37*c.leg*c.size)*Math.PI*2;\nlet sim=null,stick={vx:0,vy:0},keys=new Set(),level=1,draft=base,selectedHero="",selectedEnemy="",testTier="auto",all=[],notice="",labInvulnerable=false,lastAbilityHud=0;\n'+mechanics+'\nreturn ('+cases.toString()+')()');
+const logic=run(A,I,S);
 assert.equal(logic.fire.locked,false);assert.equal(logic.fire.cast,true);assert.equal(logic.fire.second,false);assert.equal(logic.fire.kill,1);assert.equal(logic.fire.drops,1);
 assert.equal(logic.defense.hpHeal,75);assert.equal(logic.defense.damage,19);assert(logic.defense.shieldExpired&&logic.defense.regenerated);
 assert.deepEqual(logic.frost.slows,[3,3,0]);assert.equal(logic.sword.hp,100);assert.equal(logic.sword.range,65);
