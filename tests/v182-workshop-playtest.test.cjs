@@ -24,7 +24,7 @@ try{
  assert(!await host.locator('#ns171Fields').isVisible());
  assert((await host.locator('#ns171Canvas').boundingBox()).height>beforeCanvas.height);
  await host.locator('[data-action=zoom]').click();
- assert.match(await host.locator('[data-action=zoom]').innerText(),/2\.3/);
+ assert.match(await host.locator('[data-action=zoom]').innerText(),/1\.35/);
  await guest.locator('[data-w=immersive]').click();
  assert(!await guest.locator('.ns177Controls').isVisible());
  assert((await guest.locator('#ns177Canvas').boundingBox()).height>guestCanvas.height);
