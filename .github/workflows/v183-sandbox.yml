@@ -1,0 +1,19 @@
+name: V183 sandbox tools and scene QA
+on:
+  pull_request:
+    branches: [main]
+    paths: ['public/**','tests/v183-sandbox-tools.test.cjs','.github/workflows/v183-sandbox.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - run: node --check public/v171-character-creator.js && node --check public/v174-independent-ai.js && node --check public/v176-scenes.js && node --check public/v177-workshop.js
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v183-sandbox-tools.test.cjs
