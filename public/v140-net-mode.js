@@ -20,7 +20,7 @@ const ARENA_SPELLS=[
 function arenaSpellInit(p,cls){const mage=cls==='mage',max=mage?102:64;if(!Number.isFinite(p.spellMana)){p.spellMana=max;p.spellCd=Array(8).fill(0)}p.spellMax=max;p.spellMana=Math.min(max,p.spellMana);p.spellRegen=mage?4.3:2.5;if(!Array.isArray(p.spellCd)||p.spellCd.length!==8)p.spellCd=Array(8).fill(0)}
 function arenaSpellTick(p,cls){arenaSpellInit(p,cls);p.spellMana=Math.min(p.spellMax,p.spellMana+p.spellRegen/30)}
 function arenaSpellState(p,tick){return [Math.round((p.spellMana||0)*10),p.spellMax||64,(p.spellCd||Array(8).fill(0)).map(t=>Math.max(0,t-tick)),p.spellSeq||0]}
-function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2)return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.bodyRadius||(m.kind==='troll'?34:14)),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2)victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(['troll','rotfiend'].includes(m.kind)?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-damage);m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
+function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2)return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.bodyRadius||(m.kind==='troll'?34:14)),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2)victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(['troll','rotfiend','boss','werewolfAlpha'].includes(m.kind)?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-damage);m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
 function arenaSpellExpire(mobs,tick){for(const m of mobs)if(m.spellSlowFactor&&tick>=m.spellSlowUntil){m.spellSlowFactor=0;m.spellSlowUntil=0}}
 function arenaSpellEvents(events,tick){return events.filter(e=>tick-e[4]<=24).slice(-18)}
 // END V189 SPELL MECHANICS
@@ -73,7 +73,9 @@ function createArenaCrowdSteering(world,move){
   flows.set(goal,distance);return distance;
  }
  function clearPath(x1,y1,x2,y2){
+  const minX=Math.min(x1,x2),maxX=Math.max(x1,x2),minY=Math.min(y1,y2),maxY=Math.max(y1,y2),pad=world.r+2;
   for(const o of world.obstacles){
+   if(o.x-pad>maxX||o.x+o.w+pad<minX||o.y-pad>maxY||o.y+o.h+pad<minY)continue;
    const lx=o.x-world.r-2,rx=o.x+o.w+world.r+2;
    const ly=o.y-world.r-2,ry=o.y+o.h+world.r+2;
    const dx=x2-x1,dy=y2-y1;
@@ -198,7 +200,9 @@ function arenaWormVariant(m,wave,batch){
 function arenaAcidClear(world,x,y,tx,ty,r){
  if(tx<r||ty<r||tx>world.w-r||ty>world.h-r)return false;
  const dx=tx-x,dy=ty-y;
+ const minX=Math.min(x,tx),maxX=Math.max(x,tx),minY=Math.min(y,ty),maxY=Math.max(y,ty);
  for(const o of world.obstacles||[]){
+  if(o.x-r>maxX||o.x+o.w+r<minX||o.y-r>maxY||o.y+o.h+r<minY)continue;
   let a=0,b=1;const bounds=[[x,dx,o.x-r,o.x+o.w+r],[y,dy,o.y-r,o.y+o.h+r]];
   for(const [s,d,lo,hi] of bounds){if(Math.abs(d)<1e-8){if(s<lo||s>hi){a=2;break}}else{const u=(lo-s)/d,v=(hi-s)/d;a=Math.max(a,Math.min(u,v));b=Math.min(b,Math.max(u,v));if(a>b)break}}
   if(a<=b)return false;
@@ -1010,7 +1014,7 @@ function startSolo(){
 }
 
 function spawnSoloXpCrystal(mob){
- const d={id:++N.dropSeq,x:mob.x,y:mob.y,value:['troll','rotfiend'].includes(mob.kind)?45:mob.kind==='elephant'?14:7,expires:N.soloTick+1800};
+ const d={id:++N.dropSeq,x:mob.x,y:mob.y,value:['troll','rotfiend','boss','werewolfAlpha'].includes(mob.kind)?45:mob.kind==='elephant'?14:7,expires:N.soloTick+1800};
  N.soloDrops.push(d);
  if(N.soloDrops.length>XP_CAP)N.soloDrops.shift();
 }
