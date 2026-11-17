@@ -164,7 +164,7 @@ function createArenaCrowdSteering(world,move){
  function advance(mobs,players){
   // Fixed 30Hz movement: no 66ms position jumps, even while retargeting.
   for(const m of mobs){
-   if(m.hp<=0||!m.targetId)continue;
+   if(m.hp<=0||!m.targetId||m.wormHold)continue;
    const target=players.get(m.targetId);
    if(!target?.online||target.knocked||target.hp<=0)continue;
    const d=Math.hypot(m.vx||0,m.vy||0);
@@ -189,6 +189,51 @@ let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],p
 let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null;
 let LAB_SUPPORTED=false,LAB_LOOK=null,LAB_UNDO=null,LAB_SERVER_BUILD=0;
 const LAB_WEAPONS=new Set(['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul']);
+// BEGIN V190 ACID WORM — same deterministic rules in solo and authoritative relay.
+function arenaWormVariant(m,wave,batch){
+ if(m.kind==='troll'||(m.id+batch*3)%10!==3)return m;
+ m.kind='worm';m.hp=m.maxHp=Math.min(480,81+Math.max(0,wave-1)*9);
+ m.moveSpeed=Math.min(100,72+Math.max(0,wave-1)*2);return m;
+}
+function arenaAcidClear(world,x,y,tx,ty,r){
+ if(tx<r||ty<r||tx>world.w-r||ty>world.h-r)return false;
+ const dx=tx-x,dy=ty-y;
+ for(const o of world.obstacles||[]){
+  let a=0,b=1;const bounds=[[x,dx,o.x-r,o.x+o.w+r],[y,dy,o.y-r,o.y+o.h+r]];
+  for(const [s,d,lo,hi] of bounds){if(Math.abs(d)<1e-8){if(s<lo||s>hi){a=2;break}}else{const u=(lo-s)/d,v=(hi-s)/d;a=Math.max(a,Math.min(u,v));b=Math.min(b,Math.max(u,v));if(a>b)break}}
+  if(a<=b)return false;
+ }return true;
+}
+function stepArenaWorms(mobs,players,world,tick,wave,shots,seq,damage){
+ const alive=[...players.values()].filter(p=>p.online&&p.hp>0&&!p.knocked&&!p.finalDead);
+ for(const m of mobs){
+  if(m.kind!=='worm'||m.hp<=0||m.labFrozen)continue;
+  let target=alive.find(p=>p.id===m.targetId);
+  if(!target){let best=Infinity;for(const p of alive){const d=(p.x-m.x)**2+(p.y-m.y)**2;if(d<best){target=p;best=d}}}
+  m.wormHold=false;if(!target){m.wormWindup=0;continue}
+  const dx=target.x-m.x,dy=target.y-m.y,dist=dx*dx+dy*dy;
+  const inRange=dist<=190**2&&arenaAcidClear(world,m.x,m.y,target.x,target.y,8);
+  if(inRange||m.wormWindup>tick){m.wormHold=true;m.wormAngle=Math.atan2(dy,dx)}
+  if(m.wormWindup&&tick>=m.wormWindup){
+   m.wormWindup=0;
+   if(inRange&&shots.length<60){const a=m.wormAngle;shots.push({id:++seq,x:m.x+Math.cos(a)*18,y:m.y+Math.sin(a)*18,vx:Math.cos(a)*200,vy:Math.sin(a)*200,expires:tick+75,damage:Math.min(40,Math.round(10*(1+.06*(wave-1))))});m.attackTick=tick}
+   continue;
+  }
+  if(inRange&&!m.wormWindup&&(m.wormReady??(tick+96+(m.id%13)*5))<=tick){m.wormWindup=tick+15;m.wormReady=tick+138+(m.id%26)*3}
+  if(m.wormReady===undefined)m.wormReady=tick+96+(m.id%13)*5;
+ }
+ const next=[];
+ for(const shot of shots){
+  if(tick>=shot.expires)continue;const x=shot.x+shot.vx/30,y=shot.y+shot.vy/30;
+  if(!arenaAcidClear(world,shot.x,shot.y,x,y,9))continue;
+  const p=alive.find(p=>p.hp>0&&!p.knocked&&(p.x-x)**2+(p.y-y)**2<23**2);
+  if(p){damage(p,shot.damage);continue}
+  shot.x=x;shot.y=y;next.push(shot);
+ }
+ return {shots:next,seq};
+}
+// END V190 ACID WORM
+
 const labDefaultCount=wave=>100+Math.max(0,wave-1)*20;
 const arenaMobSpeed=(wave,id)=>Math.min(145,98+Math.max(0,wave-1)*3.4+(id%5)*4+(id%7===0?12:0));
 // Matches Classic slow XP curve. Only RUN EXP is awarded: no account/paid XP.
@@ -622,6 +667,7 @@ function snapshot(m){
  if(!N.choice&&priorChoice!==undefined)A()?.play('choose');
  if(Number.isInteger(m.totalMobs)&&m.totalMobs>=0&&m.totalMobs<=160)N.hordeTotal=m.totalMobs;
  N.waveTotal=Number.isInteger(m.waveTotal)&&m.waveTotal>=0&&m.waveTotal<=20100?m.waveTotal:N.hordeTotal;
+ const prevAcid=new Set((N.acidShots||[]).map(s=>s.id));N.acidShots=Array.isArray(m.acid)?m.acid.slice(0,60).filter(s=>Array.isArray(s)&&s.length===5&&s.every(Number.isFinite)).map(s=>({id:s[0],x:s[1]/10,y:s[2]/10,vx:s[3],vy:s[4]})):[];if(N.me&&N.acidShots.some(s=>!prevAcid.has(s.id)&&(s.x-N.me.x)**2+(s.y-N.me.y)**2<550**2))B().arenaWormSound?.();
  N.waveReserve=Number.isInteger(m.waveReserve)&&m.waveReserve>=0&&m.waveReserve<=N.waveTotal?m.waveReserve:0;
  const batch=Number.isInteger(m.waveBatch)?m.waveBatch:0,batchChanged=N.waveBatch!==batch;N.waveBatch=batch;
  if(Array.isArray(m.mobs)){
@@ -638,7 +684,7 @@ function snapshot(m){
     A()?.play('hit',{weapon:weaponHits.get(q[0])||'sword',variant:hitTick,x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
-   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=q[8]===1?'troll':'goblin';
+   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=q[8]===1?'troll':q[8]===2?'worm':'goblin';mob.wormWindup=m.tick+(Number(q[9])||0);mob.wormAngle=(Number(q[10])||0)/100;
    return mob;
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
@@ -742,7 +788,7 @@ function buildSoloWave(wave,requested=LAB.customCount===null?labDefaultCount(wav
   spawnList.push({...pos,id:95,kind:'troll',hp:900,maxHp:900,moveSpeed:98,
    attackAt:0,attackTick:-100,hitTick:-100,targetId:''});
  }
- return spawnList;
+ return spawnList.map(m=>arenaWormVariant(m,wave,batch));
 }
 
 // Test-only actions: use the existing New Zone simulation, not legacy editor logic.
@@ -858,10 +904,10 @@ function stepSoloAllies(){
  }
 }
 function startSoloHorde(wave){
- N.soloBatch=0;N.soloMobs=buildSoloWave(wave);N.soloTotal=(LAB.enabled||LAB.customCount!==null)?N.soloMobs.length:labDefaultCount(wave);N.soloReserve=Math.max(0,N.soloTotal-N.soloMobs.length);
+ N.acidShots=[];N.soloBatch=0;N.soloMobs=buildSoloWave(wave);N.soloTotal=(LAB.enabled||LAB.customCount!==null)?N.soloMobs.length:labDefaultCount(wave);N.soloReserve=Math.max(0,N.soloTotal-N.soloMobs.length);
 }
 function nextSoloHorde(){
- if(!(N.soloReserve>0))return false;const next=buildSoloWave(N.soloWave,N.soloReserve,(N.soloBatch||0)+1);if(!next.length)return false;N.soloBatch=(N.soloBatch||0)+1;N.soloReserve-=next.length;N.soloMobs=next;N.soloCrowd.clear();announceArena('STIŽE POJAČANJE · '+next.length);return true;
+ if(!(N.soloReserve>0))return false;const next=buildSoloWave(N.soloWave,N.soloReserve,(N.soloBatch||0)+1);if(!next.length)return false;N.soloBatch=(N.soloBatch||0)+1;N.soloReserve-=next.length;N.acidShots=[];N.soloMobs=next;N.soloCrowd.clear();announceArena('STIŽE POJAČANJE · '+next.length);return true;
 }
 function soloWaveDone(){
  N.soloState='between';const me=N.me;
@@ -888,7 +934,7 @@ function startSolo(){
  ].map(o=>({...o,x:o.x+1260,y:o.y+1560}))};
  // Solo uses precisely the same seeded trunks/rocks as the multiplayer server.
  N.world.obstacles.push(...(window.NS157_SCENERY?.colliders?.(N.world)||[]));
- N.seq=N.ack=N.soloTick=N.soloKills=N.dropSeq=N.soloUpgradeSeq=0;N.tick=-1;N.soloDrops=[];N.drops=[];
+ N.acidShots=[];N.acidSeq=0;N.seq=N.ack=N.soloTick=N.soloKills=N.dropSeq=N.soloUpgradeSeq=0;N.tick=-1;N.soloDrops=[];N.drops=[];
  N.soloAcc=0;N.soloSwing=-100;N.soloInvul=0;N.mobHistory=[];N.mobRenderTick=null;N.soloSpawnCache=null;N.hordeTotal=100;
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
  N.soloChests=[{id:1,x:1790,y:2025,opened:false},{id:2,x:2220,y:2140,opened:false},{id:3,x:2730,y:2380,opened:false}];
@@ -973,6 +1019,7 @@ function stepSolo(dt){
    const goblins=N.soloMobs.filter(m=>m.kind!=='troll');
    const locked=goblins.filter(m=>m.labFrozen).map(m=>[m,m.x,m.y]);
    if(N.soloTick%2===0)N.soloCrowd.step(goblins,N.players,N.soloTick);
+    const acid=stepArenaWorms(N.soloMobs,N.players,N.world,N.soloTick,N.soloWave,N.acidShots||[],N.acidSeq||0,(p,d)=>{if(LAB.godMode||N.soloTick<=N.soloInvul)return;p.hp=Math.max(0,p.hp-d);N.hurtUntil=performance.now()+290;N.soloInvul=N.soloTick+28;A()?.play('hurt')});if(acid.seq>(N.acidSeq||0)&&acid.shots.some(s=>s.id>(N.acidSeq||0)&&(s.x-me.x)**2+(s.y-me.y)**2<550**2))B().arenaWormSound?.();N.acidShots=acid.shots;N.acidSeq=acid.seq;
    N.soloCrowd.advance(goblins,N.players);
    for(const [m,x,y] of locked){m.x=x;m.y=y;m.prevX=x;m.prevY=y;m.vx=m.vy=0}
    for(const boss of N.soloMobs)if(boss.kind==='troll'&&boss.hp>0&&!boss.labFrozen){
@@ -983,7 +1030,7 @@ function stepSolo(dt){
   }
   if(LAB.allies.length)stepSoloAllies();
   if(!LAB.freezeAI)for(const mob of N.soloMobs){
-   if(mob.hp<=0||mob.labFrozen)continue; // no individual respawns during a wave
+   if(mob.hp<=0||mob.labFrozen||mob.kind==='worm')continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
    if(!LAB.godMode&&d2<=(mob.kind==='troll'?65:34)**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul){
     me.hp=Math.max(0,me.hp-Math.min(mob.kind==='troll'?60:30,Math.round((mob.kind==='troll'?17:7)*(1+.06*(N.soloWave-1)))));N.hurtUntil=performance.now()+290;
@@ -1062,8 +1109,34 @@ function sampleOnlineMobs(now,dt){
   p.x=a[0]+(b[0]-a[0])*fraction;p.y=a[1]+(b[1]-a[1])*fraction;
  }
 }
+function drawClassicArenaWorm(ctx,e,model){function ellipse(x,y,rx,ry,color){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill()}const r=e.r,phase=e.frame||0,alive=e.dead?clamp(e.deathT/.39,0,1):1;
+ ctx.save();ctx.globalAlpha*=alive;ctx.translate(e.x,e.y);ctx.rotate((e.angle||0)+Math.PI/2);
+ ellipse(0,17,r*.94,r*.46,'#06160d9c');
+ for(let i=5;i>=0;i--){let z=i/5,undulation=Math.sin(phase*.9-i*1.1)*4.4;
+  const x=undulation*(.38+z*.5),y=17-i*8,sz=r*(.52+Math.sin(z*Math.PI)*.26);
+  ellipse(x,y,sz,sz*.75,i%2?'#37543a':model.color);
+  ctx.strokeStyle='#b0d26977';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,sz*.72,Math.PI*.13,Math.PI*.86);ctx.stroke();
+ }
+ ellipse(0,-13,r*.9,r*.64,e.flash>0?'#e2ffd2':'#61814d');
+ for(const side of [-1,1]){ctx.fillStyle='#d3c59a';ctx.beginPath();ctx.moveTo(side*7,-15);ctx.lineTo(side*11,-24);ctx.lineTo(side*1,-19);ctx.closePath();ctx.fill();ellipse(side*6,-15,2.2,2.8,'#f4b558')}
+ const opens=e.spitWindup>0?4+Math.sin(phase*3)*2:1.8;
+ ellipse(0,-8,4.8,opens+2,'#181714');ellipse(0,-9,2.7,opens,'#bcf26d');
+ if(e.spitWindup>0){ellipse(0,-5,3+Math.sin(phase*6)*1.2,3,'#d0ff83')}
+ ctx.restore();if(e.hp<e.maxHp){ctx.save();ctx.translate(e.x,e.y);ctx.fillStyle='#17241b';ctx.fillRect(-r,-r*2.3,r*2,4);ctx.fillStyle='#9bc56c';ctx.fillRect(-r,-r*2.3,r*2*clamp(e.hp/Math.max(1,e.maxHp),0,1),4);ctx.restore()}
+}
+function drawArenaWorm(g,m,now,visible){
+ if(m.hp<=0||m.x<visible.left-45||m.x>visible.right+45||m.y<visible.top-55||m.y>visible.bottom+55)return;
+ const tick=N.solo?N.soloTick:N.tick,alpha=N.solo?clamp(N.soloAcc*30,0,1):1;
+ const x=N.solo?(m.prevX??m.x)+(m.x-(m.prevX??m.x))*alpha:m.x,y=N.solo?(m.prevY??m.y)+(m.y-(m.prevY??m.y))*alpha:m.y;
+ const winding=m.wormWindup>tick,dx=x-(m.wormDrawX??x),dy=y-(m.wormDrawY??y);m.wormDrawX=x;m.wormDrawY=y;if(dx*dx+dy*dy>.05)m.wormFacing=Math.atan2(dy,dx);
+ drawClassicArenaWorm(g,{x,y,r:18.9,angle:winding?m.wormAngle:m.wormFacing??m.wormAngle??0,frame:now/105+m.id,spitWindup:winding?1:0,flash:tick-(m.hitTick||-100)<5?1:0,hp:m.hp,maxHp:m.maxHp},{color:'#638a67'});
+}
+function drawArenaAcid(g,now,visible){
+ for(const s of N.acidShots||[]){const lead=N.solo?0:clamp((now-N.lastState)/1000,0,.07),x=s.x+s.vx*lead,y=s.y+s.vy*lead;if(x<visible.left||x>visible.right||y<visible.top||y>visible.bottom)continue;
+ g.save();g.translate(x,y);g.rotate(Math.atan2(s.vy,s.vx));g.fillStyle='#a1cb4477';g.beginPath();g.ellipse(-11,0,16,4,0,0,Math.PI*2);g.fill();g.fillStyle='#6fc94c';g.beginPath();g.ellipse(0,0,9+Math.sin(now/55+s.id)*1.3,6,0,0,Math.PI*2);g.fill();g.fillStyle='#d9ff8f';g.beginPath();g.ellipse(1,-2,4,2.6,0,0,Math.PI*2);g.fill();g.restore();}
+}
 function drawArenaMobs(g,now,dt,visible){
- const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll'),tick=N.solo?N.soloTick:N.tick;
+ const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll'&&m.kind!=='worm'),tick=N.solo?N.soloTick:N.tick;
  if(!N.solo)sampleOnlineMobs(now,dt);
  // V154: cached sprite sheet + viewport culling; fallback retains old graphics in isolated QA.
  if(window.NS154_GOBLINS){
@@ -1576,13 +1649,14 @@ function drawDepthSortedWorld(g,now,dt,visible){
   drawArenaBuildings(g,N.world.obstacles,visible);
   drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
   drawArenaMobs(g,now,dt,visible);
+  for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm')drawArenaWorm(g,m,now,visible);
   for(const p of N.players.values())if(p.online)drawArenaPlayerBody(g,p,now,dt);
   for(const p of N.players.values())if(p.online)drawArenaPlayerLabel(g,p);
   for(const boss of (N.solo?N.soloMobs:N.mpMobs))if(boss.kind==='troll')window.NS162_TROLL?.drawOne(g,boss,{now,tick:N.solo?N.soloTick:N.tick,visible});
   return;
  }
  if(!N.solo)sampleOnlineMobs(now,dt);
- const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll');
+ const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll'&&m.kind!=='worm');
  const bufferedTick=N.solo?N.soloTick:(N.mobRenderTick??N.tick);
  const opt={solo:N.solo,tick:bufferedTick,now,lastState:N.solo?N.lastState:now,
   alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible};
@@ -1617,6 +1691,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   jobs.push({depth:p.y+13,kind:2,id:Number(p.id.slice(1)),p});
  }
  for(const entry of prepared)jobs.push({depth:entry.depth,kind:3,id:entry.mob.id,entry});
+ for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm'&&m.hp>0&&m.x>=visible.left-45&&m.x<=visible.right+45&&m.y>=visible.top-55&&m.y<=visible.bottom+55)jobs.push({depth:m.y+12,kind:6,id:m.id,m});
  for(const boss of (N.solo?N.soloMobs:N.mpMobs)){
   if(boss.kind!=='troll'||boss.hp<=0||boss.x<visible.left-80||boss.x>visible.right+80||boss.y<visible.top-160||boss.y>visible.bottom+40)continue;
   jobs.push({depth:boss.y+14,kind:5,id:boss.id,boss});
@@ -1631,6 +1706,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   else if(item.kind===2)drawArenaPlayerBody(g,item.p,now,dt);
   else if(item.kind===4)window.NS157_SCENERY?.drawOne(g,item.item);
   else if(item.kind===5)window.NS162_TROLL?.drawOne(g,item.boss,opt);
+  else if(item.kind===6)drawArenaWorm(g,item.m,now,visible);
   else sprites.drawOne(g,item.entry,opt);
  }
  // Names and HP remain legible above a large horde, even when bodies are occluded.
@@ -1777,7 +1853,7 @@ function frame(now){
  }
  g.stroke();
  drawDepthSortedWorld(g,now,dt,visible);
- drawArenaXpCrystals(g,now,visible);
+ drawArenaXpCrystals(g,now,visible);drawArenaAcid(g,now,visible);
  drawLabThings(g,now,visible);drawArenaMagic(g,now,visible);
  // Grouped horde steps. One sound per nearby crowd per 720ms, not 80 voices.
  if(N.visibleMobs>1&&N.me&&now-N.hordeStepAt>=720){
