@@ -21,6 +21,8 @@ function list(cleanChar,I,F){try{const a=JSON.parse(localStorage.getItem(key())|
 function write(a){try{localStorage.setItem(key(),JSON.stringify(a.slice(0,12)));return true}catch{return false}}
 function save(raw,cleanChar,I,F){const a=list(cleanChar,I,F),c=clean(raw,cleanChar,I,F);if(!c)return false;const index=a.findIndex(x=>x.id===c.id);if(index<0){if(a.length>=12)return false;a.push(c)}else a[index]=c;return write(a)}
 function remove(id,cleanChar,I,F){return write(list(cleanChar,I,F).filter(x=>x.id!==id))}
+function saveDraft(raw,cleanChar,I,F){const c=clean({...raw,id:'autosaved-draft'},cleanChar,I,F);if(!c)return false;try{localStorage.setItem(key()+'_draft',JSON.stringify(c));return true}catch{return false}}
+function getDraft(cleanChar,I,F){try{return clean(JSON.parse(localStorage.getItem(key()+'_draft')||'null'),cleanChar,I,F)}catch{return null}}
 function id(){return 'scene-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9)}
-window.NS176_SCENES={clean,list,save,remove,id,PROP_TYPES,cleanProps,blocked,move,freePoint,drawProp,drawMiniMap};
+window.NS176_SCENES={clean,list,save,remove,id,saveDraft,getDraft,PROP_TYPES,cleanProps,blocked,move,freePoint,drawProp,drawMiniMap};
 })();
