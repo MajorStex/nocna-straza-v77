@@ -40,7 +40,8 @@ new Function(source);
      g.fillRect(x-5,y-10,10,20);
     }};
    });
-   await page.addScriptTag({path:path.resolve(__dirname,'../public/v140-net-mode.js')});
+   const fixture="window.__v145NearMob=()=>{const m=N.soloMobs[0];m.x=N.me.x+58;m.y=N.me.y;m.prevX=m.animX=m.x;m.prevY=m.animY=m.y;};";
+   await page.addScriptTag({content:source.replace('window.NS140_ARENA={startHost',fixture+'\nwindow.NS140_ARENA={startHost')});
    const out=await page.evaluate(()=>{
     const api=window.NS140_ARENA;
     if(!api.startSolo())throw Error('solo arena could not start');
@@ -59,7 +60,7 @@ new Function(source);
     ev(canvas,'pointermove',21,px+80,py+9);
     const moved={x:api.diagnostics.stickX,y:api.diagnostics.stickY,
       knob:document.getElementById('ns140Knob').style.transform};
-    api.frame(1052);api.frame(1086);
+    window.__v145NearMob();api.frame(1052);api.frame(1086);
     const walking={x:api.diagnostics.playerX,flag:api.diagnostics.walking,render:window.__draws.at(-1),autoHit:api.diagnostics.soloGoblinHp.some(h=>h<35),auto:api.diagnostics.autoAttack,angle:api.diagnostics.attackAngle,animatedSword:window.__draws.some(x=>x.attackT>0&&Number.isFinite(x.headFacing))};
     ev(canvas,'pointerup',21,px+80,py+9);
     api.frame(1102);
