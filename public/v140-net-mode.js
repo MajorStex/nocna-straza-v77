@@ -351,6 +351,32 @@ function stepArenaHeavy(mobs,players,world,tick,wave,damage){
  }
 }
 // END V191 Classic heavy enemies
+// V192 Classic boss summons, one pack per phase, bounded by the active horde cap.
+function arenaBossSummons(mobs,players,world,tick,wave){
+ let added=0,nextId=Math.max(160,...mobs.map(m=>m.id),...mobs.map(m=>m.summonMax||0))+1;
+ let alive=mobs.filter(m=>m.hp>0).length;
+ const bosses=mobs.filter(m=>m.hp>0&&!m.labFrozen&&['boss','rotfiend','werewolfAlpha'].includes(m.kind));
+ for(const boss of bosses){
+  const phase=boss.hp<=boss.maxHp*.3?3:boss.hp<=boss.maxHp*.65?2:1;
+  if(phase>=2&&!((boss.summonBits||0)&(1<<phase))){
+   boss.summonBits=(boss.summonBits||0)|(1<<phase);boss.summonPending=(boss.summonPending||0)+(boss.kind==='werewolfAlpha'?(phase===3?3:2):(phase===3?4:3));
+  }
+  if(!boss.summonPending||alive>=160||nextId>255||tick<(boss.summonRetry||0))continue;
+  boss.summonRetry=tick+12;
+  for(let attempt=0;attempt<18&&boss.summonPending>0&&alive<160&&nextId<=255;attempt++){
+   const k=boss.kind==='werewolfAlpha'?'werewolf':boss.kind==='rotfiend'?(nextId%3===0?'goblin':'crawler'):(nextId%2?'skeleton':'goblin');
+   const stat=arenaHeavyStats(k,wave)||{kind:'goblin',hp:Math.min(420,35+(wave-1)*9),maxHp:Math.min(420,35+(wave-1)*9),moveSpeed:Math.min(145,98+(wave-1)*3.4),bodyRadius:14};
+   const ang=(attempt+nextId)*2.39996323,dist=112+(attempt%4)*25,x=Math.round(boss.x+Math.cos(ang)*dist),y=Math.round(boss.y+Math.sin(ang)*dist),radius=stat.bodyRadius;
+   if(!arenaAcidClear(world,x,y,x,y,radius+2)||mobs.some(m=>m.hp>0&&(m.x-x)**2+(m.y-y)**2<((m.bodyRadius||14)+radius+12)**2)||[...players.values()].some(p=>p.online&&p.hp>0&&(p.x-x)**2+(p.y-y)**2<90**2))continue;
+   if(mobs.length>=160){const dead=mobs.findIndex(m=>m.hp<=0);if(dead<0)break;mobs.splice(dead,1)}
+   const id=nextId++;boss.summonMax=id;boss.summonPending--;alive++;added++;
+   mobs.push({...stat,id,x,y,sx:x,sy:y,prevX:x,prevY:y,vx:0,vy:0,attackAt:tick+24,attackTick:-100,hitTick:-100,targetId:boss.targetId||'',retargetAt:0,deadUntil:0});
+  }
+ }
+ return added;
+}
+// END V192 Boss summons
+
 const labDefaultCount=wave=>100+Math.max(0,wave-1)*20;
 const arenaMobSpeed=(wave,id)=>Math.min(145,98+Math.max(0,wave-1)*3.4+(id%5)*4+(id%7===0?12:0));
 // Matches Classic slow XP curve. Only RUN EXP is awarded: no account/paid XP.
@@ -569,11 +595,11 @@ function ui(){
  window.addEventListener('keydown',e=>{
   if(N.phase!=='running'||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
   const k=e.key.toLowerCase();
+  if(k==='escape'&&!el('ns192MapPanel').hidden){e.preventDefault();setArenaMap(false);return}
   if(k==='escape'&&!el('ns158Menu')?.hidden){e.preventDefault();closeArenaMenu();return}
   if((k==='escape'||k==='p')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation?.();toggleArenaPause();return}
   if(k==='q'&&!e.repeat){e.preventDefault();requestArenaSwap();return}
   if(k==='m'&&!e.repeat){e.preventDefault();setArenaMap(el('ns192MapPanel').hidden);return}
-  if(k==='escape'&&!el('ns192MapPanel').hidden){e.preventDefault();setArenaMap(false);return}
   if(N.paused)return;
   if(k===' '||k==='shift'||k==='k'){e.preventDefault();if(!e.repeat)requestArenaDodge();return}
   if(/^[1-8]$/.test(k)){e.preventDefault();if(!e.repeat){spellSlot=Number(k)-1;spellHudAt=0;requestArenaSpell(spellSlot)}return}
@@ -845,7 +871,7 @@ function snapshot(m){
   const waveChanged=N.wave!==priorWave||batchChanged;
   if(waveChanged){N.mobHistory=[];N.mobRenderTick=null;}
   const previous=new Map(waveChanged?[]:N.mpMobs.map(q=>[q.id,q]));
-  N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<161&&
+  N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<256&&
    Number.isFinite(q[1])&&Number.isFinite(q[2])&&Number.isFinite(q[3])).map(q=>{
    const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10,attackTick=Number(q[5])||-100;
    if(prev&&attackTick>0&&attackTick!==prev.attackTick)
@@ -1184,6 +1210,7 @@ function stepSolo(dt){
     const acid=stepArenaWorms(N.soloMobs,N.players,N.world,N.soloTick,N.soloWave,N.acidShots||[],N.acidSeq||0,(p,d)=>{if(LAB.godMode||N.soloTick<=N.soloInvul)return;p.hp=Math.max(0,p.hp-arenaIncoming(p,d));N.hurtUntil=performance.now()+290;N.soloInvul=N.soloTick+28;A()?.play('hurt')});if(acid.seq>(N.acidSeq||0)&&acid.shots.some(s=>s.id>(N.acidSeq||0)&&(s.x-me.x)**2+(s.y-me.y)**2<550**2))B().arenaWormSound?.();N.acidShots=acid.shots;N.acidSeq=acid.seq;
    stepArenaHeavy(N.soloMobs,N.players,N.world,N.soloTick,N.soloWave,(p,d)=>{if(LAB.godMode||N.soloTick<=N.soloInvul)return;p.hp=Math.max(0,p.hp-arenaIncoming(p,d));N.hurtUntil=performance.now()+290;N.soloInvul=N.soloTick+28;A()?.play('hurt')});
    N.soloCrowd.advance(goblins,N.players);
+   const summoned=arenaBossSummons(N.soloMobs,N.players,N.world,N.soloTick,N.soloWave);if(summoned){N.soloTotal=(N.soloTotal||N.soloMobs.length-summoned)+summoned;announceArena('BOSS DOZIVA POJAČANJE · '+summoned)}
    for(const [m,x,y] of locked){m.x=x;m.y=y;m.prevX=x;m.prevY=y;m.vx=m.vy=0}
    for(const boss of N.soloMobs)if(boss.kind==='troll'&&boss.hp>0&&!boss.labFrozen){
     boss.targetId=me.id;
@@ -1445,6 +1472,7 @@ function connect(match,id,ticket,rejoin=false){
  };
  ws.onmessage=e=>{
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
+  if(m.t==='bossSummon'){announceArena('BOSS DOZIVA POJAČANJE · '+Math.max(0,Math.min(7,Number(m.count)||0)));return}
   if(m.t==='labState'){LAB_REMOTE={...m};if(!m.enabled){LAB_WEAPON=null;LAB_LOOK=null}window.NS160_LAB?.refresh();return}
   if(m.t==='pauseState'){LAB_PAUSE={paused:!!m.paused,votes:Array.isArray(m.votes)?m.votes:[],needed:m.needed||1,expires:m.expires||0};window.NS160_LAB?.refresh();return}
   if(m.t==='welcome'){
