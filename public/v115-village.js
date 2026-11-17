@@ -412,7 +412,7 @@
   if(!isLobby())return false;
   return NET.role==='host'?(NET.peer?.open===true||(NET.peer?._connected===true&&NET.peer?._socket?.readyState===1)):NET.conn?.open===true;
  }
- function startVillageOnlineRoom(){
+ function startVillageOnlineRoom(opts={}){
   if(isLobby()){copyVillageText(NET.code);return true}
   if(NET.role||NET.phase!=='idle'||(pendingAutoRoom==='HOST'&&Date.now()<pendingAutoUntil)){
    toast(tr('Room connection already in progress','Povezivanje sa sobom je već u toku'));return false;
@@ -424,7 +424,7 @@
   closeVillage();
   coop.click();
   if($('mpNameInput'))$('mpNameInput').value=ownName();
-  if($('ns92Public'))$('ns92Public').checked=true;
+  if($('ns92Public'))$('ns92Public').checked=!opts.privateRoom;
   if($('ns92Locked')){$('ns92Locked').checked=false;$('ns92Locked').dispatchEvent(new Event('change'))}
   if($('ns92Max'))$('ns92Max').value='6';
   host.click(); // Existing host flow creates the room and confirms relay before re-opening Village.
@@ -637,16 +637,17 @@
   if(!SOCIAL?.peer&&!SOCIAL?.starting)startSocial?.();
  }
  function onVillageLobbyReady(){
+  if(window.NS177_WORKSHOP?.active)return;
   const expected=pendingAutoRoom;
   if(expected&&Date.now()>pendingAutoUntil){pendingAutoRoom='';pendingAutoUntil=0}
   if(pendingAutoRoom&&isLobby()&&(pendingAutoRoom==='HOST'?NET.role==='host':NET.code===pendingAutoRoom)){
    pendingAutoRoom='';pendingAutoUntil=0;
    if(!opened)showVillage();
    else if(root.classList.contains('ns109Hidden'))root.classList.remove('ns109Hidden');
-   toast(tr('Connected! Welcome to the online Village.','Povezano! Dobro došli u online selo.'));
+   toast(tr('Connected! Welcome to the online Village.','Povezano! Dobro došli u online selo.'));window.NS177_WORKSHOP?.onLobby();
    return;
   }
-  scheduleAutoVillage();
+  scheduleAutoVillage();window.NS177_WORKSHOP?.onLobby();
  }
  function expectVillageJoin(room){
   if(!/^[A-HJ-NP-Z2-9]{6}$/.test(String(room||'')))return false;
