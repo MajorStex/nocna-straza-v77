@@ -4,7 +4,7 @@ const {chromium}=require('playwright-core');
 const root=path.resolve(__dirname,'../public'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const code=read('v174-independent-ai.js'),creator=read('v171-character-creator.js'),html=read('index.html');
 for(const s of [code,creator])new Function(s);
-assert.match(html,/name="ns-release" content="17[456]"/);assert.match(html,/v174-independent-ai\.js\?v=17[45]/);assert(html.indexOf('v174-independent-ai.js')<html.indexOf('v171-character-creator.js'));
+assert.match(html,/name="ns-release" content="17[4567]"/);assert.match(html,/v174-independent-ai\.js\?v=17[45]/);assert(html.indexOf('v174-independent-ai.js')<html.indexOf('v171-character-creator.js'));
 assert(!/requestAnimationFrame\(|setInterval\(|setTimeout\(|fetch\(|new WebSocket/.test(code),'AI has no separate loops or network');
 const w={};new Function('window',code)(w);const I=w.NS174_AI;
 const bounds={minX:0,maxX:1000,minY:0,maxY:1000};
