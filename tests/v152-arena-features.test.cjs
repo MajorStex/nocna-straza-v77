@@ -8,7 +8,7 @@ const client=fs.readFileSync(path.resolve(__dirname,'../public/v140-net-mode.js'
 const audio=fs.readFileSync(path.resolve(__dirname,'../public/v152-arena-audio.js'),'utf8');
 assert.match(html,/<title>Night Watch v(?:16[6-9]|1[7-9][0-9]|[2-9][0-9]{2}) — Noćna Straža<\/title>/);
 assert.match(html,/v152-arena-audio\.js\?v=168/);
-assert.match(html,/v140-net-mode\.js\?v=168/);
+assert(Number(html.match(/v140-net-mode\.js\?v=(\d+)/)?.[1])>=168,'New Zone asset version must not regress');
 assert.ok(html.indexOf('v152-arena-audio.js')<html.indexOf('v140-net-mode.js'),
  'audio must load before New Zone client');
 assert.doesNotMatch(client,/arena\.stop\(\);selectedMode='normal'/,
@@ -17,7 +17,7 @@ assert.ok(client.includes("t:'leave'"),'leaving creator closes only their own ar
 assert.ok(client.includes('ns152Hud')&&client.includes('ns152Choice')&&client.includes('ns152Hurt'),
  'wave HUD, 3-choice chest and screen-hit feedback exist');
 assert.ok(client.includes("t:'chestPick'"),'chest choices are transmitted to server');
-assert.ok(client.includes('function buildSoloWave(wave)'),'solo practice has the same growing waves');
+assert.match(client,/function buildSoloWave\(wave(?:,|\))/,'solo practice has the same growing waves');
 assert.ok(client.includes('function resolveSoloChest(option)'),'solo preview honors reward choices');
 assert.ok(audio.includes('const CHORDS=')&&audio.includes('const MELODY='),
  'reuse original regular-mode sparse ambient theme');
