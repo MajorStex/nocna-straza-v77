@@ -5,15 +5,59 @@ if(window.NS178_SOCIAL)return;
 const $=id=>document.getElementById(id),W=()=>window.NS177_WORKSHOP,N=()=>window.__NS110_BRIDGE?.NET,V=()=>window.NS159_VOICE;
 let panel=null,anchor=null,prev=new Map(),notice='',noticeUntil=0,room='',lastUi=0,vote=null,serial=0,remoteVote=null,previewAudio=null,previewUrl='',previewUntil=0;
 const now=()=>performance.now();
-function reset(){prev.clear();vote=remoteVote=null;notice='';noticeUntil=0;room='';lastUi=0;hide();stopPreview();if($('ns178Notice'))$('ns178Notice').hidden=true}
+function reset(){debugClose();prev.clear();vote=remoteVote=null;notice='';noticeUntil=0;room='';lastUi=0;hide();stopPreview();if($('ns178Notice'))$('ns178Notice').hidden=true}
 function hide(){if(panel)panel.hidden=true}
 function button(label,fn){let b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=fn;return b}
 function mount(parent,onlyInvite=false){if(!parent||parent.querySelector('.ns178Invite'))return;const wrap=document.createElement('span');wrap.className='ns178Quick';wrap.style.cssText='display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center';parent.append(wrap);parent=wrap;
  const b=button('＋ Invite',()=>{if(!W()?.active){W()?.open();if(!W()?.active)return}show(b,'invite')});b.className='ns178Invite';parent.append(b);if(onlyInvite){setup();return}
  const p=button('👥 1/6',()=>show(p,'players'));p.className='ns178Players';parent.append(p);
  const v=button('⚑ Vote',()=>show(v,'vote'));v.className='ns178Vote';parent.append(v);
+ if(debugAllowed())parent.append(button('⚙ Diag',debugOpen));
  setup();tick(true)
 }
+// V179: opt-in, read-only device diagnostics. Never include room code, tickets,
+// identity, microphone recordings, or raw network messages. This is not authentication.
+const debugOptIn=new URLSearchParams(location.search).get('diagnostics')==='1';
+function debugAllowed(){return debugOptIn&&(!N()?.role||N()?.role==='host')}
+function debugReport(){
+ const arena=window.NS140_ARENA?.stabilityDiagnostics;
+ const active=arena&&arena.phase!=='idle';
+ const d=W()?.diagnostics, classic=window.__NS112_MP_DIAG?.(), motion=window.__NS132_MP_DIAG?.();
+ const voice=V();
+ const num=x=>Number.isFinite(x)?Math.round(x):null;
+ return {mode:active?'Nova zona':W()?.active?'Radionica':'Classic / Village',
+  phase:active?arena.phase:N()?.phase||'offline',
+  fps:active?num(arena.fps):num(classic?.fps),
+  rttMs:active?num(arena.rttMs):num(classic?.hostPingMs),
+  jitterMs:active?num(arena.jitterMs):null,interpolationDelayMs:active?num(arena.interpolationDelayMs):null,
+  renderDpr:active?arena.renderDpr:null,frameP95Ms:active?num(arena.frameP95Ms):null,meanFrameCostMs:active?num(arena.meanFrameCostMs):null,qualityChanges:active?arena.qualityChanges:null,
+  connected:active?arena.connected:(W()?.active?members().filter(p=>p.inside).length:(N()?.role==='host'?1+[...N().clients.values()].filter(c=>c.open).length:null)),
+  snapshots:active?arena.snapshots:null, avgSnapshotChars:active?arena.avgSnapshotChars:null,
+  snapshotAgeMs:active?arena.snapshotAgeMs:null, reconnectAttempts:active?arena.reconnectAttempts:null,
+  motionHz:active?null:num(motion?.motionHz),
+  relayBufferBytes:active?null:num(motion?.relayBufferedBytes),
+  sceneRevision:W()?.active?num(d?.rev):null, sceneRows:W()?.active?num(d?.rows):null,
+  serverBuild:active?arena.serverBuild:null,error:active?arena.error:null,voiceConnected:!!voice?.connected};
+}
+let debugPanel=null,debugTimer=null;
+function debugClose(){if(debugTimer!==null){clearInterval(debugTimer);debugTimer=null}if(debugPanel)debugPanel.hidden=true}
+function debugOpen(){
+ if(!debugAllowed())return false;
+ if(!debugPanel){debugPanel=document.createElement('section');debugPanel.id='ns179Diagnostics';
+  debugPanel.style.cssText='position:fixed;z-index:110000;top:calc(55px + env(safe-area-inset-top));right:9px;width:min(320px,calc(100vw - 18px));max-height:72dvh;overflow:auto;background:#142f28f5;color:#e6ddbf;border:1px solid #a18c62;border-radius:12px;padding:12px;font:12px system-ui;box-shadow:0 8px 28px #0008;touch-action:pan-y';
+  const title=document.createElement('strong');title.textContent='V179 · Developer Diagnostics';
+  const output=document.createElement('pre');output.id='ns179DiagText';output.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45';
+  const copyBtn=button('Kopiraj izveštaj',async()=>{try{await navigator.clipboard.writeText(JSON.stringify(debugReport(),null,2));copyBtn.textContent='Kopirano'}catch{copyBtn.textContent='Kopiranje nije dostupno'}});
+  const closeBtn=button('Zatvori',debugClose);
+  debugPanel.append(title,output,copyBtn,closeBtn);document.body.append(debugPanel);
+ }
+ debugPanel.hidden=false;
+ const refresh=()=>{if(!debugAllowed()||document.hidden){debugClose();return}const r=debugReport();$('ns179DiagText').textContent=Object.entries(r).map(([k,v])=>k+': '+(v===null?'—':v)).join('\n')};
+ if(debugTimer!==null)clearInterval(debugTimer);refresh();if(!debugPanel.hidden)debugTimer=setInterval(refresh,1000);
+ return true;
+}
+window.NS179_DIAGNOSTICS={allowed:debugAllowed,open:debugOpen,close:debugClose};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)debugClose()});
 function setup(){if(panel)return;panel=document.createElement('section');panel.id='ns178Panel';panel.hidden=true;panel.innerHTML='<header><strong id="ns178Title">RADIONICA</strong><button id="ns178Close" type="button">✕</button></header><div id="ns178Body"></div>';document.body.append(panel);$('ns178Close').onclick=hide;
  const note=document.createElement('div');note.id='ns178Notice';note.hidden=true;note.setAttribute('role','status');document.body.append(note);
  const st=document.createElement('style');st.textContent='#ns178Panel[hidden],#ns178Notice[hidden]{display:none!important}#ns178Panel{position:fixed;z-index:100090;right:9px;top:calc(52px + env(safe-area-inset-top));width:min(330px,calc(100vw - 18px));max-height:72dvh;overflow:auto;padding:10px;background:#1a302c;border:1px solid #a18c62;border-radius:12px;color:#e9ddbe;font:12px system-ui;box-shadow:0 10px 28px #071310b5}#ns178Panel header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:#eccb91}#ns178Panel button,#ns178Panel input{min-height:37px;padding:7px 9px;border:1px solid #698576;border-radius:8px;background:#29453b;color:#f4e6c6;font:600 12px system-ui;max-width:100%}#ns178Panel input{width:100%;margin:5px 0}#ns178Panel button:disabled{opacity:.5}#ns178Panel p{margin:7px 0;line-height:1.4}#ns178Panel .ns178Row{display:flex;gap:6px;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #475f51}#ns178Panel .ns178Row span:first-child{overflow-wrap:anywhere}#ns178Notice{position:fixed;z-index:100089;left:50%;top:calc(92px + env(safe-area-inset-top));transform:translateX(-50%);max-width:90%;padding:6px 12px;background:#17372ee8;color:#f8dfab;border:1px solid #a68e61;border-radius:8px;font:700 11px system-ui;pointer-events:none;text-align:center}#ns177HostBar .ns178Invite,#ns177HostBar .ns178Players,#ns177HostBar .ns178Vote{min-height:32px;padding:4px 6px;font-size:11px}';document.head.append(st)

@@ -1,0 +1,19 @@
+name: V179 stability QA (no deploy)
+on:
+  pull_request:
+    branches: [main]
+    paths: ['public/v140-net-mode.js','public/v178-workshop-social.js','tests/v179-stability.test.cjs','.github/workflows/v179-stability.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  stability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --check public/v140-net-mode.js && node --check public/v178-workshop-social.js
+      - run: node --test tests/v179-stability.test.cjs

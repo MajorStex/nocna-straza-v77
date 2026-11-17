@@ -259,6 +259,9 @@ function ui(){
   if(N.solo){closeArenaMenu();if(N.paused)toggleArenaPause(false)}
   else {if(!LAB_SUPPORTED)announceArena('Glasanje zahteva novi V160 relay server');else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:LAB_PAUSE.paused?'globalResume':'pauseVote',vote:true}));closeArenaMenu()}
  };
+ if(window.NS179_DIAGNOSTICS?.allowed()){
+  const diag=document.createElement('button');diag.type='button';diag.textContent='⚙ DEVELOPER DIAGNOSTICS';diag.onclick=()=>window.NS179_DIAGNOSTICS?.open();el('ns158Menu').insertBefore(diag,el('ns158MenuLeave'));
+ }
  el('ns160Open').onclick=()=>openSandbox();
  el('ns158MenuLeave').onclick=()=>{closeArenaMenu();stop(true)};
  const musicButton=el('ns152Music'),soundButton=el('ns152Sound');
@@ -346,14 +349,14 @@ function ui(){
   canvas.addEventListener(type,e=>{if(e.pointerId===N.stick.ptr)resetStick()});
  document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
-   resetStick();
+   resetRenderSamples();resetStick();
    if(N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'presence',state:'background'}))}catch{}
    return;
   }
   if(N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'presence',state:'active'}))}catch{}
   if(N.phase==='reconnecting'&&N.match&&N.ticket){
    if(N.retryTimer){clearTimeout(N.retryTimer);N.retryTimer=null}
-   if(N.ws?.readyState!==1)connect(N.match,N.id,N.ticket,true);
+   if(!N.ws){if(N.lostSince&&Date.now()-N.lostSince>=120000){N.phase='error';status('ISTEKAO ROK ZA POVRATAK · LOBBY')}else connect(N.match,N.id,N.ticket,true)}
   }
  });
  window.addEventListener('keydown',e=>{
@@ -476,6 +479,8 @@ function status(note){
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
 function stop(notify=false){
+ N.prepareAttempt=(N.prepareAttempt||0)+1;
+ window.NS179_DIAGNOSTICS?.close();
  window.NS159_VOICE?.stop();
  const wasSolo=N.solo;
  if(notify&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'leave'}))}catch{}
@@ -511,8 +516,31 @@ function input(){
  const d=Math.hypot(x,y);if(d>1){x/=d;y/=d}
  return {x,y};
 }
+// V180: static world collision buckets. The exact circle-vs-rectangle test
+// is still applied to every possible collider; no offscreen physics is skipped.
+let obstacleGridCache=null;
+function nearbyObstacles(world,x,y,r){
+ const obstacles=world.obstacles||[],size=128;
+ if(!obstacleGridCache||obstacleGridCache.world!==world||obstacleGridCache.source!==obstacles||obstacleGridCache.count!==obstacles.length){
+  const cells=new Map();
+  for(const o of obstacles){
+   for(let cy=Math.floor(o.y/size);cy<=Math.floor((o.y+o.h)/size);cy++)
+    for(let cx=Math.floor(o.x/size);cx<=Math.floor((o.x+o.w)/size);cx++){
+     const key=cx+','+cy;let list=cells.get(key);if(!list)cells.set(key,list=[]);list.push(o);
+    }
+  }
+  obstacleGridCache={world,source:obstacles,count:obstacles.length,cells};
+ }
+ const cells=obstacleGridCache.cells,ax=Math.floor((x-r)/size),bx=Math.floor((x+r)/size),ay=Math.floor((y-r)/size),by=Math.floor((y+r)/size);
+ if(ax===bx&&ay===by)return cells.get(ax+','+ay)||[];
+ const out=[];
+ for(let cy=ay;cy<=by;cy++)for(let cx=ax;cx<=bx;cx++){
+  const list=cells.get(cx+','+cy);if(list)for(const o of list)if(!out.includes(o))out.push(o);
+ }
+ return out;
+}
 function moveLocal(p,dx,dy){
- const w=N.world,r=w.r||14,free=(x,y)=>(w.obstacles||[]).every(o=>{
+ const w=N.world,r=w.r||14,free=(x,y)=>nearbyObstacles(w,x,y,r).every(o=>{
   if(x+r<o.x||x-r>o.x+o.w||y+r<o.y||y-r>o.y+o.h)return true;
   const qx=clamp(x,o.x,o.x+o.w),qy=clamp(y,o.y,o.y+o.h);
   return (x-qx)**2+(y-qy)**2>=r*r;
@@ -522,10 +550,17 @@ function moveLocal(p,dx,dy){
 }
 function snapshot(m){
  if(!Number.isInteger(m.tick)||m.tick<=N.tick||!Array.isArray(m.players))return;
- N.tick=m.tick;N.lastState=performance.now();N.serverMs=Number(m.ms)||0;
+ const arrived=performance.now(),previousTick=N.tick;
+ if(previousTick>=0&&N.lastState&&m.tick-previousTick<=30){
+  const variation=Math.min(250,Math.abs((arrived-N.lastState)-(m.tick-previousTick)*1000/30));
+  N.arrivalJitter=(N.arrivalJitter||0)*.85+variation*.15;
+  N.interpolationTicks=clamp(3+Math.ceil(N.arrivalJitter/34),3,7);
+ }
+ N.tick=m.tick;N.lastState=arrived;N.serverMs=Number(m.ms)||0;
  if(Number.isFinite(m.serverNow))N.serverNow=m.serverNow;
  if(typeof m.globalPaused==='boolean')LAB_PAUSE.paused=m.globalPaused;
  if(Array.isArray(m.allies))LAB_REMOTE={...(LAB_REMOTE||{}),allies:m.allies.slice(0,3).map(a=>({id:a[0],x:a[1]/10,y:a[2]/10,hp:a[3],lastAttack:a[4]}))};
+ N.diagSnapshots=(N.diagSnapshots||0)+1;
  const priorWave=N.wave,priorChoice=N.choice?.seq;
  const weaponHits=new Map();
  for(const row of m.players){
@@ -549,7 +584,9 @@ function snapshot(m){
  if(!N.choice&&priorChoice!==undefined)A()?.play('choose');
  if(Number.isInteger(m.totalMobs)&&m.totalMobs>=0&&m.totalMobs<=80)N.hordeTotal=m.totalMobs;
  if(Array.isArray(m.mobs)){
-  const previous=new Map(N.mpMobs.map(q=>[q.id,q]));
+  const waveChanged=N.wave!==priorWave;
+  if(waveChanged){N.mobHistory=[];N.mobRenderTick=null;}
+  const previous=new Map(waveChanged?[]:N.mpMobs.map(q=>[q.id,q]));
   N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&q[0]<96&&
    Number.isFinite(q[1])&&Number.isFinite(q[2])&&Number.isFinite(q[3])).map(q=>{
    const prev=previous.get(q[0]),x=q[1]/10,y=q[2]/10,attackTick=Number(q[5])||-100;
@@ -565,8 +602,8 @@ function snapshot(m){
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
   // Render two network frames behind to hide 15Hz arrivals and mild jitter.
-  N.mobHistory.push({tick:m.tick,positions:new Map(N.mpMobs.map(q=>[q.id,[q.tx,q.ty]]))});
-  if(N.mobHistory.length>6)N.mobHistory.shift();
+  N.mobHistory.push({tick:m.tick,positions:new Map(N.mpMobs.map(q=>[q.id,[q.tx,q.ty]])),heroes:new Map(m.players.filter(row=>Array.isArray(row)&&/^p[1-6]$/.test(row[0])&&Number.isFinite(row[1])&&Number.isFinite(row[2])).map(row=>[row[0],[row[1]/10,row[2]/10,!!row[5]]]))});
+  if(N.mobHistory.length>12)N.mobHistory.shift();
  }
  for(const row of m.players){
   if(!Array.isArray(row)||!/^p[1-6]$/.test(row[0]))continue;
@@ -607,6 +644,7 @@ function snapshot(m){
   }
   if(id===N.id){
    N.me=p;const ack=Number(m.ack)||0;
+   if(N.rejoinCorrection){N.rejoinCorrection=false;N.pending=[];N.delta={x:0,y:0};N.seq=Math.max(N.seq,ack);p.x=x;p.y=y;p.motion=null;}
    if(ack>N.ack){N.ack=ack;N.pending=N.pending.filter(e=>e.seq>ack)}
    let dx=N.delta.x,dy=N.delta.y;for(const item of N.pending){dx+=item.dx;dy+=item.dy}
    const n=Math.hypot(dx,dy);if(n>105){dx*=105/n;dy*=105/n}
@@ -808,7 +846,7 @@ function startSolo(){
  N.soloChests=[{id:1,x:1790,y:2025,opened:false},{id:2,x:2220,y:2140,opened:false},{id:3,x:2730,y:2380,opened:false}];
  N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();
  N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt,y*N.world.speed*dt));
- N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;N.fpsAt=0;N.frames=0;
+ N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;resetRenderQuality();
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.stick.ptr=null;N.stick.x=N.stick.y=0;
  if(el('ns140Pad'))el('ns140Pad').classList.remove('active');
  N.me={id:'p1',x:2030,y:2070,tx:2030,ty:2070,hp:100,maxHp:100,damage:22,speedMult:1,kills:0,attackTick:-100,online:true,knocked:false,xp:0,xpNeed:160,level:1,xpCollected:0,queuedUpgrades:0};
@@ -943,12 +981,13 @@ function sampleOnlineMobs(now,dt){
  if(!history.length)return;
  const latest=history[history.length-1];
  const elapsed=clamp((now-N.lastState)/33.333,0,5);
- const desired=latest.tick-3+elapsed;
- if(N.mobRenderTick===null||Math.abs(N.mobRenderTick-desired)>10){
+ const desired=latest.tick-(N.interpolationTicks||3)+elapsed;
+ if(N.mobRenderTick===null){
   N.mobRenderTick=desired;
  }else{
-  N.mobRenderTick+=Math.min(dt,.05)*30;
-  N.mobRenderTick+=clamp(desired-N.mobRenderTick,-.5,.5)*Math.min(1,dt*6);
+  const oldTick=N.mobRenderTick;
+  if(desired-oldTick>15)N.mobRenderTick=desired;
+  else N.mobRenderTick=oldTick+Math.min(dt,.05)*30*clamp(1+(desired-oldTick)*.12,0,1.35);
  }
  N.mobRenderTick=clamp(N.mobRenderTick,history[0].tick,latest.tick);
  let before=history[0],after=latest;
@@ -964,6 +1003,14 @@ function sampleOnlineMobs(now,dt){
   }
   mob.x=old[0]+(next[0]-old[0])*fraction;
   mob.y=old[1]+(next[1]-old[1])*fraction;
+ }
+ // Remote heroes share the same render timeline; local prediction stays immediate.
+ if(N.players)for(const p of N.players.values()){
+  if(p.id===N.id||!p.online)continue;
+  const a=before.heroes?.get(p.id),b=after.heroes?.get(p.id);
+  if(!b)continue;
+  if(!a||!a[2]||!b[2]||(b[0]-a[0])**2+(b[1]-a[1])**2>120**2){p.x=b[0];p.y=b[1];p.motion=null;continue}
+  p.x=a[0]+(b[0]-a[0])*fraction;p.y=a[1]+(b[1]-a[1])*fraction;
  }
 }
 function drawArenaMobs(g,now,dt,visible){
@@ -1069,12 +1116,13 @@ function attachVoiceToArena(){
  else window.addEventListener('ns159VoiceReady',start,{once:true});
 }
 function connect(match,id,ticket,rejoin=false){
- if(rejoin?N.phase!=='reconnecting':N.phase!=='idle')return false;
+ if(rejoin?(N.phase!=='reconnecting'||!!N.ws):N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL){N.phase='error';status('NOVA ZONA privremeno dostupna od nivoa 0');return false}
  if(!rejoin){
   LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
-  N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
+  resetRenderQuality();N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
+  N.arrivalJitter=0;N.interpolationTicks=3;N.rejoinCorrection=false;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.drops=[];N.lastMyHp=null;N.hurtUntil=0;
  }
  N.match=match;N.id=id;N.ticket=ticket;if(!rejoin)N.paused=false;
@@ -1103,7 +1151,9 @@ function connect(match,id,ticket,rejoin=false){
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.world=m.world||N.world;N.phase='waiting';attachVoiceToArena();
+   N.world=m.world||N.world;N.phase='waiting';
+   if(rejoin){N.mobHistory=[];N.mobRenderTick=null;N.lastState=0;N.rejoinCorrection=true;N.pending=[];N.delta={x:0,y:0};N.arrivalJitter=0;N.interpolationTicks=3;}
+   attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
     LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;
@@ -1155,8 +1205,8 @@ function connect(match,id,ticket,rejoin=false){
     if(N.paused&&ws.readyState===1)ws.send(JSON.stringify({t:'pause',paused:true}));
     status('V168 · NOVA ZONA · AUTO NAPAD · 0 XP');return;
   }
-  if(m.t==='s'){snapshot(m);return}
-  if(m.t==='pong'&&Number.isFinite(m.sent))N.ping=Math.max(0,performance.now()-m.sent);
+  if(m.t==='s'){const before=N.diagSnapshots||0;snapshot(m);if((N.diagSnapshots||0)>before&&typeof e.data==='string')N.diagChars=(N.diagChars||0)+e.data.length;return}
+  if(m.t==='pong'&&Number.isFinite(m.sent)){N.ping=Math.max(0,performance.now()-m.sent);N.diagRtt=N.ping;}
   if(m.t==='end'){
    window.NS159_VOICE?.stop();
    N.phase='ended';status('TEST ZAVRŠEN: '+String(m.reason||'kraj'));
@@ -1186,19 +1236,40 @@ function connect(match,id,ticket,rejoin=false){
  };
  return true;
 }
+// V179: validate the exact relay contract before any budget claim or ticket offer.
+function arenaRosterIssue(net,roster,minLevel=NS140_TEMP_UNLOCK_LEVEL){
+ if(!Array.isArray(roster)||roster.length<2||roster.length>6)return 'roster_count';
+ const ids=roster.map(p=>p?.id);
+ if(ids.some(id=>typeof id!=='string'||!/^p[1-6]$/.test(id)))return 'roster_seat';
+ if(new Set(ids).size!==ids.length)return 'roster_duplicate';
+ if(ids[0]!==net?.localId)return 'roster_host';
+ if(typeof net.code!=='string'||!/^[A-HJ-NP-Z2-9]{6}$/.test(net.code))return 'roster_code';
+ if(roster.some(p=>!Number.isFinite(Number(p.level))||Number(p.level)<minLevel))return 'roster_level';
+ if(ids.slice(1).some(id=>!net.clients?.get(id)?.open))return 'guest_disconnected';
+ return '';
+}
+function arenaRosterLabel(code){
+ return ({roster_count:'Potrebna su 2–6 igrača',roster_seat:'Nevažeće mesto igrača',roster_duplicate:'Duplirano mesto igrača',roster_host:'Host nije u rosteru',roster_code:'Nevažeći kod sobe',roster_level:'Nivo igrača nije dovoljan',roster_changed:'Sastav sobe se promenio; pokušaj ponovo',invalid_tickets:'Server nije izdao sve ulaznice',guest_disconnected:'Igrač je izgubio vezu',invalid_roster:'Server je odbio roster'})[code]||code;
+}
 async function startHost(){
  const b=B(),net=b.NET,roster=b.currentLobbyRoster?.()||[];
  N.errorCode='';
  if(net?.role!=='host'||net.phase!=='lobby'||N.phase!=='idle')return false;
- if(roster.length<2||roster.length>6||roster.some(p=>Number(p.level)<7)){
-  status('SVI IGRAČI MORAJU IMATI OPŠTI NIVO 7');N.phase='error';return false}
+ const issue=arenaRosterIssue(net,roster);
+ if(issue){N.errorCode=issue;N.phase='error';status('NOVA ZONA: '+arenaRosterLabel(issue));return false}
+ const code=net.code,hostId=net.localId,seats=roster.map(p=>p.id);
+ const attempt=(N.prepareAttempt||0)+1;N.prepareAttempt=attempt;
  N.phase='preparing';status('V168 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
   const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({code:net.code,seats:roster.map(p=>p.id)})});
+   body:JSON.stringify({code,seats}),signal:typeof globalThis.AbortSignal?.timeout==='function'?globalThis.AbortSignal.timeout(15000):undefined});
   const data=await req.json().catch(()=>null);
+  if(N.prepareAttempt!==attempt||N.phase!=='preparing')return false;
   if(!req.ok||data?.protocol!==140||!data.ok||!data.tickets)throw Error(data?.error||'server_not_deployed');
+  const latest=b.currentLobbyRoster?.()||[];
+  if(net.role!=='host'||net.phase!=='lobby'||net.code!==code||net.localId!==hostId||latest.length!==seats.length||latest.some((p,i)=>p.id!==seats[i])||arenaRosterIssue(net,latest))throw Error('roster_changed');
+  if(!/^[a-f0-9]{24}$/.test(data.match||'')||seats.some(id=>typeof data.tickets[id]!=='string'||!data.tickets[id]))throw Error('invalid_tickets');
   for(const peer of roster){
    if(peer.id===net.localId)continue;
    const c=net.clients.get(peer.id);
@@ -1207,9 +1278,10 @@ async function startHost(){
   }
   N.phase='idle';return connect(data.match,net.localId,data.tickets[net.localId]);
  }catch(err){
+  if(N.prepareAttempt!==attempt||N.phase!=='preparing')return false;
   N.errorCode=String(err?.message||err);
   // Never redirect players to the legacy MP. Host can retry this room in-place.
-  N.phase='error';status('NOVA ZONA NIJE SPREMNA: '+N.errorCode.slice(0,70)+' · POKUŠAJ PONOVO');return false;
+  N.phase='error';status('NOVA ZONA NIJE SPREMNA: '+arenaRosterLabel(N.errorCode).slice(0,70)+' · POKUŠAJ PONOVO');return false;
  }
 }
 function acceptOffer(d){
@@ -1246,6 +1318,8 @@ function slashHeading(p,m){
 // All clients render the attack pose from the same server attack tick.
 function swordAge(p,now){
  if(!Number.isFinite(p.attackTick))return Infinity;
+ // Remote weapon animation follows buffered world position; local pose stays responsive.
+ if(!N.solo&&p.id!==N.id&&Number.isFinite(N.mobRenderTick))return N.mobRenderTick-p.attackTick;
  return N.tick-p.attackTick+(N.solo?0:clamp((now-N.lastState)/33.333,0,2));
 }
 function drawTargetedSlash(g,p,m,age){
@@ -1302,27 +1376,37 @@ function resolveSoloChest(option){
  if(!isXp)N.soloBetweenUntil=Date.now()+1750;
  A()?.play('choose');return true;
 }
+// Two pre-rendered blue crystal variants; retain individual pulse, depth and culling.
+const xpCrystalSprites=new Map();
+function xpCrystalSprite(r){
+ if(xpCrystalSprites.has(r))return xpCrystalSprites.get(r);
+ const canvas=document.createElement('canvas');canvas.width=40;canvas.height=44;
+ const g=canvas.getContext('2d');if(!g)return null;g.translate(20,22);
+ g.fillStyle='#153c5a88';g.beginPath();g.ellipse(1,8,r+5,4,0,0,Math.PI*2);g.fill();
+ g.fillStyle='#62d5f8';g.strokeStyle='#c4f0ff';g.lineWidth=1.2;
+ g.beginPath();g.moveTo(0,-r*1.5);g.lineTo(r,0);g.lineTo(1,r*1.2);g.lineTo(-r,0);g.closePath();g.fill();g.stroke();
+ g.fillStyle='#2285b4';g.beginPath();g.moveTo(0,-r*1.5);g.lineTo(1,r*1.2);g.lineTo(-r,0);g.closePath();g.fill();
+ xpCrystalSprites.set(r,canvas);return canvas;
+}
 function drawArenaXpCrystals(g,now,view){
- const drops=N.solo?N.soloDrops:N.drops;
+ const drops=N.solo?N.soloDrops:N.drops;g.save();const alpha=g.globalAlpha;
  for(const d of drops){
   if(d.x<view.left-24||d.x>view.right+24||d.y<view.top-24||d.y>view.bottom+24)continue;
-  const r=d.value>=40?10:7,pulse=.82+.18*Math.sin(now/250+d.id);
-  g.save();g.translate(d.x,d.y);g.globalAlpha=pulse;
-  g.fillStyle='#153c5a88';g.beginPath();g.ellipse(1,8,r+5,4,0,0,Math.PI*2);g.fill();
-  // Classic four-point blue XP crystal. No mobile-expensive shadowBlur.
-  g.fillStyle='#62d5f8';g.strokeStyle='#c4f0ff';g.lineWidth=1.2;
-  g.beginPath();g.moveTo(0,-r*1.5);g.lineTo(r,0);
-  g.lineTo(1,r*1.2);g.lineTo(-r,0);g.closePath();g.fill();g.stroke();
-  g.fillStyle='#2285b4';g.beginPath();g.moveTo(0,-r*1.5);g.lineTo(1,r*1.2);g.lineTo(-r,0);g.closePath();g.fill();
-  g.restore();
+  const r=d.value>=40?10:7,sprite=xpCrystalSprite(r);
+  if(sprite){
+   const phase=RENDER_Q.fxLevel===1?Math.floor(now/120)*120:now;
+   g.globalAlpha=alpha*(RENDER_Q.fxLevel===0?.9:.82+.18*Math.sin(phase/250+d.id));
+   g.drawImage(sprite,d.x-20,d.y-22)
+  }
  }
+ g.restore();
 }
 function sessionHud(now){
  const wave=N.solo?N.soloWave:N.wave,state=N.solo?N.soloState:N.waveState;
  const mobs=N.solo?N.soloMobs:N.mpMobs,choice=N.solo?N.soloChoice:N.choice;
  const holder=el('ns152Choice'),hud=el('ns152Wave'),remaining=el('ns152Remaining');
  if(!holder||!hud||!remaining)return;
- if(now-N.uiAt>=140||N.choiceUiId!==(choice?.seq??'')){
+ if(now-N.uiAt>=140||N.choiceUiId!==(choice?(choice.seq+':'+choice.owner):'')){
   N.uiAt=now;
   hud.textContent='TALAS '+wave;
   const xpHud=el('ns168XpHud'),xpText=el('ns168XpText'),xpFill=el('ns168XpFill');
@@ -1420,7 +1504,8 @@ function drawDepthSortedWorld(g,now,dt,visible){
  }
  if(!N.solo)sampleOnlineMobs(now,dt);
  const mobs=(N.solo?N.soloMobs:N.mpMobs).filter(m=>m.kind!=='troll');
- const opt={solo:N.solo,tick:N.solo?N.soloTick:N.tick,now,lastState:N.lastState,
+ const bufferedTick=N.solo?N.soloTick:(N.mobRenderTick??N.tick);
+ const opt={solo:N.solo,tick:bufferedTick,now,lastState:N.solo?N.lastState:now,
   alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible};
  // Precompute visible goblins in ONE scan. They are never re-animated in sorting.
  const prepared=sprites.prepare(mobs,opt);N.visibleMobs=prepared.length;
@@ -1446,7 +1531,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
  const people=[];
  for(const p of N.players.values()){
   if(!p.online)continue;
-  if(p.id!==N.id){const k=1-Math.exp(-Math.min(dt,.05)*13);p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k}
+  // All remote heroes were sampled together with mobs above; no second easing pass.
   if(p.x<visible.left-75||p.x>visible.right+75||
      p.y<visible.top-95||p.y>visible.bottom+50)continue;
   people.push(p);
@@ -1519,11 +1604,45 @@ function drawLabThings(g,now,visible){
   g.restore();
  }
 }
+// V181 visual fidelity constraint: keep the established canvas DPR and every
+// hero/enemy shape, size, skin and animation intact. Adapt cosmetic XP pulse only.
+function newRenderBudget(cap=1.5){
+ cap=Math.max(.5,Math.min(1.5,Number(cap)||1));
+ return {cap,dpr:cap,fxLevel:2,slow:0,fast:0,p95Ms:null,frameCostMs:null,windows:0,changes:0};
+}
+function tuneRenderBudget(q,fps,p95Ms,costMs){
+ if(![fps,p95Ms,costMs].every(Number.isFinite))return q;
+ q.p95Ms=p95Ms;q.frameCostMs=costMs;q.windows++;
+ // Hysteresis: two overloaded windows to drop, five comfortable to recover.
+ const overloaded=fps<57||p95Ms>23||costMs>15;
+ const comfortable=fps>=59&&p95Ms<=18&&costMs<10;
+ q.slow=overloaded?q.slow+1:0;q.fast=comfortable?q.fast+1:0;
+ const old=q.fxLevel;
+ if(q.slow>=2){q.fxLevel=Math.max(0,q.fxLevel-1);q.slow=0;q.fast=0}
+ else if(q.fast>=5){q.fxLevel=Math.min(2,q.fxLevel+1);q.fast=0}
+ if(old!==q.fxLevel)q.changes++;
+ return q;
+}
+let RENDER_Q=newRenderBudget(window.devicePixelRatio||1),renderIntervals=[],renderCostSum=0,renderCostCount=0;
+function resetRenderSamples(now=0){
+ renderIntervals.length=0;renderCostSum=0;renderCostCount=0;
+ N.frames=0;N.fpsAt=now;N.lastFrame=0;
+}
+function resetRenderQuality(){RENDER_Q=newRenderBudget(window.devicePixelRatio||1);N.fps=0;resetRenderSamples()}
 function frame(now){
  if(N.phase!=='running'||document.hidden)return;
  const canvas=el('ns140Canvas'),g=canvas?.getContext('2d');if(!g)return;
+ const frameStart=performance.now();
+ const elapsed=N.lastFrame?now-N.lastFrame:0;
+ if(elapsed>1000||elapsed<0)resetRenderSamples(now);
  const dt=clamp((now-(N.lastFrame||now))/1000,0,.035);N.lastFrame=now;
- N.frames++;if(!N.fpsAt)N.fpsAt=now;if(now-N.fpsAt>1000){N.fps=Math.round(N.frames*1000/(now-N.fpsAt));N.frames=0;N.fpsAt=now}
+ if(elapsed>0&&elapsed<=1000&&renderIntervals.length<300)renderIntervals.push(elapsed);
+ if(!N.fpsAt)N.fpsAt=now;N.frames++;
+ if(now-N.fpsAt>=1000){
+  N.fps=Math.round(N.frames*1000/(now-N.fpsAt));
+  if(renderIntervals.length&&renderCostCount){const sorted=renderIntervals.slice().sort((a,b)=>a-b);tuneRenderBudget(RENDER_Q,N.fps,sorted[Math.ceil(sorted.length*.95)-1],renderCostSum/renderCostCount)}
+  N.frames=0;N.fpsAt=now;renderIntervals.length=0;renderCostSum=0;renderCostCount=0;
+ }
  const v=input();
  const selecting=N.paused||!el('ns158Menu')?.hidden||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
  if(selecting){v.x=0;v.y=0}
@@ -1559,7 +1678,7 @@ function frame(now){
   N.ws.send(JSON.stringify({t:'i',seq,ax:Math.round(v.x*127),ay:Math.round(v.y*127),attack:autoTarget?1:0}));
  }
  if(N.ws?.readyState===1&&now-N.lastPing>2000){N.lastPing=now;N.ws.send(JSON.stringify({t:'ping',sent:now}))}
- const r=canvas.getBoundingClientRect(),dpr=Math.min(1.5,devicePixelRatio||1);
+ const r=canvas.getBoundingClientRect(),dpr=RENDER_Q.dpr;
  const ww=Math.round(r.width*dpr),hh=Math.round(r.height*dpr);if(canvas.width!==ww||canvas.height!==hh){canvas.width=ww;canvas.height=hh}
  g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#192e29';g.fillRect(0,0,r.width,r.height);
  const zoom=clamp(Math.max(r.width/750,r.height/760),.7,1.45),me=N.me||{x:N.world.w/2,y:N.world.h/2};
@@ -1570,13 +1689,14 @@ function frame(now){
  g.fillStyle='#395443';g.fillRect(Math.max(0,visible.left),Math.max(0,visible.top),
   Math.min(N.world.w,visible.right)-Math.max(0,visible.left),
   Math.min(N.world.h,visible.bottom)-Math.max(0,visible.top));
- g.strokeStyle='#536b55';
+ g.strokeStyle='#536b55';g.beginPath();
  for(let x=Math.max(0,Math.floor(visible.left/55)*55);x<=Math.min(N.world.w,visible.right);x+=55){
-  g.beginPath();g.moveTo(x,Math.max(0,visible.top));g.lineTo(x,Math.min(N.world.h,visible.bottom));g.stroke();
+  g.moveTo(x,Math.max(0,visible.top));g.lineTo(x,Math.min(N.world.h,visible.bottom));
  }
  for(let y=Math.max(0,Math.floor(visible.top/55)*55);y<=Math.min(N.world.h,visible.bottom);y+=55){
-  g.beginPath();g.moveTo(Math.max(0,visible.left),y);g.lineTo(Math.min(N.world.w,visible.right),y);g.stroke();
+  g.moveTo(Math.max(0,visible.left),y);g.lineTo(Math.min(N.world.w,visible.right),y);
  }
+ g.stroke();
  drawDepthSortedWorld(g,now,dt,visible);
  drawArenaXpCrystals(g,now,visible);
  drawLabThings(g,now,visible);
@@ -1603,9 +1723,10 @@ function frame(now){
    ('FPS '+N.fps+' | '+Math.round(N.ping)+'ms | GOBLINI '+N.mpMobs.length+'/'+N.hordeTotal+
     ' | VIDLJIVO '+N.visibleMobs+(LAB_SERVER_BUILD>=168?' | NIVO '+(N.me?.level||1)+' · EXP '+Math.floor(N.me?.xp||0):'')+' | CPU '+N.serverMs+'ms');
  }
+ renderCostSum+=performance.now()-frameStart;renderCostCount++;
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, jitterMs:N.arrivalJitter??null, interpolationDelayMs:(N.interpolationTicks||3)*1000/30, renderDpr:RENDER_Q.dpr,cosmeticFxLevel:RENDER_Q.fxLevel,characterQualityLocked:true, frameP95Ms:RENDER_Q.p95Ms, meanFrameCostMs:RENDER_Q.frameCostMs, qualityChanges:RENDER_Q.changes, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,

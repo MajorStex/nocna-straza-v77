@@ -1,0 +1,26 @@
+name: V180 isolated performance stress (no deploy)
+on:
+  pull_request:
+    branches: [main]
+    paths: ['public/v140-net-mode.js','tests/v180-*.cjs','tests/v180-*.mjs','.github/workflows/v180-stress.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v180-browser-stress.test.cjs
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - run: node tests/v180-six-peer-preview.test.mjs
