@@ -8,7 +8,7 @@ const TEAMS={player:'Igrač',enemy:'Neprijatelji',ally:'Saveznici',neutral:'Neut
 const REL={hostile:'Napad',neutral:'Ignoriši',friendly:'Savez'};
 const valid=(t,d='enemy')=>Object.hasOwn(TEAMS,t)?t:d;
 const defaultRelation=(a,b)=>a===b?'friendly':a==='neutral'||b==='neutral'?'neutral':(a==='player'||a==='ally')&&(b==='player'||b==='ally')?'friendly':a==='enemy'&&(b==='player'||b==='ally')||b==='enemy'&&(a==='player'||a==='ally')?'hostile':'neutral';
-const pair=(a,b)=>[a,b].sort().join('|');
+const pair=(a,b)=>a<b?a+'|'+b:b+'|'+a;
 function clean(raw){const out={};if(raw&&typeof raw==='object')for(const a of Object.keys(TEAMS))for(const b of Object.keys(TEAMS)){if(a===b)continue;const k=pair(a,b),v=raw[k];if(Object.hasOwn(REL,v)&&v!==defaultRelation(a,b))out[k]=v}return out}
 function relation(matrix,a,b){a=valid(a);b=valid(b);if(a===b)return 'friendly';const v=matrix?.[pair(a,b)];return Object.hasOwn(REL,v)?v:defaultRelation(a,b)}
 function set(matrix,a,b,value){const out=clean(matrix);if(a===b||!Object.hasOwn(TEAMS,a)||!Object.hasOwn(TEAMS,b)||!Object.hasOwn(REL,value))return out;out[pair(a,b)]=value;return clean(out)}
