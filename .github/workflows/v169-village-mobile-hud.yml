@@ -1,5 +1,12 @@
-name: V169 Village compact mobile HUD QA
+name: V170 Village mobile auto-attack and compact HUD QA
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/v115-village.js'
+      - 'public/index.html'
+      - 'tests/v169-village-mobile-hud.test.cjs'
+      - 'tests/v138-village-pvp-animals.test.cjs'
   pull_request:
     branches: [main]
     paths:
@@ -7,6 +14,7 @@ on:
       - 'public/v165-classic-voice.js'
       - 'public/index.html'
       - 'tests/v169-village-mobile-hud.test.cjs'
+      - 'tests/v138-village-pvp-animals.test.cjs'
       - '.github/workflows/v169-village-mobile-hud.yml'
   workflow_dispatch:
 permissions: {contents: read}
@@ -22,6 +30,8 @@ jobs:
         run: npm install --no-save --no-package-lock playwright-core@1.58.2
       - name: Village mobile header/footer, 5 secondary tools and mic popup (320/360/393/412/832 px)
         run: node tests/v169-village-mobile-hud.test.cjs
+      - name: V170 nearby sheep, pig, crate and training-enemy auto attacks
+        run: node tests/v138-village-pvp-animals.test.cjs
       - name: Classic multiplayer lobby and legacy New Zone regression
         run: |
           node tests/v166-lobby-mobile-width.test.cjs
