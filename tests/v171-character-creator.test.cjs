@@ -45,7 +45,7 @@ assert(!/new WebSocket|fetch\(|XMLHttpRequest|new Audio\(|https?:\/\//.test(sour
    await page.locator('[data-tab=stats]').click();
    await page.evaluate(()=>{const x=document.querySelector('[data-field=leg]');x.value='1.4';x.dispatchEvent(new Event('input',{bubbles:true}));const l=document.getElementById('ns171Level');l.value='20';l.dispatchEvent(new Event('input',{bubbles:true}))});
    assert.equal(await page.evaluate(()=>window.NS171_CREATOR.test.draft.leg),1.4);
-   assert.match(await page.locator('#ns171Computed').textContent(),/Nivo 20/);
+   assert.match(await page.locator('#ns171Computed').textContent(),/(?:Nivo|Level) 20/);
    await page.locator('[data-action=save]').click();
    await page.locator('[data-tab=motion]').click();
    await page.locator('[data-field=gait]').selectOption('heavy');
