@@ -272,7 +272,8 @@ document.addEventListener('keydown',event=>{
  event.preventDefault();beginPTT();
 });
 window.addEventListener('pageshow',()=>{if(session&&!socket&&!document.hidden)connect()});
-window.NS159_VOICE={mount,stop,badgeState,setMode,toggleMic,beginPTT,endPTT,bindControl,disableMic:stopMic,
+function cloneMicForRecording(){const t=mic?.getAudioTracks().find(t=>t.readyState==='live');if(!t)return null;const clone=t.clone();clone.enabled=true;return new MediaStream([clone])}
+window.NS159_VOICE={mount,stop,cloneMicForRecording,badgeState,setMode,toggleMic,beginPTT,endPTT,bindControl,disableMic:stopMic,
  get connected(){return ready},get microphoneOn(){return micOn},get transmitting(){return transmitting()},get mode(){return mode},get activeMatch(){return session?.match||''},get classic(){return !!session?.classic}};
 window.dispatchEvent(new Event('ns159VoiceReady'));
 })();
