@@ -7,7 +7,7 @@
 if(window.NS174_AI)return;
 const MODES={hunt:'Slobodno kretanje / potera',patrol:'Patrola po krugu',roam:'Slobodna šetnja u radijusu',guard:'Čuvaj lokaciju',still:'Stoji na mestu'};
 const REACTIONS={hostile:'Napada neprijatelje',defend:'Samo se brani',passive:'Ne ulazi u borbu'};
-const FACTIONS={enemy:'Neprijateljski',ally:'Saveznički',neutral:'Neutralni'};
+const FACTIONS={enemy:'Neprijateljski',ally:'Saveznički',neutral:'Neutralni',red:'Crvena frakcija',blue:'Plava frakcija',player:'Igrač'};
 const SPECIALS={none:'Bez specijalnog napada',slam:'Udarac o tlo',frost:'Ledeni talas'};
 const STATES={idle:'Miruje',patrol:'Patrolira',roam:'Šeta',guard:'Čuva',chase:'Prati metu',return:'Vraća se',fight:'U borbi',cast:'Priprema napad'};
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),val=(n,d,a,b)=>clamp(n!==null&&n!==''&&Number.isFinite(Number(n))?Number(n):d,a,b),enumOf=(o,k,d)=>Object.hasOwn(o,k)?k:d;
@@ -40,12 +40,13 @@ function attach(actor,placement,seed=0){
 }
 function hostile(a,b){
  if(!a||!b||a===b||b.hp<=0)return false;
+ if((a.relations||b.relations)&&window.NS175_FACTIONS)return window.NS175_FACTIONS.hostile(a,b);
  const ta=a.faction||'enemy',tb=b.faction||'enemy';
  if(ta==='neutral'||tb==='neutral')return a.brain?.retaliate===b;
  return ta!==tb;
 }
 function markHit(a,b){if(!a||!b||a===b||!b.brain||b.placement.ai.reaction==='passive')return;
- if(a.faction!==b.faction)b.brain.retaliate=a;
+ if((a.relations||b.relations)&&window.NS175_FACTIONS){window.NS175_FACTIONS.markHit(a,b);return}if(a.faction!==b.faction)b.brain.retaliate=a;
 }
 function rng(brain){brain.seed=(Math.imul(brain.seed,1664525)+1013904223)>>>0;return brain.seed/4294967296}
 function home(actor){return actor.placement}
