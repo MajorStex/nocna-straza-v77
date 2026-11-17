@@ -60,7 +60,7 @@ try{
  await host.locator('[data-action=observe]').click();
  // Observe renders controls afresh, and zoom remains local.
  await host.locator('#ns183Sandbox summary').click();
- for(let n=0;n<3;n++){if((await host.locator('[data-action=zoom]').innerText()).includes('1.00'))break;await host.locator('[data-action=zoom]').click()}
+ for(let n=0;n<3;n++){if((await host.locator('[data-action=zoom]').innerText()).includes('1.00'))break;await host.locator('[data-action=zoomout]').click()}
  const arena=host.locator('#ns171Canvas');
  const bb=await arena.boundingBox(),sc=Math.min(bb.width/780,bb.height/500);
  const point=(x,y)=>({x:(bb.width-780*sc)/2+x*sc,y:(bb.height-500*sc)/2+y*sc});
