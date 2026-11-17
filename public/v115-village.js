@@ -1,4 +1,5 @@
-/* Noćna Straža V115 optional village lobby. V114 game logic and save schema remain unchanged.
+/* Noćna Straža Village V170: proximity auto-attack, shared breakable crates, no manual attack button.
+ * Original V114 game logic and save schema remain unchanged.
  * This peaceful scene is only a presentation of existing lobby/upgrade/chat/shop systems.
  * Multiplayer position packets are bounded, non-authoritative cosmetic movement only. */
 (function(){
@@ -1219,7 +1220,7 @@ function showAchievements(){
   fpsStart=0;fpsFrames=0;drawMsSum=0;drawMsMax=0;PERF.fps=0;
   root.classList.remove('ns109Hidden');$('home')?.classList.add('hidden');
   if(NET.ns97Results?.players?.length&&lastResultsRoundShown!==NET.ns97Results.round){lastResultsRoundShown=NET.ns97Results.round;showMatchBoard();}
-  $('ns109Hint').textContent=tr('Walk to a doorway to enter · tap a house to visit','Priđi vratima za ulaz · dodirni kućicu da priđeš');
+  $('ns109Hint').textContent=tr('Walk to a doorway · nearby targets are attacked automatically','Priđi vratima · automatski napadaš mete u blizini');
   primeVillageAudio();startVillageAmbience();if(preferMusic())playMusic();else refreshVillageAudioButtons();
   return true;
  }
