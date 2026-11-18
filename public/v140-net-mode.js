@@ -427,7 +427,7 @@ function arenaExplorePacket(e){return e?{vow:e.vow,drops:e.drops.map(d=>[d.id,d.
 function arenaExploreKill(e,p,m,tick,lab=false){
  if(!e||!p||!m||m.exploreCounted)return;
  m.exploreCounted=true;if(lab){e.invalid=true;return}if(e.invalid)return;
- e.kills++;if(m.kind==='troll')e.trolls++;if(m.kind==='worm')e.worms++;
+ e.kills++;if(m.kind==='caveSpider')p.arenaShards=Math.min(999,(p.arenaShards||0)+2);if(m.kind==='caveThief')p.arenaKeys=Math.min(99,(p.arenaKeys||0)+1);if(m.kind==='troll')e.trolls++;if(m.kind==='worm')e.worms++;
  const add=type=>{if(e.drops.length<24)e.drops.push({type,id:++e.seq,x:Math.round(m.x),y:Math.round(m.y)})};
  if(e.kills%18===0||m.kind==='boss'||m.kind==='werewolfAlpha')add('key');
  const h=(Math.imul(e.kills,1103515245)+Math.imul(tick+1,1664525))>>>0;
@@ -506,7 +506,7 @@ function expWorld(base,id){
 }
 function expMobs(id,wave,tick){
  const points=id===1?[[370,490],[650,400],[670,830],[970,360],[1030,820],[1310,340],[1400,940]]:[[350,480],[560,365],[615,800],[865,330],[900,825],[1160,390],[1290,830]];
- return points.map(([x,y],i)=>{const kind=id===1?(i===6?'brute':'skeleton'):(i===6?'brute':i%3===0?'worm':'crawler');
+ return points.map(([x,y],i)=>{const kind=id===1?(i===6?'brute':'skeleton'):(i===6?'caveSpider':i===1?'caveThief':i%3===0?'worm':'crawler');
   return {...(arenaHeavyStats(kind,wave)||{kind,hp:55+wave*4,maxHp:55+wave*4,bodyRadius:14,moveSpeed:88}),id:300+i,x,y,sx:x,sy:y,prevX:x,prevY:y,vx:0,vy:0,targetId:'',attackAt:tick+30,attackTick:-100,hitTick:-100,retargetAt:0,heavyNext:tick+90,expSleeping:id===1,labFrozen:id===1};
  });
 }
@@ -551,6 +551,23 @@ function arenaRuleWave(r,wave,players){
 function arenaRulePacket(r){return r?[r.mode,r.elapsed,r.victory?1:0,r.towers.map(t=>[t.id,t.x,t.y,t.hp]),r.stage,r.cleared]:['normal',0,0,[],0,0]}
 function arenaRuleRestore(r,v){if(!r||!v||r.mode!==v.mode)return;r.elapsed=Math.max(0,Math.floor(Number(v.elapsed)||0));r.victory=!!v.victory;r.stage=Math.min(3,Math.max(0,Math.floor(Number(v.stage)||0)));r.cleared=Math.max(0,Math.floor(Number(v.cleared)||0));for(const t of r.towers){const old=v.towers?.find(a=>a.id===t.id);if(old)t.hp=Math.max(0,Math.min(180,Number(old.hp)||0))}}
 // END V197 RULESETS
+// BEGIN V198 CAVE SPECIALS
+function caveSpecialStep(m,p,world,tick){
+ if(m.kind==='caveThief'){
+  if(!m.escapeAt&&expNear(p,m,520))m.escapeAt=tick+1350;
+  if(m.escapeAt&&tick>=m.escapeAt){m.escaped=true;m.hp=0;m.wormHold=true;return true}
+  if(!m.escapeAt){m.wormHold=true;return true}
+  let a=Math.atan2(m.y-p.y,m.x-p.x),d=(m.moveSpeed||120)*.82*(m.spellSlowFactor||1)/30;
+  for(const turn of [0,.55,-.55,1.15,-1.15,2,-2]){const x=m.x+Math.cos(a+turn)*d,y=m.y+Math.sin(a+turn)*d;if(arenaAcidClear(world,m.x,m.y,x,y,m.bodyRadius||14)){m.x=x;m.y=y;m.heavyAngle=a+turn;m.heavyGait=(m.heavyGait||0)+d/9;break}}
+  m.wormHold=true;return true
+ }
+ if(m.kind==='caveSpider'&&!m.heavyCast&&tick>=(m.webAt||0)&&expNear(p,m,155)){
+  m.webAt=tick+225;m.heavyCast={kind:2,x:m.x,y:m.y,r:155,start:tick,end:tick+30,phase:1};m.wormHold=true;return true
+ }
+ return false
+}
+// END V198 CAVE SPECIALS
+
 
 
 
@@ -560,7 +577,7 @@ function arenaRuleRestore(r,v){if(!r||!v||r.mode!==v.mode)return;r.elapsed=Math.
 const ARENA_WORLD_WEAPONS=['rapier','glaive','greataxe','scimitar','morningstar','longsword','falchion'];
 function arenaMaybeWeaponDrop(drops,m,wave,tick,id){
  if(!m||m.hp>0||m.weaponDropChecked||drops.length>=6)return false;
- m.weaponDropChecked=true;const h=(Math.imul((id+1)^((m.id+1)*313),1664525)+Math.imul(tick+wave,1013904223))>>>0,roll=(h%10000)/10000;
+ m.weaponDropChecked=true;if(m.kind==='caveSpider'||m.kind==='caveThief'){drops.push({id,x:m.x,y:m.y,weapon:m.kind==='caveSpider'?'axe':'sword'});return true}const h=(Math.imul((id+1)^((m.id+1)*313),1664525)+Math.imul(tick+wave,1013904223))>>>0,roll=(h%10000)/10000;
  const boss=m.kind==='boss'||m.kind==='werewolfAlpha',troll=m.kind==='troll',chance=boss?1:troll?.11:wave>=3?(m.kind==='elephant'?.24:.014):0;
  if(roll>=chance)return false;
  const weapon=troll?['trollclub','trollmaul'][(h>>>16)%2]:ARENA_WORLD_WEAPONS[(h>>>16)%ARENA_WORLD_WEAPONS.length];
@@ -584,13 +601,13 @@ function arenaDodgeVector(p,tick,x,y){
 }
 // END V192 Dodge
 // V191 Classic heavy enemies, shared deterministic solo/relay calendar.
-const ARENA_KINDS=['goblin','troll','worm','elephant','rotfiend','crawler','skeleton','brute','boss','werewolf','werewolfAlpha'];
+const ARENA_KINDS=['goblin','troll','worm','elephant','rotfiend','crawler','skeleton','brute','boss','werewolf','werewolfAlpha','caveSpider','caveThief'];
 const arenaSpecial=m=>ARENA_KINDS.indexOf(m.kind)>=3;
 function arenaHeavyStats(kind,wave){
  const n=Math.max(0,wave-1),spec={
  elephant:[240,12,75,1.2,28],rotfiend:[620,45,60,.5,48],
  crawler:[48,7,103,2,15],skeleton:[67,8,95,2,15],brute:[155,12,82,1.5,22],
- boss:[450,38,85,.8,52],werewolf:[130,10,120,1.1,19],werewolfAlpha:[1120,30,95,.7,65]}[kind];
+ boss:[450,38,85,.8,52],werewolf:[130,10,120,1.1,19],werewolfAlpha:[1120,30,95,.7,65],caveSpider:[341,26,67,1.2,27],caveThief:[48,9,121,1.1,14]}[kind];
  if(!spec)return null;const [base,growth,speed,rate,bodyRadius]=spec,hp=base+n*growth;
  return {kind,hp,maxHp:hp,moveSpeed:Math.min(kind==='werewolf'?165:kind==='rotfiend'?90:145,speed+n*rate),bodyRadius};
 }
@@ -613,7 +630,7 @@ function stepArenaHeavy(mobs,players,world,tick,wave,damage){
  for(const m of mobs){
   if(!arenaSpecial(m)||m.hp<=0||m.labFrozen)continue;
   let p=alive.find(p=>p.id===m.targetId);if(!p){let d=Infinity;for(const q of alive){let n=(q.x-m.x)**2+(q.y-m.y)**2;if(n<d){p=q;d=n}}}
-  m.wormHold=false;if(!p){m.heavyCast=null;continue}
+  m.wormHold=false;if(!p){m.heavyCast=null;continue}if(caveSpecialStep(m,p,world,tick))continue;
   const dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy,boss=['rotfiend','boss','werewolfAlpha'].includes(m.kind),wolf=m.kind==='werewolf'||m.kind==='werewolfAlpha';
   const phase=boss?(m.hp<=m.maxHp*.3?3:m.hp<=m.maxHp*.65?2:1):1;m.heavyPhase=phase;
   if(boss&&phase===3&&!m.heavyEnraged){m.heavyEnraged=true;m.moveSpeed=Math.min(165,m.moveSpeed*1.25)}
@@ -621,7 +638,7 @@ function stepArenaHeavy(mobs,players,world,tick,wave,damage){
    m.wormHold=true;const c=m.heavyCast;if(tick<c.end)continue;
    for(const a of alive){if(a.hp<=0||a.knocked)continue;const x=a.x-c.x,y=a.y-c.y;
     if(c.kind===1){const u=Math.cos(c.angle),v=Math.sin(c.angle),along=x*u+y*v,across=Math.abs(-x*v+y*u);if(along>=0&&along<=c.length&&across<=c.r+3)damage(a,12+5*c.phase)}
-    else if(c.kind===2){if(x*x+y*y<=(c.r+3)**2)a.enemySlowUntil=Math.max(a.enemySlowUntil||0,tick+77)}
+    else if(c.kind===2){if(x*x+y*y<=(c.r+3)**2)a.enemySlowUntil=Math.max(a.enemySlowUntil||0,tick+(m.kind==='caveSpider'?48:77))}
     else if(c.kind===3){if(a.id===c.victim&&x*x+y*y<=(c.r+3)**2&&arenaAcidClear(world,c.x,c.y,a.x,a.y,8)){const angle=Math.atan2(y,x)-c.angle;if(Math.abs(Math.atan2(Math.sin(angle),Math.cos(angle)))<=1.2)damage(a,Math.round((m.kind==='werewolfAlpha'?19:12)*(1+Math.min(1,wave*.015))))}}
     else if(x*x+y*y<=(c.r+3)**2)damage(a,10+5*c.phase);
    }
@@ -637,13 +654,13 @@ function stepArenaHeavy(mobs,players,world,tick,wave,damage){
    else m.heavyCast={kind:0,x:Math.round(p.x),y:Math.round(p.y),r:phase===3?150:phase===2?131:112,start:tick,end:tick+(phase===3?30:phase===2?38:44),phase};
    m.wormHold=true;continue;
   }
-  const range={boss:142,rotfiend:100,elephant:78,crawler:66,skeleton:66,brute:91,werewolf:53,werewolfAlpha:110}[m.kind]||78;
+  const range={boss:142,rotfiend:100,elephant:78,crawler:66,skeleton:66,brute:91,werewolf:53,werewolfAlpha:110,caveSpider:80}[m.kind]||78;
   if(d2<=range**2&&arenaAcidClear(world,m.x,m.y,p.x,p.y,8)){
    m.wormHold=true;if(tick<(m.attackAt||0))continue;
    m.attackAt=tick+({boss:38,rotfiend:63,brute:41,werewolf:tick<(m.heavyRageUntil||0)?28:41,werewolfAlpha:44}[m.kind]||37);
    m.attackTick=tick;
    if(wolf){m.heavyCast={kind:3,x:m.x,y:m.y,r:range,angle:m.heavyAngle,victim:p.id,start:tick,end:tick+(boss?13:10),phase};continue}
-   damage(p,Math.min(60,Math.round(({boss:23,rotfiend:19,elephant:17,brute:15,crawler:8,skeleton:8}[m.kind]||8)*(1+.035*(wave-1))*(boss&&phase===3?1.16:1))));
+   damage(p,Math.min(60,Math.round(({boss:23,rotfiend:19,elephant:17,brute:15,crawler:8,skeleton:8,caveSpider:14}[m.kind]||8)*(1+.035*(wave-1))*(boss&&phase===3?1.16:1))));
   }
  }
 }
