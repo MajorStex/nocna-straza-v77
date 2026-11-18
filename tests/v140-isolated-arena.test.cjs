@@ -24,7 +24,7 @@ assert.match(client,/if\(N\.ws\?\.readyState===1&&now-N\.lastInput>=\(N\.paused\
 assert.match(client,/Math\.hypot\(N\.me\.x-N\.me\.tx,N\.me\.y-N\.me\.ty\)/,'max prediction drift guard');
 assert.match(html,/id="ns140ModeMultiplayer"/,'separate multiplayer button available on mode chooser');
 assert.match(html,/SINGLEPLAYER — NOVA ZONA \(OFFLINE\)/,'new mode has visible solo button');
-assert.match(html,/NS140_ARENA\?\.startSolo\?\.\(\)/,'solo starts from the mode selector');
+assert.match(html,/NS140_ARENA\?\.startSolo\?\.\(ns197Rule\)/,'solo starts from the mode selector');
 assert.match(client,/function startSolo\(\)/,'client provides independent solo entry');
 const soloSource=client.slice(client.indexOf('function startSolo()'),client.indexOf('function stepSolo('));
 assert.ok(!/fetch\(|new WebSocket|\.send\(/.test(soloSource),'solo must not connect to Cloudflare or send remote commands');
@@ -32,3 +32,6 @@ assert.match(client,/function stepSolo\(dt\)/,'offline movement and automatic co
 assert.doesNotMatch(client,/ns140Hit|attackHeld|N\.attack/,'New Zone must never require a manual Attack control');
 assert.match(client,/if\(wasSolo\).*showPreRun/,'back to solo choose-mode, not multiplayer lobby');
 console.log('V164 frontend + solo QA PASS: temporary account-level 0 gate, isolated lobby handoff, no old gameplay, syntax and input bounds');
+
+assert.match(html,/NS140_ARENA\.startHost\(ns197Rule\)/,'host selects the same authoritative mode');
+assert.match(client,/JSON\.stringify\(\{code,seats,mode\}\)/,'room creation sends chosen rules');
