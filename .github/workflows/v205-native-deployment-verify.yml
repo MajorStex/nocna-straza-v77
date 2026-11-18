@@ -1,0 +1,57 @@
+name: V205 native Cloudflare release verification (read only)
+on:
+  pull_request:
+    branches: [main]
+    paths: ['public/**','.github/workflows/v205-native-deployment-verify.yml']
+  push:
+    branches: [main]
+    paths: ['public/**','.github/workflows/v205-native-deployment-verify.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.event_name != 'pull_request' || github.head_ref == 'v190-arena-arrows-revive'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact client release assets and relay release marker
+        env:
+          EXPECTED_RELAY_RELEASE: '205'
+        run: |
+          python3 - <<'PY'
+          import os, re, json, hashlib, time, urllib.request
+          from pathlib import Path
+          preview = os.environ.get('GITHUB_REF_NAME') != 'main'
+          suffix = '.stefanstevic1996.workers.dev'
+          client = 'https://' + ('v190-arena-arrows-revive-' if preview else '') + 'nocna-straza-v77' + suffix + '/'
+          relay = 'https://' + ('v189-arena-abilities-' if preview else '') + 'nocna-straza-relay' + suffix + '/health'
+          local = Path('public/index.html').read_bytes()
+          release = re.search(rb'<meta name="ns-release" content="(\d+)"', local)
+          if not release: raise SystemExit('Missing release marker in candidate')
+          expected = release.group(1).decode()
+          def digest(data): return hashlib.sha256(data).hexdigest()
+          files = ['v140-net-mode.js', 'development-log.md']
+          def read(url, attempt):
+              separator = '&' if '?' in url else '?'
+              req = urllib.request.Request(url + separator + 'release-verify=' + os.environ.get('GITHUB_SHA','manual') + '-' + str(attempt), headers={'Cache-Control':'no-cache','User-Agent':'NocturnaReadOnlyReleaseCheck/1.0'})
+              with urllib.request.urlopen(req, timeout=12) as response: return response.read()
+          last = ''
+          for attempt in range(1, 13):
+              try:
+                  html = read(client,attempt)
+                  if digest(html) != digest(local): raise ValueError('Client HTML fingerprint mismatch')
+                  for name in files:
+                      if digest(read(client+name,attempt)) != digest(Path('public',name).read_bytes()): raise ValueError(name+' fingerprint mismatch')
+                  h = json.loads(read(relay,attempt))
+                  if not h.get('ok') or h.get('arenaRelease') != int(os.environ['EXPECTED_RELAY_RELEASE']) or h.get('arenaWorld') != {'w':4200,'h':4200} or h.get('arenaXp') is not True: raise ValueError('Relay health/release mismatch')
+                  message = ('PREVIEW' if preview else 'PRODUCTION') + ' VERIFIED: client V'+expected+' SHA-256 and relay V'+str(h['arenaRelease'])+' /health; not a gameplay test'
+                  print(message)
+                  with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f: f.write(message+'\n\n'+client+'\n')
+                  break
+              except Exception as e:
+                  last = str(e); print('Attempt',attempt,last,flush=True)
+                  if attempt<12: time.sleep(6)
+          else: raise SystemExit('Not verified: '+last)
+          PY
