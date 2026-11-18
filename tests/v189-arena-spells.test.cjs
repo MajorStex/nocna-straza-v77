@@ -57,3 +57,23 @@ const world={w:4200,h:4200},players=new Map();for(let i=1;i<=6;i++){const id='p'
  let events=0;A.arenaFieldKits(b,team,100,()=>events++);assert.equal(p.hp,52);assert.equal(p2.hp,40);assert.equal(p.fieldRushUntil,340);assert.equal(b.kits.length,0);A.arenaFieldKits(b,team,101,()=>events++);assert.equal(events,1);
  console.log('V194 breakables, collision, room isolation, checkpoint and single-owner field kits PASS');
 })();
+
+;(()=>{
+ const cs=src.indexOf('function arenaAcidClear('),ce=src.indexOf('\nfunction stepArenaWorms',cs),start=src.indexOf('// BEGIN V195 EXPLORATION ECONOMY'),end=src.indexOf('// END V195 EXPLORATION ECONOMY',start);
+ assert(cs>=0&&ce>cs&&start>=0&&end>start);
+ const M=new Function(src.slice(cs,ce)+'\n'+src.slice(start,end)+'\nreturn {arenaExploreInit,arenaExploreKill,arenaExplorePickup,arenaExploreRestore,arenaTrade,arenaRunMask,arenaQuestPeriod}')();
+ const world={w:4200,h:4200,obstacles:[],classicProps:[{type:'market',x:200,y:200,r:70},{type:'guild',x:400,y:400,r:70}]};
+ let e=M.arenaExploreInit(world),p={id:'p1',x:200,y:200,online:true,hp:30,maxHp:100,xp:150,xpNeed:160,damage:22},q={id:'p2',hp:100,xpNeed:160,online:true},team=new Map([['p1',p],['p2',q]]);
+ assert(M.arenaTrade(e,p,'burger',1,team));assert.equal(p.hp,58);assert.equal(p.xp,95);assert(!M.arenaTrade(e,p,'burger',2,team));assert.equal(p.xp,95);
+ p.x=400;p.y=400;assert(!M.arenaTrade(e,p,'ironHeart',2,team));p.arenaKeys=1;assert(M.arenaTrade(e,p,'ironHeart',3,team));assert.equal(p.arenaKeys,0);assert(p.guildUnlocked);assert.equal(p.xp,33);assert.equal(p.maxHp,135);
+ p.xp=200;assert(!M.arenaTrade(e,p,'ironHeart',4,team));assert.equal(p.xp,200);p.x=900;p.y=900;assert(!M.arenaTrade(e,p,'healing',5,team));
+ const landmark=e.landmarks.find(o=>o.type==='relic');p.x=landmark.x;p.y=landmark.y;assert(M.arenaTrade(e,p,'putnik',10,team));assert.equal(p.xpNeed,184);assert.equal(q.xpNeed,184);assert.equal(e.vow,'putnik');assert(!M.arenaTrade(e,p,'blood',11,team));
+ e.kills=17;const mob={kind:'goblin',x:p.x,y:p.y};M.arenaExploreKill(e,p,mob,11,false);M.arenaExploreKill(e,p,mob,12,false);assert.equal(e.kills,18);assert.equal(e.drops.filter(d=>d.type==='key').length,1);
+ q.x=p.x;q.y=p.y;M.arenaExplorePickup(e,team);assert.equal(p.arenaKeys,1);assert(!q.arenaKeys);
+ e.kills=99;M.arenaExploreKill(e,p,{kind:'worm',x:p.x,y:p.y},14,false);assert(M.arenaRunMask(e)&1);
+ M.arenaExploreKill(e,p,{kind:'worm',x:p.x,y:p.y},15,true);assert(e.invalid);assert.equal(M.arenaRunMask(e),0);
+ const restored=M.arenaExploreInit(world);M.arenaExploreRestore(restored,e);assert.equal(restored.vow,'putnik');assert.equal(restored.kills,100);assert(restored.invalid);
+ for(const vow of ['blood','harvest']){const exp=M.arenaExploreInit(world),l=exp.landmarks.find(o=>o.type==='relic'),a={id:'p1',x:l.x,y:l.y,hp:100,maxHp:100,damage:100,online:true};assert(M.arenaTrade(exp,a,vow,1,new Map([[a.id,a]])));if(vow==='blood'){assert.equal(a.maxHp,82);assert.equal(a.hp,82)}else{assert.equal(a.arenaKeys,1);assert.equal(a.arenaShards,1)}}
+ const d1=M.arenaQuestPeriod(Date.UTC(2026,10,18,20)),d2=M.arenaQuestPeriod(Date.UTC(2026,10,19,20));assert(d1[0][0]!==d2[0][0]);assert.equal(d1[1][0],d2[1][0]);
+ console.log('V195 economy: exact prices, cooldown, guild key, single pickup, all relics, checkpoint, run goals and daily/weekly PASS');
+})();
