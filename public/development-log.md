@@ -1,16 +1,16 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 200 -->
+<!-- current-release: 201 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V200 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V201 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
-- Sada se radi: V200 recovery, periodični checkpoint, zaštita izbora nagrada, izvoz mrežne dijagnostike i završni CI. Grafika ostaje fiksna.
+- Sada se radi: V201 zmaj, 50. talas, tri faze, vatrena linija i udar krilima; Solo/MP dele ista pravila, server autoritativan. Grafika ostaje fiksna. V200 klijentski CI 19/19; relay CI / LIVE nerešeni.
 - Blokade: Cloudflare Actions objava prijavila nedostajuće kredencijale; serverski CI je ranije vraćao failure bez logova. Ne pretpostavljati da je to rešeno. Neophodno je proveriti konačan CI, upareni relay i klijent, stvarni LIVE URL i fizičke telefone.
-- Sledeće: kompletan V200 CI i potvrda LIVE, prvo relay pa klijent; test fizičkih 2 pa 6 Android uređaja, Wi-Fi/4G/5G i povratak iz pozadine. Plan V201 zmaj; V202 zarobljenici; V203 crafting; V204 odbrana sela; V205 legendarna oprema; V206 balans; V207 završni testovi. Plan nije implementacija.
+- Sledeće: završni V201 regression CI, kompatibilnost relay/klijent, potvrda LIVE i fizičkih 2 pa 6 Android uređaja; V202 zarobljenici, V203 crafting, V204 odbrana sela, V205 legendarna oprema, V206 balans, V207 završni testovi. Plan nije implementacija.
 
 ## Arhitektura i pravila rada
 - GitHub klijent: MajorStex/nocna-straza-v77; relay: MajorStex/nocna-straza-relay. Izvornu datoteku i status grane proveriti direktno kroz povezani GitHub; novi ChatGPT nalog mora dobiti ovlašćen pristup od vlasnika.
@@ -33,6 +33,10 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 
 <!-- HISTORY -->
 ## ISTORIJA VERZIJA — od novijih ka starijim
+### V201 — 18.11.2026 (KOD / simulirani TEST; LIVE nije potvrđen)
+- Zmaj u Nova Zone normalnoj progresiji od 50. talasa: jedan po prvom paketu talasa, bez dodatnog broja aktivnih neprijatelja; tri faze, vatrena linija i udar krilima, vidljivo upozorenje, zaključan smer, kolizija vatre sa zidom. Fiksna vektorska grafika novog bossa, van ekrana se ne crta. Postojeća umetnost ostaje netaknuta.
+- Server odlučuje HP, fazu, pogodak i nagrade; postojeći snapshot nosi koordinatu, fazu i upozorenje. Samo offline Solo izračunava lokalno. Zmaj daje XP kristal 120 i postojeći retki glaive ako ima mesta u svetskom weapon pool-u. Nije dodato novo legendarno oružje.
+- Test v201-dragon.test.mjs: 4.009 provera, 100 scenarija spawna, 300 rundi, 1.800 pogodaka, šest mock konekcija dobija identičan snapshot bossa; test je simulacija, nije fizička borba na telefonima. V200 poslednji klijentski commit 33e00663: svih 19 GitHub workflowa prošlo; 7 serverskih paketa direktno nad izvorom sa mock platformom prošlo, formalni relay CI i Cloudflare nisu potvrđeni. V201 nije objavljen, mora se proveriti kompatibilnost uparenih verzija.
 ### V200 — 18.11.2026 (KOD / izolovani TEST; LIVE nije potvrđen)
 - Periodični checkpoint na 30 s, odmah na startu, novom talasu i dodeli nadogradnje. Oporavak 6 slotova, HP/XP/drop/choice, odbijanje ponovljenog izbora, čišćenje starog inputa i istek prazne sobe. 21/21 simuliranih provera oporavka, uključujući opoziv starog socket-a i svež autentifikovani reconnect nakon rekreacije Durable Object-a. U slučaju pada nezaštićeni trenutni borbeni napredak može da se vrati do poslednjeg checkpointa; nema garancije punog kontinuiteta.
 - Dijagnostika: brojači za mrežu, reconnect, greške checkpointa i memoriju; bez tokena, ID naloga i privatnih poruka. Izvoz JSON. V200 meta, meni i runtime naslov; legacy bazni HTML naslov V166 ostavljen zbog postojećih regresija.
