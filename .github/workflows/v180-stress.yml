@@ -25,4 +25,4 @@ jobs:
         with: {node-version: '24'}
       - run: node tests/v180-six-peer-preview.test.mjs
         env:
-          NS_EXPECTED_RELAY_SHA: 'd701708960f85623a39bf009767d4ea7b3a7c334'
+          NS_EXPECTED_RELAY_SHA: 'b6a4e669bd3c2bdd6ff3a33f17007ed681382645'
