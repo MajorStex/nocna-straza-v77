@@ -1775,7 +1775,7 @@ function buildSoloWave(wave,requested=LAB.customCount===null?labDefaultCount(wav
  const points=soloHordePoints(),count=Math.min(160,requested,points.length);
  const alive=[...N.players.values()].filter(p=>p.hp>0&&!p.knocked);
  const shift=(Math.max(1,wave)*17+batch*31)%points.length;
- const ranked=points.map((pt,i)=>({
+ const ranked=(ingress?[]:points).map((pt,i)=>({
   pt,i,dist:alive.length?Math.min(...alive.map(p=>Math.hypot(pt[0]-p.x,pt[1]-p.y))):9999
  }));
  const safe=ranked.filter(item=>item.dist>=470&&!(item.pt[0]<1020&&item.pt[1]<1020));
@@ -2377,7 +2377,7 @@ function connect(match,id,ticket,rejoin=false){
   // Legacy V152 rejects >500-byte hello packets. Negotiate before sending looks.
   N.lookSyncEnabled=false;N.lastLookSignature=JSON.stringify(localArenaLook());
   N.lastLookCheck=performance.now();rememberLook(id,0,localArenaLook());
-  ws.send(JSON.stringify({t:'hello',id,ticket,protocol:140}));
+  ws.send(JSON.stringify({t:'hello',id,ticket,protocol:140,startAck:1}));
  };
  ws.onmessage=e=>{
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
@@ -2442,15 +2442,19 @@ function connect(match,id,ticket,rejoin=false){
    if(m.t==='roster'){
    status('V'+(document.querySelector('meta[name="ns-release"]')?.content||'207')+' · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
-  if(m.t==='start'){
-   N.phase='running';N.retry=0;N.lostSince=0;N.netStartedAt=performance.now();N.netStalled=false;
-   if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
-   if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.lastFrame=0;
+  if(m.t==='start'||m.t==='s'&&N.phase==='waiting'&&Number.isFinite(m.startedAt)&&m.startedAt>0&&Array.isArray(m.players)&&m.players.some(q=>q[0]===N.id&&q[5]===1)){
+   if(ws.readyState===1)try{ws.send(JSON.stringify({t:'startAck'}))}catch{}
+   if(N.phase==='waiting'){
+    N.phase='running';N.retry=0;N.lostSince=0;N.netStartedAt=performance.now();N.netStalled=false;
+    if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
+    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
+    N.lastFrame=0;
     if(N.paused&&ws.readyState===1)ws.send(JSON.stringify({t:'pause',paused:true}));
-    status('V'+(document.querySelector('meta[name="ns-release"]')?.content||'207')+' · NOVA ZONA · AUTO NAPAD');return;
+    status('V'+(document.querySelector('meta[name="ns-release"]')?.content||'207')+' · NOVA ZONA · AUTO NAPAD');
+   }
+   if(m.t==='start')return;
   }
-  if(m.t==='s'){const before=N.diagSnapshots||0;snapshot(m);if((N.diagSnapshots||0)>before&&typeof e.data==='string')N.diagChars=(N.diagChars||0)+e.data.length;return}
+  if(m.t==='s'){if(N.phase!=='running')return;const before=N.diagSnapshots||0;snapshot(m);if((N.diagSnapshots||0)>before&&typeof e.data==='string')N.diagChars=(N.diagChars||0)+e.data.length;return}
   if(m.t==='pong'&&Number.isFinite(m.sent)){N.ping=Math.max(0,performance.now()-m.sent);N.diagRtt=N.ping;}
   if(m.t==='end'){
    window.NS159_VOICE?.stop();
