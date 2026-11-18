@@ -676,7 +676,7 @@ function arenaHeavyWave(mobs,wave,batch,world){
 function stepArenaDragon(m,p,alive,world,tick,damage){
  const phase=m.hp<=m.maxHp*.3?3:m.hp<=m.maxHp*.65?2:1;m.heavyPhase=phase;
  if(phase===3&&!m.heavyEnraged){m.heavyEnraged=true;m.moveSpeed=Math.min(145,m.moveSpeed*1.2)}
- m.heavyAngle=Math.atan2(p.y-m.y,p.x-m.x);
+ m.heavyAngle=m.heavyCast?.angle??Math.atan2(p.y-m.y,p.x-m.x);
  if(m.heavyCast){m.wormHold=true;const c=m.heavyCast;if(tick<c.end)return;
   const u=Math.cos(c.angle||0),v=Math.sin(c.angle||0);
   for(const a of alive){if(a.hp<=0||a.knocked||!arenaAcidClear(world,c.x,c.y,a.x,a.y,3))continue;const x=a.x-c.x,y=a.y-c.y;
