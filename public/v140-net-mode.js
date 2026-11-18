@@ -87,6 +87,15 @@ function createArenaCrowdSteering(world,move){
   }
   flows.set(goal,distance);return distance;
  }
+// At most one uncached player destination per quiet tick; reuse valid fields on wave changes.
+ function prewarm(players){
+  for(const p of players.values()){
+   if(!p.online||p.knocked||p.hp<=0)continue;
+   const goal=nearestOpen(p.x,p.y);
+   if(goal>=0&&!flows.has(goal)){field(p.x,p.y);return true}
+  }
+  return false;
+ }
  function clearPath(x1,y1,x2,y2){
   const minX=Math.min(x1,x2),maxX=Math.max(x1,x2),minY=Math.min(y1,y2),maxY=Math.max(y1,y2),pad=world.r+2;
   for(const o of nearbySegment(minX,minY,maxX,maxY)){
@@ -200,7 +209,7 @@ function createArenaCrowdSteering(world,move){
   }
   flows.clear();
  }
- return {step,advance,field,nearestOpen,walkable,refreshObstacles,get cachedFields(){return flows.size},clear(){flows.clear()}};
+ return {step,advance,field,nearestOpen,walkable,refreshObstacles,prewarm,get cachedFields(){return flows.size},clear(){flows.clear()}};
 }
 
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:4200,h:4200,r:14,speed:156,obstacles:[]},
@@ -1594,6 +1603,12 @@ function arenaNetWatch(now){
  if(health==='reconnect'&&now-(N.netResyncAt??-30000)>=30000){N.netResyncAt=now;N.netRecoveries=(N.netRecoveries||0)+1;try{N.ws.close(4001,'snapshot timeout')}catch{}}
  return health;
 }
+// V212: keep the hero timeline across both wave boundaries and additive spawns.
+function arenaWaveBoundary(state,priorWave,batchChanged,additive){
+ const resetMobs=state.wave!==priorWave||(batchChanged&&!additive);
+ if(resetMobs)for(const sample of state.mobHistory)sample.positions.clear();
+ return resetMobs;
+}
 function snapshot(m){
  if(!Number.isInteger(m.tick)||m.tick<=N.tick||!Array.isArray(m.players))return;
  const arrived=performance.now(),previousTick=N.tick;
@@ -1639,8 +1654,7 @@ function snapshot(m){
  N.waveReserve=Number.isInteger(m.waveReserve)&&m.waveReserve>=0&&m.waveReserve<=N.waveTotal?m.waveReserve:0;
  const batch=Number.isInteger(m.waveBatch)?m.waveBatch:0,batchChanged=N.waveBatch!==batch;N.waveBatch=batch;
  if(Array.isArray(m.mobs)){
-  const waveChanged=N.wave!==priorWave||batchChanged;
-  if(waveChanged){N.mobHistory=[];N.mobRenderTick=null;}
+  const waveChanged=arenaWaveBoundary(N,priorWave,batchChanged,m.ingress===1);
   const previous=new Map(waveChanged?[]:N.mpMobs.map(q=>[q.id,q]));
   N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&(q[0]<267||(N.expSupported&&N.expedition?.id&&q[0]>=300&&q[0]<=306))&&
    Number.isFinite(q[1])&&Number.isFinite(q[2])&&Number.isFinite(q[3])).map(q=>{
@@ -1748,13 +1762,13 @@ function arenaIngressPick(points,count,players,mobs,world,batch){
  const sectors=Array.from({length:8},()=>[]),used=mobs.filter(m=>m.hp>0);
  for(let i=0;i<points.length;i++){const pt=points[i],x=pt[0],y=pt[1];if(x<1020&&y<1020)continue;
   let nearest=null,ds=Infinity;for(const p of living){const d=(x-p.x)**2+(y-p.y)**2;if(d<ds){ds=d;nearest=p}}
-  if(ds<620**2||ds>1500**2||used.some(m=>(m.x-x)**2+(m.y-y)**2<96**2))continue;
-  const angle=Math.atan2(y-nearest.y,x-nearest.x),sector=(Math.floor((angle+Math.PI)/(Math.PI/4))+8)%8;
-  sectors[sector].push({pt,dist:Math.sqrt(ds),rank:Math.abs(Math.sqrt(ds)-790),i});
+  if(ds<620**2||ds>1500**2)continue;
+  const angle=Math.atan2(y-nearest.y,x-nearest.x),sector=(Math.floor((angle+Math.PI)/(Math.PI/4))+8)%8,dist=Math.sqrt(ds);
+  sectors[sector].push({pt,dist,rank:Math.abs(dist-790),i});
  }
  for(const group of sectors)group.sort((a,b)=>a.rank-b.rank||a.i-b.i);
  const out=[];for(let pass=0;pass<3&&out.length<count;pass++)for(let i=0;i<8&&out.length<count;i++){
-  const group=sectors[(batch*3+i*3)%8];while(group.length){const q=group.shift(),[x,y]=q.pt;if(!arenaAcidClear(world,x,y,x,y,35)||out.some(a=>(a.pt[0]-x)**2+(a.pt[1]-y)**2<100**2))continue;out.push(q);break}
+  const group=sectors[(batch*3+i*3)%8];while(group.length){const q=group.shift(),[x,y]=q.pt;if(used.some(m=>(m.x-x)**2+(m.y-y)**2<96**2)||!arenaAcidClear(world,x,y,x,y,35)||out.some(a=>(a.pt[0]-x)**2+(a.pt[1]-y)**2<100**2))continue;out.push(q);break}
  }
  return out;
 }
@@ -1914,7 +1928,7 @@ function startSoloHorde(wave){
  N.acidShots=[];N.soloBatch=0;const progressive=!LAB.enabled&&LAB.customCount===null&&N.rule?.mode==='normal';N.soloTotal=progressive?arenaIngressTotal(wave):arenaRuleCount(N.rule,labDefaultCount(wave));N.soloMobs=buildSoloWave(wave,progressive?arenaIngressFirst(wave):LAB.customCount===null?arenaRuleCount(LAB.enabled?null:N.rule,labDefaultCount(wave)):LAB.customCount,0,progressive);if(LAB.enabled||LAB.customCount!==null)N.soloTotal=N.soloMobs.length;N.soloReserve=Math.max(0,N.soloTotal-N.soloMobs.length);
 }
 function nextSoloHorde(){
- if(!(N.soloReserve>0))return false;const next=buildSoloWave(N.soloWave,N.soloReserve,(N.soloBatch||0)+1);if(!next.length)return false;N.soloBatch=(N.soloBatch||0)+1;N.soloReserve-=next.length;N.acidShots=[];N.soloMobs=next;N.soloCrowd.clear();announceArena('STIŽE POJAČANJE · '+next.length);return true;
+ if(!(N.soloReserve>0))return false;const next=buildSoloWave(N.soloWave,N.soloReserve,(N.soloBatch||0)+1);if(!next.length)return false;N.soloBatch=(N.soloBatch||0)+1;N.soloReserve-=next.length;N.acidShots=[];N.soloMobs=next;announceArena('STIŽE POJAČANJE · '+next.length);return true;
 }
 function soloWaveDone(){
  if(!LAB.enabled&&!N.explore?.invalid&&arenaRuleWave(N.rule,N.soloWave,N.players)){announceArena(N.rule.mode==='defense'?'SELO ODBRANJENO':'KAMPANJA ZAVRŠENA');return}
@@ -2068,10 +2082,11 @@ function stepSolo(dt){
   }
   if(N.rule&&!N.expedition?.id&&!LAB.enabled)N.rule.elapsed++;
   if(N.soloState==='between'){
+   if(N.soloTick%6===0&&Date.now()<N.soloBetweenUntil-100)N.soloCrowd?.prewarm(N.players);
    stepSoloXpCrystals();if(N.soloChoice)continue;
    if(Date.now()>=N.soloBetweenUntil){
     N.soloWave++;startSoloHorde(N.soloWave);
-    N.soloState='play';N.soloCrowd.clear();A()?.play('wave');
+    N.soloState='play';A()?.play('wave');
    }
    continue;
   }
@@ -2953,12 +2968,13 @@ function resetRenderSamples(now=0){
  N.frames=0;N.fpsAt=now;N.lastFrame=0;
 }
 function resetRenderQuality(){RENDER_Q=newRenderBudget(window.devicePixelRatio||1);N.fps=0;resetRenderSamples()}
-let arenaHeroVoiceState=null;
+let arenaHeroVoiceState=null,arenaHeroVoiceTimer=null;
+function arenaDeferredVoice(cue,force){const match=N.match;if(arenaHeroVoiceTimer!==null)clearTimeout(arenaHeroVoiceTimer);arenaHeroVoiceTimer=setTimeout(()=>{arenaHeroVoiceTimer=null;if(N.phase==='running'&&N.match===match&&!document.hidden)B().voiceLine?.(cue,force,true)},0)}
 function arenaHeroVoicePulse(){
  const p=N.me;if(!p)return;const wave=N.solo?N.soloWave:N.wave,level=p.level||1,hp=p.hp||0,low=hp>0&&hp/(p.maxHp||100)<=.35,kills=p.kills||0;
- const old=arenaHeroVoiceState;if(!old){arenaHeroVoiceState={wave,level,hp,low,kills,match:N.match};B().voiceLine?.('start',true,true);return}
+ const old=arenaHeroVoiceState;if(!old){arenaHeroVoiceState={wave,level,hp,low,kills,match:N.match};arenaDeferredVoice('start',true);return}
  let cue=null;if(old.hp>0&&hp<=0)cue='dead';else if(low&&!old.low)cue='lowHp';else if(wave>old.wave)cue='wave';else if(level>old.level)cue='level';else if(kills>old.kills)cue='kill';
- arenaHeroVoiceState={wave,level,hp,low,kills,match:N.match};if(cue)B().voiceLine?.(cue,cue==='dead'||cue==='lowHp'||cue==='wave',true);
+ arenaHeroVoiceState={wave,level,hp,low,kills,match:N.match};if(cue)arenaDeferredVoice(cue,cue==='dead'||cue==='lowHp'||cue==='wave');
 }
 function frame(now){
  if(N.phase!=='running'||document.hidden)return;
