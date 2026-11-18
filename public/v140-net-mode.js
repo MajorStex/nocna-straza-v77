@@ -2974,7 +2974,7 @@ function arenaHeroVoicePulse(){
  const p=N.me;if(!p)return;const wave=N.solo?N.soloWave:N.wave,level=p.level||1,hp=p.hp||0,low=hp>0&&hp/(p.maxHp||100)<=.35,kills=p.kills||0;
  const old=arenaHeroVoiceState;if(!old){arenaHeroVoiceState={wave,level,hp,low,kills,match:N.match};arenaDeferredVoice('start',true);return}
  let cue=null;if(old.hp>0&&hp<=0)cue='dead';else if(low&&!old.low)cue='lowHp';else if(wave>old.wave)cue='wave';else if(level>old.level)cue='level';else if(kills>old.kills)cue='kill';
- arenaHeroVoiceState={wave,level,hp,low,kills,match:N.match};if(cue)arenaDeferredVoice(cue,cue==='dead'||cue==='lowHp'||cue==='wave');
+ arenaHeroVoiceState={wave,level,hp,low,kills,match:N.match};if(cue==='dead')B().voiceLine?.(cue,true,true);else if(cue)arenaDeferredVoice(cue,cue==='lowHp'||cue==='wave');
 }
 function frame(now){
  if(N.phase!=='running'||document.hidden)return;
