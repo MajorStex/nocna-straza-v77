@@ -72,3 +72,26 @@ test('V213 resume only reconnects original room when stale, never opens duplicat
  const a=source.indexOf('function arenaResumeAction('),b=source.indexOf('function arenaResumeNetwork(',a),c=vm.createContext({});vm.runInContext(source.slice(a,b),c);const resume=c.arenaResumeAction;
  assert.equal(resume('running',1,0,false,0),'');assert.equal(resume('running',1,7999,false,0),'');assert.equal(resume('running',1,8000,false,0),'refresh');assert.equal(resume('running',1,9000,true,0),'');assert.equal(resume('reconnecting',null,0,false,119999),'retry');assert.equal(resume('reconnecting',null,0,false,120000),'');for(const state of [0,1,2,3])assert.equal(resume('reconnecting',state,0,false,0),'');assert.equal(resume('idle',null,100000,false,0),'');assert.match(source,/window.addEventListener\('online',arenaResumeNetwork\)/);assert.match(source,/connect\(N.match,N.id,N.ticket,true\)/);
 });
+
+test('V214 clears held movement, revive and spell aim on loss of focus or network',()=>{
+ const a=source.indexOf('function arenaClearHeldControls('),b=source.indexOf('// V213:',a);
+ assert(a>=0&&b>a);
+ const N={keys:new Set(['w','arrowright']),stick:{x:.8,y:.2,ptr:7},reviveHeld:'p2'};
+ let releaseCalls=0;
+ const c=vm.createContext({N,spellAim:{x:10,y:10},resetStick(){N.stick={x:0,y:0,ptr:null}},releaseArenaRevive(){releaseCalls++;N.reviveHeld=''}});
+ vm.runInContext(source.slice(a,b),c);
+ c.arenaClearHeldControls();
+ assert.equal(N.keys.size,0);
+ assert.deepEqual(N.stick,{x:0,y:0,ptr:null});
+ assert.equal(N.reviveHeld,'');
+ assert.equal(c.spellAim,null);
+ c.arenaClearHeldControls();
+ assert.equal(N.keys.size,0);
+ assert.equal(releaseCalls,2);
+ assert.match(source,/resetRenderSamples\(\);arenaClearHeldControls\(\);/);
+ assert.match(source,/window\.addEventListener\('blur',arenaClearHeldControls\)/);
+ assert.match(source,/window\.addEventListener\('offline',\(\)=>\{\s*if\(N\.solo\|\|N\.phase!=='running'\)return;\s*arenaClearHeldControls\(\)/);
+ assert.match(source,/if\(action==='retry'\)\{\s*arenaClearHeldControls\(\)/);
+ assert.match(source,/else if\(action==='refresh'\)\{\s*arenaClearHeldControls\(\)/);
+ assert.match(source,/N\.netStalled=true;N\.pending=\[\];N\.delta=\{x:0,y:0\};arenaClearHeldControls\(\)/);
+});
