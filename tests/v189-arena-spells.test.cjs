@@ -61,7 +61,8 @@ const world={w:4200,h:4200},players=new Map();for(let i=1;i<=6;i++){const id='p'
 ;(()=>{
  const cs=src.indexOf('function arenaAcidClear('),ce=src.indexOf('\nfunction stepArenaWorms',cs),start=src.indexOf('// BEGIN V195 EXPLORATION ECONOMY'),end=src.indexOf('// END V195 EXPLORATION ECONOMY',start);
  assert(cs>=0&&ce>cs&&start>=0&&end>start);
- const M=new Function(src.slice(cs,ce)+'\n'+src.slice(start,end)+'\nreturn {arenaExploreInit,arenaExploreKill,arenaExplorePickup,arenaExploreRestore,arenaTrade,arenaRunMask,arenaQuestPeriod}')();
+ const forgeStart=src.indexOf('const ARENA_CLASSIC_WEAPONS='),forgeEnd=src.indexOf('function arenaAttackPeriod(',forgeStart);assert(forgeStart>0&&forgeEnd>forgeStart);
+ const M=new Function(src.slice(cs,ce)+'\n'+src.slice(forgeStart,forgeEnd)+'\n'+src.slice(start,end)+'\nreturn {arenaExploreInit,arenaExploreKill,arenaExplorePickup,arenaExploreRestore,arenaTrade,arenaRunMask,arenaQuestPeriod}')();
  const world={w:4200,h:4200,obstacles:[],classicProps:[{type:'market',x:200,y:200,r:70},{type:'guild',x:400,y:400,r:70}]};
  let e=M.arenaExploreInit(world),p={id:'p1',x:200,y:200,online:true,hp:30,maxHp:100,xp:150,xpNeed:160,damage:22},q={id:'p2',hp:100,xpNeed:160,online:true},team=new Map([['p1',p],['p2',q]]);
  assert(M.arenaTrade(e,p,'burger',1,team));assert.equal(p.hp,58);assert.equal(p.xp,95);assert(!M.arenaTrade(e,p,'burger',2,team));assert.equal(p.xp,95);
