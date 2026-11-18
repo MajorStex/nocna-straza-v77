@@ -57,7 +57,7 @@ function createArenaCrowdSteering(world,move){
  const open=Uint8Array.from({length:COUNT},(_,i)=>
   walkable((i%COLS+.5)*CELL,(Math.floor(i/COLS)+.5)*CELL)?1:0);
  const grid=(x,y)=>clamp(Math.floor(y/CELL),0,ROWS-1)*COLS+clamp(Math.floor(x/CELL),0,COLS-1);
- const flows=new Map();
+ const flows=new Map(),queue=new Uint16Array(COUNT); // V216: one synchronous BFS scratch queue per world.
  function nearestOpen(x,y){
   const col=clamp(Math.floor(x/CELL),0,COLS-1),row=clamp(Math.floor(y/CELL),0,ROWS-1);
   let index=row*COLS+col;if(open[index])return index;
@@ -74,7 +74,7 @@ function createArenaCrowdSteering(world,move){
   if(flows.has(goal)){const cached=flows.get(goal);flows.delete(goal);flows.set(goal,cached);return cached}
   if(flows.size>=16)flows.delete(flows.keys().next().value);
   const distance=new Uint16Array(COUNT);distance.fill(INF);
-  const q=new Uint16Array(COUNT);let head=0,tail=0;
+  const q=queue;let head=0,tail=0;
   q[tail++]=goal;distance[goal]=0;
   while(head<tail){
    const i=q[head++],cx=i%COLS,cy=Math.floor(i/COLS);
@@ -97,14 +97,16 @@ function createArenaCrowdSteering(world,move){
   return false;
  }
  function clearPath(x1,y1,x2,y2){
-  const minX=Math.min(x1,x2),maxX=Math.max(x1,x2),minY=Math.min(y1,y2),maxY=Math.max(y1,y2),pad=world.r+2;
+  const minX=Math.min(x1,x2),maxX=Math.max(x1,x2),minY=Math.min(y1,y2),maxY=Math.max(y1,y2),pad=world.r+2,dx=x2-x1,dy=y2-y1;
   for(const o of nearbySegment(minX,minY,maxX,maxY)){
    if(o.x-pad>maxX||o.x+o.w+pad<minX||o.y-pad>maxY||o.y+o.h+pad<minY)continue;
    const lx=o.x-world.r-2,rx=o.x+o.w+world.r+2;
    const ly=o.y-world.r-2,ry=o.y+o.h+world.r+2;
-   const dx=x2-x1,dy=y2-y1;
    let low=0,high=1;
-   for(const [p,q] of [[-dx,x1-lx],[dx,rx-x1],[-dy,y1-ly],[dy,ry-y1]]){
+   // Same four clipping inequalities, with no temporary pair arrays.
+   for(let side=0;side<4;side++){
+    const p=side===0?-dx:side===1?dx:side===2?-dy:dy;
+    const q=side===0?x1-lx:side===1?rx-x1:side===2?y1-ly:ry-y1;
     if(Math.abs(p)<1e-9){if(q<0){low=2;break}continue}
     const value=q/p;
     if(p<0)low=Math.max(low,value);else high=Math.min(high,value);
@@ -167,13 +169,13 @@ function createArenaCrowdSteering(world,move){
    let mag=Math.hypot(dx,dy)||1;dx/=mag;dy/=mag;
    let sx=0,sy=0,neighbours=0;
    const bx=Math.floor(m.x/48),by=Math.floor(m.y/48);
-   for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++){
+   separation:for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++){
     const list=buckets.get((bx+xx)+','+(by+yy));if(!list)continue;
     for(const other of list){
      if(other===m)continue;
      const ox=m.x-other.x,oy=m.y-other.y,d2=ox*ox+oy*oy;
      if(d2>=46*46)continue;
-     if(++neighbours>16)break; // hard cap to prevent pathological crowds
+     if(++neighbours>16)break separation; // identical first 16 contributions; skip remaining buckets
      if(d2<.01){sx+=(m.id>other.id?1:-1)*.5;continue}
      const d=Math.sqrt(d2),w=(46-d)/46;sx+=ox/d*w;sy+=oy/d*w;
     }
@@ -184,7 +186,6 @@ function createArenaCrowdSteering(world,move){
    dy=oldY+sy*.92+oldX*strafe;
    mag=Math.hypot(dx,dy)||1;dx/=mag;dy/=mag;
    m.vx=(m.vx||0)*.54+dx*.46;m.vy=(m.vy||0)*.54+dy*.46;
-   mag=Math.hypot(m.vx,m.vy)||1;
   }
  }
  function advance(mobs,players){
