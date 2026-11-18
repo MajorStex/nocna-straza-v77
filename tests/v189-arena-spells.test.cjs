@@ -77,3 +77,17 @@ const world={w:4200,h:4200},players=new Map();for(let i=1;i<=6;i++){const id='p'
  const d1=M.arenaQuestPeriod(Date.UTC(2026,10,18,20)),d2=M.arenaQuestPeriod(Date.UTC(2026,10,19,20));assert(d1[0][0]!==d2[0][0]);assert.equal(d1[1][0],d2[1][0]);
  console.log('V195 economy: exact prices, cooldown, guild key, single pickup, all relics, checkpoint, run goals and daily/weekly PASS');
 })();
+
+;(()=>{
+ const start=src.indexOf('// BEGIN V196 EXPEDITIONS'),end=src.indexOf('// END V196 EXPEDITIONS',start);
+ const cs=src.indexOf('function arenaAcidClear('),ce=src.indexOf('\nfunction stepArenaWorms',cs),hs=src.indexOf('function arenaHeavyStats('),he=src.indexOf('\nfunction arenaHeavyWave',hs);
+ assert(start>=0&&end>start&&cs>=0&&ce>cs&&hs>=0&&he>hs);
+ const A=new Function(src.slice(cs,ce)+'\n'+src.slice(hs,he)+'\n'+src.slice(start,end)+'\nreturn {expInit,expWorld,expMobs,expAllowed,expPlace,expWake,expDrop,expCollect,expReward,expPacket,EXP_START,EXP_EXIT,arenaAcidClear}')();
+ const w={w:4200,h:4200,r:14,speed:156,obstacles:[],classicProps:[]},z=A.expInit(w),p={id:'p1',online:true,hp:100,maxHp:100},q={id:'p2',online:true,hp:100,maxHp:100},team=new Map([[p.id,p],[q.id,q]]);
+ assert.equal(z.portals.length,2);assert.deepEqual(z.portals,A.expInit(w).portals);Object.assign(p,z.portals[0],{id:'p1'});Object.assign(q,p,{id:'p2',x:p.x+600});
+ assert(!A.expAllowed(z,team,p,1));A.expDrop(z,{kind:'troll',x:p.x,y:p.y},false);assert(A.expCollect(z,team));assert(z.key);assert(!A.expAllowed(z,team,p,1));q.finalDead=true;q.hp=0;assert(A.expAllowed(z,team,p,1));q.finalDead=false;q.hp=100;q.x=p.x+20;assert(A.expAllowed(z,team,p,1));
+ for(const id of [1,2]){const world=A.expWorld(w,id),m=A.expMobs(id,1,10);A.expPlace(team,A.EXP_START,10);assert([...team.values()].every(p=>A.arenaAcidClear(world,p.x,p.y,p.x,p.y,14)));assert(m.every(p=>A.arenaAcidClear(world,p.x,p.y,p.x,p.y,p.bodyRadius||14)));assert.equal(w.obstacles.length,0)}
+ z.id=1;const mobs=A.expMobs(1,1,10);assert(mobs.every(m=>m.labFrozen));p.x=mobs[0].x;p.y=mobs[0].y;A.expWake(mobs,team);assert(!mobs[0].labFrozen&&mobs.some(m=>m.labFrozen));assert(!A.expReward(z,mobs,team));mobs.forEach(m=>m.hp=0);assert(A.expReward(z,mobs,team));assert.equal(p.arenaShards,3);assert(!A.expReward(z,mobs,team));A.expPlace(team,A.EXP_EXIT,100);assert(A.expAllowed(z,team,p,0));
+ assert(JSON.stringify(A.expPacket(z)).length<40);assert(src.includes('applyExp(m.expedition);applyArenaBreakPacket'));assert(src.includes('q[0]>=300&&q[0]<=306'));
+ console.log('V196 deterministic maps, key, shared party entry, sleeping guards, bounded snapshot IDs, single reward PASS');
+})();
