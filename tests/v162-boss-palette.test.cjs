@@ -5,16 +5,15 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const client=read('v140-net-mode.js'),palette=read('v162-sandbox.js'),
  bossArt=read('v162-troll.js'),html=read('index.html');
 for(const js of [client,palette,bossArt])new Function(js);
-assert.match(html,/<title>Night Watch v166/);
+const release=Number(html.match(/name="ns-release" content="(\d+)"/)?.[1]);assert(release>=166,'release marker');assert.equal(Number(html.match(/<title>Night Watch v(\d+)/)?.[1]),release,'title release');assert.equal(Number(html.match(/id="ns102MenuVersion"[^>]*>[^<]*VERZIJA V(\d+)/)?.[1]),release,'menu release');assert.equal(Number(html.match(/v140-net-mode\.js\?v=(\d+)&amp;release=\d+/)?.[1]),release,'arena asset release');assert.equal(Number(html.match(/v140-net-mode\.js\?v=\d+&amp;release=(\d+)/)?.[1]),release,'arena cache marker');
 assert.match(html,/v162-troll\.js\?v=162/);
-assert.match(html,/v140-net-mode\.js\?v=168/);
 assert(html.indexOf('v162-troll.js')<html.indexOf('v140-net-mode.js'));
-assert.match(client,/script\.src='\.\/v162-sandbox\.js\?v=162'/);
-assert.match(client,/if\(wave===10&&spawnList\.length\)/);
+assert.match(client,/script\.src='\.\/v162-sandbox\.js\?v=162(?:&release=\d+)?'/);
+assert.match(client,/if\(batch===0&&wave===10&&spawnList\.length\)/);
 assert.match(client,/kind:'troll',hp:900,maxHp:900/);
 assert.match(client,/const bosses=mobs\.filter\(m=>m\.kind==='troll'/);
 assert.match(client,/window\.NS162_TROLL\?\.drawOne/);
-assert.match(client,/kind=q\[8\]===1\?'troll':'goblin'/);
+assert.match(client,/mob\.kind=ARENA_KINDS\[q\[8\]\]\|\|'goblin'/);assert.match(client,/const ARENA_KINDS=\['goblin','troll'/);
 assert.match(palette,/data-preview="troll"/);
 assert.match(palette,/data-preview="goblin"/);
 assert.match(palette,/get blocksInput\(\)\{return false\}/);
@@ -24,16 +23,17 @@ assert.match(palette,/id="ns162MiniSpawn"/);
 assert.doesNotMatch(palette,/localStorage|sessionStorage|indexedDB|awardMP|coopXP/);
 const start=client.indexOf('function soloHordePoints(){'),end=client.indexOf('// Test-only actions:',start);
 assert(start>=0&&end>start);
-const env={N:{world:{obstacles:[]},soloSpawnCache:null,
+const env={N:{world:{w:4200,h:4200,obstacles:[]},soloSpawnCache:null,
  players:new Map([['p1',{id:'p1',x:130,y:250,hp:100,knocked:false}]])},
- LAB:{customCount:null},labDefaultCount:w=>Math.min(80,60+Math.max(0,w-1)*10),
+ LAB:{customCount:null},labDefaultCount:w=>100+Math.max(0,w-1)*20,
  Math,clamp:(x,min,max)=>Math.max(min,Math.min(max,x))};
-vm.createContext(env);vm.runInContext(client.slice(start,end),env,{timeout:1000});
+const functions=['arenaWormVariant','arenaAcidClear','arenaHeavyStats','arenaHeavyWave'].map(name=>{const i=client.indexOf('function '+name+'(');assert(i>=0);const e=client.indexOf('\n}',i);assert(e>i);return client.slice(i,e+2)}).join('\n');
+const speed=client.match(/const arenaMobSpeed=[^\n]+;/)[0];vm.createContext(env);vm.runInContext(speed+'\n'+functions+'\n'+client.slice(start,end),env,{timeout:1000});
 assert.equal(env.buildSoloWave(9).filter(m=>m.kind==='troll').length,0);
 const ten=env.buildSoloWave(10);
-assert.equal(ten.length,80);
+assert.equal(ten.length,160);
 assert.equal(ten.filter(m=>m.kind==='troll').length,1);
-assert.equal(ten.find(m=>m.kind==='troll').hp,900);
+assert.equal(ten.find(m=>m.kind==='troll').hp,900);assert.equal(env.buildSoloWave(10,20,1).filter(m=>m.kind==='troll').length,0,'boss not duplicated in reinforcements');
 env.LAB.customCount=3;
 assert.equal(env.buildSoloWave(10).length,3);
 assert.equal(env.buildSoloWave(10).filter(m=>m.kind==='troll').length,1);
