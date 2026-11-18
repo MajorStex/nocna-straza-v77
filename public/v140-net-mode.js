@@ -1361,7 +1361,7 @@ function requestArenaCraft(weapon,tier){
  if(N.solo){if(!arenaForgeUpgrade(N.explore,N.me,weapon,tier))return false;announceArena('ORUŽJE UNAPREĐENO · +'+(tier+1));A()?.play('choose');N.tradeUiKey='';refreshArenaRun();return true}
  if(N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'arenaCraft',weapon,tier,rev:N.expedition?.rev||0}));return true}return false;
 }
-function refreshDefenseRepair(){const b=el('ns204Repair');if(!b)return;const p=N.me,r=N.rule,between=N.solo?N.soloState==='between':N.waveState==='between';const t=r?.mode==='defense'&&between&&p?.hp>0&&p.online&&!p.knocked&&!N.expedition?.id&&!N.choice&&!N.soloChoice&&!N.paused&&!LAB_PAUSE.paused&&!N.netStalled&&!(N.solo?LAB.enabled:LAB_REMOTE?.enabled)?r.towers.find(t=>t.hp>0&&t.hp<180&&(p.x-t.x)**2+(p.y-t.y)**2<=95**2):null;b.hidden=!t;if(!t)return;b.textContent='POPRAVI +30 HP · 2 METALA ('+(p.forgeScrap||0)+')';b.disabled=(p.forgeScrap||0)<2;b.onclick=()=>{if(N.solo){if(arenaDefenseRepair(r,N.world,p,t.id,t.hp)){announceArena('POPRAVLJENO');refreshDefenseRepair()}}else if(N.defenseSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'defenseRepair',id:t.id,hp:t.hp,rev:N.expedition?.rev||0}));b.disabled=true}}}
+function refreshDefenseRepair(){const b=el('ns204Repair');if(!b)return;const p=N.me,r=N.rule,between=N.solo?N.soloState==='between':N.waveState==='between';const t=r?.mode==='defense'&&!r.victory&&between&&p?.hp>0&&p.online&&!p.knocked&&!N.expedition?.id&&!N.choice&&!N.soloChoice&&!N.paused&&!LAB_PAUSE.paused&&!N.netStalled&&!(N.solo?LAB.enabled:LAB_REMOTE?.enabled)?r.towers.find(t=>t.hp>0&&t.hp<180&&(p.x-t.x)**2+(p.y-t.y)**2<=95**2):null;b.hidden=!t||N.phase!=='running';if(b.hidden)return;b.textContent='POPRAVI +30 HP · 2 METALA ('+(p.forgeScrap||0)+')';b.disabled=(p.forgeScrap||0)<2;b.onclick=()=>{if(N.solo){if(arenaDefenseRepair(r,N.world,p,t.id,t.hp)){announceArena('POPRAVLJENO');refreshDefenseRepair()}}else if(N.defenseSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'defenseRepair',id:t.id,hp:t.hp,rev:N.expedition?.rev||0}));b.disabled=true}}}
 function refreshArenaRun(){
  refreshDefenseRepair();
  const run=el('ns195Run'),trade=el('ns195Trade'),quest=el('ns195Quest');if(!run||!trade||!quest)return;
@@ -1404,7 +1404,7 @@ function applyArenaRescue(v){
  else if(next.x!==old.tx||next.y!==old.ty)N.rescueVisual={x:old.x+(old.tx-old.x)*t,y:old.y+(old.ty-old.y)*t,tx:next.x,ty:next.y,at:now};
  N.rescue=next;if(next.phase&&prev?.phase!==next.phase)announceArena(arenaRescueLabel(next));
 }
-function rescueVisible(){return N.rescue&&N.rescue.phase>0&&!N.expedition?.id&&!N.explore?.invalid&&!(N.solo?LAB.enabled:LAB_REMOTE?.enabled)}
+function rescueVisible(){return N.rule?.mode!=='defense'&&N.rescue&&N.rescue.phase>0&&!N.expedition?.id&&!N.explore?.invalid&&!(N.solo?LAB.enabled:LAB_REMOTE?.enabled)}
 function drawArenaRescue(g,view,now){
  if(!rescueVisible())return;const r=N.rescue,near=(x,y)=>x>=view.left-100&&x<=view.right+100&&y>=view.top-100&&y<=view.bottom+100;
  if(near(r.safeX,r.safeY)){g.save();g.translate(r.safeX,r.safeY);g.strokeStyle='#9bd2a6';g.fillStyle='#588b6830';g.lineWidth=3;g.beginPath();g.arc(0,0,92,0,Math.PI*2);g.fill();g.stroke();g.fillStyle='#d4f4d6';g.font='bold 12px system-ui';g.textAlign='center';g.fillText('SEOSKA STRAŽA',0,-98);g.restore()}
@@ -1444,14 +1444,14 @@ function applyExp(v){if(!N.expSupported||!N.expedition||!Array.isArray(v)||![0,1
  const z=N.expedition,changed=z.id!==v[0]||z.rev!==v[1];z.id=v[0];z.rev=v[1];z.done=Number(v[2])||0;z.key=v[3]===1;z.rope=v[4]===1;z.keyDrop=Array.isArray(v[5])?{x:v[5][0],y:v[5][1]}:null;
  if(changed){N.world=expWorld(N.expBase,z.id);resetArenaBreakables(N.world);N.breakSupported=true;N.mobHistory=[];N.mpMobs=[];N.mobRenderTick=null;N.players.clear();N.pending=[];N.delta={x:0,y:0};N.rejoinCorrection=true;resetArenaMap(true);N.tradeUiKey='';spellFx=[];announceArena(z.id===1?'TEMPLE':z.id===2?'PEĆINA':'POVRATAK NA MAPU')}
 }
-function soloExp(id){const z=N.expedition,p=N.me;if(LAB.enabled||N.explore?.invalid||N.soloChoice||N.paused||N.soloState!=='play')return false;if(!expAllowed(z,N.players,p,id,N.soloMobs))return false;
+function soloExp(id){const z=N.expedition,p=N.me;if(N.rule?.mode==='defense'||LAB.enabled||N.explore?.invalid||N.soloChoice||N.paused||N.soloState!=='play')return false;if(!expAllowed(z,N.players,p,id,N.soloMobs))return false;
  if(id){N.expOutdoorCrowd=N.soloCrowd;N.expOutdoorWorld=N.world;z.saved={mobs:N.soloMobs,chests:N.soloChests,drops:N.soloDrops,weaponDrops:N.weaponDrops,breakables:arenaBreakPacket(N.breakState),exploreDrops:N.explore.drops,total:N.soloTotal,reserve:N.soloReserve,batch:N.soloBatch,at:N.soloTick,portal:z.portals.find(q=>q.id===id)};
   z.id=id;N.world=expWorld(N.expBase,id);resetArenaBreakables(N.world);N.soloMobs=expMobs(id,N.soloWave,N.soloTick);N.soloChests=[];N.soloDrops=[];N.weaponDrops=[];N.explore.drops=[];N.soloTotal=N.soloMobs.length;N.soloReserve=0;N.soloBatch=0;expPlace(N.players,EXP_START,N.soloTick)
  }else{const old=z.saved;if(!old)return false;z.id=0;const base=expWorld(N.expBase,0);N.world=N.expOutdoorWorld||base;Object.assign(N.world,base);N.expOutdoorWorld=null;resetArenaBreakables(N.world);arenaBreakRestore(N.breakState,N.world,old.breakables);N.soloMobs=old.mobs;N.soloChests=old.chests;N.soloDrops=old.drops;N.weaponDrops=old.weaponDrops;N.explore.drops=old.exploreDrops;N.soloTotal=old.total;N.soloReserve=old.reserve;N.soloBatch=old.batch;for(const d of [...N.soloDrops,...N.weaponDrops])if(Number.isFinite(d.expires))d.expires+=N.soloTick-old.at;expPlace(N.players,old.portal,N.soloTick);z.saved=null}
  z.rev++;N.breakSupported=true;N.acidShots=[];spellFx=[];if(!id&&N.expOutdoorCrowd){N.soloCrowd=N.expOutdoorCrowd;N.expOutdoorCrowd=null;N.soloCrowd.clear()}else N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt*(p.spellSlowFactor||1),y*N.world.speed*dt*(p.spellSlowFactor||1)));resetArenaMap(true);N.tradeUiKey='';announceArena(z.id===1?'TEMPLE':z.id===2?'PEĆINA':'POVRATAK NA MAPU');return true
 }
-function requestExp(id){if(N.solo)return soloExp(id);if(N.expSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'expedition',id,rev:N.expedition?.rev||0}));return true}return false}
-function expHud(){const b=el('ns196Exp'),z=N.expedition,p=N.me;if(!b)return;const point=z?.id?EXP_EXIT:z?.portals.find(o=>expNear(p,o));b.hidden=!(N.phase==='running'&&z&&(N.solo||N.expSupported)&&point&&expNear(p,point)&&p?.hp>0&&!p.knocked&&!N.choice&&!N.soloChoice&&!N.paused&&!LAB_PAUSE.paused&&el('ns158Menu')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled));if(b.hidden)return;const id=z.id?0:point.id;b.textContent=z.id?(z.done&(1<<z.id)?'↩ IZLAZ':'POBEDI ČUVARE ZA IZLAZ'):id===1?(z.done&2?'TEMPLE · ZAVRŠEN':z.key?'ULAZ U TEMPLE':'TEMPLE · potreban ključ trola'):(z.done&4?'PEĆINA · ZAVRŠENA':z.rope?'ULAZ U PEĆINU':'PEĆINA · kanap iz kovnice');b.disabled=!!N.explore?.invalid||!expAllowed(z,N.players,p,id,N.solo?N.soloMobs:N.mpMobs);b.onclick=()=>requestExp(id)}
+function requestExp(id){if(N.rule?.mode==='defense')return false;if(N.solo)return soloExp(id);if(N.expSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'expedition',id,rev:N.expedition?.rev||0}));return true}return false}
+function expHud(){const b=el('ns196Exp'),z=N.expedition,p=N.me;if(!b)return;const point=z?.id?EXP_EXIT:z?.portals.find(o=>expNear(p,o));b.hidden=!(N.phase==='running'&&N.rule?.mode!=='defense'&&z&&(N.solo||N.expSupported)&&point&&expNear(p,point)&&p?.hp>0&&!p.knocked&&!N.choice&&!N.soloChoice&&!N.paused&&!LAB_PAUSE.paused&&el('ns158Menu')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled));if(b.hidden)return;const id=z.id?0:point.id;b.textContent=z.id?(z.done&(1<<z.id)?'↩ IZLAZ':'POBEDI ČUVARE ZA IZLAZ'):id===1?(z.done&2?'TEMPLE · ZAVRŠEN':z.key?'ULAZ U TEMPLE':'TEMPLE · potreban ključ trola'):(z.done&4?'PEĆINA · ZAVRŠENA':z.rope?'ULAZ U PEĆINU':'PEĆINA · kanap iz kovnice');b.disabled=!!N.explore?.invalid||!expAllowed(z,N.players,p,id,N.solo?N.soloMobs:N.mpMobs);b.onclick=()=>requestExp(id)}
 function drawExp(g,view){const z=N.expedition;if(!z||(!N.solo&&!N.expSupported))return;if(z.id){g.fillStyle='#303b40';g.strokeStyle='#87918c';g.lineWidth=2;for(const o of N.world.obstacles){if(o.x>view.right||o.y>view.bottom||o.x+o.w<view.left||o.y+o.h<view.top)continue;g.fillRect(o.x,o.y,o.w,o.h);g.strokeRect(o.x,o.y,o.w,o.h)}}
  const marks=z.id?[{...EXP_EXIT,id:0}]:[...z.portals];if(z.keyDrop&&!z.id)marks.push({...z.keyDrop,id:3});for(const p of marks){if(p.x<view.left-40||p.x>view.right+40||p.y<view.top-40||p.y>view.bottom+40)continue;g.save();g.translate(p.x,p.y);g.fillStyle=p.id===3?'#f7d77e':'#90c9c6';g.strokeStyle='#102725';g.lineWidth=3;g.beginPath();g.arc(0,0,p.id===3?9:24,0,Math.PI*2);g.fill();g.stroke();g.font='bold 11px system-ui';g.textAlign='center';g.fillStyle='#fff1cb';g.fillText(['IZLAZ','TEMPLE','PEĆINA','KLJUČ TROLA'][p.id],0,-30);g.restore()}}
 
@@ -2242,7 +2242,7 @@ function connect(match,id,ticket,rejoin=false){
   if(m.t==='pong'&&Number.isFinite(m.sent)){N.ping=Math.max(0,performance.now()-m.sent);N.diagRtt=N.ping;}
   if(m.t==='end'){
    window.NS159_VOICE?.stop();
-   N.phase='ended';status('TEST ZAVRŠEN: '+String(m.reason||'kraj'));
+   N.phase='ended';status(m.reason==='village_destroyed'?'SELO UNIŠTENO · ODBRANA NIJE USPELA':'TEST ZAVRŠEN: '+String(m.reason||'kraj'));
    setTimeout(()=>{if(N.ws===ws)stop()},1200);
   }
  };
@@ -2719,7 +2719,7 @@ function frame(now){
  if(selecting||N.reviveHeld||N.me?.knocked||N.me?.finalDead){v.x=0;v.y=0}
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
-  const dash=selecting?{x:0,y:0,speed:1}:arenaDodgeVector(N.me,N.solo?N.soloTick:N.tick,v.x,v.y),speed=N.world.speed*dt*dash.speed*(N.me.speedMult||1)*((N.me.enemySlowUntil||0)>(N.solo?N.soloTick:N.tick)?.58:1);
+  const dash=selecting?{x:0,y:0,speed:1}:N.rule?.mode==='defense'&&(N.solo?N.soloState==='between':N.waveState==='between')?{x:v.x,y:v.y,speed:1}:arenaDodgeVector(N.me,N.solo?N.soloTick:N.tick,v.x,v.y),speed=N.world.speed*dt*dash.speed*(N.me.speedMult||1)*((N.me.enemySlowUntil||0)>(N.solo?N.soloTick:N.tick)?.58:1);
   moveLocal(N.me,dash.x*speed,dash.y*speed);
   if(N.solo){if(!N.paused)stepSolo(dt);if(N.me.hp<=0){N.phase='solo_ended';status('STRAŽAR JE PAO · SOLO TEST ZAVRŠEN')}}
   else {N.delta.x+=N.me.x-oldX;N.delta.y+=N.me.y-oldY;}
