@@ -28,4 +28,7 @@ let displays=0,settlements=0;const resultAPI=new Function('N','LAB','B','syncAre
 ck(resultAPI.finishSoloRun('dead'),'death terminal');ck(N.phase==='solo_ended'&&N.keys.size===0&&displays===1,'results and stop input');ck(!resultAPI.finishSoloRun('dead')&&settlements===1,'only once');ck(N.soloResult.stats.seconds===75&&N.soloResult.stats.kills===18,'stats from current run');
 for(const reason of ['defeat','victory']){N.phase='running';N.soloResult=null;ck(resultAPI.finishSoloRun(reason)&&N.soloResult.stats.reason===reason,'terminal '+reason)}
 ck(src.includes("finishSoloRun('defeat')")&&src.includes("finishSoloRun(N.me.hp<=0?'dead':'victory')"),'wired death and victories');ck(src.includes('N.soloRewardBlocked=true;')&&src.includes('N.resultActiveTicks=(N.resultActiveTicks||0)+1'),'sticky lab exclusion and active ticks');
+const release=html.match(/name="ns-release" content="(\d+)"/)?.[1],menuRelease=html.match(/id="ns102MenuVersion"[^>]*>[^<]*VERZIJA V(\d+)\b/)?.[1],titleRelease=html.match(/<title>Night Watch v(\d+)\b/)?.[1];
+ck(!!release&&release===menuRelease&&release===titleRelease,'menu, browser title and release marker must agree');
+ck(!/id="ns102MenuVersion"[^>]*>[^<]*IZDANJE V\d+/.test(html),'no second stale release label');
 console.log('V206 SOLO RESULTS PASS',checks,'checks');
