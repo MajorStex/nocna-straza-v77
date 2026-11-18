@@ -5,9 +5,7 @@ const game=fs.readFileSync(path.join(root,'v140-net-mode.js'),'utf8');
 const lab=fs.readFileSync(path.join(root,'v162-sandbox.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 new Function(game);new Function(lab);
-assert.match(html,/<title>Night Watch v166/);
-assert.match(html,/VERZIJA V166/);
-assert(html.includes('v140-net-mode.js?v=168'));
+const release=Number(html.match(/name="ns-release" content="(\d+)"/)?.[1]);assert(release>=166,'release marker');assert.equal(Number(html.match(/<title>Night Watch v(\d+)/)?.[1]),release,'title release');assert.equal(Number(html.match(/id="ns102MenuVersion"[^>]*>[^<]*VERZIJA V(\d+)/)?.[1]),release,'menu release');assert.equal(Number(html.match(/v140-net-mode\.js\?v=(\d+)&amp;release=\d+/)?.[1]),release,'arena asset release');assert.equal(Number(html.match(/v140-net-mode\.js\?v=\d+&amp;release=(\d+)/)?.[1]),release,'arena cache marker');
 for(const token of ['ns160Open','ns160LabScript','v162-sandbox.js?v=162','function soloLabAction(m)','function stepSoloAllies()','function sandboxState()','function drawLabThings('])
  assert(game.includes(token.replace('ns160-sandbox','ns160')),'Missing client lab integration '+token);
 assert.match(game,/if\(opening&&N\.solo&&!N\.paused\)\{\s*toggleArenaPause\(true\)/,
@@ -23,7 +21,7 @@ assert.match(game,/N\.soloWave=int\(m\.value,1,99,1\)/);
 assert.match(game,/LAB\.customCount===null\?labDefaultCount\(wave\):LAB\.customCount/);
 assert.match(game,/if\(!LAB\.enabled&&N\.soloState==='play'/);
 assert.match(lab,/DEFAULT · talas/);
-assert.match(lab,/Talas 1: 60/);
+assert.match(lab,/Talas 1: 100/); // sandbox stress defaults are intentionally separate from progressive Normal
 assert.match(lab,/data-tab/);
 assert.match(lab,/data-cmd/);
 assert.match(lab,/spawnAlly/);
@@ -64,7 +62,7 @@ const {chromium}=require('playwright-core');
    await page.locator('[data-cmd="count"]').click();
    assert.equal((await page.evaluate(()=>window.NS140_ARENA.diagnostics)).soloMobCount,3);
    await page.locator('[data-cmd="resetCount"]').click();
-   assert.equal((await page.evaluate(()=>window.NS140_ARENA.diagnostics)).soloMobCount,70,'restore default for current wave');
+   assert.equal((await page.evaluate(()=>window.NS140_ARENA.diagnostics)).soloMobCount,120,'restore current sandbox default for wave 2');
    await page.locator('[data-tab="mobs"]').click();
    await page.locator('[data-cmd="clearMobs"]').click();
    assert.equal((await page.evaluate(()=>window.NS140_ARENA.diagnostics)).soloMobCount,0);
