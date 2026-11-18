@@ -764,7 +764,7 @@ const XP_CAP=160;
 const el=id=>document.getElementById(id);
 let magicSupported=false,spellSlot=0,spellSeq=0,spellView=null,spellFx=[],spellSeen=new Map(),spellAim=null,spellHudAt=0,spellPendingAt=0;
 function resetArenaMagic(){magicSupported=false;spellSeq=0;spellView=null;spellFx=[];spellSeen.clear();spellAim=null;spellHudAt=spellPendingAt=0;if(el('ns189Picker'))el('ns189Picker').hidden=true;if(el('ns189Magic'))el('ns189Magic').hidden=true}
-function arenaMagicAvailable(){return N.phase==='running'&&(N.solo||magicSupported)&&N.me?.hp>0&&!N.me.knocked&&!N.paused&&el('ns158Menu')?.hidden!==false&&!LAB_PAUSE.paused&&!(N.solo?N.soloChoice||N.soloState!=='play':N.choice||N.waveState!=='play')}
+function arenaMagicAvailable(){return N.phase==='running'&&!N.netStalled&&(N.solo||magicSupported)&&N.me?.hp>0&&!N.me.knocked&&!N.paused&&el('ns158Menu')?.hidden!==false&&!LAB_PAUSE.paused&&!(N.solo?N.soloChoice||N.soloState!=='play':N.choice||N.waveState!=='play')}
 function magicPoint(clientX,clientY){const r=el('ns140Canvas').getBoundingClientRect(),z=clamp(Math.max(r.width/750,r.height/760),.7,1.45);return{x:N.me.x+(clientX-r.left-r.width/2)/z,y:N.me.y+(clientY-r.top-r.height/2)/z}}
 function spellTarget(slot){const s=ARENA_SPELLS[slot],p=N.me;if(s.heal)return{x:p.x,y:p.y};let best=null,dist=Math.min(250,s.range)**2;for(const m of (N.solo?N.soloMobs:N.mpMobs)){if(m.hp<=0)continue;const d=(m.x-p.x)**2+(m.y-p.y)**2;if(d<dist){best=m;dist=d}}const angle=p.facingAngle??p.attackAngle??0;return best?{x:best.x,y:best.y}:{x:p.x+Math.cos(angle)*105,y:p.y+Math.sin(angle)*105}}
 function showArenaSpell(event){if(!Array.isArray(event)||event.length!==5||!Number.isSafeInteger(event[0])||spellSeen.has(event[0])||!ARENA_SPELLS[event[1]]||!event.slice(2).every(Number.isFinite))return;spellSeen.set(event[0],event[4]);for(const [id,t] of spellSeen)if(event[4]-t>120)spellSeen.delete(id);spellFx.push({event,at:performance.now()});if(spellFx.length>18)spellFx.shift();const me=N.me;if(me&&(event[2]-me.x)**2+(event[3]-me.y)**2<640**2)B().arenaSpellSound?.(ARENA_SPELLS[event[1]].id,event[2],event[3],me)}
@@ -1329,9 +1329,20 @@ function moveLocal(p,dx,dy){
  for(let i=0;i<steps;i++){const x=clamp(p.x+dx/steps,r,w.w-r);if(free(x,p.y))p.x=x;const y=clamp(p.y+dy/steps,r,w.h-r);if(free(p.x,y))p.y=y;}
  if(p.bodyRadius)p.heavyGait=(p.heavyGait||0)+Math.hypot(p.x-oldX,p.y-oldY)/9;
 }
+// Network health is separate from FPS; WebSocket gaps are missed snapshots, not raw UDP loss.
+function arenaNetHealth(age,rtt,jitter){return age>=8000?'reconnect':age>=3000?'stalled':age>=500||(rtt??0)>=250||jitter>=80?'unstable':'ok'}
+function arenaNetWatch(now){
+ if(N.solo||N.phase!=='running'||!N.ws||N.ws.readyState!==1)return 'ok';
+ const age=Math.max(0,now-(N.lastState||N.netStartedAt||now)),health=arenaNetHealth(age,N.diagRtt,N.arrivalJitter||0);
+ if(age>=3000&&!N.netStalled){N.netStalled=true;N.pending=[];N.delta={x:0,y:0};N.reviveHeld='';spellAim=null;N.rejoinCorrection=true;}
+ if(health==='reconnect'&&now-(N.netResyncAt??-30000)>=30000){N.netResyncAt=now;N.netRecoveries=(N.netRecoveries||0)+1;try{N.ws.close(4001,'snapshot timeout')}catch{}}
+ return health;
+}
 function snapshot(m){
  if(!Number.isInteger(m.tick)||m.tick<=N.tick||!Array.isArray(m.players))return;
  const arrived=performance.now(),previousTick=N.tick;
+ if(previousTick>=0){const missing=Math.max(0,Math.floor((m.tick-previousTick)/2)-1);N.netMissing=(N.netMissing||0)+missing;if(m.tick-previousTick>=16||N.netStalled){N.pending=[];N.delta={x:0,y:0};N.mobHistory=[];N.mobRenderTick=null;N.rejoinCorrection=true;N.netCorrections=(N.netCorrections||0)+1;}}
+ N.netStalled=false;if(Number.isSafeInteger(m.netSkipped)&&m.netSkipped>=0)N.netServerSkipped=m.netSkipped;
  // A checkpoint rollback can reuse earlier effect IDs; reset the dedupe only then.
  if(Number.isInteger(N.rejoinPreviousTick)){if(m.tick<N.rejoinPreviousTick)spellSeen.clear();N.rejoinPreviousTick=null;}
  if(previousTick>=0&&N.lastState&&m.tick-previousTick<=30){
@@ -1972,7 +1983,7 @@ function connect(match,id,ticket,rejoin=false){
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL){N.phase='error';status('NOVA ZONA privremeno dostupna od nivoa 0');return false}
  if(!rejoin){
   resetArenaMagic();resetArenaMap();LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
-  resetRenderQuality();N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.rejoinPreviousTick=null;N.delta={x:0,y:0};N.pending=[];
+  resetRenderQuality();N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.rejoinPreviousTick=null;N.netMissing=0;N.netCorrections=0;N.netRecoveries=0;N.netServerSkipped=null;N.netStalled=false;N.netResyncAt=null;N.netStartedAt=0;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
   N.arrivalJitter=0;N.interpolationTicks=3;N.rejoinCorrection=false;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.drops=[];N.lastMyHp=null;N.hurtUntil=0;
@@ -2057,7 +2068,7 @@ function connect(match,id,ticket,rejoin=false){
    status('V190 · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
   if(m.t==='start'){
-   N.phase='running';N.retry=0;N.lostSince=0;
+   N.phase='running';N.retry=0;N.lostSince=0;N.netStartedAt=performance.now();N.netStalled=false;
    if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.lastFrame=0;
@@ -2546,8 +2557,9 @@ function frame(now){
   if(renderIntervals.length&&renderCostCount){const sorted=renderIntervals.slice().sort((a,b)=>a-b);tuneRenderBudget(RENDER_Q,N.fps,sorted[Math.ceil(sorted.length*.95)-1],renderCostSum/renderCostCount)}
   N.frames=0;N.fpsAt=now;renderIntervals.length=0;renderCostSum=0;renderCostCount=0;
  }
+ const netHealth=arenaNetWatch(now);
  const v=input();
- const selecting=N.paused||!el('ns192MapPanel')?.hidden||!el('ns158Menu')?.hidden||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
+ const selecting=N.netStalled||N.paused||!el('ns192MapPanel')?.hidden||!el('ns158Menu')?.hidden||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
  if(selecting||N.reviveHeld||N.me?.knocked||N.me?.finalDead){v.x=0;v.y=0}
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
@@ -2571,7 +2583,7 @@ function frame(now){
     N.ws.send(JSON.stringify({t:'look',look}));
    }
   }
-  if(!N.rejoinCorrection&&N.tick>=0&&N.ws?.readyState===1&&now-N.lastInput>=(N.paused?500:50)&&N.ws.bufferedAmount<4000){
+  if(!N.netStalled&&!N.rejoinCorrection&&N.tick>=0&&N.ws?.readyState===1&&now-N.lastInput>=(N.paused?500:50)&&N.ws.bufferedAmount<4000){
   const seq=++N.seq;N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
   if(N.pending.length>26)N.pending.shift();
   N.delta={x:0,y:0};N.lastInput=now;
@@ -2625,12 +2637,12 @@ function frame(now){
   el('ns140Stats').textContent=N.solo?
    ('FPS '+N.fps+' | SOLO · GOBLINI '+N.soloMobs.filter(m=>m.hp>0).length+' | VIDLJIVO '+N.visibleMobs+' | NIVO '+(N.me?.level||1)+' · EXP '+Math.floor(N.me?.xp||0)+ '/'+(N.me?.xpNeed||160)):
    ('FPS '+N.fps+' | '+Math.round(N.ping)+'ms | GOBLINI '+N.mpMobs.length+'/'+N.hordeTotal+
-    ' | VIDLJIVO '+N.visibleMobs+(LAB_SERVER_BUILD>=168?' | NIVO '+(N.me?.level||1)+' · EXP '+Math.floor(N.me?.xp||0):'')+' | CPU '+N.serverMs+'ms');
+    ' | VIDLJIVO '+N.visibleMobs+(LAB_SERVER_BUILD>=168?' | NIVO '+(N.me?.level||1)+' · EXP '+Math.floor(N.me?.xp||0):'')+' | CPU '+N.serverMs+'ms'+(netHealth==='ok'?'':netHealth==='unstable'?' | NESTABILNA VEZA':' | SINHRONIZACIJA…'));
  }
  renderCostSum+=performance.now()-frameStart;renderCostCount++;
 }
 window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){return N.errorCode},get active(){return N.phase==='running'},
- get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, jitterMs:N.arrivalJitter??null, interpolationDelayMs:(N.interpolationTicks||3)*1000/30, renderDpr:RENDER_Q.dpr,cosmeticFxLevel:RENDER_Q.fxLevel,characterQualityLocked:true, frameP95Ms:RENDER_Q.p95Ms, meanFrameCostMs:RENDER_Q.frameCostMs, qualityChanges:RENDER_Q.changes, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {magicSupported:N.solo||magicSupported,magicMana:N.solo?N.me?.spellMana:spellView?.[0]/10,magicCooldown:N.solo&&N.me?arenaSpellState(N.me,N.soloTick)[2]:spellView?.[2],phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
+ get busy(){return N.phase!=='idle'},get stabilityDiagnostics(){return {phase:N.phase, fps:N.fps||null, jitterMs:N.arrivalJitter??null, interpolationDelayMs:(N.interpolationTicks||3)*1000/30, renderDpr:RENDER_Q.dpr,cosmeticFxLevel:RENDER_Q.fxLevel,characterQualityLocked:true, frameP95Ms:RENDER_Q.p95Ms, meanFrameCostMs:RENDER_Q.frameCostMs, qualityChanges:RENDER_Q.changes, rttMs:N.diagRtt??null, snapshots:N.diagSnapshots||0, avgSnapshotChars:N.diagSnapshots?Math.round(N.diagChars/N.diagSnapshots):null, snapshotAgeMs:N.lastState?Math.max(0,Math.round(performance.now()-N.lastState)):null,networkHealth:N.solo?'solo':arenaNetHealth(N.lastState?Math.max(0,performance.now()-N.lastState):0,N.diagRtt,N.arrivalJitter||0),missedSnapshots:N.netMissing||0,serverSkippedSnapshots:N.netServerSkipped??null,automaticResyncs:N.netCorrections||0,watchdogReconnects:N.netRecoveries||0, reconnectAttempts:N.retry, connected:[...N.presence.values()].filter(p=>p==='online'||p==='paused').length, serverBuild:LAB_SERVER_BUILD||null,error:N.errorCode||null,voiceConnected:!!window.NS159_VOICE?.connected}},get diagnostics(){return {magicSupported:N.solo||magicSupported,magicMana:N.solo?N.me?.spellMana:spellView?.[0]/10,magicCooldown:N.solo&&N.me?arenaSpellState(N.me,N.soloTick)[2]:spellView?.[2],phase:N.phase,mode:N.solo?'solo':'multiplayer',paused:N.paused,globalPaused:LAB_PAUSE.paused,labSupported:LAB_SUPPORTED,soloWave:N.soloWave,labEnabled:LAB.enabled,labCustomCount:LAB.customCount,labAllies:LAB.allies.length,labProps:LAB.props.length,seq:N.seq,ack:N.ack,correction:N.correction,fps:N.fps,ping:N.ping,serverMs:N.serverMs,soloMobCount:N.soloMobs.filter(m=>m.hp>0).length,soloBossCount:N.soloMobs.filter(m=>m.kind==='troll'&&m.hp>0).length,soloBossHp:N.soloMobs.find(m=>m.kind==='troll')?.hp||0,soloGoblinHp:N.soloMobs.map(m=>m.hp),soloMobsPos:N.soloMobs.map(m=>[m.x,m.y]),mobBufferSize:N.mobHistory.length,mobRenderTick:N.mobRenderTick,crowdFields:N.soloCrowd?.cachedFields||0,soloKills:N.soloKills,soloHp:N.solo?N.me?.hp:null,
  joystickActive:N.stick.ptr!==null,stickX:N.stick.x,stickY:N.stick.y,autoAttack:true,
  treeColliderCount:N.world.obstacles.filter(o=>o.kind==='tree').length,
  rockColliderCount:N.world.obstacles.filter(o=>o.kind==='rock').length,menuVisible:!el('ns158Menu')?.hidden,
