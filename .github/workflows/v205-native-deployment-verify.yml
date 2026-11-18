@@ -19,6 +19,7 @@ jobs:
       - name: Verify exact client release assets and relay release marker
         env:
           EXPECTED_RELAY_RELEASE: '205'
+          EXPECTED_PREVIEW_RELAY_SHA: '0cb3f3ea367b0fa5cdf7699d217f9fa603712af1'
         run: |
           python3 - <<'PY'
           import os, re, json, hashlib, time, urllib.request
@@ -46,7 +47,10 @@ jobs:
                       if digest(read(client+name,attempt)) != digest(Path('public',name).read_bytes()): raise ValueError(name+' fingerprint mismatch')
                   h = json.loads(read(relay,attempt))
                   if not h.get('ok') or h.get('arenaRelease') != int(os.environ['EXPECTED_RELAY_RELEASE']) or h.get('arenaWorld') != {'w':4200,'h':4200} or h.get('arenaXp') is not True: raise ValueError('Relay health/release mismatch')
-                  message = ('PREVIEW' if preview else 'PRODUCTION') + ' VERIFIED: client V'+expected+' SHA-256 and relay V'+str(h['arenaRelease'])+' /health; not a gameplay test'
+                  qa = h.get('arenaQa') or {}
+                  if qa.get('ok') is not True or qa.get('suites') != 13 or not re.fullmatch('[a-f0-9]{40}', str(qa.get('commit',''))): raise ValueError('Cloudflare full server QA proof missing')
+                  if preview and qa['commit'] != os.environ['EXPECTED_PREVIEW_RELAY_SHA']: raise ValueError('Cloudflare preview relay QA commit mismatch')
+                  message = ('PREVIEW' if preview else 'PRODUCTION') + ' VERIFIED: client V'+expected+' SHA-256 and relay V'+str(h['arenaRelease'])+' /health; Cloudflare QA 13/13 commit '+qa['commit']+'; not a gameplay test'
                   print(message)
                   with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f: f.write(message+'\n\n'+client+'\n')
                   break
