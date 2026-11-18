@@ -2,7 +2,7 @@ name: V189 Nova Zone magic QA
 on:
   pull_request:
     branches: [main]
-    paths: ['public/v140-net-mode.js','public/index.html','tests/v189-*.cjs','tests/v199-*.test.mjs','.github/workflows/v189-arena-spells.yml']
+    paths: ['public/v140-net-mode.js','public/index.html','tests/v189-*.cjs','tests/v199-*.test.mjs','tests/v199-development-log.test.cjs','public/development-log.md','public/v199-development-log.js','.github/workflows/v189-arena-spells.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,5 +16,6 @@ jobs:
         with: {node-version: '24'}
       - run: node tests/v189-arena-spells.test.cjs
       - run: node tests/v199-network-watchdog.test.mjs
+      - run: node tests/v199-development-log.test.cjs
       - run: npm install --no-save --no-package-lock playwright-core@1.58.2
       - run: node tests/v189-arena-browser.test.cjs
