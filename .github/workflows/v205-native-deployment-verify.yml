@@ -19,7 +19,7 @@ jobs:
       - name: Verify exact client release assets and relay release marker
         env:
           EXPECTED_RELAY_RELEASE: '211'
-          EXPECTED_PREVIEW_RELAY_SHA: '89e39f6533e2d6688522aac58b31b5924e50fb54'
+          EXPECTED_PREVIEW_RELAY_SHA: '02171c9f9b91ea720216e711f9146be2a32237c1'
         run: |
           python3 - <<'PY'
           import os, re, json, hashlib, time, urllib.request
