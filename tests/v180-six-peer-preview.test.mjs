@@ -10,7 +10,7 @@ const seats=Array.from({length:6},(_,i)=>'p'+(i+1));
 let health,lastHealth;
 for(let i=0;i<24;i++){
  try{const h=await fetch(base+'/health?qa='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(5000)});lastHealth=await h.json();
- if(lastHealth.ok&&lastHealth.arenaRelease===211&&lastHealth.arenaQa?.ok&&lastHealth.arenaQa?.suites===13&&lastHealth.arenaQa?.commit===expected){health=lastHealth;break}}
+ if(lastHealth.ok&&lastHealth.arenaRelease===212&&lastHealth.arenaQa?.ok&&lastHealth.arenaQa?.suites===13&&lastHealth.arenaQa?.commit===expected){health=lastHealth;break}}
  catch(e){lastHealth=String(e)} await sleep(3000);
 }
 assert(health,'preview release/QA mismatch: '+JSON.stringify(lastHealth));
@@ -42,7 +42,7 @@ let timer;
 try{
  const six=seats.map(id=>connect(id));
  await until('six-seat handshake and first authoritative snapshot',()=>six.every(p=>ready(p)&&seats.every(id=>online(p,id))));
- assert(six.every(p=>p.latest.waveTotal===24),'normal first wave has 24 total enemies, staggered');assert(six.every(p=>p.latest.mobs.length<=12),'initial active horde cap');
+ assert(six.every(p=>p.latest.waveTotal===24),'normal first wave has 24 total enemies, staggered');assert(six.every(p=>p.latest.mobs.length<=12),'initial active horde cap');assert(six.every(p=>p.latest.ingress===1),'additive snapshot capability');
  for(const p of six){assert.equal(p.world.w,4200);assert.equal(p.world.h,4200);assert.deepEqual(p.seats,seats);assert.deepEqual(p.world,six[0].world)}
  const begin=Date.now();
  // Stagger action inputs by 50–300ms and discard application snapshots (not real network loss).
@@ -60,5 +60,5 @@ try{
  await until('guest same-seat reconnect and fresh input ACK',()=>ready(returned)&&returned.latest.tick>oldTick&&online(returned,old.id)&&returned.latest.ack>guestSeq);
  await until('all peers see the six restored seats',()=>[rehost,...six.slice(1,5),returned].every(p=>seats.every(id=>online(p,id))));
  for(const p of [rehost,...six.slice(1,5),returned]){assert.equal(p.regressions,0,'monotonic server snapshots');assert.equal(p.latest.players.length,6)}
- console.log('V211 PREVIEW SIX PEERS PASS',JSON.stringify({release:health.arenaRelease,relayCommit:expected,players:6,serverMobCount:returned.latest.mobs?.length,delayedInputMs:[50,100,150,200,250,300],applicationDiscard:six.map(p=>[p.id,p.dropped,p.received]),sameSeatReconnect:true,hostContinuity:true,hostSeatRestored:true,freshInputsAcknowledged:true,tickAfterReconnect:returned.latest.tick}));
+ console.log('V212 PREVIEW SIX PEERS PASS',JSON.stringify({release:health.arenaRelease,relayCommit:expected,players:6,serverMobCount:returned.latest.mobs?.length,delayedInputMs:[50,100,150,200,250,300],applicationDiscard:six.map(p=>[p.id,p.dropped,p.received]),sameSeatReconnect:true,hostContinuity:true,hostSeatRestored:true,freshInputsAcknowledged:true,tickAfterReconnect:returned.latest.tick}));
 }finally{clearInterval(timer);for(const p of peers)try{p.ws.close()}catch{}}
