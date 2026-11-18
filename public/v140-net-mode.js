@@ -621,10 +621,21 @@ function arenaRunMask(e){
 // BEGIN V196 EXPEDITIONS
 const EXP_START={x:235,y:225},EXP_EXIT={x:235,y:330},EXP_CORE={x:1480,y:840};
 function expInit(world){
- const portals=[];for(const id of [1,2])for(let j=0;j<96;j++){
-  const a=(j+id*19)*2.39996323,d=330+(j%10)*57,x=Math.round(world.w/2+Math.cos(a)*d),y=Math.round(world.h/2+Math.sin(a)*d);
-  if(!arenaAcidClear(world,x,y,x,y,48)||portals.some(p=>(p.x-x)**2+(p.y-y)**2<180**2))continue;portals.push({id,x,y});break
+ // Classic landmark coordinates, recovered from the original map generator.
+ // Use an identical collision-checked fallback on solo and the authoritative relay.
+ const portals=[],classic=world.w===4200&&world.h===4200&&(world.classicProps?.length||0)>400;
+ const near=(x,y)=>!arenaAcidClear(world,x,y,x,y,48)||portals.some(p=>(p.x-x)**2+(p.y-y)**2<180**2);
+ for(const id of (classic?[2,1]:[1,2])){
+  if(classic){const candidates=id===2?[[1568,1792]]:[[2375,2200],[2370,1960],[1840,2200],[1890,1900],[2270,2360],[1925,2360]];
+   for(const [x,y] of candidates)if(!near(x,y)){portals.push({id,x,y});break}
+  }
+  if(portals.some(p=>p.id===id))continue;
+  for(let j=0;j<96;j++){
+   const a=(j+id*19)*2.39996323,d=330+(j%10)*57,x=Math.round(world.w/2+Math.cos(a)*d),y=Math.round(world.h/2+Math.sin(a)*d);
+   if(!near(x,y)){portals.push({id,x,y});break}
+  }
  }
+ portals.sort((a,b)=>a.id-b.id);
  return {id:0,rev:0,done:0,key:false,rope:false,keyDrop:null,portals,saved:null,core:false};
 }
 function expWorld(base,id){
@@ -1530,7 +1541,14 @@ function soloExp(id){const z=N.expedition,p=N.me;if(N.rule?.mode==='defense'||LA
 function requestExp(id){if(N.rule?.mode==='defense')return false;if(N.solo)return soloExp(id);if(N.expSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'expedition',id,rev:N.expedition?.rev||0}));return true}return false}
 function expHud(){const b=el('ns196Exp'),z=N.expedition,p=N.me;if(!b)return;const point=z?.id?EXP_EXIT:z?.portals.find(o=>expNear(p,o));b.hidden=!(N.phase==='running'&&N.rule?.mode!=='defense'&&z&&(N.solo||N.expSupported)&&point&&expNear(p,point)&&p?.hp>0&&!p.knocked&&!N.choice&&!N.soloChoice&&!N.paused&&!LAB_PAUSE.paused&&el('ns158Menu')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled));if(b.hidden)return;const id=z.id?0:point.id;b.textContent=z.id?(z.done&(1<<z.id)?'↩ IZLAZ':z.id===1&&!z.core?'PRONAĐI DIJAMANT':'POBEDI ČUVARE ZA IZLAZ'):id===1?(z.done&2?'TEMPLE · ZAVRŠEN':z.key?'ULAZ U TEMPLE':'TEMPLE · potreban ključ trola'):(z.done&4?'PEĆINA · ZAVRŠENA':z.rope?'ULAZ U PEĆINU':'PEĆINA · kanap iz kovnice');b.disabled=!!N.explore?.invalid||!expAllowed(z,N.players,p,id,N.solo?N.soloMobs:N.mpMobs);b.onclick=()=>requestExp(id)}
 function drawExp(g,view){const z=N.expedition;if(!z||(!N.solo&&!N.expSupported))return;if(z.id){g.fillStyle='#303b40';g.strokeStyle='#87918c';g.lineWidth=2;for(const o of N.world.obstacles){if(o.x>view.right||o.y>view.bottom||o.x+o.w<view.left||o.y+o.h<view.top)continue;g.fillRect(o.x,o.y,o.w,o.h);g.strokeRect(o.x,o.y,o.w,o.h)}}
- const marks=z.id?[{...EXP_EXIT,id:0},...(z.id===1&&!z.core?[{...EXP_CORE,id:4}]:[])]:[...z.portals];if(z.keyDrop&&!z.id)marks.push({...z.keyDrop,id:3});for(const p of marks){if(p.x<view.left-40||p.x>view.right+40||p.y<view.top-40||p.y>view.bottom+40)continue;g.save();g.translate(p.x,p.y);g.fillStyle=p.id===3?'#f7d77e':'#90c9c6';g.strokeStyle='#102725';g.lineWidth=3;g.beginPath();g.arc(0,0,p.id===3?9:24,0,Math.PI*2);g.fill();g.stroke();g.font='bold 11px system-ui';g.textAlign='center';g.fillStyle='#fff1cb';g.fillText(['IZLAZ','TEMPLE','PEĆINA','KLJUČ TROLA','DIJAMANT'][p.id],0,-30);g.restore()}}
+ const marks=z.id?[{...EXP_EXIT,id:0},...(z.id===1&&!z.core?[{...EXP_CORE,id:4}]:[])]:[...z.portals];if(z.keyDrop&&!z.id)marks.push({...z.keyDrop,id:3});for(const p of marks){if(p.x<view.left-40||p.x>view.right+40||p.y<view.top-40||p.y>view.bottom+40)continue;g.save();g.translate(p.x,p.y);
+ if(p.id===2&&!z.id){
+  // Original Classic cave silhouette, without coupling to Classic's separate save state.
+  g.fillStyle='#0b1114b8';g.beginPath();g.ellipse(0,35,69,20,0,0,Math.PI*2);g.fill();
+  g.fillStyle='#303839';g.strokeStyle='#788786';g.lineWidth=5;g.beginPath();g.moveTo(-61,20);g.lineTo(-55,-22);g.lineTo(-37,-58);g.lineTo(-9,-77);g.lineTo(29,-60);g.lineTo(57,-20);g.lineTo(64,20);g.closePath();g.fill();g.stroke();
+  g.fillStyle='#090e13';g.beginPath();g.ellipse(0,3,38,48,0,0,Math.PI*2);g.fill();g.strokeStyle='#756b49';g.lineWidth=3;g.beginPath();for(let i=0;i<3;i++){const y=12+i*9;g.moveTo(-17,y);g.lineTo(17,y)}g.stroke();g.fillStyle='#e0d4a3';g.font='bold 12px sans-serif';g.textAlign='center';g.fillText('CAVE',0,-82);if(!z.rope){g.fillStyle='#d7b775';g.font='bold 17px sans-serif';g.fillText('⌁',0,-28)}g.restore();continue;
+ }
+ g.fillStyle=p.id===3?'#f7d77e':'#90c9c6';g.strokeStyle='#102725';g.lineWidth=3;g.beginPath();g.arc(0,0,p.id===3?9:24,0,Math.PI*2);g.fill();g.stroke();g.font='bold 11px system-ui';g.textAlign='center';g.fillStyle='#fff1cb';g.fillText(['IZLAZ','TEMPLE','PEĆINA','KLJUČ TROLA','DIJAMANT'][p.id],0,-30);g.restore()}}
 
 function resetArenaBreakables(world){N.breakState=arenaBreakInit(world);N.breakRevision=-1;N.breakSupported=false}
 function applyArenaBreakPacket(packet){if(!N.breakSupported||!N.breakState||!Array.isArray(packet)||packet[0]===N.breakRevision)return;
@@ -2695,16 +2713,54 @@ function drawArenaPlayerLabel(g,p){
  drawArenaVoiceBadge(g,p.id,p.x+38,labelY-2);
  g.restore();
 }
-const classicSceneryCache=new Map();
-function drawClassicScenery(g,p){if(p.type==='crystal')return;const bridge=B().arenaClassicProp;if(!bridge)return;const key=p.type+':'+p.r+':'+p.seed+':'+(p.orientation||'');let sprite=classicSceneryCache.get(key);const pad=Math.ceil(p.r*2+12);
- if(!sprite){sprite=document.createElement('canvas');sprite.width=sprite.height=pad*2;const c=sprite.getContext('2d');if(!c||!bridge(c,{...p,x:pad,y:pad}))return;if(classicSceneryCache.size>=160)classicSceneryCache.delete(classicSceneryCache.keys().next().value);classicSceneryCache.set(key,sprite)}
+// Classic map visuals: local immutable spatial index; no additional network traffic.
+const classicSceneryCache=new Map(),classicPropIndexes=new WeakMap();
+let classicSpriteBytes=0,classicGround=null;
+function visibleClassicProps(props,v){
+ if(!props?.length)return [];
+ const size=256;let idx=classicPropIndexes.get(props);
+ if(!idx){idx=new Map();for(let i=0;i<props.length;i++){
+  const p=props[i];if(p.type==='crystal')continue;const pad=p.r*2;
+  for(let y=Math.floor((p.y-pad)/size);y<=Math.floor((p.y+pad)/size);y++)
+   for(let x=Math.floor((p.x-pad)/size);x<=Math.floor((p.x+pad)/size);x++){
+    const k=x+','+y;if(!idx.has(k))idx.set(k,[]);idx.get(k).push(i);
+   }
+ }classicPropIndexes.set(props,idx)}
+ const ids=new Set(),out=[];
+ for(let y=Math.floor(v.top/size);y<=Math.floor(v.bottom/size);y++)
+  for(let x=Math.floor(v.left/size);x<=Math.floor(v.right/size);x++)
+   for(const id of idx.get(x+','+y)||[]){
+    if(ids.has(id))continue;ids.add(id);const p=props[id],pad=p.r*2;
+    if(p.x+pad>=v.left&&p.x-pad<=v.right&&p.y+pad>=v.top&&p.y-pad<=v.bottom)out.push({id,p});
+   }
+ return out;
+}
+function drawClassicGround(g,w){
+ const key=w.w+':'+w.h;if(classicGround?.key!==key){
+  const cv=document.createElement('canvas');cv.width=Math.ceil(w.w/80);cv.height=Math.ceil(w.h/80);
+  const ctx=cv.getContext('2d');if(!ctx)return false;
+  for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){const z=Math.sin(x*127.1+y*311.7)*43758.5453,n=z-Math.floor(z);ctx.fillStyle=n>.65?'#30352f':n>.3?'#292e2b':'#2c312b';ctx.fillRect(x,y,1,1)}
+  classicGround={key,cv};
+ }
+ g.save();g.imageSmoothingEnabled=false;g.drawImage(classicGround.cv,0,0,w.w/80,w.h/80,0,0,w.w,w.h);g.restore();return true;
+}
+function drawClassicScenery(g,p){
+ if(p.type==='crystal')return;const bridge=B().arenaClassicProp;if(!bridge)return;
+ const key=p.type+':'+p.r+':'+p.seed+':'+(p.orientation||'');let sprite=classicSceneryCache.get(key);
+ const pad=Math.ceil(p.r*2+12),bytes=pad*pad*16;
+ if(sprite){classicSceneryCache.delete(key);classicSceneryCache.set(key,sprite)}
+ else{sprite=document.createElement('canvas');sprite.width=sprite.height=pad*2;const ctx=sprite.getContext('2d');
+  if(!ctx||!bridge(ctx,{...p,x:pad,y:pad}))return;
+  while(classicSpriteBytes+bytes>24*1024*1024&&classicSceneryCache.size){const first=classicSceneryCache.keys().next().value,old=classicSceneryCache.get(first);classicSpriteBytes-=old.width*old.height*4;classicSceneryCache.delete(first)}
+  classicSceneryCache.set(key,sprite);classicSpriteBytes+=bytes;
+ }
  g.drawImage(sprite,p.x-pad,p.y-pad);
 }
 function drawDepthSortedWorld(g,now,dt,visible){
  const sprites=window.NS154_GOBLINS;
  if(!sprites?.prepare||!sprites?.drawOne){
-  drawArenaBuildings(g,N.world.obstacles,visible);
-  if(N.world.classicProps)for(const p of N.world.classicProps)if(p.x+p.r*2>=visible.left&&p.x-p.r*2<=visible.right&&p.y+p.r*2>=visible.top&&p.y-p.r*2<=visible.bottom)drawClassicScenery(g,p);
+  drawArenaBuildings(g,N.world.obstacles.filter(o=>!o.classic),visible);
+  for(const {p} of visibleClassicProps(N.world.classicProps,visible))drawClassicScenery(g,p);
   drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
   drawArenaMobs(g,now,dt,visible);
   for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm')drawArenaWorm(g,m,now,visible);else if(arenaSpecial(m))drawArenaHeavy(g,m,now,visible);
@@ -2734,7 +2790,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
    chest.y>=visible.top-35&&chest.y<=visible.bottom+35)
   jobs.push({depth:chest.y+13,kind:1,id:chest.id,chest});
  const classicProps=N.world.classicProps;
- if(classicProps)for(let i=0;i<classicProps.length;i++){const p=classicProps[i];if(p.type==='crystal')continue;if(p.x+p.r*2<visible.left||p.x-p.r*2>visible.right||p.y+p.r*2<visible.top||p.y-p.r*2>visible.bottom)continue;jobs.push({depth:p.y+p.r*.45,kind:8,id:i,p});}
+ if(classicProps)for(const {id,p} of visibleClassicProps(classicProps,visible))jobs.push({depth:p.y+p.r*.45,kind:8,id,p});
  const decor=classicProps?[]:window.NS157_SCENERY?.generate(N.world)||[];
  for(const item of decor){
   if(item.x<visible.left-66||item.x>visible.right+66||
@@ -2900,6 +2956,7 @@ function frame(now){
  // Draw only lines covering the current camera, never all 4,200 world pixels.
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
   top:me.y-r.height/2/zoom-90,bottom:me.y+r.height/2/zoom+90};
+ if(!(!N.expedition?.id&&N.world.classicProps?.length&&drawClassicGround(g,N.world))){
  g.fillStyle=N.expedition?.id?'#20282a':'#395443';g.fillRect(Math.max(0,visible.left),Math.max(0,visible.top),
   Math.min(N.world.w,visible.right)-Math.max(0,visible.left),
   Math.min(N.world.h,visible.bottom)-Math.max(0,visible.top));
@@ -2911,6 +2968,7 @@ function frame(now){
   g.moveTo(Math.max(0,visible.left),y);g.lineTo(Math.min(N.world.w,visible.right),y);
  }
  g.stroke();
+ }
  drawExp(g,visible);drawRuleTowers(g,visible);drawDefenseSites(g,visible);drawDepthSortedWorld(g,now,dt,visible);drawMapPings(g,visible,now);
  drawArenaXpCrystals(g,now,visible);drawArenaWeaponLoot(g,visible);drawArenaFieldKits(g,visible);drawArenaExplore(g,visible);drawFieldObjectives(g,visible);drawArenaRescue(g,visible,now);drawArenaAcid(g,now,visible);drawArenaHeavyWarnings(g,visible);
  drawLabThings(g,now,visible);drawArenaMagic(g,now,visible);
