@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 218 -->
+<!-- current-release: 219 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V218 je izolovani hotfix na produkcionoj osnovi V211, klijent i relay; Cloudflare verifikacija tek treba da prođe. V212–V217 ostaju zasebne razvojne izmene. Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V219 je klijentski hotfix menija na osnovi V218; relay ostaje V218. Cloudflare Actions je prijavio nedostajuće deploy kredencijale, LIVE nije potvrđen. V212–V217 ostaju zasebne razvojne izmene. Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: hitna ispravka orijentacije crva prema odabranoj meti u Nova zona SOLO/MP, bez izmene napada, kretanja i grafike.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V219 — 19.11.2026 (UI hotfix; LIVE tek proveriti)
+- Nova zona MENI premešten dole desno, panel se otvara iznad. Dodge iznad menija; swap i revive pomereni uz rezervisan prostor, voice kontrola sklonjena od glavnih dugmadi. Safe-area, scroll i isti događaji menija. Grafika, gameplay, relay i napredak nepromenjeni.
+
 ### V218 — 19.11.2026 (produkcioni hotfix na osnovi V211; LIVE tek proveriti)
 - Crv gleda prema autoritativno izabranom igraču pri kretanju, punjenju, ispaljivanju i mirovanju. Render više ne koristi smer brzine. Relay dodaje opcioni indeks mete samo za crva, kompatibilno sa starim klijentom. 8280 izolovanih provera za 360 uglova i tri faze; bez promene kolizije, brzine, napada, grafike i ekonomije. V212–V217 nisu deo ovog hotfixa.
 
