@@ -1553,8 +1553,81 @@ function soloExp(id){const z=N.expedition,p=N.me;if(N.rule?.mode==='defense'||LA
 }
 function requestExp(id){if(N.rule?.mode==='defense')return false;if(N.solo)return soloExp(id);if(N.expSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'expedition',id,rev:N.expedition?.rev||0}));return true}return false}
 function expHud(){const b=el('ns196Exp'),z=N.expedition,p=N.me;if(!b)return;const point=z?.id?EXP_EXIT:z?.portals.find(o=>expNear(p,o));b.hidden=!(N.phase==='running'&&N.rule?.mode!=='defense'&&z&&(N.solo||N.expSupported)&&point&&expNear(p,point)&&p?.hp>0&&!p.knocked&&!N.choice&&!N.soloChoice&&!N.paused&&!LAB_PAUSE.paused&&el('ns158Menu')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled));if(b.hidden)return;const id=z.id?0:point.id;b.textContent=z.id?(z.done&(1<<z.id)?'↩ IZLAZ':z.id===1&&!z.core?'PRONAĐI DIJAMANT':'POBEDI ČUVARE ZA IZLAZ'):id===1?(z.done&2?'TEMPLE · ZAVRŠEN':z.key?'ULAZ U TEMPLE':'TEMPLE · potreban ključ trola'):(z.done&4?'PEĆINA · ZAVRŠENA':z.rope?'ULAZ U PEĆINU':'PEĆINA · kanap iz kovnice');b.disabled=!!N.explore?.invalid||!expAllowed(z,N.players,p,id,N.solo?N.soloMobs:N.mpMobs);b.onclick=()=>requestExp(id)}
+// V220 original temple illustration: orthographic 3/4 façade, front stairs and stone roof.
+// Build the full-resolution sprite once per key state. Render only when its bounds are visible.
+const templeArtCache=new Map(),TEMPLE_ART_W=144,TEMPLE_ART_H=156;
+function templeEntranceSprite(open){
+ const key=open?1:0;if(templeArtCache.has(key))return templeArtCache.get(key);
+ const canvas=document.createElement('canvas');canvas.width=TEMPLE_ART_W*2;canvas.height=TEMPLE_ART_H*2;
+ const c=canvas.getContext('2d');if(!c)return null;c.scale(2,2);c.translate(72,121);
+ const rect=(x,y,w,h,fill)=>{c.fillStyle=fill;c.fillRect(x,y,w,h)};
+ const poly=(points,fill,edge)=>{c.beginPath();c.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)c.lineTo(points[i][0],points[i][1]);c.closePath();c.fillStyle=fill;c.fill();if(edge){c.strokeStyle=edge;c.lineWidth=1.2;c.stroke()}};
+ const line=(x,y,xx,yy,col,w=1)=>{c.beginPath();c.moveTo(x,y);c.lineTo(xx,yy);c.strokeStyle=col;c.lineWidth=w;c.stroke()};
+ const oval=(x,y,rx,ry,col)=>{c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=col;c.fill()};
+ // Low stone platforms read as the original game's cottage foundations.
+ oval(5,12,64,19,'#101b1599');
+ poly([[-54,-13],[51,-13],[62,12],[-59,12]],'#77796a','#444b41');
+ rect(-59,12,121,6,'#4b5046');
+ poly([[-49,-23],[48,-23],[54,-7],[-54,-7]],'#a19e84','#585b4e');
+ // The footprint is at the original portal; the upper silhouette is visual elevation.
+ rect(-46,-72,92,64,'#514f45');rect(-43,-69,86,60,'#76796a');
+ for(let row=0;row<5;row++){const y=-68+row*12;line(-43,y,43,y,'#4b5148');for(let x=-40+(row%2)*12;x<43;x+=24)line(x,y,x,y+12,'#55594e')}
+ // Two side wings with slabs, weathered blocks and roof caps.
+ for(const side of [-1,1]){
+  const x=side*43-13;
+  rect(x,-67,26,57,'#5c6055');rect(x+2,-66,22,49,side<0?'#888b76':'#737969');
+  poly([[x-3,-68],[x+21,-68],[x+29,-77],[x+5,-77]],'#b1ab8e','#52564c');
+  rect(x-3,-68,32,5,'#535a4e');
+  line(x+3,-49,x+22,-49,'#4c5449');line(x+3,-33,x+22,-33,'#4c5449');
+  line(x+14,-64,x+14,-49,'#596052');line(x+8,-49,x+8,-33,'#596052');
+  rect(x+3,-15,20,6,'#a39e83');
+ }
+ // Tiered top and a shallow triangular pediment, aligned to the screen's axes.
+ poly([[-49,-77],[49,-77],[44,-99],[-42,-99]],'#999d86','#4d5449');
+ poly([[-42,-99],[0,-113],[44,-99],[0,-90]],'#b3ad91','#686b5a');
+ poly([[-42,-99],[0,-90],[0,-108]],'#888c77');
+ poly([[0,-108],[0,-90],[44,-99]],'#c1b99a');
+ poly([[-53,-77],[0,-98],[53,-77]],'#bcb59b','#555b4d');
+ poly([[-40,-79],[0,-94],[40,-79]],'#727b6a');
+ rect(-53,-77,106,7,'#d0c5a3');rect(-50,-70,100,5,'#656c5b');
+ // Medallion: the temple's carved sun, not a modern portal circle.
+ oval(0,-83,7.5,6,'#555c4d');oval(0,-83,4.4,3.4,'#c5aa69');
+ for(const side of [-1,1]){line(side*11,-83,side*17,-83,'#9f936c');line(side*9,-86,side*12,-89,'#9f936c')}
+ // Recessed arched gate. Lock and unlocked glow are separate cached variants.
+ c.beginPath();c.moveTo(-22,-12);c.lineTo(-22,-44);c.arc(0,-44,22,Math.PI,0);c.lineTo(22,-12);c.closePath();
+ c.fillStyle='#a8a58b';c.fill();c.strokeStyle='#4a5145';c.lineWidth=2;c.stroke();
+ c.beginPath();c.moveTo(-16,-12);c.lineTo(-16,-43);c.arc(0,-43,16,Math.PI,0);c.lineTo(16,-12);c.closePath();
+ c.fillStyle=open?'#253d31':'#242b27';c.fill();
+ for(let j=0;j<=6;j++){const a=Math.PI+j*Math.PI/6;line(Math.cos(a)*17,-43+Math.sin(a)*17,Math.cos(a)*22,-43+Math.sin(a)*22,'#575e51',1.2)}
+ if(open){const light=c.createLinearGradient(0,-56,0,-12);light.addColorStop(0,'#1e342b');light.addColorStop(1,'#73977b');rect(-12,-39,24,26,light);poly([[0,-40],[4,-33],[0,-26],[-4,-33]],'#c5edb0')}
+ else {rect(-13,-38,26,25,'#564537');for(let x=-10;x<=10;x+=5)line(x,-38,x,-13,'#322c24');line(-13,-18,13,-18,'#8b7657',2);rect(-3,-29,6,6,'#ccaa65');c.strokeStyle='#ccaa65';c.lineWidth=1.5;c.beginPath();c.arc(0,-29,3,Math.PI,0);c.stroke()}
+ // Front columns with plinths, carved capitals and warm braziers.
+ for(const side of [-1,1]){
+  const x=side*31;
+  rect(x-8,-13,16,7,'#5f6658');rect(x-9,-17,18,4,'#b6ae90');
+  rect(x-5,-57,10,39,'#b3ad90');rect(x+2,-57,3,39,'#7e816b');line(x-2,-55,x-2,-20,'#d0c5a5',1);
+  rect(x-9,-63,18,6,'#aaa78d');rect(x-7,-60,14,3,'#c5ba98');
+  rect(x-3,-48,6,9,'#6b6450');oval(x,-49,5,3,'#d4aa64');poly([[x-3,-49],[x,-58],[x+3,-49]],'#e8c47a');
+ }
+ // Wide, shallow stair treads, no new blocking geometry.
+ for(let i=0;i<4;i++){const y=-10+i*7,w=38+i*8;rect(-w/2,y,w,7,i%2?'#9b9a83':'#a6a48b');rect(-w/2,y+5,w,2,'#6f7463');line(-w/2+2,y+1,w/2-2,y+1,'#c3bca0')}
+ // Hand-placed moss and chipped edges: deterministic, no per-frame random work.
+ for(const [x,y] of [[-47,-12],[44,-18],[-40,-68],[43,-74],[-31,8],[51,3],[-48,-39],[19,-99]]){
+  oval(x,y,5,2.4,'#607650');oval(x+3,y-1,3,1.5,'#84926a');
+ }
+ templeArtCache.set(key,canvas);return canvas;
+}
+function templePortalVisible(p,view){return p.x>=view.left-72&&p.x<=view.right+72&&p.y>=view.top-35&&p.y<=view.bottom+121}
+function arenaTemplePortal(view){
+ const z=N.expedition;if(!z||z.id||(!N.solo&&!N.expSupported))return null;
+ const p=z.portals.find(o=>o.id===1);return p&&templePortalVisible(p,view)?p:null;
+}
+function drawArenaTempleEntrance(g,p){
+ const sprite=templeEntranceSprite(!!N.expedition?.key);if(sprite)g.drawImage(sprite,p.x-72,p.y-121,TEMPLE_ART_W,TEMPLE_ART_H);
+ g.save();g.textAlign='center';g.font='bold 11px system-ui';g.strokeStyle='#172822';g.lineWidth=3;g.strokeText('TEMPLE',p.x,p.y-116);g.fillStyle='#fff1cb';g.fillText('TEMPLE',p.x,p.y-116);g.restore();
+}
 function drawExp(g,view){const z=N.expedition;if(!z||(!N.solo&&!N.expSupported))return;if(z.id){g.fillStyle='#303b40';g.strokeStyle='#87918c';g.lineWidth=2;for(const o of N.world.obstacles){if(o.x>view.right||o.y>view.bottom||o.x+o.w<view.left||o.y+o.h<view.top)continue;g.fillRect(o.x,o.y,o.w,o.h);g.strokeRect(o.x,o.y,o.w,o.h)}}
- const marks=z.id?[{...EXP_EXIT,id:0},...(z.id===1&&!z.core?[{...EXP_CORE,id:4}]:[])]:[...z.portals];if(z.keyDrop&&!z.id)marks.push({...z.keyDrop,id:3});for(const p of marks){if(p.x<view.left-40||p.x>view.right+40||p.y<view.top-40||p.y>view.bottom+40)continue;g.save();g.translate(p.x,p.y);
+ const marks=z.id?[{...EXP_EXIT,id:0},...(z.id===1&&!z.core?[{...EXP_CORE,id:4}]:[])]:[...z.portals];if(z.keyDrop&&!z.id)marks.push({...z.keyDrop,id:3});for(const p of marks){if(p.id===1&&!z.id)continue;if(p.x<view.left-40||p.x>view.right+40||p.y<view.top-40||p.y>view.bottom+40)continue;g.save();g.translate(p.x,p.y);
  if(p.id===2&&!z.id){
   // Original Classic cave silhouette, without coupling to Classic's separate save state.
   g.fillStyle='#0b1114b8';g.beginPath();g.ellipse(0,35,69,20,0,0,Math.PI*2);g.fill();
@@ -2828,6 +2901,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
  const sprites=window.NS154_GOBLINS;
  if(!sprites?.prepare||!sprites?.drawOne){
   drawArenaBuildings(g,N.world.obstacles.filter(o=>!o.classic),visible);
+  const temple=arenaTemplePortal(visible);if(temple)drawArenaTempleEntrance(g,temple);
   for(const {p} of visibleClassicProps(N.world.classicProps,visible))drawClassicScenery(g,p);
   drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
   drawArenaMobs(g,now,dt,visible);
@@ -2845,6 +2919,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
  // Precompute visible goblins in ONE scan. They are never re-animated in sorting.
  const prepared=sprites.prepare(mobs,opt);N.visibleMobs=prepared.length;
  const jobs=[];
+ const temple=arenaTemplePortal(visible);if(temple)jobs.push({depth:temple.y+12,kind:9,id:temple.id,temple});
  const obs=N.world.obstacles||[];
  for(let i=0;i<obs.length;i++){
   const o=obs[i];
@@ -2894,6 +2969,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
   else if(item.kind===6)drawArenaWorm(g,item.m,now,visible);
   else if(item.kind===7)drawArenaHeavy(g,item.m,now,visible);
   else if(item.kind===8)drawClassicScenery(g,item.p);
+  else if(item.kind===9)drawArenaTempleEntrance(g,item.temple);
   else sprites.drawOne(g,item.entry,opt);
  }
  // Names and HP remain legible above a large horde, even when bodies are occluded.
