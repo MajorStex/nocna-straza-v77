@@ -87,6 +87,7 @@ jobs:
           npm install --no-save --no-package-lock playwright-core@1.58.2
           node tests/v166-lobby-mobile-width.test.cjs
           node tests/v166-lobby-mobile-browser.test.cjs
+          node tests/v220-temple-art.test.cjs
       - name: Select authenticated deploy or verify existing Cloudflare Builds integration
         id: deploy_auth
         shell: bash
