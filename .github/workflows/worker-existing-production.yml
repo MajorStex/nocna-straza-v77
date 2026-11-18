@@ -1,4 +1,4 @@
-name: Noćna Straža - deploy EXISTING workers.dev game
+name: Noćna Straža - verify native production deployment
 # V142 redeploy requested; existing Worker name and version guard remain unchanged.
 on:
   push:
@@ -38,8 +38,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       LIVE_URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
     steps:
       - name: Report production deployment pending
@@ -49,7 +47,7 @@ jobs:
             await github.rest.repos.createCommitStatus({
               ...context.repo, sha: context.sha, state: 'pending',
               context: 'cloudflare/worker-production',
-              description: 'Validating and deploying the existing game Worker',
+              description: 'Validating the existing native game Worker',
               target_url: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
             })
       - uses: actions/checkout@v4
@@ -87,78 +85,15 @@ jobs:
           npm install --no-save --no-package-lock playwright-core@1.58.2
           node tests/v166-lobby-mobile-width.test.cjs
           node tests/v166-lobby-mobile-browser.test.cjs
-      - name: Require Cloudflare Worker credentials (do not silently skip deployment)
-        shell: bash
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::error title=Worker NOT deployed::Set repository Actions secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID with Workers Scripts Edit permissions. Existing workers.dev link was NOT updated."
-            exit 1
-          fi
-      - name: Block stale commits and version downgrades
+      # Native Cloudflare Git integration is the single publisher. Do not race it
+      # with a second Wrangler upload. Read-only check fails closed on stale bytes.
+      - name: Verify latest main commit
         shell: bash
         run: |
           set -euo pipefail
           latest=$(git ls-remote origin refs/heads/main | cut -f1)
-          if [ "$latest" != "$GITHUB_SHA" ]; then
-            echo "::error title=Outdated release rejected::A newer main commit exists. No deployment."
-            exit 1
-          fi
-          python3 - <<'PY'
-          import os,re,urllib.request
-          from pathlib import Path
-          candidate=Path('public/index.html').read_text(encoding='utf-8')
-          m=re.search(r'<title>Night Watch v(\d+)\b',candidate)
-          if not m: raise SystemExit('ERROR: missing candidate version')
-          release=re.search(r'<meta name="ns-release" content="(\d+)"',candidate)
-          expected=max(int(m.group(1)),int(release.group(1)) if release else 0)
-          url=os.environ['LIVE_URL']+'?version-preflight='+os.environ['GITHUB_SHA']
-          try:
-            req=urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'NocturnaWorkerRelease/1.0'})
-            with urllib.request.urlopen(req,timeout=25) as response:
-              live=response.read(2_000_000).decode('utf-8','replace')
-          except Exception as error:
-            raise SystemExit('ERROR: current worker could not be checked, refusing unsafe deploy: '+str(error))
-          found=[int(x) for x in re.findall(r'Night Watch v(\d+)|VERZIJA V(\d+)',live) for x in x if x]
-          if not found: raise SystemExit('ERROR: no version in existing Worker; refusing unsafe deploy')
-          release=re.search(r'<meta name="ns-release" content="(\d+)"',live)
-          actual=max(found+[int(release.group(1))] if release else found)
-          print(f'Existing Worker v{actual}; candidate v{expected}')
-          if expected<actual: raise SystemExit('ERROR: refusing Worker version downgrade')
-          PY
-      - name: Deploy static game to SAME Cloudflare Worker
-        run: npx --yes wrangler@4 deploy --config wrangler.jsonc
-      - name: Verify actual live Worker version
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import os,re,urllib.request,time
-          from pathlib import Path
-          html=Path('public/index.html').read_text(encoding='utf-8')
-          expected=int(re.search(r'<title>Night Watch v(\d+)\b',html).group(1))
-          release=re.search(r'<meta name="ns-release" content="(\d+)"',html)
-          expected_release=release.group(1) if release else None
-          base=os.environ['LIVE_URL']
-          for attempt in range(1,9):
-            try:
-              u=base+'?worker-deploy='+os.environ['GITHUB_SHA']+'-'+str(attempt)
-              req=urllib.request.Request(u,headers={'Cache-Control':'no-cache','User-Agent':'NocturnaWorkerRelease/1.0'})
-              with urllib.request.urlopen(req,timeout=20) as response:
-                data=response.read(2_000_000).decode('utf-8','replace')
-              m=re.search(r'<title>Night Watch v(\d+)\b',data)
-              live_release=re.search(r'<meta name="ns-release" content="(\d+)"',data)
-              if m and int(m.group(1))==expected and (expected_release is None or (live_release and live_release.group(1)==expected_release)):
-                print(f'Verified existing workers.dev URL serves release V{expected_release or expected}')
-                with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
-                  f.write(f'### Worker LIVE: release V{expected_release or expected}\n\n{base}\n')
-                break
-              print('Attempt',attempt,'not updated yet')
-            except Exception as ex:
-              print('Attempt',attempt,'error:',ex)
-            time.sleep(5)
-          else:
-            raise SystemExit('ERROR: Worker production version mismatch; deployment NOT verified')
-          PY
-      - name: Verify actual deployed Village and voice asset SHA-256 and V168 relay
+          test "$latest" = "$GITHUB_SHA" || { echo "Superseded release"; exit 1; }
+      - name: Verify exact deployed HTML, game assets, handoff and paired relay
         run: node scripts/verify-live-v169-village.mjs
       - name: Report verified production deployment result
         if: always()

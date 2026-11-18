@@ -66,3 +66,111 @@ test('V181 remote hero and enemy share monotonic buffered time even when jitter 
  assert(moving/frames>.7,'most frames continue moving despite irregular arrivals');
  assert(N.mobHistory.length<=12);
 });
+
+
+test('V213 resume only reconnects original room when stale, never opens duplicate sockets',()=>{
+ const a=source.indexOf('function arenaResumeAction('),b=source.indexOf('function arenaResumeNetwork(',a),c=vm.createContext({});vm.runInContext(source.slice(a,b),c);const resume=c.arenaResumeAction;
+ assert.equal(resume('running',1,0,false,0),'');assert.equal(resume('running',1,7999,false,0),'');assert.equal(resume('running',1,8000,false,0),'refresh');assert.equal(resume('running',1,9000,true,0),'');assert.equal(resume('reconnecting',null,0,false,119999),'retry');assert.equal(resume('reconnecting',null,0,false,120000),'');for(const state of [0,1,2,3])assert.equal(resume('reconnecting',state,0,false,0),'');assert.equal(resume('idle',null,100000,false,0),'');assert.match(source,/window.addEventListener\('online',arenaResumeNetwork\)/);assert.match(source,/connect\(N.match,N.id,N.ticket,true\)/);
+});
+
+test('V214 clears held movement, revive and spell aim on loss of focus or network',()=>{
+ const a=source.indexOf('function arenaClearHeldControls('),b=source.indexOf('// V213:',a);
+ assert(a>=0&&b>a);
+ const N={keys:new Set(['w','arrowright']),stick:{x:.8,y:.2,ptr:7},reviveHeld:'p2'};
+ let releaseCalls=0;
+ const c=vm.createContext({N,spellAim:{x:10,y:10},resetStick(){N.stick={x:0,y:0,ptr:null}},releaseArenaRevive(){releaseCalls++;N.reviveHeld=''}});
+ vm.runInContext(source.slice(a,b),c);
+ c.arenaClearHeldControls();
+ assert.equal(N.keys.size,0);
+ assert.deepEqual(N.stick,{x:0,y:0,ptr:null});
+ assert.equal(N.reviveHeld,'');
+ assert.equal(c.spellAim,null);
+ c.arenaClearHeldControls();
+ assert.equal(N.keys.size,0);
+ assert.equal(releaseCalls,2);
+ assert.match(source,/resetRenderSamples\(\);arenaClearHeldControls\(\);/);
+ assert.match(source,/window\.addEventListener\('blur',arenaClearHeldControls\)/);
+ assert.match(source,/window\.addEventListener\('offline',\(\)=>\{\s*if\(N\.solo\|\|N\.phase!=='running'\)return;\s*arenaClearHeldControls\(\)/);
+ assert.match(source,/if\(action==='retry'\)\{\s*arenaClearHeldControls\(\)/);
+ assert.match(source,/else if\(action==='refresh'\)\{\s*arenaClearHeldControls\(\)/);
+ assert.match(source,/N\.netStalled=true;N\.pending=\[\];N\.delta=\{x:0,y:0\};arenaClearHeldControls\(\)/);
+});
+
+test('V214 direct transport close releases stale input before scheduling same-seat retry',()=>{
+ const a=source.indexOf('ws.onclose=e=>{'),b=source.indexOf('ws.onerror=',a);
+ assert(a>=0&&b>a);
+ const ws={},N={ws,phase:'running',keys:new Set(['w']),pending:[{seq:6}],delta:{x:9,y:4},lostSince:0,retry:0};
+ const callbacks=[],c=vm.createContext({N,ws,match:'room',id:'p1',ticket:'test-ticket',window:{},document:{hidden:false},Date:{now:()=>100},arenaClearHeldControls(){N.keys.clear()},status(){},clearTimeout(){},setTimeout(fn){callbacks.push(fn);return 1},connect(...args){callbacks.push(args)}});
+ vm.runInContext(source.slice(a,b),c);
+ ws.onclose({code:1006});
+ assert.equal(N.ws,null);assert.equal(N.phase,'reconnecting');assert.equal(N.keys.size,0);assert.equal(N.pending.length,0);assert.equal(N.delta.x,0);assert.equal(N.delta.y,0);assert.equal(N.rejoinCorrection,true);assert.equal(callbacks.length,1);
+ callbacks[0]();assert.deepEqual(Array.from(callbacks[1]),['room','p1','test-ticket',true]);
+ assert.match(source,/arenaClearHeldControls\(\);N\.netStalled=true;N\.pending=\[\]/);
+ assert.match(source,/N\.paused\|\|\(!N\.solo&&N\.netStalled\)\|\|N\.stick\.ptr!==null/);
+ assert.match(source,/if\(N\.paused\|\|\(!N\.solo&&N\.netStalled\)\)return/);
+});
+
+test('V215 pooled painter preserves every draw job, stable depth ordering and bounded reference lifetime',()=>{
+ const a=source.indexOf('function createArenaDrawScratch('),b=source.indexOf('const arenaDrawScratch=',a);
+ assert(a>=0&&b>a);
+ const c=vm.createContext({});vm.runInContext(source.slice(a,b),c);
+ const scratch=c.createArenaDrawScratch(64);let previous=null;
+ for(let frame=0;frame<1000;frame++){
+  const plain=[],count=(frame*17)%240;
+  for(let i=0;i<count;i++){
+   const ref={id:i,frame},depth=(i*13+frame*7)%31,kind=i%9,id=i%22;
+   plain.push({depth,kind,id,ref});scratch.add(depth,kind,id,ref);
+  }
+  if(count>0){if(previous)assert.equal(scratch.jobs[0],previous,'reuse first painter record');previous=scratch.jobs[0]}
+  const compare=(a,b)=>a.depth-b.depth||a.kind-b.kind||a.id-b.id;
+  plain.sort(compare);scratch.jobs.sort(c.arenaDepthOrder);
+  assert.equal(scratch.jobs.length,count,'overflow must never drop a visible entity');
+  for(let i=0;i<count;i++){const x=plain[i],y=scratch.jobs[i];assert.equal(y.depth,x.depth);assert.equal(y.kind,x.kind);assert.equal(y.id,x.id);assert.equal(y.ref,x.ref)}
+  const retained=Array.from(scratch.jobs);scratch.clear();
+  assert.equal(scratch.jobs.length,0);assert(retained.every(x=>x.ref===null));assert(scratch.poolSize<=64);
+ }
+ assert.equal(scratch.poolSize,64);
+ assert.match(source,/jobs\.sort\(arenaDepthOrder\)/);
+ assert.match(source,/finally\{scratch\.clear\(\)\}/);
+});
+
+test('V217 audio scheduler sleeps when hidden or muted, and cooldown expiry preserves every audible event',()=>{
+ const audioSource=fs.readFileSync('public/v152-arena-audio.js','utf8');
+ const timers=new Map(),listeners=new Map();let nextTimer=0,now=1000;
+ const param=()=>({value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}});
+ const node=()=>({gain:param(),frequency:param(),connect(){},disconnect(){},start(){},stop(){this.onended?.()}});
+ class Context{
+  constructor(){this.state='running';this.sampleRate=8000;this.destination={};this.currentTime=0}
+  createGain(){return node()}createOscillator(){return node()}createBiquadFilter(){return node()}createBufferSource(){return node()}
+  createBuffer(ch,n){const data=new Float32Array(n);return {getChannelData:()=>data}}
+  resume(){this.state='running';return Promise.resolve()}suspend(){this.state='suspended';return Promise.resolve()}
+ }
+ const document={hidden:false,addEventListener(name,fn){listeners.set(name,fn)}};
+ const window={AudioContext:Context};
+ new Function('window','document','localStorage','performance','setInterval','clearInterval',audioSource)(window,document,{getItem:()=>null,setItem(){}},{now:()=>now},fn=>{const id=++nextTimer;timers.set(id,fn);return id},id=>timers.delete(id));
+ const a=window.NS152_AUDIO;const hide=value=>{document.hidden=value;listeners.get('visibilitychange')()};
+ a.unlock();a.unlock();assert.equal(timers.size,1);
+ a.set('music',false);assert.equal(timers.size,0);hide(true);a.set('music',true);assert.equal(timers.size,0);
+ hide(false);assert.equal(timers.size,1);hide(true);assert.equal(timers.size,0);hide(false);assert.equal(timers.size,1);
+ const reference=new Map();let accepted=0;
+ for(let i=0;i<4000;i++){
+  now+=40+(i%3)*10;const id=i%5===0?'shared':i;
+  const prev=reference.get(id)??-100000;
+  const expected=now-prev>=250;
+  assert.equal(a.play('step',{sourceId:id}),expected);
+  if(expected){reference.set(id,now);accepted++}
+  assert(a.diagnostics.cooldowns<=500,'expired IDs cannot accumulate over a long session');
+ }
+ assert(accepted>3000);assert.equal(a.diagnostics.activeFx,0);
+ a.stop();assert.equal(timers.size,0);assert.equal(a.diagnostics.cooldowns,0);hide(true);hide(false);assert.equal(timers.size,0);
+ a.unlock();assert.equal(timers.size,1);a.stop();
+});
+test('V217 all 256 voice codewords produce identical float32 PCM; no network or distance change',()=>{
+ const voice=fs.readFileSync('public/v159-voice.js','utf8');
+ const a=voice.indexOf('const decode=x=>'),b=voice.indexOf('function audio()',a);
+ assert(a>=0&&b>a);const f=new Function(voice.slice(a,b)+'return {decode,decodeTable}')();
+ for(let i=0;i<256;i++){assert.equal(f.decodeTable[i],f.decode(i));assert.equal(Math.fround(f.decodeTable[i]),Math.fround(f.decode(i)))}
+ assert.match(voice,/samples\[i\]=decodeTable\[packet\[i\+1\]\]/);
+ assert.match(voice,/const RATE=12000,LOG=Math.log\(256\),MAX_BUFFER=\.35/);
+ assert.match(voice,/return \.16\+\.84/);
+});

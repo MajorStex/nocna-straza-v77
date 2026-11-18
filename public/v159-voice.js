@@ -61,6 +61,8 @@ function badgeState(id,now=performance.now()){
 const testSeat=x=>/^p[1-6]$/.test(String(x||''));
 const encode=x=>{const a=Math.min(1,Math.abs(x)),c=Math.log(1+255*a)/LOG;return Math.max(0,Math.min(255,Math.round((Math.sign(x)*c+1)*127.5)))};
 const decode=x=>{const v=(x/255)*2-1;return Math.sign(v)*(Math.pow(256,Math.abs(v))-1)/255};
+// V217: the 256 possible log8 values are exactly the same decoded samples.
+const decodeTable=Float64Array.from({length:256},(_,i)=>decode(i));
 function audio(){
  if(context)return context;
  const AC=window.AudioContext||window.webkitAudioContext;
@@ -115,7 +117,7 @@ function playback(packet){
  if(!p){const gain=ctx.createGain();gain.gain.value=distanceGain(seat);gain.connect(master);p={gain,next:0};speakers.set(seat,p)}
  p.gain.gain.setTargetAtTime(distanceGain(seat),ctx.currentTime,.05);
  const n=packet.length-1,buffer=ctx.createBuffer(1,n,RATE),samples=buffer.getChannelData(0);
- for(let i=0;i<n;i++)samples[i]=decode(packet[i+1]);
+ for(let i=0;i<n;i++)samples[i]=decodeTable[packet[i+1]];
  const now=ctx.currentTime;
  // Late/mobile packets never build an unbounded backlog or stall game rendering.
  if(p.next<now||p.next>now+MAX_BUFFER)p.next=now+.12;

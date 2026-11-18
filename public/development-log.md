@@ -1,16 +1,16 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 211 -->
+<!-- current-release: 217 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V211 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V217 (optimizacija zvuka, klijentski kandidat; relay V216). V213 preview je potvrđen 6/6 stvarnih WebSocket klijenata, 13/13 Cloudflare QA i SHA-256 klijenta/relaya. V211 je poslednja prethodno potvrđena produkcija. Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #39 i relay #7. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
-- Sada se radi: V205 tri legendarne varijante postojećeg oružja, otključavanje u kovnici posle +3; server autoritativan, fiksna grafika.
-- Blokade: Cloudflare Actions objava prijavila nedostajuće kredencijale; serverski CI je ranije vraćao failure bez logova. Ne pretpostavljati da je to rešeno. Neophodno je proveriti konačan CI, upareni relay i klijent, stvarni LIVE URL i fizičke telefone.
-- Sledeće: završni V205 CI, kompatibilnost relay/klijent, LIVE i fizički test 2 pa 6 Android uređaja; V206 balans težine, V207 kompletna optimizacija. Plan nije implementacija.
+- Sada se radi: uklanjanje neaktivnog audio tajmera i zastarelih cooldown zapisa; bitno identično log8 dekodiranje mikrofona. Nema promene kvaliteta zvuka ili slike.
+- Blokade: V213 relay GitHub CI ima tri failure bez dostupnog loga (404) i posle ponavljanja; isti preview commit ima Cloudflare 13/13 QA. Ne tvrditi da je GitHub runner problem otklonjen niti da je V214 objavljena. Proveriti V214 CI, upareni relay/klijent, stalni LIVE URL i fizičke telefone.
+- Sledeće: V215 CI i preview, nezavisna dijagnostika relay runnera, potvrda LIVE i fizički test 2 pa 6 Android uređaja; CPU/RAM merenje na telefonu, AI, zvuk, zaštita napretka, 120 min soak. Plan nije implementacija.
 
 ## Arhitektura i pravila rada
 - GitHub klijent: MajorStex/nocna-straza-v77; relay: MajorStex/nocna-straza-relay. Izvornu datoteku i status grane proveriti direktno kroz povezani GitHub; novi ChatGPT nalog mora dobiti ovlašćen pristup od vlasnika.
@@ -32,6 +32,24 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V217 — 18.11.2026 (KOD; CI/preview/LIVE tek proveriti)
+- Nova zona: muzički tajmer se gasi kada je muzika iskljucena, igra neaktivna ili tab skriven; ponovo se aktivira samo kada je potreban. Cooldown tabela se ne kreira za svaki događaj, zastareli zapisi se uklanjaju posle bezbednog roka. Live voice: LUT za svih 256 log8 kodova daje identične PCM uzorke, 12 kHz i prostorni gain ostaju isti. Hero voice, audio efekti, grafika, relay i gameplay ne menjaju se. Izolovano 8528 provera, uključujući 4000 događaja i svih 256 kodova; novi CI i stvarni audio/CPU test nisu potvrđeni. V216 klijentski CI 18/22 prošlo, potvrda Cloudflare fajlova nije prošla; ne tvrditi LIVE.
+
+### V216 — 18.11.2026 (KOD; CI/preview/LIVE tek proveriti)
+- Identican SOLO i server steering: jedan BFS scratch red po svetu, bez privremenih parova pri clipping-u, raniji izlaz nakon istih 16 doprinosa separacije, uklonjena neiskorišćena norma. Ista mrežna frekvencija, kolizija, brzina, mete i redosled. Direktno V213/V216: 365778 provera, 720 tickova u dva sveta, 160 neprijatelja i 6 igrača, uklanjanje prepreke i reconnect; isti položaji, brzine, mete i BFS polja, hash 532779818. Regresija u postojećem server testu. V215 preview SHA potvrđen, 21/22 workflow prošlo; šest-peer stress jedan socket 1006 pre ACK, ne označavati stabilnost kao konačnu. V216 CI, CPU merenje i LIVE nisu potvrđeni.
+
+### V215 — 18.11.2026 (KOD; CI/preview/LIVE tek proveriti)
+- Ponovna upotreba sortiranih render zapisa (do 1024 u pool-u), reference se brišu posle svakog frejma, čak i pri grešci. Preliv se normalno crta bez ograničenja broja objekata. Isti depth/kind/id redosled, iste granice vidljivosti i isti spriteovi; DPR, efekti i mrežni protokol nisu menjani. Direktno poređenje V214/V215: 1000 simuliranih frejmova, 2000 provera, identičan niz poziva iscrtavanja, peak 170 pool zapisa u fixture-u. Trajna regresija proverava overflow, identitet, redosled i čišćenje referenci. V214 CI 19/22 uspešno, tri remote/preview provere nisu prošle; nije dokaz LIVE. Fizičko merenje CPU/RAM i vizuelni piksel test tek izvršiti.
+
+### V214 — 18.11.2026 (KOD; preview i LIVE tek proveriti)
+- Brisanje zadržanih tastera, joysticka, revive i ciljanja magije pri background/blur/offline/stalled/reconnect i direktnom zatvaranju WebSocketa. Offline odmah blokira predikciju i nove borbene komande dok se ne vrati autoritativno stanje. Stari pending input se odbacuje; reconnect koristi isti slot i ticket. Relay protokol ostaje V213. Dodate izolovane regresije za lifecycle i transport close; kompletan CI tek potvrditi.
+
+### V213 — 18.11.2026
+- Stabilnost pre novih funkcija: povratak iz background-a ili povratak interneta ubrzava reconnect istog autentifikovanog slota. Sveže veze se ne prekidaju, zastarela veza se osvežava, bez duplih socket-a i uz postojeći rok od 120s. Start ACK samo posle validnog welcome-a. Dve stare mrežne provere sada ciljaju tačan aktuelni preview, potvrđuju staged spawn, zajedničko stanje na istom tick-u, jedinstveni XP drop i reconnect; nema testnog opterećenja produkcije. Objava nije dokazana dok se ne završe provere.
+
+### V212 — 18.11.2026
+- Additive spawn ne resetuje istoriju interpolacije ili udaljene heroje; novi talas briše samo položaje starih neprijatelja. Keš putanja se zadržava kroz talase i zagreva tokom odmora, najviše jedno novo polje po tihom ticku. Provera kolizije je nepromenjena. Lokalna replika zakazana van trenutnog render zadatka. Dodata posebna browser provera vremena kadra pri promeni talasa i spawn-u. Status objave proveriti nezavisno.
+
 ### V211 — 18.11.2026 (KOD; objavu proveriti)
 - Nova zona normal: 3 protivnika na početku, prvi talas ukupno 24, pojačanja do 7 na 36 tickova, rast broja i brzine sa talasima; prostorno raspoređivanje po 8 sektora, najmanje 620 px od živih igrača, ograničen broj aktivnih protivnika 12–38, jedinstveni ID i zadržavanje mrtvih do isteka interpolacije. Direktna simulacija 24 spawna, 8 sektora, bez duplikata. Nove vektorske šargarepe i pečurke; postojeći sinhronizovani zadaci. Hero voice: deljeni Classic editor, nova situacija malo HP, lokalne replike Nova zona iz potvrđenog stanja, bez slanja audio snimaka kroz gameplay. V209 online log pokazao 6 povezanih, jedan bez start poruke; V210 preview relay još bio na V209. V211 potvrda start poruke, ograničen resend i fallback iz autentifikovanog snapshot-a. Usklađeni release i Village cache, strogo pinovan preview release test. CI i produkcija još nisu potvrđeni.
 

@@ -44,8 +44,16 @@ console.log('4000 collision probes PASS');
    N.me.damage=0;
    return {enemies:units.length,players:N.players.size};
  };`;
+ const transitions=`window.__transitionSetup=()=>{
+   if(!startSolo())throw Error('transition boot');
+   N.me.damage=0;N.me.hp=N.me.maxHp=100000;
+   return true;
+ };window.__transitionNext=()=>{
+   N.soloMobs=[];N.soloReserve=0;N.soloChoice=null;N.soloState='between';
+   N.soloBetweenUntil=Date.now()+280;
+ };window.__transitionState=()=>({wave:N.soloWave,batch:N.soloBatch,active:N.soloMobs.filter(m=>m.hp>0).length,reserve:N.soloReserve,fields:N.soloCrowd.cachedFields});`;
  const mark='window.NS140_ARENA={startHost';assert(client.includes(mark));
- await page.addScriptTag({content:client.replace(mark,hook+'\n'+mark)});
+ await page.addScriptTag({content:client.replace(mark,hook+'\n'+transitions+'\n'+mark)});
  const result=await page.evaluate(async()=>{
   const initial=window.__stressSetup(),api=window.NS140_ARENA;
   const samples=[],fps=[],start=performance.now();let previous=0,visible=0,minDpr=2;
@@ -68,5 +76,25 @@ console.log('4000 collision probes PASS');
  // CI performance varies by runner. Report the 60-FPS target separately;
  // do not label a functional pass as a verified physical-phone FPS result.
  console.log('60 FPS TARGET',result.fps>=59&&result.frameP95<=20?'MET IN CI':'NOT MET IN CI');
+ const transition=await page.evaluate(async()=>{
+  const api=window.NS140_ARENA;window.__transitionSetup();
+  const events=[],samples=[],start=performance.now();let prev=0,old=window.__transitionState(),nextAt=2200,forced=0;
+  await new Promise(resolve=>{const loop=now=>{
+   const elapsed=now-start;if(elapsed>=nextAt&&forced<3){window.__transitionNext();nextAt+=2300;forced++}
+   const t=performance.now();api.frame(now);const cost=performance.now()-t,cur=window.__transitionState();
+   if(prev)samples.push({at:now,interval:now-prev,cost});
+   if(cur.wave!==old.wave||cur.batch!==old.batch)events.push({at:now,wave:cur.wave,batch:cur.batch,cost,active:cur.active,reserve:cur.reserve,fields:cur.fields});
+   old=cur;prev=now;if(elapsed<9500)requestAnimationFrame(loop);else resolve();
+  };requestAnimationFrame(loop)});
+  const waveEvents=events.filter(e=>e.batch===0),spawnEvents=events.filter(e=>e.batch>0);
+  const near=events.flatMap(e=>samples.filter(s=>Math.abs(s.at-e.at)<=150));
+  api.stop();return {waveEvents,spawnEvents,peakInterval:Math.max(...near.map(s=>s.interval)),peakFrameCost:Math.max(...near.map(s=>s.cost)),frameSamples:near.length};
+ });
+ console.log('V212 REAL FRAME TRANSITIONS',JSON.stringify(transition));
+ assert(transition.waveEvents.length>=3,'three real wave transition paths');
+ assert(transition.spawnEvents.length>=3,'progressive reinforcement exercised');
+ assert(transition.frameSamples>30&&Number.isFinite(transition.peakInterval));
+ assert(transition.peakInterval<150,'severe isolated transition stall');
+ assert.deepEqual(errors,[],'no transition runtime errors');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
