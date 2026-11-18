@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 205 -->
+<!-- current-release: 206 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V205 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V206 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: V205 tri legendarne varijante postojećeg oružja, otključavanje u kovnici posle +3; server autoritativan, fiksna grafika.
@@ -32,6 +32,8 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V206 — 18.11.2026 (KOD; završni CI / LIVE nepotvrđeno)
+- Nova zona Solo: kraj partije otvara ekran rezultata pri smrti, porazu odbrane ili pobedi, sa ubistvima, aktivnim vremenom, talasom, nivoom, bossovima, kristalima i zasebnim trajnim napretkom. Ponovo igraj, nadogradi heroja, glavni meni. Isti račun i originalni talenti heroja HP/šteta/brzina; bez posebnog novčanika. Classic earnMPReward: minimum 60 s aktivne borbe i 10 ubistava; do 45 profilnih poena i 70 XP heroja po partiji; poeni za talente kroz stvarni trajni nivo heroja. Izlazak, Sandbox ili izmenjena partija bez ove nagrade. Jednom po sesiji; vezano za heroja i profil sa starta. Offline zaštita ne garantuje bezbednost protiv manipulacije JavaScriptom. Multiplayer nagrade nisu uvedene ovom izmenom; poseban autoritativni završetak na serveru je sledeći zadatak. Ne tvrditi LIVE dok se ne potvrdi.
 ## ISTORIJA VERZIJA — od novijih ka starijim
 ### V205 — 18.11.2026 (KOD / simulirani TEST; LIVE nije potvrđen)
 - Dodatna QA provera V205: na commitu 80366447 klijent 18/19 workflowa; jedan pao zbog starog doslovnog poziva u v151-mob-motion.test.cjs nakon podele grupa za odbranu sela. Provera 30 Hz fizike i 15 Hz usmeravanja za obe grupe dopunjena bez izmena gameplay-a (commit b63c8e18). Izolovana interpolacija stvarne funkcije: 207 konačnih pozicija, 163/163 uzorkovanih frejmova sa pomeranjem, 0 velikih skokova, 0 obrnutih frejmova u simulaciji. Tri serverska workflowa ponovo pokrenuta; ranije logovi nedostupni (HTTP 404). Novi CI, stvarni uređaji i LIVE nisu potvrđeni.
