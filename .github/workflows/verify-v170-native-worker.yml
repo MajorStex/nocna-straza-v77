@@ -1,0 +1,56 @@
+name: Read-only V170 native Cloudflare production probe
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-v170-native-worker.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Compare production and preview with exact V170 main files
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          const digest = b => crypto.createHash('sha256').update(b).digest('hex');
+          const expected = {
+            html: digest(fs.readFileSync('public/index.html')),
+            village: digest(fs.readFileSync('public/v115-village.js')),
+            voice: digest(fs.readFileSync('public/v165-classic-voice.js'))
+          };
+          const paths = {
+            html: '/',
+            village: '/v115-village.js?v=166&ui=170',
+            voice: '/v165-classic-voice.js?v=166&ui=169'
+          };
+          let productionOK = false;
+          for (const [label, base] of [
+            ['PRODUCTION','https://nocna-straza-v77.stefanstevic1996.workers.dev'],
+            ['PREVIEW','https://2332b1e5-nocna-straza-v77.stefanstevic1996.workers.dev']
+          ]) {
+            const checks = await Promise.all(Object.entries(paths).map(async ([name,path]) => {
+              try {
+                const u = new URL(base+path);
+                u.searchParams.set('verify', process.env.GITHUB_RUN_ID);
+                const r = await fetch(u, {headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(15000)});
+                const bytes = Buffer.from(await r.arrayBuffer());
+                const body = bytes.toString('utf8');
+                const hash = digest(bytes);
+                const marker = name==='html' ? body.match(/<meta name="ns-release" content="(\d+)"/)?.[1] || 'none' : name==='village' ? body.match(/ · V(\d+)<\/strong>/)?.[1] || 'none' : '';
+                console.log(label, name, 'HTTP',r.status,'release',marker,'SHA256',hash,'expected',expected[name],'match',hash===expected[name],name==='village'?'autoAttack='+body.includes('function villageAutoTarget'):'');
+                return r.ok && hash===expected[name];
+              } catch(e) {console.log(label,name,String(e));return false}
+            }));
+            if(label==='PRODUCTION') productionOK=checks.every(Boolean);
+          }
+          console.log('PRODUCTION EXACT V170:',productionOK);
+          if(!productionOK) process.exitCode=1;
+          JS
