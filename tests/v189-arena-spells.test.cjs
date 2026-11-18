@@ -88,6 +88,20 @@ const world={w:4200,h:4200},players=new Map();for(let i=1;i<=6;i++){const id='p'
  assert(!A.expAllowed(z,team,p,1));A.expDrop(z,{kind:'troll',x:p.x,y:p.y},false);assert(A.expCollect(z,team));assert(z.key);assert(!A.expAllowed(z,team,p,1));q.finalDead=true;q.hp=0;assert(A.expAllowed(z,team,p,1));q.finalDead=false;q.hp=100;q.x=p.x+20;assert(A.expAllowed(z,team,p,1));
  for(const id of [1,2]){const world=A.expWorld(w,id),m=A.expMobs(id,1,10);A.expPlace(team,A.EXP_START,10);assert([...team.values()].every(p=>A.arenaAcidClear(world,p.x,p.y,p.x,p.y,14)));assert(m.every(p=>A.arenaAcidClear(world,p.x,p.y,p.x,p.y,p.bodyRadius||14)));assert.equal(w.obstacles.length,0)}
  z.id=1;const mobs=A.expMobs(1,1,10);assert(mobs.every(m=>m.labFrozen));p.x=mobs[0].x;p.y=mobs[0].y;A.expWake(mobs,team);assert(!mobs[0].labFrozen&&mobs.some(m=>m.labFrozen));assert(!A.expReward(z,mobs,team));mobs.forEach(m=>m.hp=0);assert(A.expReward(z,mobs,team));assert.equal(p.arenaShards,3);assert(!A.expReward(z,mobs,team));A.expPlace(team,A.EXP_EXIT,100);assert(A.expAllowed(z,team,p,0));
- assert(JSON.stringify(A.expPacket(z)).length<40);assert(src.includes('applyExp(m.expedition);applyArenaBreakPacket'));assert(src.includes('q[0]>=300&&q[0]<=306'));
+ assert(JSON.stringify(A.expPacket(z)).length<40);assert(src.includes('applyExp(m.expedition);applyRule(m.rule);applyArenaBreakPacket'));assert(src.includes('q[0]>=300&&q[0]<=306'));
  console.log('V196 deterministic maps, key, shared party entry, sleeping guards, bounded snapshot IDs, single reward PASS');
+})();
+
+;(()=>{
+ const start=src.indexOf('// BEGIN V197 RULESETS'),end=src.indexOf('// END V198 ACCOUNT REWARD PACKET',start),cs=src.indexOf('function arenaAcidClear('),ce=src.indexOf('\nfunction stepArenaWorms',cs),a=src.indexOf('const ARENA_RUN_ACHIEVEMENTS='),b=src.indexOf('function arenaExploreInit',a),x=src.indexOf('const ARENA_DAILY_QUESTS='),y=src.indexOf('// END V195 EXPLORATION ECONOMY',x),ps=src.indexOf('function expNear('),pe=src.indexOf('\nfunction expParty',ps);
+ const A=new Function(src.slice(cs,ce)+src.slice(a,b)+src.slice(x,y)+src.slice(ps,pe)+src.slice(start,end)+'\nreturn {arenaRuleInit,arenaRuleDark,arenaRuleDamage,arenaRuleCount,arenaRuleRest,arenaRuleTower,arenaRuleWave,arenaRuleRestore,arenaRewardCalendar,arenaAccountPacket,caveSpecialStep}')();
+ const w={w:4200,h:4200,obstacles:[],classicProps:[]},r=A.arenaRuleInit(w,'night'),p={id:'p1',x:100,y:100,hp:100,online:true},q={...p,id:'p2'},team=new Map([[p.id,p],[q.id,q]]);
+ assert.equal(r.towers.length,3);r.elapsed=2399;assert(!A.arenaRuleDark(r));r.elapsed=2400;assert(A.arenaRuleDark(r));assert.equal(A.arenaRuleDamage(r,p,{x:200,y:100},22,false),1);assert.equal(A.arenaRuleDamage(r,p,{x:145,y:100},22,false),22);assert.equal(A.arenaRuleDamage({...r,lights:[[200,100]]},p,{x:200,y:100},22,false),22);r.elapsed=3600;assert(!A.arenaRuleDark(r));
+ for(const t of r.towers){p.x=t.x+45;p.y=t.y;assert.equal(A.arenaRuleTower(r,w,p,180,83,team).hp,0)}assert(r.victory);assert.equal(p.arenaShards,2);assert.equal(q.arenaShards,2);assert(!A.arenaRuleTower(r,w,p,999,83,team));
+ const rush=A.arenaRuleInit(w,'rush');assert.equal(A.arenaRuleCount(rush,100),128);assert.equal(A.arenaRuleRest(rush,1750),1260);
+ const cam=A.arenaRuleInit(w,'campaign');assert(!A.arenaRuleWave(cam,3,team));assert.equal(cam.stage,1);assert(!A.arenaRuleWave(cam,6,team));assert.equal(cam.stage,2);assert(A.arenaRuleWave(cam,10,team));assert.equal(p.arenaShards,7);assert(!A.arenaRuleWave(cam,10,team));
+ let thief={kind:'caveThief',x:350,y:300,moveSpeed:120,hp:80};p.x=300;p.y=300;assert(A.caveSpecialStep(thief,p,w,20));assert(thief.x>350);assert.equal(thief.escapeAt,1370);assert(A.caveSpecialStep(thief,p,w,1370));assert(thief.escaped);assert.equal(thief.hp,0);
+ const spider={kind:'caveSpider',x:350,y:300,hp:341};assert(A.caveSpecialStep(spider,p,w,30));assert.equal(spider.heavyCast.end,60);spider.heavyCast=null;assert(!A.caveSpecialStep(spider,p,w,31));
+ const cal=A.arenaRewardCalendar(null,Date.UTC(2026,10,18,12)),stats={kills:1000,wave:20,trolls:2,worms:10,chests:6,revives:1};assert.deepEqual(A.arenaAccountPacket(stats,cal),[4095,3,'20261118','2026-11-16']);assert.equal(A.arenaAccountPacket({...stats,invalid:true},cal),null);
+ console.log('V198 Night/Rush/campaign, cave specials, account reward packet PASS');
 })();
