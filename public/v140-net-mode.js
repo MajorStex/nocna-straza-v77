@@ -175,7 +175,17 @@ function createArenaCrowdSteering(world,move){
    move(m,m.vx/d*stride,m.vy/d*stride,1/30);
   }
  }
- return {step,advance,field,nearestOpen,walkable,get cachedFields(){return flows.size},clear(){flows.clear()}};
+ function refreshObstacles(changed){
+  if(!changed?.length)return;
+  // Recompute only grid cells within the released hitbox; never rebuild the 4200² map.
+  const pad=world.r+3;
+  for(const o of changed){if(!o)continue;
+   const left=Math.max(0,Math.floor((o.x-pad)/CELL)),right=Math.min(COLS-1,Math.floor((o.x+o.w+pad)/CELL)),top=Math.max(0,Math.floor((o.y-pad)/CELL)),bottom=Math.min(ROWS-1,Math.floor((o.y+o.h+pad)/CELL));
+   for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++)open[y*COLS+x]=walkable((x+.5)*CELL,(y+.5)*CELL)?1:0;
+  }
+  flows.clear();
+ }
+ return {step,advance,field,nearestOpen,walkable,refreshObstacles,get cachedFields(){return flows.size},clear(){flows.clear()}};
 }
 
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:4200,h:4200,r:14,speed:156,obstacles:[]},
@@ -462,6 +472,15 @@ function arenaTrade(e,p,id,tick,players){
  else if(id==='healing')p.hp=Math.min(p.maxHp||100,p.hp+55);
  else if(id==='aegis'){p.perks??={};p.perks.aegis=1;p.aegisAt=tick+210}
  return true;
+}
+const ARENA_DAILY_QUESTS=[['Dnevno čišćenje','kills',40],['Izdrži napad','wave',6],['Lov na crve','worms',5],['Malo blago','chests',2]];
+const ARENA_WEEKLY_QUESTS=[['Nedeljna prethodnica','kills',220],['Noćni maraton','wave',16],['Patrola protiv trolova','trolls',2],['Lovac na riznice','chests',6]];
+function arenaQuestPeriod(ms){
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Belgrade',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(ms));
+ const number=k=>Number(parts.find(p=>p.type===k)?.value)||1,y=number('year'),m=number('month'),d=number('day'),ordinal=Math.floor(Date.UTC(y,m-1,d)/86400000);
+ const monday=new Date(Date.UTC(y,m-1,d));monday.setUTCDate(monday.getUTCDate()-(monday.getUTCDay()+6)%7);
+ const wk=Math.floor(monday.getTime()/604800000);
+ return [ARENA_DAILY_QUESTS[((ordinal%4)+4)%4],ARENA_WEEKLY_QUESTS[((wk%4)+4)%4]];
 }
 function arenaRunMask(e){
  if(!e||e.invalid)return 0;let bits=0;
@@ -957,7 +976,7 @@ function stop(notify=false){
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
  A()?.stop();window.NS160_LAB?.close();LAB_AUTO_PAUSE=false;closeArenaMenu(false);N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
- N.breakState=null;N.breakSupported=false;N.explore=null;N.exploreSupported=false;N.tradeUiKey='';N.runUiKey='';if(el('ns195Quest'))el('ns195Quest').hidden=true;if(el('ns195Trade'))el('ns195Trade').hidden=true;N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];N.drops=[];N.soloDrops=[];N.weaponDrops=[];N.levelBossDone=[];N.dropSeq=0;N.soloUpgradeSeq=0;
+ N.breakState=null;N.breakSupported=false;N.explore=null;N.exploreSupported=false;N.tradeUiKey='';N.runUiKey='';N.questPeriod=null;N.questPeriodAt=0;if(el('ns195Quest'))el('ns195Quest').hidden=true;if(el('ns195Trade'))el('ns195Trade').hidden=true;N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];N.drops=[];N.soloDrops=[];N.weaponDrops=[];N.levelBossDone=[];N.dropSeq=0;N.soloUpgradeSeq=0;
  LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;LAB_SUPPORTED=false;LAB_LOOK=null;LAB_UNDO=null;LAB_SERVER_BUILD=0;
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
@@ -1087,8 +1106,10 @@ function refreshArenaRun(){
   const title=document.createElement('b');title.textContent=near.type==='market'?'BURGER BAR · plaćaš XP':near.type==='guild'?'STARA KOVNICA · potreban ključ':'OBELISK · jedan zavet za tim';trade.append(title);
   for(const row of ARENA_SHOP_ITEMS.filter(x=>x[3]===near.type)){const b=document.createElement('button');b.type='button';b.textContent=row[1]+(row[2]?' · '+row[2]+' XP':'');b.disabled=!arenaTradeInfo(e,p,row[0],t);b.onclick=()=>requestArenaTrade(row[0]);trade.append(b)}
  }}
- const qkey=[e.kills,e.trolls,e.worms,e.chests,e.revives,e.wave,e.invalid,p.kills].join(':');
+ const periodAt=N.solo?Date.now():(N.serverNow||Date.now());if(!N.questPeriod||Math.abs(periodAt-(N.questPeriodAt||0))>=45000){N.questPeriod=arenaQuestPeriod(periodAt);N.questPeriodAt=periodAt}
+ const qkey=[e.kills,e.trolls,e.worms,e.chests,e.revives,e.wave,e.invalid,p.kills,...N.questPeriod.map(a=>a[0])].join(':');
  if(!quest.hidden&&N.runUiKey!==qkey){N.runUiKey=qkey;quest.textContent='';const h=document.createElement('b');h.textContent=e.invalid?'EDITOR · nema napretka':'ZADACI I DOSTIGNUĆA · ova partija';quest.append(h);
+  for(const [i,a] of N.questPeriod.entries()){const d=document.createElement('div'),v=e[a[1]]||0;d.textContent=(i?'NEDELJNI: ':'DNEVNI: ')+a[0]+' · '+Math.min(v,a[2])+'/'+a[2]+(v>=a[2]&&!e.invalid?' ✓':'');d.style.padding='4px 0';quest.append(d)}
   for(const a of ARENA_RUN_ACHIEVEMENTS){const d=document.createElement('div'),v=e[a[1]]||0;d.textContent=(v>=a[2]&&!e.invalid?'✓ ':'')+a[0]+' · '+Math.min(v,a[2])+'/'+a[2];d.style.padding='3px 0';quest.append(d)}
   const sp=document.createElement('div');sp.textContent='SPARTA · '+Math.min(p.kills||0,300)+'/300 (bez trajne nagrade)';quest.append(sp);
  }
@@ -1491,7 +1512,7 @@ function stepSolo(dt){
  while(N.soloAcc>=1/30&&iterations++<5){
   N.soloAcc-=1/30;N.soloTick++;N.tick=N.soloTick;
   const me=N.me;
-  if(N.explore){N.explore.wave=N.soloWave;if(LAB.enabled)N.explore.invalid=true}
+  if(N.explore){N.explore.wave=Math.max(N.explore.wave,N.soloWave);if(LAB.enabled)N.explore.invalid=true}
   if(me.hp<=0){N.phase='solo_ended';status('STRAŽAR JE PAO · SOLO TEST ZAVRŠEN');break}
   if(N.soloChoice){
    if(Date.now()>=N.soloChoice.until)resolveSoloChest('edge');
@@ -1554,7 +1575,7 @@ function stepSolo(dt){
     A()?.play('hit',{weapon:N.me?.activeWeapon||localArenaLook().weapon||'sword',variant:N.soloTick,gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
     if(target.hp===0)extraKill(target);
     arenaEvolutionStrike(me,target,N.soloMobs,N.soloTick,extraKill,showArenaSpell);
-   }else if(!LAB.enabled){const hit=arenaBreakHit(N.breakState,N.world,me,N.soloTick,N.soloWave,arenaAttackDamage(me,N.soloTick),arenaAttackReach(me,{kind:'goblin'}));if(hit){N.soloSwing=N.soloTick;me.attackTick=N.soloTick;me.attackAngle=Math.atan2(hit.y-me.y,hit.x-me.x);me.facingAngle=me.attackAngle;arenaMapBase=null;A()?.play('hit',{weapon:me.activeWeapon||'sword',gain:.4});if(hit.hp===0)announceArena(hit.kind==='barrel'?'BURE RAZBIJENO':'KUTIJA RAZBIJENA')}}
+   }else if(!LAB.enabled){const hit=arenaBreakHit(N.breakState,N.world,me,N.soloTick,N.soloWave,arenaAttackDamage(me,N.soloTick),arenaAttackReach(me,{kind:'goblin'}));if(hit){N.soloSwing=N.soloTick;me.attackTick=N.soloTick;me.attackAngle=Math.atan2(hit.y-me.y,hit.x-me.x);me.facingAngle=me.attackAngle;arenaMapBase=null;A()?.play('hit',{weapon:me.activeWeapon||'sword',gain:.4});if(hit.hp===0){if(hit.collider)N.soloCrowd?.refreshObstacles?.([hit.collider]);announceArena(hit.kind==='barrel'?'BURE RAZBIJENO':'KUTIJA RAZBIJENA')}}}
   }
   arenaExplorePickup(N.explore,N.players);
   arenaFieldKits(N.breakState,N.players,N.soloTick,(_,hp)=>{announceArena('ZAVOJ · +'+hp+' HP');A()?.play('choose')});
