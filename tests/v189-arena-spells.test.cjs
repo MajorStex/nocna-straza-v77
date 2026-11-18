@@ -37,3 +37,23 @@ const world={w:4200,h:4200},players=new Map();for(let i=1;i<=6;i++){const id='p'
  const dead={id:99,x:1050,y:1000,hp:3};E.arenaExtraDamage(dead,p,400,4,kill);E.arenaExtraDamage(dead,p,401,4,kill);assert.equal(kills.filter(id=>id===99).length,1,'single kill attribution');
  console.log('V193 PASSIVES + 4 WEAPON EVOLUTIONS: all deterministic combat assertions passed');
 })();
+
+;(()=>{
+ const start=src.indexOf('// BEGIN V194 BREAKABLES'),end=src.indexOf('// END V194 BREAKABLES',start);
+ const cs=src.indexOf('function arenaAcidClear('),ce=src.indexOf('\nfunction stepArenaWorms',cs);
+ assert(start>=0&&end>start&&cs>=0&&ce>cs);
+ const A=new Function(src.slice(cs,ce)+'\n'+src.slice(start,end)+'\nreturn {arenaBreakInit,arenaBreakPacket,arenaBreakRestore,arenaBreakHit,arenaFieldKits}')();
+ const o={kind:'barrel',x:90,y:90,w:20,h:20},solid={kind:'tree',x:222,y:222,w:30,h:30};
+ const base={w:4200,h:4200,obstacles:[o,solid],classicProps:[{type:'barrel',x:100,y:100,r:18,seed:0},{type:'tree',x:237,y:237,r:20,seed:3}]};
+ const w={...base},b=A.arenaBreakInit(base),p={id:'p1',x:55,y:100,hp:40,maxHp:100,online:true};
+ assert.equal(b.items[0].hp,72);assert.equal(A.arenaBreakHit(b,w,p,1,1,22,83).hp,50);assert.equal(w.obstacles.length,2);
+ for(let t=2;t<=4;t++)A.arenaBreakHit(b,w,p,t,1,22,83);
+ assert.equal(b.items[0].hp,0);assert.equal(w.obstacles.length,1);assert.equal(w.classicProps.length,1);assert(b.removed.has(o));
+ assert.equal(base.obstacles.length,2);assert.equal(base.classicProps.length,2);assert.equal(A.arenaBreakHit(b,w,p,5,1,22,83),null);
+ const w2={...base},b2=A.arenaBreakInit(base);assert(A.arenaBreakRestore(b2,w2,A.arenaBreakPacket(b)));assert.equal(b2.items[0].hp,0);assert.equal(w2.obstacles.length,1);
+ const wall={kind:'house',x:70,y:85,w:6,h:30},w3={...base,obstacles:[o,solid,wall]},b3=A.arenaBreakInit(w3);
+ assert.equal(A.arenaBreakHit(b3,w3,p,1,1,100,83),null);p.x=10;assert.equal(A.arenaBreakHit(b3,w3,p,1,1,100,20),null);
+ p.x=100;p.y=100;b.kits=[{id:0,x:100,y:100}];const p2={id:'p2',x:100,y:100,hp:40,maxHp:100,online:true},team=new Map([['p2',p2],['p1',p]]);
+ let events=0;A.arenaFieldKits(b,team,100,()=>events++);assert.equal(p.hp,52);assert.equal(p2.hp,40);assert.equal(p.fieldRushUntil,340);assert.equal(b.kits.length,0);A.arenaFieldKits(b,team,101,()=>events++);assert.equal(events,1);
+ console.log('V194 breakables, collision, room isolation, checkpoint and single-owner field kits PASS');
+})();
