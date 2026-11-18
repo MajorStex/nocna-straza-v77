@@ -109,3 +109,27 @@ test('V214 direct transport close releases stale input before scheduling same-se
  assert.match(source,/N\.paused\|\|\(!N\.solo&&N\.netStalled\)\|\|N\.stick\.ptr!==null/);
  assert.match(source,/if\(N\.paused\|\|\(!N\.solo&&N\.netStalled\)\)return/);
 });
+
+test('V215 pooled painter preserves every draw job, stable depth ordering and bounded reference lifetime',()=>{
+ const a=source.indexOf('function createArenaDrawScratch('),b=source.indexOf('const arenaDrawScratch=',a);
+ assert(a>=0&&b>a);
+ const c=vm.createContext({});vm.runInContext(source.slice(a,b),c);
+ const scratch=c.createArenaDrawScratch(64);let previous=null;
+ for(let frame=0;frame<1000;frame++){
+  const plain=[],count=(frame*17)%240;
+  for(let i=0;i<count;i++){
+   const ref={id:i,frame},depth=(i*13+frame*7)%31,kind=i%9,id=i%22;
+   plain.push({depth,kind,id,ref});scratch.add(depth,kind,id,ref);
+  }
+  if(count>0){if(previous)assert.equal(scratch.jobs[0],previous,'reuse first painter record');previous=scratch.jobs[0]}
+  const compare=(a,b)=>a.depth-b.depth||a.kind-b.kind||a.id-b.id;
+  plain.sort(compare);scratch.jobs.sort(c.arenaDepthOrder);
+  assert.equal(scratch.jobs.length,count,'overflow must never drop a visible entity');
+  for(let i=0;i<count;i++){const x=plain[i],y=scratch.jobs[i];assert.equal(y.depth,x.depth);assert.equal(y.kind,x.kind);assert.equal(y.id,x.id);assert.equal(y.ref,x.ref)}
+  const retained=Array.from(scratch.jobs);scratch.clear();
+  assert.equal(scratch.jobs.length,0);assert(retained.every(x=>x.ref===null));assert(scratch.poolSize<=64);
+ }
+ assert.equal(scratch.poolSize,64);
+ assert.match(source,/jobs\.sort\(arenaDepthOrder\)/);
+ assert.match(source,/finally\{scratch\.clear\(\)\}/);
+});
