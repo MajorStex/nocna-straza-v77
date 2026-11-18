@@ -764,7 +764,7 @@ const XP_CAP=160;
 const el=id=>document.getElementById(id);
 let magicSupported=false,spellSlot=0,spellSeq=0,spellView=null,spellFx=[],spellSeen=new Map(),spellAim=null,spellHudAt=0,spellPendingAt=0;
 function resetArenaMagic(){magicSupported=false;spellSeq=0;spellView=null;spellFx=[];spellSeen.clear();spellAim=null;spellHudAt=spellPendingAt=0;if(el('ns189Picker'))el('ns189Picker').hidden=true;if(el('ns189Magic'))el('ns189Magic').hidden=true}
-function arenaMagicAvailable(){return N.phase==='running'&&!N.netStalled&&(N.solo||magicSupported)&&N.me?.hp>0&&!N.me.knocked&&!N.paused&&el('ns158Menu')?.hidden!==false&&!LAB_PAUSE.paused&&!(N.solo?N.soloChoice||N.soloState!=='play':N.choice||N.waveState!=='play')}
+function arenaMagicAvailable(){return N.phase==='running'&&(N.solo||(!N.netStalled&&magicSupported))&&N.me?.hp>0&&!N.me.knocked&&!N.paused&&el('ns158Menu')?.hidden!==false&&!LAB_PAUSE.paused&&!(N.solo?N.soloChoice||N.soloState!=='play':N.choice||N.waveState!=='play')}
 function magicPoint(clientX,clientY){const r=el('ns140Canvas').getBoundingClientRect(),z=clamp(Math.max(r.width/750,r.height/760),.7,1.45);return{x:N.me.x+(clientX-r.left-r.width/2)/z,y:N.me.y+(clientY-r.top-r.height/2)/z}}
 function spellTarget(slot){const s=ARENA_SPELLS[slot],p=N.me;if(s.heal)return{x:p.x,y:p.y};let best=null,dist=Math.min(250,s.range)**2;for(const m of (N.solo?N.soloMobs:N.mpMobs)){if(m.hp<=0)continue;const d=(m.x-p.x)**2+(m.y-p.y)**2;if(d<dist){best=m;dist=d}}const angle=p.facingAngle??p.attackAngle??0;return best?{x:best.x,y:best.y}:{x:p.x+Math.cos(angle)*105,y:p.y+Math.sin(angle)*105}}
 function showArenaSpell(event){if(!Array.isArray(event)||event.length!==5||!Number.isSafeInteger(event[0])||spellSeen.has(event[0])||!ARENA_SPELLS[event[1]]||!event.slice(2).every(Number.isFinite))return;spellSeen.set(event[0],event[4]);for(const [id,t] of spellSeen)if(event[4]-t>120)spellSeen.delete(id);spellFx.push({event,at:performance.now()});if(spellFx.length>18)spellFx.shift();const me=N.me;if(me&&(event[2]-me.x)**2+(event[3]-me.y)**2<640**2)B().arenaSpellSound?.(ARENA_SPELLS[event[1]].id,event[2],event[3],me)}
@@ -2559,7 +2559,7 @@ function frame(now){
  }
  const netHealth=arenaNetWatch(now);
  const v=input();
- const selecting=N.netStalled||N.paused||!el('ns192MapPanel')?.hidden||!el('ns158Menu')?.hidden||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
+ const selecting=(!N.solo&&N.netStalled)||N.paused||!el('ns192MapPanel')?.hidden||!el('ns158Menu')?.hidden||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
  if(selecting||N.reviveHeld||N.me?.knocked||N.me?.finalDead){v.x=0;v.y=0}
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
@@ -2583,7 +2583,7 @@ function frame(now){
     N.ws.send(JSON.stringify({t:'look',look}));
    }
   }
-  if(!N.netStalled&&!N.rejoinCorrection&&N.tick>=0&&N.ws?.readyState===1&&now-N.lastInput>=(N.paused?500:50)&&N.ws.bufferedAmount<4000){
+  if(!N.solo&&!N.netStalled&&!N.rejoinCorrection&&N.tick>=0&&N.ws?.readyState===1&&now-N.lastInput>=(N.paused?500:50)&&N.ws.bufferedAmount<4000){
   const seq=++N.seq;N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
   if(N.pending.length>26)N.pending.shift();
   N.delta={x:0,y:0};N.lastInput=now;
