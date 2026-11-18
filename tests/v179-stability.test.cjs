@@ -66,3 +66,15 @@ test('V181 remote hero and enemy share monotonic buffered time even when jitter 
  assert(moving/frames>.7,'most frames continue moving despite irregular arrivals');
  assert(N.mobHistory.length<=12);
 });
+
+test('V218 worm faces selected player in all phases, independent of movement',()=>{
+ const a=source.indexOf('function arenaWormFace('),b=source.indexOf('function drawArenaWorm(',a);
+ assert(a>=0&&b>a);const face=new Function(source.slice(a,b)+'return arenaWormFace')();
+ for(let i=0;i<360;i++){
+  const angle=i*Math.PI/180,p={id:'p2',x:Math.cos(angle)*170,y:Math.sin(angle)*170,online:true,hp:100},other={id:'p1',x:1,y:1,online:true,hp:100};
+  const players=new Map([[other.id,other],[p.id,p]]);
+  for(const winding of [0,15])assert.equal(face({wormFaceTarget:'p2',wormWindup:winding,wormAngle:2.5,vx:-1,vy:0},players,0,0),Math.atan2(p.y,p.x));
+ }
+ assert.equal(face({wormAngle:2.5},new Map(),0,0),2.5);
+ assert.match(source,/angle:arenaWormFace\(m,N.players,x,y\)/);
+});
