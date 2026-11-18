@@ -1,16 +1,16 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 201 -->
+<!-- current-release: 202 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V201 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V202 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
-- Sada se radi: V201 zmaj, 50. talas, tri faze, vatrena linija i udar krilima; Solo/MP dele ista pravila, server autoritativan. Grafika ostaje fiksna. V200 klijentski CI 19/19; relay CI / LIVE nerešeni.
+- Sada se radi: V202 oslobađanje zarobljenika od 5. talasa i pratnja do bezbedne seoske straže na postojećoj outdoor mapi Nove zone. Solo/MP dele ista pravila, server autoritativan. Grafika ostaje fiksna. V200 klijentski CI 19/19; završni V202 CI / LIVE nerešeni.
 - Blokade: Cloudflare Actions objava prijavila nedostajuće kredencijale; serverski CI je ranije vraćao failure bez logova. Ne pretpostavljati da je to rešeno. Neophodno je proveriti konačan CI, upareni relay i klijent, stvarni LIVE URL i fizičke telefone.
-- Sledeće: završni V201 regression CI, kompatibilnost relay/klijent, potvrda LIVE i fizičkih 2 pa 6 Android uređaja; V202 zarobljenici, V203 crafting, V204 odbrana sela, V205 legendarna oprema, V206 balans, V207 završni testovi. Plan nije implementacija.
+- Sledeće: završni V202 regression CI, kompatibilnost relay/klijent, potvrda LIVE i fizičkih 2 pa 6 Android uređaja; V203 crafting, V204 odbrana sela, V205 legendarna oprema, V206 balans, V207 završni testovi. Plan nije implementacija.
 
 ## Arhitektura i pravila rada
 - GitHub klijent: MajorStex/nocna-straza-v77; relay: MajorStex/nocna-straza-relay. Izvornu datoteku i status grane proveriti direktno kroz povezani GitHub; novi ChatGPT nalog mora dobiti ovlašćen pristup od vlasnika.
@@ -33,6 +33,10 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 
 <!-- HISTORY -->
 ## ISTORIJA VERZIJA — od novijih ka starijim
+### V202 — 18.11.2026 (KOD / simulirani TEST; LIVE nije potvrđen)
+- Jedan zarobljenik po partiji od 5. talasa, oslobađanje kada igrač priđe kavezu i očisti okolinu. NPC ima 100 HP, prati dostupnog saigrača, prebacuje vođstvo pri gubitku veze, wall-safe kretanje, HP i status na HUD-u, markeri na minimapi. Odredište je seoska straža na istoj mapi, ne prelazak u zaseban Village mod. NPC može nastradati i misija tada propada.
+- Nagrada: +3 arena shards svakom živom prisutnom članu tima, jednokratno. Ne dodaje trajnu profilsku valutu. Pauzira se u Temple/pećini, globalnoj pauzi, izboru nadogradnje, između talasa; deaktivirano u editoru. Faze i nagrada čuvaju se u server checkpointu. Solo koristi isto pravilo lokalno.
+- Ograničen rad: jedan NPC, update 10 Hz, bez novog mrežnog kanala, zajednički snapshot sa 7 vrednosti (32 znaka u testu), postojeći renderer, fiksna grafika. Test v202-rescue.test.mjs: 1.997 provera, 100 simuliranih pratnji, 8.900 koraka, provera stvarne geometrije mape i 6 identičnih mock snapshotova. Ne znači fizički test, novi završni CI i LIVE nisu potvrđeni. Lokalno izbegavanje prepreka, nije kompletan globalni NPC pathfinding.
 ### V201 — 18.11.2026 (KOD / simulirani TEST; LIVE nije potvrđen)
 - Zmaj u Nova Zone normalnoj progresiji od 50. talasa: jedan po prvom paketu talasa, bez dodatnog broja aktivnih neprijatelja; tri faze, vatrena linija i udar krilima, vidljivo upozorenje, zaključan smer, kolizija vatre sa zidom. Fiksna vektorska grafika novog bossa, van ekrana se ne crta. Postojeća umetnost ostaje netaknuta.
 - Server odlučuje HP, fazu, pogodak i nagrade; postojeći snapshot nosi koordinatu, fazu i upozorenje. Samo offline Solo izračunava lokalno. Zmaj daje XP kristal 120 i postojeći retki glaive ako ima mesta u svetskom weapon pool-u. Nije dodato novo legendarno oružje.
