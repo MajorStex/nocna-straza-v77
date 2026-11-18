@@ -6,6 +6,7 @@ const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/';
 const relay='https://nocna-straza-relay.stefanstevic1996.workers.dev/';
 const files=['v115-village.js','v165-classic-voice.js','v140-net-mode.js','v178-workshop-social.js','v171-character-creator.js','v177-workshop.js','v174-independent-ai.js','v176-scenes.js'];
 const localHtml=fs.readFileSync('public/index.html','utf8');
+const localRelease=Number(localHtml.match(/<meta name="ns-release" content="(\d+)"/)?.[1]);if(!Number.isSafeInteger(localRelease)||localRelease<166)throw Error('Invalid local release');
 const refs=Object.fromEntries(files.map(file=>{
  const prefix='./'+file+'?';
  const raw=[...localHtml.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map(m=>m[1]).find(src=>src.startsWith(prefix));
@@ -21,8 +22,7 @@ for(let attempt=1;attempt<=16;attempt++){
   const home=await fetch(url+'?v170='+attempt,{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(16000)});
   if(!home.ok)throw Error('game home HTTP '+home.status);
   const html=await home.text();
-  const localRelease=fs.readFileSync('public/index.html','utf8').match(/<meta name="ns-release" content="(\d+)"/)?.[1];
-  if(localRelease&&!html.includes('<meta name="ns-release" content="'+localRelease+'">'))throw Error('Public homepage still serves a stale release');
+  if(digest(html)!==digest(localHtml))throw Error('Public homepage SHA-256 mismatch');
   for(const file of files)if(!html.includes('src="'+refs[file]+'"'))throw Error('HTML is still referencing old '+file);
   const checks=await Promise.all(files.map(async file=>{
    const response=await fetch(new URL(refs[file].replaceAll('&amp;','&')+marker,url),{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(16000)});
@@ -32,8 +32,10 @@ for(let attempt=1;attempt<=16;attempt++){
    return [file,found.slice(0,12)];
   }));
   const backend=await fetch(relay+'health?ui=170-'+attempt,{signal:AbortSignal.timeout(16000)}).then(r=>r.json());
-  if(backend.arenaBuild!==168||backend.arenaXp!==true||backend.arenaWorld?.w!==4200)
-    throw Error('V168 arena was lost: '+JSON.stringify(backend));
+  if(backend.ok!==true||backend.arenaBuild!==168||backend.arenaRelease!==localRelease||backend.arenaXp!==true||backend.arenaWorld?.w!==4200||backend.arenaWorld?.h!==4200||backend.arenaQa?.ok!==true||backend.arenaQa?.suites!==13||!/^[a-f0-9]{40}$/.test(backend.arenaQa.commit||''))
+    throw Error('Exact release/relay QA mismatch: '+JSON.stringify(backend));
+  const log=await fetch(url+'development-log.md?verify='+attempt,{signal:AbortSignal.timeout(16000),headers:{'Cache-Control':'no-cache'}});if(!log.ok||digest(Buffer.from(await log.arrayBuffer()))!==digest(fs.readFileSync('public/development-log.md')))throw Error('Development log fingerprint mismatch');
+  console.log('PRODUCTION PAIR VERIFIED',JSON.stringify({release:localRelease,relayCommit:backend.arenaQa.commit,suites:backend.arenaQa.suites}));
   console.log('LIVE VERIFIED: SAME PERMANENT GAME WORKER · VILLAGE + VOICE + NETWORK + WORKSHOP SHA256 MATCH · V168 WORLD AND EXP STILL PRESENT '+JSON.stringify(Object.fromEntries(checks)));
   if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
    '### ✅ Release live · existing Noćna Straža link\n\nVillage, voice, network and workshop SHA-256 match the exact GitHub release; V168 4200 × 4200 XP relay is unchanged.\n');
