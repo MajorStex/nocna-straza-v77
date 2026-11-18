@@ -2644,3 +2644,6 @@ window.NS140_ARENA={startHost,startSolo,acceptOffer,frame,stop,get errorCode(){r
   playerX:N.me?.x,playerY:N.me?.y,walking:!!N.me?.motion?.walking,
  facing:N.me?.motion?.side||1,attackAngle:N.me?.attackAngle??null}}};
 })();
+
+/* Lazy development handoff entry point, main menu only; no per-frame work. */
+(function(){const home=document.getElementById('home');if(!home||document.getElementById('nsDevLogOpen'))return;const b=document.createElement('button');b.id='nsDevLogOpen';b.type='button';b.textContent='⌕ DEVELOPMENT LOG / RAZVOJ IGRE';b.style.cssText='font-size:11px;min-height:28px;padding:4px 8px;margin:4px auto 0;display:block;max-width:100%';const version=document.getElementById('ns102MenuVersion');if(version&&home.contains(version))version.insertAdjacentElement('afterend',b);else home.append(b);let loading=false;b.onclick=()=>{if(window.NS_DEVLOG){window.NS_DEVLOG.open();return}if(loading)return;loading=true;b.disabled=true;const s=document.createElement('script');s.src='./v199-development-log.js?v=199';s.onload=()=>{loading=false;b.disabled=false;window.NS_DEVLOG?.open()};s.onerror=()=>{loading=false;b.disabled=false;b.textContent='RAZVOJ IGRE · POKUŠAJ PONOVO';s.remove()};document.head.append(s)}})();
