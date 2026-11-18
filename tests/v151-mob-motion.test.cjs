@@ -6,7 +6,14 @@ const vm=require('node:vm');
 const src=fs.readFileSync(path.join(__dirname,'../public/v140-net-mode.js'),'utf8');
 const start=src.indexOf('function sampleOnlineMobs(now,dt){'),end=src.indexOf('function drawArenaMobs(g,now,dt,visible){',start);
 assert.ok(start>0&&end>start,'V151 has dedicated online mob snapshot interpolator');
-assert.ok(src.includes('N.soloCrowd.advance(goblins,N.players);'),'solo enemies move at fixed 30Hz');
+// V204 routes defense raiders to a second target map without changing the physics cadence.
+const soloStart=src.indexOf('function stepSolo(dt){');
+assert.ok(soloStart>0,'solo fixed-step loop exists');
+const solo=src.slice(soloStart,src.indexOf('function sampleOnlineMobs(now,dt){',soloStart));
+assert.match(solo,/while\(N\.soloAcc>=1\/30&&iterations\+\+<5\)\{\s*N\.soloAcc-=1\/30;N\.soloTick\+\+/,'solo physics remains 30Hz and catch-up is bounded');
+assert.match(solo,/N\.soloCrowd\.advance\(siege\?siege\.normal:goblins,N\.players\);if\(siege\)N\.soloCrowd\.advance\(siege\.raid,siege\.targets\);/,'both regular enemies and defense raiders advance every physics tick');
+assert.match(solo,/if\(N\.soloTick%2===0\)\{N\.soloCrowd\.step\(siege\?siege\.normal:goblins,N\.players,N\.soloTick\);if\(siege\)N\.soloCrowd\.step\(siege\.raid,siege\.targets,N\.soloTick\)\}/,'both groups steer at 15Hz');
+assert.match(src,/move\(m,m\.vx\/d\*stride,m\.vy\/d\*stride,1\/30\)/,'movement integrates fixed 30Hz stride');
 assert.ok(src.includes('mob.prevX=mob.x;mob.prevY=mob.y'),'solo keeps previous physics positions');
 assert.ok(src.includes('N.soloAcc*30'),'solo renders between physics steps at 60/90/120FPS');
 assert.ok(!src.includes("const t=1-Math.exp(-Math.min(dt,.05)*17);mob.x+="),
