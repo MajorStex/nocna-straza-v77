@@ -17,5 +17,6 @@ jobs:
       - run: node tests/v189-arena-spells.test.cjs
       - run: node tests/v199-network-watchdog.test.mjs
       - run: node tests/v199-development-log.test.cjs
+      - run: node tests/v199-fixed-memory.test.mjs
       - run: npm install --no-save --no-package-lock playwright-core@1.58.2
       - run: node tests/v189-arena-browser.test.cjs
