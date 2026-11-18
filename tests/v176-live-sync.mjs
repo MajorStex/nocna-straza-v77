@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 const base='https://v189-arena-abilities-nocna-straza-relay.stefanstevic1996.workers.dev';
-const release=Number(fs.readFileSync('public/index.html','utf8').match(/name="ns-release" content="(\d+)"/)[1]);
+// Client-only releases can advance while the explicitly pinned compatible relay stays unchanged.
+const release=Number(fs.readFileSync('.github/workflows/v205-native-deployment-verify.yml','utf8').match(/EXPECTED_RELAY_RELEASE: '(\d+)'/)[1]);
 const pinned=fs.readFileSync('.github/workflows/v180-stress.yml','utf8').match(/NS_EXPECTED_RELAY_SHA: '([a-f0-9]{40})'/)[1];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let h,last;
