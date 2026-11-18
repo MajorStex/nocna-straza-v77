@@ -1,0 +1,182 @@
+# NOĆNA STRAŽA — prenos projekta / development handoff
+<!-- current-release: 199 -->
+<!-- reviewed: 2026-11-18 -->
+Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
+
+## BRZI PRESEK — prvo pročitaj ovo
+- Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
+- Razvoj: V199; GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
+- Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
+- Sada se radi: pouzdanost mreže, fiksni vizuelni kvalitet, prostorna optimizacija saobraćaja, memorijski budžeti, šest istovremenih magija i boss napada; razvojni dnevnik i izvoz.
+- Blokade: Cloudflare Actions objava prijavila nedostajuće kredencijale; serverski CI je ranije vraćao failure bez logova. Ne pretpostavljati da je to rešeno. Neophodno je proveriti konačan CI, upareni relay i klijent, stvarni LIVE URL i fizičke telefone.
+- Sledeće: proveriti kompletan V199 regression CI, simulirati borbu bossova i stres-test memorije, zatim objaviti relay pre klijenta nakon provere kompatibilnosti. Testirati dva fizička Android uređaja, pa 6, Wi‑Fi i mobilnu mrežu, uključujući povratak iz pozadine i izlaz hosta.
+
+## Arhitektura i pravila rada
+- GitHub klijent: MajorStex/nocna-straza-v77; relay: MajorStex/nocna-straza-relay. Izvornu datoteku i status grane proveriti direktno kroz povezani GitHub; novi ChatGPT nalog mora dobiti ovlašćen pristup od vlasnika.
+- Klijent: public/index.html (Classic + menu), public/v140-net-mode.js (Nova zona), public/v115-village.js, v171-character-creator.js, v172-character-voices.js, v173-ability-forge.js, v174-independent-ai.js, v175-faction-relations.js, v176-scenes.js, v177-workshop.js, v178-workshop-social.js.
+- Relay: arena-v140.js, arena-steering.js, arena-scenery.js, arena-lab-v160.js, arena-troll-v162.js, arena-xp-v168.js, arena-spells-v189.js. Cloudflare Workers / Durable Objects; nova zona autoritativna 30 Hz, 15 Hz snapshot. Protokol 140, serverBuild 168 uz capability flagove po funkciji (ne mešati sa UI brojem verzije).
+- Server odlučuje HP, štetu, XP, drop, upgrade, revive, pozicije i prelaz zone. Klijent šalje nameru, predviđa sopstveno kretanje i interpolira ostale. Stari Classic MP nije u celosti autoritativno portovan. Voice odvojen od gameplay paketa, opt-in mikrofon i prostorni zvuk.
+- Ograničenja: 160 aktivnih neprijatelja (talas se deli u pakete), do 160 XP dropova, 85 bliskih kristala po snapshotu, do 12 istorijskih snapshotova, 26 pending kretanja, 18 prikazanih efekata, max 6 taktičkih oznaka. Ne smanjivati vizuelni kvalitet zbog FPS.
+- Editor / Sandbox: spawn, AI/fakcije, freeze, boss faze, save scena, kuće/props, zoom in/out, sakrivanje alata, invite, beskonačni revive u editoru; bez permanentnih nagrada iz testnih režima.
+- Classic pravila za port: 1) ista mapa i izgled likova/oružja, 2) auto-attack, mana i svih 8 magija, 3) XP kristali i chestovi, 4) bossovi/posebni napadi i animacije, 5) Temple/pećina, 6) Village/prijatelji/voice, 7) revive max 3 u regularnoj borbi, 8) nagrade i ekonomija server-authoritative gde implementirano; nikad duple nagrade.
+- Svaka naredna verzija: ažurirati ovaj fajl, dodati novi zapis sa jasnim statusom (KOD / TEST / LIVE / PLAN), testovima, otvorenim problemima i sledećim korakom. Ne prepisivati istoriju. CI i stvarna HTTP provera su različite stvari. Ne tvrditi da fizički test ili deploy radi ako nije izvršen.
+
+## Trenutni testovi i dokazi
+- Pre najnovijih izmena: klijentski V199 PR 19/19 workflow; Chromium 60 FPS sa 200 protivnika i 6 prikazanih igrača; prosečan trošak frejma 1,45 ms; 4.000 collision probes. Simuliranih 6 peerova, kašnjenje inputa 50–300 ms, reconnect istog slota i kontinuitet hosta. Nije fizičkih šest telefona.
+- Izolovani relay V199: 44.004 provere taktičkih oznaka i kolizije; 44.000 provera verzije zone/izbora, 43 provere sobe sa šest mock WebSocket konekcija. Tri prethodno nepristupačna serverska paketa lokalno preko JS simulacije: horde 1.704, world/XP 121, spells 42 provere. Ne označavati Cloudflare runtime potvrđenim.
+- Ubrzani transport soak: 60 simuliranih minuta, 54.000 snapshotova, 324.000 mogućih pošiljki, 313.667 poslato, 10.333 namerno preskočeno, 1.402 uzorkovane provere, svih 6 se oporavilo (mock konekcije, 160 protivnika, nije 60 minuta stvarne borbe).
+- Watchdog: posle 3 s bez stanja zamrzava predikciju; od 8 s pokušava reconnect sa 30 s cooldownom; 9 izolovanih provera.
+- Nova dokumentacija, kompaktni redovi neprijatelja, prostorni izbor XP i fiksni kvalitet: izmene na razvojnim granama; završni CI/live tek proveriti. Memorijska dijagnostika meri brojeve objekata; heap je dostupan samo u browseru koji podržava performance.memory.
+- Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs; stari v154-horde, v168-world-xp, arena-spells-v189.
+
+<!-- HISTORY -->
+## ISTORIJA VERZIJA — od novijih ka starijim
+### V199 — 18.11.2026 (KOD / delimično TEST; LIVE nije potvrđen)
+- Taktičke oznake svim igračima, zone generation, kolizije i napadi kroz zid, pravila mraka; sprečavanje zakašnjelih komandi, starog socket-a i izbora nagrada; reconnect baseline; watchdog, dijagnostika laga, fiksni vizuelni kvalitet, prostorni grid kristala i kompaktni snapshotovi; memorijski brojači.
+- Dodaje razvojni dnevnik, pretragu i jedan MD izvoz. Status novih izmena: razvoj, završni CI nije potvrđen.
+### V198 — KOD / raniji regresioni test
+- Night/Rush/campaign, pećinski posebni napadi, account reward packet; proveriti realni relay.
+### V197 — KOD
+- Pravila Nova Zone mode-ova (normal/night/rush/campaign), dnevno/noćni ciklus i ciljevi.
+### V196 — KOD / simulacija
+- Temple, pećina, ključ trola, zajednički ulazak, uspavani čuvari, povratak na prethodnu mapu, jednokratna nagrada.
+### V195 — KOD / regresioni test
+- Ekonomija, trgovina, kovnica, guild key, relikvije, ciljevi partije, dnevni/nedeljni zadaci.
+### V194 — KOD / regresioni test
+- Lomljivi objekti, kolizije, checkpoint, jednokratni field kit.
+### V193 — KOD / regresioni test
+- Pasivne veštine i četiri evolucije oružja, determinističke provere borbe.
+### V192 — KOD / regresioni test
+- Dodge, loadout, loot, SOS, boss summon, broj neprijatelja ograničen.
+### V191 — KOD / regresioni test
+- Classic roster, masivne jedinice, Matriarch, alpha vukodlak, faze i posebni napadi.
+### V190 — KOD / simulacija
+- Strelice ka saigračima i poslednjim neprijateljima, revive, spectator, progresija talasa.
+
+### V189 — Git istorija
+- V189: Classic abilities in Nova Zone Test (commit 2418b916; nije dokaz LIVE objave).
+### V188 — Git istorija
+- V188: expandable world editor, terrain and ambient life (commit 71492c5a; nije dokaz LIVE objave).
+### V187 — Git istorija
+- V187: destructible obstacles, teleport pairs, traps and spawn points (commit 7a0b30f3; nije dokaz LIVE objave).
+### V186 — Git istorija
+- V186: interactive workshop supplies and synchronized chests (commit 2e1bf5a2; nije dokaz LIVE objave).
+### V185 — Git istorija
+- V185: unlimited workshop revive and independent camera zoom (commit a0488d1f; nije dokaz LIVE objave).
+### V184 — Git istorija
+- V184: sandbox world editor, guest combat and smoother multiplayer (commit 142daf8c; nije dokaz LIVE objave).
+### V182 — Git istorija
+- V182: workshop battle commands and immersive multiplayer camera (commit 08853e32; nije dokaz LIVE objave).
+### V181 — Git istorija
+- V181: stable multiplayer, visual fidelity and performance QA (commit 53f96039; nije dokaz LIVE objave).
+### V178 — Git istorija
+- V178: workshop invites, votes, roster and concurrent voice recording (commit 68b7ed79; nije dokaz LIVE objave).
+### V177 — Git istorija
+- V177: shared creative workshop in Village (commit d601638d; nije dokaz LIVE objave).
+### V176 — Git istorija
+- V176: saved scenes, editor optimization and six-client live sync QA (commit 2d8da32b; nije dokaz LIVE objave).
+### V175 — Git istorija
+- V175: editor-only faction relationships and observer scene (commit 6bc900d0; nije dokaz LIVE objave).
+### V174 — Git istorija
+- V174: Independent AI, boss phases and reusable character placement (commit aaf95cd8; nije dokaz LIVE objave).
+### V173 — Git istorija
+- V173: Ability Forge and character editor combat and voice fixes (commit e1748d72; nije dokaz LIVE objave).
+### V172 — Git istorija
+- V172: Character Voice Studio and dual-role character combat (commit 0e683f2f; nije dokaz LIVE objave).
+### V171 — Git istorija
+- V171: Create My Hero and Create Character with tested solo editor arena (commit 90bc5438; nije dokaz LIVE objave).
+### V170 — Git istorija
+- V170: repair deployment and verify the actual existing Cloudflare Worker (commit a12c02f5; nije dokaz LIVE objave).
+### V169 — Git istorija
+- V169 Village mobile UI: compact HUD, accessible tools and lightweight voice popover (commit efe00608; nije dokaz LIVE objave).
+### V168 — Git istorija
+- V168 publish verification on same permanent Worker via independent SHA-256 live checks (commit 23ce02a6; nije dokaz LIVE objave).
+### V167 — raniji projektni izveštaj
+- Serverski revive (najviše 3), plavi dijamanti i više trolova. Razvoj, fizički test i live nisu potvrđeni.
+### V166 — Git istorija
+- Gate Cloudflare release on V166 320-412px real Chromium lobby fit and current voice/Village regression (commit f8e7f85c; nije dokaz LIVE objave).
+- Mobilni lobi širina 320–412 px, razdvojeni Classic/New Zone voice, zaštita starih paketa; raniji izveštaj potvrdio live V166; ne znači da je još danas live.
+### V165 — Git istorija
+- V165 authorize classic voice guest tokens via private co-op handshake, start voice room on host creation/host migration and keep independent of Arena (commit 1a1c2905; nije dokaz LIVE objave).
+### V164 — Git istorija
+- V164 verify both mode chooser and original lobby dropdown publicly label level-0 New Zone test access (commit 3d75b15f; nije dokaz LIVE objave).
+### V163 — Git istorija
+- V163 mobile CI includes PTT hold/release, menu mic mode and speaking badge privacy regressions (commit d380880a; nije dokaz LIVE objave).
+### V162 — raniji projektni izveštaj
+- Originalni trol na talasu 10, compact Sandbox i asset order.
+### V161 — raniji projektni izveštaj
+- Aktivni govornik, speaker znak iznad glave, voice ID ispravka; mock test.
+### V160 — raniji projektni izveštaj
+- Sandbox, AI/spawn/freeze, save/undo, globalno glasanje za pauzu, solo auto pause, kontrola heroja.
+### V159 — raniji projektni izveštaj
+- Zaseban autentifikovan voice kanal, udaljenost, mute; stvarna dva telefona nepotvrđena.
+### V157 — raniji projektni izveštaj
+- Determinističko drveće/kamenje, zajedničke kolizije.
+### V154 — raniji projektni izveštaj
+- Horde goblina, renderer i stres-test; skaliranje i bezbedniji spawn.
+### V152 — raniji projektni izveštaj
+- Proširen arena prostor, zvuk, chestovi, wave HUD.
+### V142 — raniji projektni izveštaj
+- MP modovi, promene zone posle smrti, ispadanje oružja/ključa, Temple, Village scoreboard; objava bila blokirana.
+### V140 — raniji projektni izveštaj
+- Izdvojeni novi multiplayer, postepeni pristup 2 pa 6 igrača.
+### V138 — raniji projektni izveštaj
+- Village 1660×960, 9 objekata, 7 ovaca, 5 prasića, PvP štala bez stalnih nagrada i respawn.
+### V130 — raniji projektni izveštaj
+- Workflow stalnog Cloudflare deploya i verifikacije, 57 provera; objava tada blokirana.
+### V129 — raniji projektni izveštaj
+- Diskretna oznaka verzije u igri i Village-u.
+### V128 — raniji projektni izveštaj
+- Optimizacije 30–144 Hz i cilj 60 simulacija/s; 27 provera, fizički test nepotvrđen.
+### V124 — raniji projektni izveštaj
+- WASD/strelice i spawn fix.
+### V114 — raniji projektni izveštaj
+- Goblin sa tamnocrvenim šlemom, kompatibilni ID; kapija i prolaz.
+### V113 — raniji projektni izveštaj
+- Ally napada neprijatelje za 8 štete, može biti meta crva/bossova.
+### V105 — raniji projektni izveštaj
+- Temple preview, ključ trola, lavirint, 14 dekoracija, uspavani čuvari.
+### V104 — raniji projektni izveštaj
+- Pauza skriva mana/magic HUD, resume vraća; raniji izveštaj live i mobilni test.
+### V99 — raniji projektni izveštaj
+- Dve burger trake, zajednički level izbor i pause/resume vote; nova MP provera tada otvorena.
+### V98 — raniji projektni izveštaj
+- Solo prelaz pećine posle disconnecta, mana samo u borbi.
+### V97 — raniji projektni izveštaj
+- Zajedničke post-game statistike, revanš i auto start; prethodno potvrđeno testnim browserima.
+### V94 — raniji projektni izveštaj
+- Nagrade/checkout zaštita, adaptivni efekti tada; korisnik sada NE želi adaptivne efekte u Nova Zone.
+### V93 — raniji projektni izveštaj
+- Osam magija, mana, Mage klasa i drag targeting.
+### V92 — raniji projektni izveštaj
+- Javne sobe / Create-Join, refresh, password/anti spam; raniji izveštaj live.
+### V89 — raniji projektni izveštaj
+- Troll Goblin od 10. talasa, telegraph, weapon drop 11%, uzmi/odbaci UI.
+### V88 — raniji projektni izveštaj
+- GitHub Pages objava, osnovni testovi.
+### V81 — raniji projektni izveštaj
+- Deterministički dekorativni kamenčići, 62 lokalne provere.
+### V80 — raniji projektni izveštaj
+- Congestion zaštita, preskakanje zastarelih stanja, 48 simuliranih provera.
+### V79 — raniji projektni izveštaj
+- MP smoothing i lobby chat, 54 lokalne provere.
+### V78 — raniji projektni izveštaj
+- Brži host update i manje kopije, 6 simuliranih klijenata.
+### V75 — raniji projektni izveštaj
+- 20 uništivih buradi, poljski zavoj, limit dropova i sinhronizacija.
+### V74 — raniji projektni izveštaj
+- Prijatelji i profil u lobby-u, 82 provere; fizički 5G nepotvrđen.
+### V70 — raniji projektni izveštaj
+- Heartbeat WebSocket PING/PONG, backoff reconnect, sačuvan room code, JOIN retry; mock relay i browser; ne potvrđuje live.
+### V69 — raniji projektni izveštaj
+- Rani javni HTML build / shop sandbox; demo vlasništvo nije pravo plaćeno vlasništvo.
+### V63 — raniji projektni izveštaj
+- Glasovi heroja prema udaljenosti, mute i pristanak; mock test.
+### V61 — raniji projektni izveštaj
+- JOIN retry fix i WebSocket relay.
+### V3 — raniji projektni izveštaj
+- Početni HTML, izbor heroja, XP, Classic/Noćni plamen, prijatelji, do šest igrača; rane simulacije.
+
+## Napomena o potpunosti
+Ovo je rekonstruisana istorija iz dostupnih GitHub commitova i ranijih projektnih izveštaja. Za preskočene verzije nema dovoljno pouzdanih zapisa u trenutnom izvozu; ne izmišljati ih. Istorija nije kopija svih starih poruka. Za novi ChatGPT nalog pošalji ovaj fajl i reci: „Nastavi razvoj Noćne Straže po ovom dokumentu. Prvo potvrdi stanje na GitHub-u i LIVE, ne ponavljaj završene funkcije i ne menjaj izgled. Ažuriraj ovaj dnevnik pri svakoj verziji.”
