@@ -1,16 +1,16 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 199 -->
+<!-- current-release: 200 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V199; GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V200 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
-- Sada se radi: pouzdanost mreže, fiksni vizuelni kvalitet, prostorna optimizacija saobraćaja, memorijski budžeti, šest istovremenih magija i boss napada; razvojni dnevnik i izvoz.
+- Sada se radi: V200 recovery, periodični checkpoint, zaštita izbora nagrada, izvoz mrežne dijagnostike i završni CI. Grafika ostaje fiksna.
 - Blokade: Cloudflare Actions objava prijavila nedostajuće kredencijale; serverski CI je ranije vraćao failure bez logova. Ne pretpostavljati da je to rešeno. Neophodno je proveriti konačan CI, upareni relay i klijent, stvarni LIVE URL i fizičke telefone.
-- Sledeće: proveriti kompletan V199 regression CI, simulirati borbu bossova i stres-test memorije, zatim objaviti relay pre klijenta nakon provere kompatibilnosti. Testirati dva fizička Android uređaja, pa 6, Wi‑Fi i mobilnu mrežu, uključujući povratak iz pozadine i izlaz hosta.
+- Sledeće: kompletan V200 CI i potvrda LIVE, prvo relay pa klijent; test fizičkih 2 pa 6 Android uređaja, Wi-Fi/4G/5G i povratak iz pozadine. Plan V201 zmaj; V202 zarobljenici; V203 crafting; V204 odbrana sela; V205 legendarna oprema; V206 balans; V207 završni testovi. Plan nije implementacija.
 
 ## Arhitektura i pravila rada
 - GitHub klijent: MajorStex/nocna-straza-v77; relay: MajorStex/nocna-straza-relay. Izvornu datoteku i status grane proveriti direktno kroz povezani GitHub; novi ChatGPT nalog mora dobiti ovlašćen pristup od vlasnika.
@@ -33,6 +33,10 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 
 <!-- HISTORY -->
 ## ISTORIJA VERZIJA — od novijih ka starijim
+### V200 — 18.11.2026 (KOD / izolovani TEST; LIVE nije potvrđen)
+- Periodični checkpoint na 30 s, odmah na startu, novom talasu i dodeli nadogradnje. Oporavak 6 slotova, HP/XP/drop/choice, odbijanje ponovljenog izbora, čišćenje starog inputa i istek prazne sobe. 18/18 simuliranih provera oporavka. U slučaju pada nezaštićeni trenutni borbeni napredak može da se vrati do poslednjeg checkpointa; nema garancije punog kontinuiteta.
+- Dijagnostika: brojači za mrežu, reconnect, greške checkpointa i memoriju; bez tokena, ID naloga i privatnih poruka. Izvoz JSON. V200 meta, meni i runtime naslov; legacy bazni HTML naslov V166 ostavljen zbog postojećih regresija.
+- V199 poslednji CI: 16/19 klijentskih workflowa, tri greške na istom zastarelom regexu za throttle; test prilagođen dodatnoj zaštiti, konačan rezultat V200 još nije potvrđen. Relay CI ranije 3/3 neuspešna bez dostupnih logova. Cloudflare kredencijali i fizički telefoni i dalje blokada.
 ### V199 — 18.11.2026 (KOD / delimično TEST; LIVE nije potvrđen)
 - Taktičke oznake svim igračima, zone generation, kolizije i napadi kroz zid, pravila mraka; sprečavanje zakašnjelih komandi, starog socket-a i izbora nagrada; reconnect baseline; watchdog, dijagnostika laga, fiksni vizuelni kvalitet, prostorni grid kristala i kompaktni snapshotovi; memorijski brojači.
 - Dodaje razvojni dnevnik, pretragu i jedan MD izvoz. Status novih izmena: razvoj, završni CI nije potvrđen.
