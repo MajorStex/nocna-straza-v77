@@ -87,11 +87,17 @@ jobs:
           npm install --no-save --no-package-lock playwright-core@1.58.2
           node tests/v166-lobby-mobile-width.test.cjs
           node tests/v166-lobby-mobile-browser.test.cjs
-      - name: Require Cloudflare Worker credentials (do not silently skip deployment)
+      - name: Select authenticated deploy or verify existing Cloudflare Builds integration
+        id: deploy_auth
         shell: bash
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::error title=Worker NOT deployed::Set repository Actions secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID with Workers Scripts Edit permissions. Existing workers.dev link was NOT updated."
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo 'mode=wrangler' >> "$GITHUB_OUTPUT"
+          elif [ -z "$CLOUDFLARE_API_TOKEN" ] && [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo 'mode=native' >> "$GITHUB_OUTPUT"
+            echo '::notice::No Actions credentials. Cloudflare Workers Builds must deploy main independently. The exact public assets and matching relay must still pass verification; no deploy is claimed here.'
+          else
+            echo '::error::Incomplete Actions credentials. Configure both secrets or remove the incomplete pair and use the existing native integration.'
             exit 1
           fi
       - name: Block stale commits and version downgrades
@@ -126,6 +132,7 @@ jobs:
           if expected<actual: raise SystemExit('ERROR: refusing Worker version downgrade')
           PY
       - name: Deploy static game to SAME Cloudflare Worker
+        if: steps.deploy_auth.outputs.mode == 'wrangler'
         run: npx --yes wrangler@4 deploy --config wrangler.jsonc
       - name: Verify actual live Worker version
         shell: bash
@@ -138,7 +145,7 @@ jobs:
           release=re.search(r'<meta name="ns-release" content="(\d+)"',html)
           expected_release=release.group(1) if release else None
           base=os.environ['LIVE_URL']
-          for attempt in range(1,9):
+          for attempt in range(1,25):
             try:
               u=base+'?worker-deploy='+os.environ['GITHUB_SHA']+'-'+str(attempt)
               req=urllib.request.Request(u,headers={'Cache-Control':'no-cache','User-Agent':'NocturnaWorkerRelease/1.0'})
@@ -154,11 +161,11 @@ jobs:
               print('Attempt',attempt,'not updated yet')
             except Exception as ex:
               print('Attempt',attempt,'error:',ex)
-            time.sleep(5)
+            time.sleep(8)
           else:
             raise SystemExit('ERROR: Worker production version mismatch; deployment NOT verified')
           PY
-      - name: Verify actual deployed Village and voice asset SHA-256 and V168 relay
+      - name: Verify exact deployed HTML, assets and compatible production relay (both deployment modes)
         run: node scripts/verify-live-v169-village.mjs
       - name: Report verified production deployment result
         if: always()
