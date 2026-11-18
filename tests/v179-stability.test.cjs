@@ -133,3 +133,44 @@ test('V215 pooled painter preserves every draw job, stable depth ordering and bo
  assert.match(source,/jobs\.sort\(arenaDepthOrder\)/);
  assert.match(source,/finally\{scratch\.clear\(\)\}/);
 });
+
+test('V217 audio scheduler sleeps when hidden or muted, and cooldown expiry preserves every audible event',()=>{
+ const audioSource=fs.readFileSync('public/v152-arena-audio.js','utf8');
+ const timers=new Map(),listeners=new Map();let nextTimer=0,now=1000;
+ const param=()=>({value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}});
+ const node=()=>({gain:param(),frequency:param(),connect(){},disconnect(){},start(){},stop(){this.onended?.()}});
+ class Context{
+  constructor(){this.state='running';this.sampleRate=8000;this.destination={};this.currentTime=0}
+  createGain(){return node()}createOscillator(){return node()}createBiquadFilter(){return node()}createBufferSource(){return node()}
+  createBuffer(ch,n){const data=new Float32Array(n);return {getChannelData:()=>data}}
+  resume(){this.state='running';return Promise.resolve()}suspend(){this.state='suspended';return Promise.resolve()}
+ }
+ const document={hidden:false,addEventListener(name,fn){listeners.set(name,fn)}};
+ const window={AudioContext:Context};
+ new Function('window','document','localStorage','performance','setInterval','clearInterval',audioSource)(window,document,{getItem:()=>null,setItem(){}},{now:()=>now},fn=>{const id=++nextTimer;timers.set(id,fn);return id},id=>timers.delete(id));
+ const a=window.NS152_AUDIO;const hide=value=>{document.hidden=value;listeners.get('visibilitychange')()};
+ a.unlock();a.unlock();assert.equal(timers.size,1);
+ a.set('music',false);assert.equal(timers.size,0);hide(true);a.set('music',true);assert.equal(timers.size,0);
+ hide(false);assert.equal(timers.size,1);hide(true);assert.equal(timers.size,0);hide(false);assert.equal(timers.size,1);
+ const reference=new Map();let accepted=0;
+ for(let i=0;i<4000;i++){
+  now+=40+(i%3)*10;const id=i%5===0?'shared':i;
+  const prev=reference.get(id)??-100000;
+  const expected=now-prev>=250;
+  assert.equal(a.play('step',{sourceId:id}),expected);
+  if(expected){reference.set(id,now);accepted++}
+  assert(a.diagnostics.cooldowns<=500,'expired IDs cannot accumulate over a long session');
+ }
+ assert(accepted>3000);assert.equal(a.diagnostics.activeFx,0);
+ a.stop();assert.equal(timers.size,0);assert.equal(a.diagnostics.cooldowns,0);hide(true);hide(false);assert.equal(timers.size,0);
+ a.unlock();assert.equal(timers.size,1);a.stop();
+});
+test('V217 all 256 voice codewords produce identical float32 PCM; no network or distance change',()=>{
+ const voice=fs.readFileSync('public/v159-voice.js','utf8');
+ const a=voice.indexOf('const decode=x=>'),b=voice.indexOf('function audio()',a);
+ assert(a>=0&&b>a);const f=new Function(voice.slice(a,b)+'return {decode,decodeTable}')();
+ for(let i=0;i<256;i++){assert.equal(f.decodeTable[i],f.decode(i));assert.equal(Math.fround(f.decodeTable[i]),Math.fround(f.decode(i)))}
+ assert.match(voice,/samples\[i\]=decodeTable\[packet\[i\+1\]\]/);
+ assert.match(voice,/const RATE=12000,LOG=Math.log\(256\),MAX_BUFFER=\.35/);
+ assert.match(voice,/return \.16\+\.84/);
+});
