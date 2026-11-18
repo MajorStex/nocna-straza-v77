@@ -39,6 +39,9 @@ try{
  // Isolate one combat drop in authenticated test room. Preserve server collision and damage logic.
  const host=peers[0],rev=host.latest.expedition?.[1]||0;send(host,{t:'lab',action:'clearMobs',rev});
  await until('isolated empty arena',()=>peers.every(p=>p.latest?.mobs.length===0));
+ // The authoritative lab rejects consecutive commands within 190 ms.
+ await sleep(260);
+ const clearedRev=host.lab?.rev||0;
  const row=host.latest.players.find(r=>r[0]==='p1'),x=row[1]/10,y=row[2]/10,world=host.welcome.world;
  let pos;for(let k=0;k<16&&!pos;k++){const a=k*Math.PI/8,xx=Math.round(x+Math.cos(a)*58),yy=Math.round(y+Math.sin(a)*58);
  if(xx<40||yy<40||xx>4160||yy>4160)continue;
@@ -46,6 +49,7 @@ try{
  pos=[xx,yy]}
  assert(pos,'safe spawn near hero');
  send(host,{t:'lab',action:'spawnMob',kind:'goblin',quantity:1,hp:1,x:pos[0]+52,y:pos[1]+32,rev});
+ await until('server accepted the sandbox spawn',()=>peers.every(p=>(p.lab?.rev||0)>clearedRev));
  const pair=await until('one shared combat XP award',()=>shared(m=>m.players.reduce((n,r)=>n+r[14],0)>=1),15000);
  const amounts=amount(pair[0]);assert.deepEqual(amounts,amount(pair[1]));assert.equal(amounts.reduce((n,r)=>n+r[1],0),7);assert.equal(amounts.reduce((n,r)=>n+r[2],0),1);
  await sleep(900);assert.deepEqual(amount(peers[0].latest),amounts,'no XP replay');assert.deepEqual(amount(peers[1].latest),amounts);
