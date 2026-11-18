@@ -3,9 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const root=path.resolve(__dirname,'../public');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const client=fs.readFileSync(path.join(root,'v140-net-mode.js'),'utf8');
-assert.match(html,/<title>Night Watch v166/);
-assert.match(html,/VERZIJA V166/);
-assert.match(html,/v140-net-mode\.js\?v=168/);
+const release=Number(html.match(/name="ns-release" content="(\d+)"/)?.[1]);assert(release>=166,'release marker');assert.equal(Number(html.match(/<title>Night Watch v(\d+)/)?.[1]),release,'title release');assert.equal(Number(html.match(/id="ns102MenuVersion"[^>]*>[^<]*VERZIJA V(\d+)/)?.[1]),release,'menu release');assert.equal(Number(html.match(/v140-net-mode\.js\?v=(\d+)&amp;release=\d+/)?.[1]),release,'arena asset release');assert.equal(Number(html.match(/v140-net-mode\.js\?v=\d+&amp;release=(\d+)/)?.[1]),release,'arena cache marker');
 assert.match(html,/const NS140_TEMP_UNLOCK_LEVEL=0/);
 assert.match(client,/const NS140_TEMP_UNLOCK_LEVEL=0/);
 assert.match(html,/PRIVREMENO OTKLJUČANO ZA SVE \(NIVO 0\+\)/);
