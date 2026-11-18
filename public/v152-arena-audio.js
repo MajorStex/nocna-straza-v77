@@ -5,10 +5,13 @@
 'use strict';
 if(window.NS152_AUDIO)return;
 const AC=window.AudioContext||window.webkitAudioContext;
-let ctx=null,master=null,fxBus=null,musicBus=null,noise=null,timer=null,nextAt=0,index=0,activeFx=0;
+let ctx=null,master=null,fxBus=null,musicBus=null,noise=null,timer=null,nextAt=0,index=0,activeFx=0,sessionActive=false,nextPrune=0;
 const CHORDS=[[146.83,174.61,220],[130.81,164.81,196],[116.54,146.83,174.61],[110,164.81,220]];
 const MELODY=[0,null,null,2,null,1,null,null,1,null,0,null,2,null,null,1];
 const last=new Map(),weaponSamples=new Map();
+// V217: constant cooldown table; discard only timestamps older than every cooldown.
+const cool={step:250,swing:170,hurt:240,enemy:380,goblinStep:620,hit:135,chest:600,wave:900,choose:200,xp:165,level:700};
+function pruneCooldowns(now){if(now<nextPrune)return;nextPrune=now+10000;for(const [key,at] of last)if(now-at>10000)last.delete(key)}
 const safeBool=(key,fallback)=>{try{const v=localStorage.getItem(key);return v===null?fallback:v==='true'}catch{return fallback}};
 let soundOn=safeBool('ns152_sound',true),musicOn=safeBool('ns152_music',true);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -27,11 +30,19 @@ function build(){
   return true;
  }catch{return false}
 }
+function syncMusicTimer(){
+ const wanted=!!ctx&&sessionActive&&musicOn&&!document.hidden;
+ if(wanted&&timer===null){if(nextAt<ctx.currentTime-.2)nextAt=ctx.currentTime+.05;timer=setInterval(musicTick,180)}
+ else if(!wanted&&timer!==null){clearInterval(timer);timer=null}
+}
 function unlock(){
  if(!build())return;
+ if(!sessionActive)nextAt=ctx.currentTime+.1;
+ sessionActive=true;
  if(ctx.state==='suspended')ctx.resume().catch(()=>{});
- if(!timer){nextAt=ctx.currentTime+.1;timer=setInterval(musicTick,180)}
+ syncMusicTimer();
 }
+document.addEventListener('visibilitychange',syncMusicTimer);
 function tone(frequency,at,duration,volume,shape,bus,slide=1){
  if(!ctx||ctx.state!=='running'||!Number.isFinite(frequency))return;
  // Cap simultaneously sounding one-shot oscillators, not the ambient music.
@@ -141,8 +152,7 @@ function play(kind,options={}){
  if(spatial<=.015)return false;
  const gain=spatial*clamp(options.gain??1,0,1);
  if(gain<.018)return false;
- const now=performance.now(),cool={step:250,swing:170,hurt:240,enemy:380,
-  goblinStep:620,hit:135,chest:600,wave:900,choose:200,xp:165,level:700};
+ const now=performance.now();pruneCooldowns(now);
  const key=['enemy','hit','goblinStep'].includes(kind)?kind:kind+(options.sourceId??'');
  if(now-(last.get(key)||-100000)<(cool[kind]||180))return false;
  // Don't create any new voices once the small FX pool is occupied.
@@ -172,15 +182,16 @@ function play(kind,options={}){
 }
 
 function stop(){
- if(timer){clearInterval(timer);timer=null}
- last.clear();
+ sessionActive=false;syncMusicTimer();
+ last.clear();nextPrune=0;
  if(ctx&&ctx.state==='running')ctx.suspend().catch(()=>{});
 }
 function set(kind,on){
  if(kind==='music')musicOn=!!on;else if(kind==='sound')soundOn=!!on;
  try{localStorage.setItem('ns152_'+kind,String(!!on))}catch{}
  if(ctx&&ctx.state==='running'&&kind==='music'){nextAt=ctx.currentTime+.05;}
+ syncMusicTimer();
 }
-window.NS152_AUDIO={unlock,play,stop,set,weaponFamily,get cachedWeaponBuffers(){return weaponSamples.size},get music(){return musicOn},get sound(){return soundOn},
+window.NS152_AUDIO={unlock,play,stop,set,weaponFamily,get cachedWeaponBuffers(){return weaponSamples.size},get diagnostics(){return {cooldowns:last.size,musicTimer:timer!==null,activeFx}},get music(){return musicOn},get sound(){return soundOn},
  get running(){return !!ctx&&ctx.state==='running'}};
 })();
