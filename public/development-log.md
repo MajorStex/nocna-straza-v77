@@ -1,14 +1,14 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 216 -->
+<!-- current-release: 217 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V216 (zajednička SOLO/MP optimizacija putanja i gužvi, kandidat; upareni relay V216). V213 preview je potvrđen 6/6 stvarnih WebSocket klijenata, 13/13 Cloudflare QA i SHA-256 klijenta/relaya. V211 je poslednja prethodno potvrđena produkcija. Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #39 i relay #7. GitHub push nije dokaz LIVE objave.
+- Razvoj: V217 (optimizacija zvuka, klijentski kandidat; relay V216). V213 preview je potvrđen 6/6 stvarnih WebSocket klijenata, 13/13 Cloudflare QA i SHA-256 klijenta/relaya. V211 je poslednja prethodno potvrđena produkcija. Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #39 i relay #7. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
-- Sada se radi: optimizacija BFS reda, vidljivosti putanje i separacije bez promene pravila kretanja, težine ili grafike.
+- Sada se radi: uklanjanje neaktivnog audio tajmera i zastarelih cooldown zapisa; bitno identično log8 dekodiranje mikrofona. Nema promene kvaliteta zvuka ili slike.
 - Blokade: V213 relay GitHub CI ima tri failure bez dostupnog loga (404) i posle ponavljanja; isti preview commit ima Cloudflare 13/13 QA. Ne tvrditi da je GitHub runner problem otklonjen niti da je V214 objavljena. Proveriti V214 CI, upareni relay/klijent, stalni LIVE URL i fizičke telefone.
 - Sledeće: V215 CI i preview, nezavisna dijagnostika relay runnera, potvrda LIVE i fizički test 2 pa 6 Android uređaja; CPU/RAM merenje na telefonu, AI, zvuk, zaštita napretka, 120 min soak. Plan nije implementacija.
 
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V217 — 18.11.2026 (KOD; CI/preview/LIVE tek proveriti)
+- Nova zona: muzički tajmer se gasi kada je muzika iskljucena, igra neaktivna ili tab skriven; ponovo se aktivira samo kada je potreban. Cooldown tabela se ne kreira za svaki događaj, zastareli zapisi se uklanjaju posle bezbednog roka. Live voice: LUT za svih 256 log8 kodova daje identične PCM uzorke, 12 kHz i prostorni gain ostaju isti. Hero voice, audio efekti, grafika, relay i gameplay ne menjaju se. Izolovano 8528 provera, uključujući 4000 događaja i svih 256 kodova; novi CI i stvarni audio/CPU test nisu potvrđeni. V216 klijentski CI 18/22 prošlo, potvrda Cloudflare fajlova nije prošla; ne tvrditi LIVE.
+
 ### V216 — 18.11.2026 (KOD; CI/preview/LIVE tek proveriti)
 - Identican SOLO i server steering: jedan BFS scratch red po svetu, bez privremenih parova pri clipping-u, raniji izlaz nakon istih 16 doprinosa separacije, uklonjena neiskorišćena norma. Ista mrežna frekvencija, kolizija, brzina, mete i redosled. Direktno V213/V216: 365778 provera, 720 tickova u dva sveta, 160 neprijatelja i 6 igrača, uklanjanje prepreke i reconnect; isti položaji, brzine, mete i BFS polja, hash 532779818. Regresija u postojećem server testu. V215 preview SHA potvrđen, 21/22 workflow prošlo; šest-peer stress jedan socket 1006 pre ACK, ne označavati stabilnost kao konačnu. V216 CI, CPU merenje i LIVE nisu potvrđeni.
 
