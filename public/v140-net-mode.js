@@ -20,7 +20,7 @@ const ARENA_SPELLS=[
 function arenaSpellInit(p,cls){const mage=cls==='mage',max=mage?102:64;if(!Number.isFinite(p.spellMana)){p.spellMana=max;p.spellCd=Array(8).fill(0)}p.spellMax=max;p.spellMana=Math.min(max,p.spellMana);p.spellRegen=mage?4.3:2.5;if(!Array.isArray(p.spellCd)||p.spellCd.length!==8)p.spellCd=Array(8).fill(0)}
 function arenaSpellTick(p,cls){arenaSpellInit(p,cls);p.spellMana=Math.min(p.spellMax,p.spellMana+p.spellRegen/30)}
 function arenaSpellState(p,tick){return [Math.round((p.spellMana||0)*10),p.spellMax||64,(p.spellCd||Array(8).fill(0)).map(t=>Math.max(0,t-tick)),p.spellSeq||0]}
-function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill,damageRule,clearPath}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2||(clearPath&&!clearPath(p,{x,y})))return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.bodyRadius||(m.kind==='troll'?34:14)),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2&&(!clearPath||clearPath({x,y},m)))victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(['troll','rotfiend','boss','werewolfAlpha'].includes(m.kind)?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-Math.max(0,damageRule?damageRule(p,m,damage):damage));m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
+function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill,damageRule,clearPath}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2||(clearPath&&!clearPath(p,{x,y})))return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.bodyRadius||(m.kind==='troll'?34:14)),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2&&(!clearPath||clearPath({x,y},m)))victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(['troll','rotfiend','boss','werewolfAlpha','dragon'].includes(m.kind)?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-Math.max(0,damageRule?damageRule(p,m,damage):damage));m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
 function arenaSpellExpire(mobs,tick){for(const m of mobs)if(m.spellSlowFactor&&tick>=m.spellSlowUntil){m.spellSlowFactor=0;m.spellSlowUntil=0}}
 function arenaSpellEvents(events,tick){return events.filter(e=>tick-e[4]<=24).slice(-18)}
 // END V189 SPELL MECHANICS
@@ -269,7 +269,7 @@ const ARENA_CORE_REWARDS=['edge','heart','boots'];
 const ARENA_EXTRA_REWARDS=['axe','spear','dagger','rapier','glaive','greataxe','scimitar','morningstar','longsword','halberd','warhammer','mace','falchion','flail','trollclub','trollmaul','regen','leech','crit','armor','swift','haste','aegis','aura','shock','bombs','shuriken','frost','magnet','thorns'];
 const arenaWeapon=p=>ARENA_CLASSIC_WEAPONS[p.activeWeapon]||ARENA_CLASSIC_WEAPONS.sword;
 function arenaAttackPeriod(p){return Math.max(9,Math.round(19*(arenaWeapon(p).speed||1)*(p.perks?.haste?.93:1)))}
-function arenaAttackReach(p,m){return Math.max(30,({werewolfAlpha:125,boss:125,rotfiend:125,elephant:100,troll:95}[m.kind]||83)+arenaWeapon(p).range)}
+function arenaAttackReach(p,m){return Math.max(30,({dragon:135,werewolfAlpha:125,boss:125,rotfiend:125,elephant:100,troll:95}[m.kind]||83)+arenaWeapon(p).range)}
 function arenaAttackDamage(p,tick){const crit=p.perks?.crit&&((tick*37+(Number(p.id?.slice(1))||1)*13)%100<10);return Math.max(1,Math.round((p.damage||22)*arenaWeapon(p).damage*(crit?1.6:1)))}
 function arenaRewardOptions(p,seq){
  const pool=ARENA_EXTRA_REWARDS.filter(k=>ARENA_CLASSIC_WEAPONS[k]?k!==p.activeWeapon&&k!==p.secondaryWeapon:!p.perks?.[k]);
@@ -624,9 +624,9 @@ const ARENA_WORLD_WEAPONS=['rapier','glaive','greataxe','scimitar','morningstar'
 function arenaMaybeWeaponDrop(drops,m,wave,tick,id){
  if(!m||m.hp>0||m.weaponDropChecked||drops.length>=6)return false;
  m.weaponDropChecked=true;if(m.kind==='caveSpider'||m.kind==='caveThief'){drops.push({id,x:m.x,y:m.y,weapon:m.kind==='caveSpider'?'axe':'sword'});return true}const h=(Math.imul((id+1)^((m.id+1)*313),1664525)+Math.imul(tick+wave,1013904223))>>>0,roll=(h%10000)/10000;
- const boss=m.kind==='boss'||m.kind==='werewolfAlpha',troll=m.kind==='troll',chance=boss?1:troll?.11:wave>=3?(m.kind==='elephant'?.24:.014):0;
+ const boss=m.kind==='boss'||m.kind==='werewolfAlpha'||m.kind==='dragon',troll=m.kind==='troll',chance=boss?1:troll?.11:wave>=3?(m.kind==='elephant'?.24:.014):0;
  if(roll>=chance)return false;
- const weapon=troll?['trollclub','trollmaul'][(h>>>16)%2]:ARENA_WORLD_WEAPONS[(h>>>16)%ARENA_WORLD_WEAPONS.length];
+ const weapon=m.kind==='dragon'?'glaive':troll?['trollclub','trollmaul'][(h>>>16)%2]:ARENA_WORLD_WEAPONS[(h>>>16)%ARENA_WORLD_WEAPONS.length];
  drops.push({id,x:m.x,y:m.y,weapon});return true;
 }
 function arenaTakeWeapon(drops,p,id){
@@ -647,13 +647,13 @@ function arenaDodgeVector(p,tick,x,y){
 }
 // END V192 Dodge
 // V191 Classic heavy enemies, shared deterministic solo/relay calendar.
-const ARENA_KINDS=['goblin','troll','worm','elephant','rotfiend','crawler','skeleton','brute','boss','werewolf','werewolfAlpha','caveSpider','caveThief'];
+const ARENA_KINDS=['goblin','troll','worm','elephant','rotfiend','crawler','skeleton','brute','boss','werewolf','werewolfAlpha','caveSpider','caveThief','dragon'];
 const arenaSpecial=m=>ARENA_KINDS.indexOf(m.kind)>=3;
 function arenaHeavyStats(kind,wave){
  const n=Math.max(0,wave-1),spec={
  elephant:[240,12,75,1.2,28],rotfiend:[620,45,60,.5,48],
  crawler:[48,7,103,2,15],skeleton:[67,8,95,2,15],brute:[155,12,82,1.5,22],
- boss:[450,38,85,.8,52],werewolf:[130,10,120,1.1,19],werewolfAlpha:[1120,30,95,.7,65],caveSpider:[341,26,67,1.2,27],caveThief:[48,9,121,1.1,14]}[kind];
+ boss:[450,38,85,.8,52],werewolf:[130,10,120,1.1,19],werewolfAlpha:[1120,30,95,.7,65],caveSpider:[341,26,67,1.2,27],caveThief:[48,9,121,1.1,14],dragon:[2600,35,66,.35,60]}[kind];
  if(!spec)return null;const [base,growth,speed,rate,bodyRadius]=spec,hp=base+n*growth;
  return {kind,hp,maxHp:hp,moveSpeed:Math.min(kind==='werewolf'?165:kind==='rotfiend'?90:145,speed+n*rate),bodyRadius};
 }
@@ -668,15 +668,34 @@ function arenaHeavyWave(mobs,wave,batch,world){
  const replace=kind=>{const stat=arenaHeavyStats(kind,wave),m=mobs.find(m=>!['troll','rotfiend','boss','werewolfAlpha','werewolf'].includes(m.kind)&&clear(m,stat.bodyRadius));if(m)Object.assign(m,stat);return m};
  if(batch===0&&(wave===20||wave===30))replace('rotfiend');
  if(batch===0&&wave===40){replace('werewolfAlpha');for(let i=0;i<4;i++)replace('werewolf')}
+ if(batch===0&&wave===50)replace('dragon');
  if(wave>40)for(const m of mobs)if(['crawler','skeleton','goblin'].includes(m.kind)&&(m.id*17+batch)%100<9&&clear(m,19))Object.assign(m,arenaHeavyStats('werewolf',wave));
  return mobs;
+}
+// V201 dragon: deterministic tick-based fire lanes and wing shockwaves.
+function stepArenaDragon(m,p,alive,world,tick,damage){
+ const phase=m.hp<=m.maxHp*.3?3:m.hp<=m.maxHp*.65?2:1;m.heavyPhase=phase;
+ if(phase===3&&!m.heavyEnraged){m.heavyEnraged=true;m.moveSpeed=Math.min(145,m.moveSpeed*1.2)}
+ m.heavyAngle=Math.atan2(p.y-m.y,p.x-m.x);
+ if(m.heavyCast){m.wormHold=true;const c=m.heavyCast;if(tick<c.end)return;
+  const u=Math.cos(c.angle||0),v=Math.sin(c.angle||0);
+  for(const a of alive){if(a.hp<=0||a.knocked||!arenaAcidClear(world,c.x,c.y,a.x,a.y,3))continue;const x=a.x-c.x,y=a.y-c.y;
+   const hit=c.kind===1?(x*u+y*v>=0&&x*u+y*v<=c.length&&Math.abs(-x*v+y*u)<=c.r+3):x*x+y*y<=(c.r+3)**2;
+   if(hit)damage(a,c.kind===1?16+6*c.phase:12+5*c.phase);
+  }
+  m.heavyCast=null;m.attackTick=tick;m.heavyNext=tick+(phase===3?105:phase===2?150:195);return;
+ }
+ if(m.heavyNext===undefined)m.heavyNext=tick+105;
+ const d2=(p.x-m.x)**2+(p.y-m.y)**2;if(tick<m.heavyNext||d2>660**2)return;
+ const fire=(m.dragonCastCount||0)%3!==2||phase===1;m.dragonCastCount=(m.dragonCastCount||0)+1;m.wormHold=true;
+ m.heavyCast={kind:fire?1:0,x:m.x,y:m.y,r:fire?44+phase*10:105+phase*24,length:fire?390+phase*55:0,angle:m.heavyAngle,start:tick,end:tick+(phase===3?34:phase===2?43:54),phase};
 }
 function stepArenaHeavy(mobs,players,world,tick,wave,damage){
  const alive=[...players.values()].filter(p=>p.online&&p.hp>0&&!p.knocked&&!p.finalDead);
  for(const m of mobs){
   if(!arenaSpecial(m)||m.hp<=0||m.labFrozen)continue;
   let p=alive.find(p=>p.id===m.targetId);if(!p){let d=Infinity;for(const q of alive){let n=(q.x-m.x)**2+(q.y-m.y)**2;if(n<d){p=q;d=n}}}
-  m.wormHold=false;if(!p){m.heavyCast=null;continue}if(caveSpecialStep(m,p,world,tick))continue;
+  m.wormHold=false;if(!p){m.heavyCast=null;continue}if(m.kind==='dragon'){stepArenaDragon(m,p,alive,world,tick,damage);continue}if(caveSpecialStep(m,p,world,tick))continue;
   const dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy,boss=['rotfiend','boss','werewolfAlpha'].includes(m.kind),wolf=m.kind==='werewolf'||m.kind==='werewolfAlpha';
   const phase=boss?(m.hp<=m.maxHp*.3?3:m.hp<=m.maxHp*.65?2:1):1;m.heavyPhase=phase;
   if(boss&&phase===3&&!m.heavyEnraged){m.heavyEnraged=true;m.moveSpeed=Math.min(165,m.moveSpeed*1.25)}
@@ -1663,7 +1682,7 @@ function startSolo(){
 
 function spawnSoloXpCrystal(mob){
  arenaExploreKill(N.explore,N.me,mob,N.soloTick,LAB.enabled);expDrop(N.expedition,mob,LAB.enabled||N.explore?.invalid);
- const d={id:++N.dropSeq,x:mob.x,y:mob.y,value:['troll','rotfiend','boss','werewolfAlpha'].includes(mob.kind)?45:mob.kind==='elephant'?14:7,expires:N.soloTick+1800};
+ const d={id:++N.dropSeq,x:mob.x,y:mob.y,value:mob.kind==='dragon'?120:['troll','rotfiend','boss','werewolfAlpha'].includes(mob.kind)?45:mob.kind==='elephant'?14:7,expires:N.soloTick+1800};
  N.soloDrops.push(d);arenaMaybeWeaponDrop(N.weaponDrops,mob,N.soloWave,N.soloTick,d.id);
  if(N.soloDrops.length>XP_CAP)N.soloDrops.shift();
 }
@@ -1862,15 +1881,28 @@ function drawArenaAcid(g,now,visible){
  for(const s of N.acidShots||[]){const lead=N.solo?0:clamp((now-N.lastState)/1000,0,.07),x=s.x+s.vx*lead,y=s.y+s.vy*lead;if(x<visible.left||x>visible.right||y<visible.top||y>visible.bottom)continue;
  g.save();g.translate(x,y);g.rotate(Math.atan2(s.vy,s.vx));g.fillStyle='#a1cb4477';g.beginPath();g.ellipse(-11,0,16,4,0,0,Math.PI*2);g.fill();g.fillStyle='#6fc94c';g.beginPath();g.ellipse(0,0,9+Math.sin(now/55+s.id)*1.3,6,0,0,Math.PI*2);g.fill();g.fillStyle='#d9ff8f';g.beginPath();g.ellipse(1,-2,4,2.6,0,0,Math.PI*2);g.fill();g.restore();}
 }
+// Dragon art uses fixed vector silhouettes, culled outside the viewport.
+function drawArenaDragon(g,m,x,y,angle,tick){
+ g.save();g.translate(x,y);g.rotate(angle);
+ g.fillStyle='#090b1088';g.beginPath();g.ellipse(-14,12,76,48,0,0,Math.PI*2);g.fill();
+ const flap=Math.sin(tick/8+m.id)*8;
+ g.fillStyle='#633131';g.strokeStyle='#b47c45';g.lineWidth=2.5;
+ for(const side of [-1,1]){g.beginPath();g.moveTo(-6,side*12);g.lineTo(-48,side*(91+flap));g.lineTo(-75,side*54);g.lineTo(-41,side*48);g.lineTo(-42,side*23);g.closePath();g.fill();g.stroke()}
+ g.fillStyle=m.heavyPhase===3?'#a7432b':'#514d35';g.beginPath();g.ellipse(-9,0,53,25,0,0,Math.PI*2);g.fill();g.beginPath();g.moveTo(-48,-12);g.quadraticCurveTo(-96,-20,-112,5);g.quadraticCurveTo(-74,0,-50,14);g.fill();
+ g.fillStyle='#766342';g.beginPath();g.ellipse(40,0,27,18,0,0,Math.PI*2);g.fill();g.fillStyle='#ead7a4';for(const side of [-1,1]){g.beginPath();g.moveTo(28,side*13);g.lineTo(12,side*29);g.lineTo(45,side*12);g.fill()}
+ g.fillStyle='#ffc34d';g.fillRect(52,-9,7,4);g.fillRect(52,5,7,4);if(m.heavyCast?.kind===1){g.fillStyle='#ff9d39';g.beginPath();g.arc(67,0,8,0,Math.PI*2);g.fill()}
+ g.restore();g.save();g.translate(x,y-112);g.fillStyle='#1b1717';g.fillRect(-59,0,118,8);g.fillStyle='#db6a39';g.fillRect(-57,2,114*clamp(m.hp/m.maxHp,0,1),4);g.fillStyle='#ffd9ae';g.font='bold 11px system-ui';g.textAlign='center';g.fillText('DRAGON · '+(m.heavyPhase||1),0,-4);g.restore();
+}
 function drawArenaHeavy(g,m,now,visible){
  if(m.hp<=0||m.x<visible.left-110||m.x>visible.right+110||m.y<visible.top-145||m.y>visible.bottom+100)return;
  const tick=N.solo?N.soloTick:(N.mobRenderTick??N.tick),alpha=N.solo?clamp(N.soloAcc*30,0,1):1;
  const x=N.solo?(m.prevX??m.x)+(m.x-(m.prevX??m.x))*alpha:m.x,y=N.solo?(m.prevY??m.y)+(m.y-(m.prevY??m.y))*alpha:m.y;
+ if(m.kind==='dragon'){drawArenaDragon(g,m,x,y,N.solo?(m.heavyAngle||0):(m.heavyRenderAngle??m.heavyAngle??0),tick);return}
  B().arenaClassicEnemy?.(g,m.kind,{x,y,angle:N.solo?(m.heavyAngle||0):(m.heavyRenderAngle??m.heavyAngle??0),frame:N.solo?(m.heavyGait||0):(m.heavyRenderGait??m.heavyGait??0),bossPhase:m.heavyPhase||1,bossCast:m.heavyCast?.kind===2?{kind:'howlSlow'}:null,attackT:Math.max(0,(m.kind.startsWith('werewolf')?.66:.36)-(tick-m.attackTick)/30),flash:tick-m.hitTick<5?1:0,hp:m.hp,maxHp:m.maxHp,scale:1});
 }
 function drawArenaHeavyWarnings(g,visible){
  const tick=N.solo?N.soloTick:(N.mobRenderTick??N.tick);
- for(const m of N.solo?N.soloMobs:N.mpMobs){const c=m.heavyCast;if(!c||m.hp<=0||c.end<=tick||c.x+c.r<visible.left||c.x-c.r>visible.right||c.y+c.r<visible.top||c.y-c.r>visible.bottom)continue;
+ for(const m of N.solo?N.soloMobs:N.mpMobs){const c=m.heavyCast;if(!c||m.hp<=0||c.end<=tick)continue;const extent=c.r+(c.kind===1?(c.length||0):0);if(c.x+extent<visible.left||c.x-extent>visible.right||c.y+extent<visible.top||c.y-extent>visible.bottom)continue;
  const k=clamp((tick-c.start)/Math.max(1,c.end-c.start),0,1);g.save();g.strokeStyle=k>.76?'#fff0a5':'#ff5752';g.fillStyle='#f14a4b24';g.lineWidth=3.5;if(c.kind===1){g.translate(c.x,c.y);g.rotate(c.angle);g.fillRect(0,-c.r,c.length,c.r*2);g.strokeRect(0,-c.r,c.length,c.r*2);g.fillRect(0,-2,c.length*k,4)}else if(c.kind!==3&&c.r>0){if(c.kind===2){g.strokeStyle='#81c6ba';g.fillStyle='#68aaa629'}g.beginPath();g.arc(c.x,c.y,c.r,0,Math.PI*2);g.fill();g.stroke();g.beginPath();g.arc(c.x,c.y,c.r*(1-k),0,Math.PI*2);g.stroke()}g.restore();
  }
 }
