@@ -32,3 +32,19 @@ const release=html.match(/name="ns-release" content="(\d+)"/)?.[1],menuRelease=h
 ck(!!release&&release===menuRelease&&release===titleRelease,'menu, browser title and release marker must agree');
 ck(!/id="ns102MenuVersion"[^>]*>[^<]*IZDANJE V\d+/.test(html),'no second stale release label');
 console.log('V206 SOLO RESULTS PASS',checks,'checks');
+
+;(()=>{
+ const i=src.indexOf('N.world={"w":4200')+'N.world='.length,j=src.indexOf(';\n',i);
+ const W=JSON.parse(src.slice(i,j)),helpers=section(src,'// BEGIN V207 MAP XP','// END V207 MAP XP');
+ const N={me:{hp:100,maxHp:100,level:1,xp:0,xpNeed:160,xpCollected:0,queuedUpgrades:0},soloTick:1,soloDrops:[],soloChoice:null,soloUpgradeSeq:0,soloChestSeq:0};
+ const api=new Function('N','A','announceArena','xpNeeded',helpers+'\n'+section(src,'function addSoloRunXp(','function soloDamageRule(')+'\nreturn {arenaSeedMapXp,arenaPushXp,stepSoloXpCrystals}')(N,()=>({play(){}}),()=>{},()=>197);
+ const gems=api.arenaSeedMapXp(W);ck(gems.length===31,'all 31 map gems registered');N.soloDrops=JSON.parse(JSON.stringify(gems));
+ for(const gem of gems){N.me.x=gem.x;N.me.y=gem.y;const before=N.me.xp;api.stepSoloXpCrystals();ck(N.me.xp===before+5,'collect map XP');ck(!N.soloDrops.some(d=>d.id===gem.id),'remove collected crystal')}
+ ck(N.me.xpCollected===31&&N.me.xp===155&&N.soloDrops.length===0,'each gem awards once');
+ api.stepSoloXpCrystals();ck(N.me.xp===155,'no duplicate pickup');
+ N.soloDrops=JSON.parse(JSON.stringify(gems));for(let n=32;n<=3000;n++)api.arenaPushXp(N.soloDrops,{id:n,value:7,expires:1800},160);
+ ck(N.soloDrops.length===160&&N.soloDrops.filter(d=>d.mapXp).length===31,'bounded map gem retention');
+ ck(src.includes("if(o.classic||o.kind==='tree'||o.kind==='rock'||o.kind==='expWall')continue;"),'do not double draw classic colliders');
+ ck(src.includes("if(p.type==='crystal')continue;"),'no duplicate static crystal art');ck(src.includes('if(Math.min(w,h)<72)'),'small collider gets crate sprite');
+ console.log('V207 SOLO MAP AND SCENERY PASS',checks,'cumulative checks');
+})();
