@@ -20,7 +20,7 @@ const ARENA_SPELLS=[
 function arenaSpellInit(p,cls){const mage=cls==='mage',max=mage?102:64;if(!Number.isFinite(p.spellMana)){p.spellMana=max;p.spellCd=Array(8).fill(0)}p.spellMax=max;p.spellMana=Math.min(max,p.spellMana);p.spellRegen=mage?4.3:2.5;if(!Array.isArray(p.spellCd)||p.spellCd.length!==8)p.spellCd=Array(8).fill(0)}
 function arenaSpellTick(p,cls){arenaSpellInit(p,cls);p.spellMana=Math.min(p.spellMax,p.spellMana+p.spellRegen/30)}
 function arenaSpellState(p,tick){return [Math.round((p.spellMana||0)*10),p.spellMax||64,(p.spellCd||Array(8).fill(0)).map(t=>Math.max(0,t-tick)),p.spellSeq||0]}
-function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2)return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.bodyRadius||(m.kind==='troll'?34:14)),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2)victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(['troll','rotfiend','boss','werewolfAlpha'].includes(m.kind)?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-damage);m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
+function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill,damageRule,clearPath}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2||(clearPath&&!clearPath(p,{x,y})))return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.bodyRadius||(m.kind==='troll'?34:14)),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2&&(!clearPath||clearPath({x,y},m)))victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(['troll','rotfiend','boss','werewolfAlpha'].includes(m.kind)?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-Math.max(0,damageRule?damageRule(p,m,damage):damage));m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
 function arenaSpellExpire(mobs,tick){for(const m of mobs)if(m.spellSlowFactor&&tick>=m.spellSlowUntil){m.spellSlowFactor=0;m.spellSlowUntil=0}}
 function arenaSpellEvents(events,tick){return events.filter(e=>tick-e[4]<=24).slice(-18)}
 // END V189 SPELL MECHANICS
@@ -118,7 +118,7 @@ function createArenaCrowdSteering(world,move){
   // Never teleport a creep by two ticks' worth in a single steering frame.
   const buckets=bucketsFor(mobs),pressure=new Map();
   for(const m of mobs){
-   if(m.hp<=0)continue;
+   if(m.hp<=0||m.labFrozen)continue;
    let target=players.get(m.targetId);
    if(!target?.online||target.knocked||target.hp<=0||tick>=(m.retargetAt||0)){
     target=null;let score=Infinity;
@@ -181,7 +181,7 @@ function createArenaCrowdSteering(world,move){
  function advance(mobs,players){
   // Fixed 30Hz movement: no 66ms position jumps, even while retargeting.
   for(const m of mobs){
-   if(m.hp<=0||!m.targetId||m.wormHold)continue;
+   if(m.hp<=0||m.labFrozen||!m.targetId||m.wormHold)continue;
    const target=players.get(m.targetId);
    if(!target?.online||target.knocked||target.hp<=0)continue;
    const d=Math.hypot(m.vx||0,m.vy||0);
@@ -309,8 +309,8 @@ function arenaExtraEvent(p,tick,slot,x,y,emit){
  const seat=Number(p.id?.slice(1))||1,n=p.extraFxN||0;if(n>=10)return;
  p.extraFxN=n+1;emit([1000000000+tick*64+(seat-1)*10+n,slot,Math.round(x),Math.round(y),tick]);
 }
-function arenaExtraDamage(m,p,tick,d,kill){
- if(!m||m.hp<=0)return false;m.hp=Math.max(0,m.hp-Math.max(1,Math.round(d)));m.hitTick=tick;
+function arenaExtraDamage(m,p,tick,d,kill,damageRule){
+ if(!m||m.hp<=0)return false;const damage=damageRule?damageRule(p,m,d):d;if(!(damage>0))return false;m.hp=Math.max(0,m.hp-Math.max(1,Math.round(damage)));m.hitTick=tick;
  if(m.hp===0)kill(m,p);return true;
 }
 function arenaExtraNearest(p,mobs,r){
@@ -322,7 +322,7 @@ function arenaEvolutionUnlock(p,tick,emit){
  if(!p.arenaEvolved[e.id]){p.arenaEvolved[e.id]=1;p.arenaEvoReady[e.id]=tick+12;arenaExtraEvent(p,tick,e.fx,p.x,p.y,emit)}
  return e;
 }
-function arenaEvolutionStrike(p,target,mobs,tick,kill,emit){
+function arenaEvolutionStrike(p,target,mobs,tick,kill,emit,damageRule){
  const e=arenaEvolutionUnlock(p,tick,emit);if(!e||tick<(p.arenaEvoReady[e.id]||0))return false;
  p.arenaEvoReady[e.id]=tick+e.cd;
  const a=Math.atan2(target.y-p.y,target.x-p.x),ux=Math.cos(a),uy=Math.sin(a);
@@ -334,32 +334,32 @@ function arenaEvolutionStrike(p,target,mobs,tick,kill,emit){
   else if(e.id==='storm'){const front=dx*ux+dy*uy;match=front>=6&&front<=226&&Math.abs(dx*uy-dy*ux)<=30+r*.35}
   else if(e.id==='ember')match=dist<=(94+r*.2)**2;
   else {const diff=Math.atan2(Math.sin(Math.atan2(dy,dx)-a),Math.cos(Math.atan2(dy,dx)-a));match=dist<=185**2&&Math.abs(diff)<=.76}
-  if(match&&arenaExtraDamage(m,p,tick,(p.damage||22)*e.ratio,kill)&&++hits>=e.cap)break;
+  if(match&&arenaExtraDamage(m,p,tick,(p.damage||22)*e.ratio,kill,damageRule)&&++hits>=e.cap)break;
  }
  return true;
 }
-function arenaCombatExtras(p,mobs,world,tick,kill,emit){
+function arenaCombatExtras(p,mobs,world,tick,kill,emit,damageRule){
  if(!p||p.hp<=0||p.knocked||p.finalDead||p.paused||p.background||!p.perks)return;
  const t=p.arenaExtraAt??={};arenaEvolutionUnlock(p,tick,emit);
  // One scheduled bomb and one shuriken per player; no per-projectile timers.
  const bomb=p.arenaBomb;
  if(bomb&&tick>=bomb.at){p.arenaBomb=null;let hits=0;for(const m of mobs){if(m.hp<=0||(m.x-bomb.x)**2+(m.y-bomb.y)**2>(64+(m.bodyRadius||14)*.35)**2)continue;
-  if(arenaExtraDamage(m,p,tick,22,kill)&&++hits>=16)break}arenaExtraEvent(p,tick,2,bomb.x,bomb.y,emit)}
+  if(arenaExtraDamage(m,p,tick,22,kill,damageRule)&&++hits>=16)break}arenaExtraEvent(p,tick,2,bomb.x,bomb.y,emit)}
  const shot=p.arenaShuriken;
  if(shot){const x=shot.x+shot.vx/30,y=shot.y+shot.vy/30;if(tick>=shot.end||!arenaAcidClear(world,shot.x,shot.y,x,y,8))p.arenaShuriken=null;
   else {shot.x=x;shot.y=y;for(const m of mobs){if(m.hp<=0||(m.x-x)**2+(m.y-y)**2>((m.bodyRadius||14)+8)**2)continue;
-   arenaExtraDamage(m,p,tick,12,kill);p.arenaShuriken=null;arenaExtraEvent(p,tick,0,x,y,emit);break}}}
+   arenaExtraDamage(m,p,tick,12,kill,damageRule);p.arenaShuriken=null;arenaExtraEvent(p,tick,0,x,y,emit);break}}}
  for(const k of Object.keys(ARENA_EXTRA_TIMERS)){
   if(!p.perks[k])continue;if(!Number.isFinite(t[k])){t[k]=tick+ARENA_EXTRA_TIMERS[k];continue}
   if(tick<t[k])continue;t[k]=tick+ARENA_EXTRA_TIMERS[k];
-  if(k==='aura'){let hits=0;for(const m of mobs){if((m.x-p.x)**2+(m.y-p.y)**2>97**2)continue;if(arenaExtraDamage(m,p,tick,4,kill)&&++hits>=4)break}arenaExtraEvent(p,tick,7,p.x,p.y,emit)}
-  else if(k==='shock'){const m=arenaExtraNearest(p,mobs,235);if(m){arenaExtraDamage(m,p,tick,13,kill);arenaExtraEvent(p,tick,1,m.x,m.y,emit)}}
+  if(k==='aura'){let hits=0;for(const m of mobs){if((m.x-p.x)**2+(m.y-p.y)**2>97**2)continue;if(arenaExtraDamage(m,p,tick,4,kill,damageRule)&&++hits>=4)break}arenaExtraEvent(p,tick,7,p.x,p.y,emit)}
+  else if(k==='shock'){const m=arenaExtraNearest(p,mobs,235);if(m){arenaExtraDamage(m,p,tick,13,kill,damageRule);arenaExtraEvent(p,tick,1,m.x,m.y,emit)}}
   else if(k==='bombs'){const m=arenaExtraNearest(p,mobs,300);if(m){p.arenaBomb={x:m.x,y:m.y,at:tick+24};arenaExtraEvent(p,tick,2,m.x,m.y,emit)}}
   else if(k==='shuriken'){const m=arenaExtraNearest(p,mobs,300);if(m){const a=Math.atan2(m.y-p.y,m.x-p.x),ux=Math.cos(a),uy=Math.sin(a);p.arenaShuriken={x:p.x+ux*20,y:p.y+uy*20,vx:ux*255,vy:uy*255,end:tick+51};arenaExtraEvent(p,tick,0,p.x,p.y,emit)}}
   else if(k==='frost'){for(const m of mobs){if(m.hp<=0||(m.x-p.x)**2+(m.y-p.y)**2>150**2)continue;m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+51);m.spellSlowFactor=Math.min(m.spellSlowFactor||1,.69)}arenaExtraEvent(p,tick,3,p.x,p.y,emit)}
  }
 }
-function arenaThorns(p,m,tick,kill,emit){if(p.perks?.thorns&&arenaExtraDamage(m,p,tick,7,kill)){arenaExtraEvent(p,tick,0,m.x,m.y,emit);return true}return false}
+function arenaThorns(p,m,tick,kill,emit,damageRule){if(p.perks?.thorns&&arenaExtraDamage(m,p,tick,7,kill,damageRule)){arenaExtraEvent(p,tick,0,m.x,m.y,emit);return true}return false}
 // END V193 PASSIVES AND EVOLUTIONS
 // BEGIN V194 BREAKABLES
 // The map's stable prop indices identify objects; no client may claim damage or loot.
@@ -566,6 +566,12 @@ function arenaRuleWave(r,wave,players){
 function arenaRulePacket(r){return r?[r.mode,r.elapsed,r.victory?1:0,r.towers.map(t=>[t.id,t.x,t.y,t.hp]),r.stage,r.cleared]:['normal',0,0,[],0,0]}
 function arenaRuleRestore(r,v){if(!r||!v||r.mode!==v.mode)return;r.elapsed=Math.max(0,Math.floor(Number(v.elapsed)||0));r.victory=!!v.victory;r.stage=Math.min(3,Math.max(0,Math.floor(Number(v.stage)||0)));r.cleared=Math.max(0,Math.floor(Number(v.cleared)||0));for(const t of r.towers){const old=v.towers?.find(a=>a.id===t.id);if(old)t.hp=Math.max(0,Math.min(180,Number(old.hp)||0))}}
 // END V197 RULESETS
+// V199: identical combat rules for melee, spells, passives and evolved weapons.
+function arenaCombatDamage(rule,world,inside,p,m,d){
+ if(inside&&!arenaAcidClear(world,p.x,p.y,m.x,m.y,3))return 0;
+ return arenaRuleDamage(rule,p,m,d,inside)
+}
+
 // BEGIN V198 CAVE SPECIALS
 function caveSpecialStep(m,p,world,tick){
  if(m.kind==='caveThief'){
@@ -750,7 +756,7 @@ function arenaMagicAvailable(){return N.phase==='running'&&(N.solo||magicSupport
 function magicPoint(clientX,clientY){const r=el('ns140Canvas').getBoundingClientRect(),z=clamp(Math.max(r.width/750,r.height/760),.7,1.45);return{x:N.me.x+(clientX-r.left-r.width/2)/z,y:N.me.y+(clientY-r.top-r.height/2)/z}}
 function spellTarget(slot){const s=ARENA_SPELLS[slot],p=N.me;if(s.heal)return{x:p.x,y:p.y};let best=null,dist=Math.min(250,s.range)**2;for(const m of (N.solo?N.soloMobs:N.mpMobs)){if(m.hp<=0)continue;const d=(m.x-p.x)**2+(m.y-p.y)**2;if(d<dist){best=m;dist=d}}const angle=p.facingAngle??p.attackAngle??0;return best?{x:best.x,y:best.y}:{x:p.x+Math.cos(angle)*105,y:p.y+Math.sin(angle)*105}}
 function showArenaSpell(event){if(!Array.isArray(event)||event.length!==5||!Number.isSafeInteger(event[0])||spellSeen.has(event[0])||!ARENA_SPELLS[event[1]]||!event.slice(2).every(Number.isFinite))return;spellSeen.set(event[0],event[4]);for(const [id,t] of spellSeen)if(event[4]-t>120)spellSeen.delete(id);spellFx.push({event,at:performance.now()});if(spellFx.length>18)spellFx.shift();const me=N.me;if(me&&(event[2]-me.x)**2+(event[3]-me.y)**2<640**2)B().arenaSpellSound?.(ARENA_SPELLS[event[1]].id,event[2],event[3],me)}
-function requestArenaSpell(slot,point){if(!arenaMagicAvailable()||!ARENA_SPELLS[slot])return false;const p=N.me,s=ARENA_SPELLS[slot],state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state||state[0]<s.cost*10||state[2][slot]>0)return false;const q=point||spellTarget(slot);if(point&&(q.x<30||q.y<30||q.x>N.world.w-30||q.y>N.world.h-30))return false;const x=Math.round(clamp(q.x,30,N.world.w-30)),y=Math.round(clamp(q.y,30,N.world.h-30));if((x-p.x)**2+(y-p.y)**2>s.range**2)return false;if(N.solo){const e=arenaSpellCast({p,players:N.players,mobs:N.soloMobs,world:N.world,tick:N.soloTick,cls:localArenaLook().heroClass,slot,x,y,kill:m=>{m.deadUntil=N.soloTick+105;N.soloKills++;p.kills++;spawnSoloXpCrystal(m)}});if(e){showArenaSpell(e);spellHudAt=0;return true}return false}if(N.ws?.readyState!==1||N.ws.bufferedAmount>=4000||performance.now()-spellPendingAt<170)return false;spellPendingAt=performance.now();N.ws.send(JSON.stringify({t:'spell',seq:++spellSeq,slot,x,y}));return true}
+function requestArenaSpell(slot,point){if(!arenaMagicAvailable()||!ARENA_SPELLS[slot])return false;const p=N.me,s=ARENA_SPELLS[slot],state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state||state[0]<s.cost*10||state[2][slot]>0)return false;const q=point||spellTarget(slot);if(point&&(q.x<30||q.y<30||q.x>N.world.w-30||q.y>N.world.h-30))return false;const x=Math.round(clamp(q.x,30,N.world.w-30)),y=Math.round(clamp(q.y,30,N.world.h-30));if((x-p.x)**2+(y-p.y)**2>s.range**2)return false;if(N.solo){const e=arenaSpellCast({p,players:N.players,mobs:N.soloMobs,world:N.world,tick:N.soloTick,cls:localArenaLook().heroClass,slot,x,y,damageRule:soloDamageRule,clearPath:N.expedition?.id?(a,b)=>arenaAcidClear(N.world,a.x,a.y,b.x,b.y,3):undefined,kill:m=>{m.deadUntil=N.soloTick+105;N.soloKills++;p.kills++;spawnSoloXpCrystal(m)}});if(e){showArenaSpell(e);spellHudAt=0;return true}return false}if(N.ws?.readyState!==1||N.ws.bufferedAmount>=4000||performance.now()-spellPendingAt<170)return false;spellPendingAt=performance.now();N.ws.send(JSON.stringify({t:'spell',seq:++spellSeq,slot,x,y}));return true}
 function refreshMagicHud(now){const dock=el('ns189Magic');if(!dock)return;const enabled=arenaMagicAvailable();if(dock.hidden===enabled)dock.hidden=!enabled;if(!enabled){spellAim=null;el('ns189Picker').hidden=true;return}if(now-spellHudAt<140)return;spellHudAt=now;const p=N.me,state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state){el('ns189Cast').disabled=true;return}const s=ARENA_SPELLS[spellSlot],mana=state[0]/10,remaining=state[2][spellSlot]/30,b=el('ns189Cast');el('ns189Mana').textContent=Math.floor(mana)+' / '+state[1]+' MP';el('ns189ManaFill').style.width=Math.min(100,mana/state[1]*100)+'%';b.textContent=s.icon+' '+s.sr+(remaining>0?' · '+Math.ceil(remaining)+'s':' · '+s.cost+' MP');b.disabled=mana<s.cost||remaining>0;b.style.borderColor=s.color;const picker=el('ns189Picker');if(!picker.hidden&&picker.dataset.slot!==String(spellSlot)){picker.dataset.slot=String(spellSlot);picker.querySelectorAll('button').forEach((q,i)=>q.setAttribute('aria-pressed',String(i===spellSlot)))}}
 function mountArenaMagic(root,style){style.textContent+='#ns189Magic{position:absolute;left:calc(10px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;width:min(205px,42vw);font:700 11px system-ui;color:#e3f4ff;background:#152a35e8;border:1px solid #7196bf;border-radius:11px;padding:5px;touch-action:none}#ns189Magic[hidden],#ns189Picker[hidden]{display:none!important}#ns189Magic button{background:#243d50;color:#e8f6ff;border:1px solid #7698b8;border-radius:7px;min-height:34px;font:700 11px system-ui;touch-action:none}#ns189Magic button:disabled{opacity:.52}#ns189ManaTrack{height:5px;background:#14202f;border-radius:5px;overflow:hidden;margin:3px 0}#ns189ManaFill{height:100%;background:#58abeb}#ns189CastRow{display:flex;gap:4px}#ns189Cast{flex:1}#ns189Picker{position:absolute;bottom:100%;left:0;width:min(280px,75vw);display:grid;grid-template-columns:repeat(2,1fr);gap:4px;padding:6px;background:#142933f5;border:1px solid #83a1bc;border-radius:9px}#ns189Picker button[aria-pressed=true]{border-color:#ffe1a2;background:#3e4b5d}';const dock=document.createElement('div');dock.id='ns189Magic';dock.hidden=true;dock.innerHTML='<span id="ns189Mana">0 MP</span><div id="ns189ManaTrack"><div id="ns189ManaFill"></div></div><div id="ns189CastRow"><button id="ns189Cast" type="button" aria-label="Baci magiju">✦ Iskra</button><button id="ns189Swap" type="button" aria-label="Izaberi magiju">⇄</button></div><div id="ns189Picker" hidden></div>';root.append(dock);const picker=el('ns189Picker');for(const [i,s] of ARENA_SPELLS.entries()){const b=document.createElement('button');b.type='button';b.textContent=s.icon+' '+s.sr+' · '+s.cost+' MP';b.onclick=()=>{spellSlot=i;picker.hidden=true;spellHudAt=0;refreshMagicHud(performance.now())};picker.append(b)}el('ns189Swap').onclick=()=>{picker.hidden=!picker.hidden;spellHudAt=0;refreshMagicHud(performance.now())};const btn=el('ns189Cast');btn.addEventListener('pointerdown',e=>{if(!arenaMagicAvailable()||btn.disabled||e.button>0)return;e.preventDefault();e.stopPropagation();A()?.unlock();B().unlockSound?.();spellAim={id:e.pointerId,slot:spellSlot,x:e.clientX,y:e.clientY,moved:false,point:null};try{btn.setPointerCapture(e.pointerId)}catch{}});btn.addEventListener('pointermove',e=>{if(spellAim?.id!==e.pointerId)return;spellAim.moved=spellAim.moved||Math.hypot(e.clientX-spellAim.x,e.clientY-spellAim.y)>12;if(spellAim.moved)spellAim.point=magicPoint(e.clientX,e.clientY)});btn.addEventListener('pointerup',e=>{if(spellAim?.id!==e.pointerId)return;const a=spellAim;spellAim=null;requestArenaSpell(a.slot,a.moved?magicPoint(e.clientX,e.clientY):null)});for(const name of ['pointercancel','lostpointercapture'])btn.addEventListener(name,()=>{spellAim=null});btn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();requestArenaSpell(spellSlot)}})}
 function drawArenaMagic(g,now,visible){if(spellAim?.point&&N.me){const p=spellAim.point,s=ARENA_SPELLS[spellAim.slot],valid=(p.x-N.me.x)**2+(p.y-N.me.y)**2<=s.range**2;g.save();g.strokeStyle=valid?s.color:'#f87878';g.lineWidth=2;g.beginPath();g.arc(p.x,p.y,s.radius,0,Math.PI*2);g.stroke();g.restore()}if(!spellFx.length)return;spellFx=spellFx.filter(q=>now-q.at<720);for(const q of spellFx){const [id,slot,x,y]=q.event,s=ARENA_SPELLS[slot];if(x+s.radius<visible.left||x-s.radius>visible.right||y+s.radius<visible.top||y-s.radius>visible.bottom)continue;const life=1-clamp((now-q.at)/720,0,1);g.save();g.translate(x,y);g.globalAlpha=life;const classicDraw=B().arenaSpellDraw;if(classicDraw)classicDraw(g,{id,value:{id:s.id,radius:s.radius}},life);else{g.strokeStyle=s.color;g.lineWidth=2;g.beginPath();g.arc(0,0,s.radius*(1-life*.8),0,Math.PI*2);g.stroke()}g.restore()}}
@@ -1659,6 +1665,7 @@ function stepSoloXpCrystals(){
  }
 }
 
+function soloDamageRule(p,m,d){return arenaCombatDamage(N.rule,N.world,N.expedition?.id,p,m,d)}
 function stepSolo(dt){
  if(!N.solo||!N.me||N.rule?.victory)return;
  N.soloAcc=Math.min(.15,N.soloAcc+dt);
@@ -1682,7 +1689,7 @@ function stepSolo(dt){
   }
   const extraKill=m=>{m.deadUntil=N.soloTick+105;N.soloKills++;me.kills++;spawnSoloXpCrystal(m)};
   if(N.expedition?.id)expWake(N.soloMobs,N.players);
-  arenaCombatExtras(me,N.soloMobs,N.world,N.soloTick,extraKill,showArenaSpell);
+  arenaCombatExtras(me,N.soloMobs,N.world,N.soloTick,extraKill,showArenaSpell,soloDamageRule);
   arenaPerkTick(me,N.soloTick);N.soloInvul=Math.max(N.soloInvul,me.shield||0);arenaSpellTick(me,N.looks.get('p1')?.look?.heroClass||'warrior');arenaSpellExpire(N.soloMobs,N.soloTick);
   // Fixed physics 30Hz, steering only at 15Hz, interpolation at display FPS.
   for(const mob of N.soloMobs){mob.prevX=mob.x;mob.prevY=mob.y}
@@ -1709,7 +1716,7 @@ function stepSolo(dt){
     me.hp=Math.max(0,me.hp-arenaIncoming(me,Math.min(mob.kind==='troll'?60:30,Math.round((mob.kind==='troll'?17:7)*(1+.06*(N.soloWave-1))))));N.hurtUntil=performance.now()+290;
     A()?.play('hurt');
     mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+(mob.kind==='troll'?77:39+(mob.id%5)*4);
-    arenaThorns(me,mob,N.soloTick,extraKill,showArenaSpell);
+    arenaThorns(me,mob,N.soloTick,extraKill,showArenaSpell,soloDamageRule);
     N.soloInvul=N.soloTick+28;
    }
   }
@@ -1730,7 +1737,7 @@ function stepSolo(dt){
     A()?.play('swing',{weapon:N.me?.activeWeapon||localArenaLook().weapon||'sword'});
     A()?.play('hit',{weapon:N.me?.activeWeapon||localArenaLook().weapon||'sword',variant:N.soloTick,gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
     if(target.hp===0)extraKill(target);
-    arenaEvolutionStrike(me,target,N.soloMobs,N.soloTick,extraKill,showArenaSpell);
+    arenaEvolutionStrike(me,target,N.soloMobs,N.soloTick,extraKill,showArenaSpell,soloDamageRule);
    }else if(!LAB.enabled){const tower=!N.expedition?.id&&!N.explore?.invalid?arenaRuleTower(N.rule,N.world,me,arenaAttackDamage(me,N.soloTick),arenaAttackReach(me,{kind:'goblin'}),N.players):null;const hit=tower||arenaBreakHit(N.breakState,N.world,me,N.soloTick,N.soloWave,arenaAttackDamage(me,N.soloTick),arenaAttackReach(me,{kind:'goblin'}));if(hit){N.soloSwing=N.soloTick;me.attackTick=N.soloTick;me.attackAngle=Math.atan2(hit.y-me.y,hit.x-me.x);me.facingAngle=me.attackAngle;arenaMapBase=null;A()?.play('hit',{weapon:me.activeWeapon||'sword',gain:.4});if(hit.hp===0){if(hit.collider)N.soloCrowd?.refreshObstacles?.([hit.collider]);announceArena(hit.kind==='nightTower'?(N.rule.victory?'POBEDA · TRI KULE UNIŠTENE':'KULA UNIŠTENA'):hit.kind==='barrel'?'BURE RAZBIJENO':'KUTIJA RAZBIJENA')}}}
   }
   arenaExplorePickup(N.explore,N.players);expCollect(N.expedition,N.players);
