@@ -88,7 +88,7 @@ const world={w:4200,h:4200},players=new Map();for(let i=1;i<=6;i++){const id='p'
  assert(!A.expAllowed(z,team,p,1));A.expDrop(z,{kind:'troll',x:p.x,y:p.y},false);assert(A.expCollect(z,team));assert(z.key);assert(!A.expAllowed(z,team,p,1));q.finalDead=true;q.hp=0;assert(A.expAllowed(z,team,p,1));q.finalDead=false;q.hp=100;q.x=p.x+20;assert(A.expAllowed(z,team,p,1));
  for(const id of [1,2]){const world=A.expWorld(w,id),m=A.expMobs(id,1,10);A.expPlace(team,A.EXP_START,10);assert([...team.values()].every(p=>A.arenaAcidClear(world,p.x,p.y,p.x,p.y,14)));assert(m.every(p=>A.arenaAcidClear(world,p.x,p.y,p.x,p.y,p.bodyRadius||14)));assert.equal(w.obstacles.length,0)}
  z.id=1;const mobs=A.expMobs(1,1,10);assert(mobs.every(m=>m.labFrozen));p.x=mobs[0].x;p.y=mobs[0].y;A.expWake(mobs,team);assert(!mobs[0].labFrozen&&mobs.some(m=>m.labFrozen));assert(!A.expReward(z,mobs,team));mobs.forEach(m=>m.hp=0);assert(A.expReward(z,mobs,team));assert.equal(p.arenaShards,3);assert(!A.expReward(z,mobs,team));A.expPlace(team,A.EXP_EXIT,100);assert(A.expAllowed(z,team,p,0));
- assert(JSON.stringify(A.expPacket(z)).length<40);assert(src.includes('applyExp(m.expedition);applyRule(m.rule);applyArenaBreakPacket'));assert(src.includes('q[0]>=300&&q[0]<=306'));
+ assert(JSON.stringify(A.expPacket(z)).length<40);assert(/applyExp\(m\.expedition\);applyRule\(m\.rule\);[^\n]*applyArenaBreakPacket/.test(src));assert(src.includes('q[0]>=300&&q[0]<=306'));
  console.log('V196 deterministic maps, key, shared party entry, sleeping guards, bounded snapshot IDs, single reward PASS');
 })();
 
@@ -104,4 +104,17 @@ const world={w:4200,h:4200},players=new Map();for(let i=1;i<=6;i++){const id='p'
  const spider={kind:'caveSpider',x:350,y:300,hp:341};assert(A.caveSpecialStep(spider,p,w,30));assert.equal(spider.heavyCast.end,60);spider.heavyCast=null;assert(!A.caveSpecialStep(spider,p,w,31));
  const cal=A.arenaRewardCalendar(null,Date.UTC(2026,10,18,12)),stats={kills:1000,wave:20,trolls:2,worms:10,chests:6,revives:1};assert.deepEqual(A.arenaAccountPacket(stats,cal),[4095,3,'20261118','2026-11-16']);assert.equal(A.arenaAccountPacket({...stats,invalid:true},cal),null);
  console.log('V198 Night/Rush/campaign, cave specials, account reward packet PASS');
+})();
+
+;(()=>{
+ const a=src.indexOf('// BEGIN V199 TACTICAL PINGS'),b=src.indexOf('// END V199 TACTICAL PINGS',a),cs=src.indexOf('function arenaAcidClear('),ce=src.indexOf('\nfunction stepArenaWorms',cs),ds=src.indexOf('function arenaRuleDark('),de=src.indexOf('\nfunction arenaRuleCount',ds),rs=src.indexOf('function arenaCombatDamage('),re=src.indexOf('// BEGIN V198 CAVE SPECIALS',rs);
+ assert(a>=0&&b>a&&cs>=0&&ce>cs&&ds>=0&&de>ds&&rs>=0&&re>rs);
+ const A=new Function(src.slice(a,b)+src.slice(cs,ce)+src.slice(ds,de)+src.slice(rs,re)+'\nreturn {arenaPingMark,arenaPingPacket,arenaCombatDamage}')();
+ const w={w:4200,h:4200,obstacles:[]},p={id:'p1',x:100,y:100,hp:100,online:true},m={x:200,y:100},list=[],rule={mode:'night',elapsed:2500,lights:[]};
+ assert.equal(A.arenaCombatDamage(rule,w,false,p,m,22),1);assert.equal(A.arenaCombatDamage({...rule,elapsed:100},w,false,p,m,22),22);
+ assert.equal(A.arenaCombatDamage(rule,{...w,obstacles:[{x:140,y:50,w:20,h:100}]},true,p,m,22),0);
+ assert(A.arenaPingMark(list,p,w,100,0,4,{x:500,y:600,rev:4}));assert(!A.arenaPingMark(list,p,w,110,0,4,{x:800,y:900,rev:4}));assert(!A.arenaPingMark(list,p,w,160,0,4,{x:800,y:900,rev:3}));assert(!A.arenaPingMark(list,p,w,160,0,4,{x:5000,y:100,rev:4}));assert(A.arenaPingMark(list,p,w,160,0,4,{x:800,y:900,rev:4}));assert.equal(list.length,1);
+ for(let i=2;i<=6;i++)assert(A.arenaPingMark(list,{id:'p'+i,hp:100,online:true},w,160,0,4,{x:800,y:900,rev:4}));
+ assert.equal(list.length,6);assert.equal(A.arenaPingPacket(list,161,0,4).length,6);assert.equal(A.arenaPingPacket(list,161,1,5).length,0);assert.equal(A.arenaPingPacket(list,400,0,4).length,0);assert(JSON.stringify(list).length<180);
+ console.log('V199 shared tactical marker bounds, cooldown, zone revision, expiry and damage gating PASS');
 })();
