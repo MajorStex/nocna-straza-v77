@@ -1,0 +1,24 @@
+name: V208 Classic zoom and full map capture
+on:
+  pull_request:
+    branches: [main]
+    paths: ['public/index.html','tests/v208-classic-map-browser.test.cjs','.github/workflows/v208-classic-map.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  classic-map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - run: npm install --no-save --no-package-lock playwright-core@1.58.2
+      - run: node tests/v208-classic-map-browser.test.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: classic-full-map-v208
+          path: qa-artifacts/
+          if-no-files-found: error
+          retention-days: 30

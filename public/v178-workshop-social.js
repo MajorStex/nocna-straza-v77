@@ -25,7 +25,7 @@ function debugReport(){
  const d=W()?.diagnostics, classic=window.__NS112_MP_DIAG?.(), motion=window.__NS132_MP_DIAG?.();
  const voice=V();
  const num=x=>Number.isFinite(x)?Math.round(x):null;
- return {mode:active?'Nova zona':W()?.active?'Radionica':'Classic / Village',
+ return {release:document.querySelector('meta[name="ns-release"]')?.content||null,mode:active?'Nova zona':W()?.active?'Radionica':'Classic / Village',
   phase:active?arena.phase:N()?.phase||'offline',
   fps:active?num(arena.fps):num(classic?.fps),
   rttMs:active?num(arena.rttMs):num(classic?.hostPingMs),
@@ -34,6 +34,8 @@ function debugReport(){
   connected:active?arena.connected:(W()?.active?members().filter(p=>p.inside).length:(N()?.role==='host'?1+[...N().clients.values()].filter(c=>c.open).length:null)),
   snapshots:active?arena.snapshots:null, avgSnapshotChars:active?arena.avgSnapshotChars:null,
   snapshotAgeMs:active?arena.snapshotAgeMs:null, reconnectAttempts:active?arena.reconnectAttempts:null,
+  networkHealth:active?arena.networkHealth:null,missedSnapshots:active?num(arena.missedSnapshots):null,serverSkippedSnapshots:active?num(arena.serverSkippedSnapshots):null,automaticResyncs:active?num(arena.automaticResyncs):null,watchdogReconnects:active?num(arena.watchdogReconnects):null,checkpointErrors:active?num(arena.checkpointErrors):null,
+  historyFrames:active?num(arena.memory?.historyFrames):null,historyEntries:active?num(arena.memory?.historyEntries):null,pendingInputs:active?num(arena.memory?.pendingInputs):null,heapBytes:active?num(arena.memory?.heapBytes):null,
   motionHz:active?null:num(motion?.motionHz),
   relayBufferBytes:active?null:num(motion?.relayBufferedBytes),
   sceneRevision:W()?.active?num(d?.rev):null, sceneRows:W()?.active?num(d?.rows):null,
@@ -56,7 +58,7 @@ function debugOpen(){
  if(debugTimer!==null)clearInterval(debugTimer);refresh();if(!debugPanel.hidden)debugTimer=setInterval(refresh,1000);
  return true;
 }
-window.NS179_DIAGNOSTICS={allowed:debugAllowed,open:debugOpen,close:debugClose};
+window.NS179_DIAGNOSTICS={allowed:debugAllowed,open:debugOpen,close:debugClose,localReport:debugReport};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)debugClose()});
 function setup(){if(panel)return;panel=document.createElement('section');panel.id='ns178Panel';panel.hidden=true;panel.innerHTML='<header><strong id="ns178Title">RADIONICA</strong><button id="ns178Close" type="button">✕</button></header><div id="ns178Body"></div>';document.body.append(panel);$('ns178Close').onclick=hide;
  const note=document.createElement('div');note.id='ns178Notice';note.hidden=true;note.setAttribute('role','status');document.body.append(note);

@@ -3,10 +3,10 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const root=path.resolve(__dirname,'../public'),read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const html=read('index.html'),game=read('v140-net-mode.js'),village=read('v115-village.js'),
  controller=read('v165-classic-voice.js'),voice=read('v159-voice.js');
-assert.match(html,/<title>Night Watch v166/);
+const release=Number(html.match(/name="ns-release" content="(\d+)"/)?.[1]);assert(release>=166);assert.equal(Number(html.match(/<title>Night Watch v(\d+)/)?.[1]),release);
 assert.match(html,/v165-classic-voice\.js\?v=166/);
-assert.match(html,/v115-village\.js\?v=166/);
-assert.match(html,/v140-net-mode\.js\?v=168/);
+assert.equal(Number(html.match(/v115-village\.js\?v=(\d+)/)?.[1]),release);
+assert(Number(html.match(/v140-net-mode\.js\?v=(\d+)/)?.[1])>=168,'New Zone asset version must not regress');
 assert(html.indexOf('v115-village.js')<html.indexOf('v165-classic-voice.js'));
 assert(html.indexOf('v165-classic-voice.js')<html.indexOf('v140-net-mode.js'));
 assert.match(html,/function ns165StartClassicVoice\(\)/);

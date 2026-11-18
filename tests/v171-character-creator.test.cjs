@@ -4,9 +4,9 @@ const {chromium}=require('playwright-core');
 const ROOT=path.resolve(__dirname,'../public'),source=fs.readFileSync(path.join(ROOT,'v171-character-creator.js'),'utf8'),html=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
 new Function(source);
 assert.match(html,/v171-character-creator\.js\?v=17[12345678]/);
-assert.match(html,/name="ns-release" content="(?: 17[12345678]|18[0-9]|[2-9][0-9]{2})"/);
-assert.match(html,/v115-village\.js\?v=166&amp;ui=17[078]/);
-assert.match(html,/v140-net-mode\.js\?v=168/);
+assert(Number(html.match(/name="ns-release" content="(\d+)"/)?.[1])>=171,'release must not regress below V171');
+assert.match(html,/v115-village\.js\?v=\d+&amp;ui=17[078]/);assert.equal(Number(html.match(/v115-village\.js\?v=(\d+)/)?.[1]),Number(html.match(/name="ns-release" content="(\d+)"/)?.[1]));
+assert(Number(html.match(/v140-net-mode\.js\?v=(\d+)/)?.[1])>=168,'arena asset version must not regress');
 assert(!/new WebSocket|fetch\(|XMLHttpRequest|new Audio\(|https?:\/\//.test(source),'isolated, no remote requests or network traffic');
 (async()=>{
  const bin=['/usr/bin/google-chrome','/usr/bin/chromium','/opt/google/chrome/chrome'].find(fs.existsSync);
@@ -86,6 +86,25 @@ assert(!/new WebSocket|fetch\(|XMLHttpRequest|new Audio\(|https?:\/\//.test(sour
    assert.equal(await page.evaluate(()=>window.NS171_CREATOR.test.saved.length),2,'both character types persisted');
    await page.locator('#ns171Saved').selectOption(id);
    assert.equal(await page.evaluate(()=>window.NS171_CREATOR.test.draft.leg),1.4);
+   await page.locator('[data-tab=look]').click();
+   for(const kind of ['elephant','rotfiend','worm','crawler','brute','boss','werewolf','werewolfAlpha']){
+    await page.locator('#ns171Preset').selectOption(kind);
+    assert.equal(await page.evaluate(()=>window.NS171_CREATOR.test.draft.classicModel),kind);
+   }
+   const art=await page.evaluate(()=>{
+    const a=window.NS171_CREATOR,b=window.__NS110_BRIDGE,out={};
+    for(const kind of ['elephant','rotfiend','worm','crawler','brute','boss','werewolf','werewolfAlpha']){
+     const cv=document.createElement('canvas');cv.width=cv.height=256;const g=cv.getContext('2d');
+     const c=a.clean(a.presets[kind]);a.draw(g,c,128,128,{phase:2,moving:true,attack:.4,side:1});
+     const painted=g.getImageData(0,0,256,256).data.some((v,i)=>i%4===3&&v>0);
+     out[kind]=painted&&c.classicModel===kind&&typeof b.arenaClassicEnemy==='function';
+    }return out;
+   });
+   assert.deepEqual(art,{elephant:true,rotfiend:true,worm:true,crawler:true,brute:true,boss:true,werewolf:true,werewolfAlpha:true});
+   await page.locator('[data-action=test]').click();
+   await page.locator('#ns171Enemy').selectOption('@rotfiend');
+   await page.locator('[data-action=restart]').click();
+   assert(await page.evaluate(()=>window.NS171_CREATOR.test.simulation.mobs.some(m=>m.name.includes('Truležni kolos'))),'original enemy available in live editor combat');
    await page.locator('[data-action=close]').click();
    assert.deepEqual(errors.filter(e=>/SyntaxError|ReferenceError|TypeError/.test(e)),[],'browser JavaScript errors');
    console.log('V171 CREATOR PASS',width+'x'+height,JSON.stringify({layout,levels:logic.levels.map(x=>[x.level,x.hp,x.damage,x.speed]),boss:logic.boss.hp,gait:[logic.short,logic.long],saved:2,joystick:moved.x-first.x,mobCap:12}));

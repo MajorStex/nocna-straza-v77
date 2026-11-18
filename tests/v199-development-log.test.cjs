@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const html=fs.readFileSync('public/index.html','utf8'),log=fs.readFileSync('public/development-log.md','utf8'),source=fs.readFileSync('public/v199-development-log.js','utf8'),runtime=fs.readFileSync('public/v140-net-mode.js','utf8');
+const version=html.match(/name="ns-release" content="(\d+)"/)?.[1];
+assert(version,'release meta required');assert.equal(log.match(/current-release:\s*(\d+)/)?.[1],version,'Every new release must update the project handoff');
+assert.match(log,/<!-- reviewed: \d{4}-\d{2}-\d{2} -->/);
+assert.match(log,/## BRZI PRESEK/);assert.match(log,/## Arhitektura/);assert.match(log,/## Trenutni testovi/);assert.match(log,/<!-- HISTORY -->/);
+const versions=[...log.matchAll(/^### V(\d+)\b/gm)].map(m=>Number(m[1]));assert.equal(versions[0],Number(version));assert.equal(new Set(versions).size,versions.length);assert(versions.length>=71,'retain recovered history');
+const entry=log.match(new RegExp('^### V'+version+'\\b[^\\n]*\\n([\\s\\S]*?)(?=^### V|$)','m'));assert(entry&&entry[1].trim().length>=30,'new release needs substantive notes');
+const env=vm.createContext({window:{}});vm.runInContext(source,env);const search=env.window.NS_DEVLOG.projectPage;
+assert.equal(search(log,''),log);assert.match(search(log,'V199'),/### V199/);assert.match(search(log,'revive'),/revive/i);assert.match(search(log,'zz_no_version_zz'),/Nema rezultata/);
+assert.match(runtime,/nsDevLogOpen/);assert.match(runtime,/v199-development-log\.js/);assert.match(source,/clipboard\.writeText\(raw\)/);assert.match(source,/new Blob\(\[raw\]/);
+console.log('Development handoff PASS: release V'+version+', '+versions.length+' historical entries, search and single-file export contract');

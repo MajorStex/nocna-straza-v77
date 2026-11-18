@@ -7,6 +7,7 @@
 if(window.NS160_LAB)return;
 const $=id=>document.getElementById(id);
 const tabs=[['mobs','👹 Neprijatelji'],['waves','🌊 Talasi'],['allies','🛡 Saveznici'],['items','📦 Predmeti'],['hero','⚔ Heroj'],['pause','⚙ Kontrole']];
+const enemyNames={goblin:'Goblin',troll:'Trol',worm:'Kiseli crv',elephant:'Oklopljeni slon',rotfiend:'Truležni kolos',crawler:'FemMech tamna',skeleton:'FemMech crvena',brute:'FemMech oklop',boss:'Matrijarh',werewolf:'Vukodlak',werewolfAlpha:'Alfa vukodlak'},enemyHp={goblin:35,troll:900,worm:81,elephant:240,rotfiend:1475,crawler:48,skeleton:67,brute:155,boss:900,werewolf:130,werewolfAlpha:1120};
 const weapons=['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul'];
 const clamp=(v,a,b,d)=>Number.isFinite(Number(v))?Math.max(a,Math.min(b,Math.round(Number(v)))):d;
 const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -19,21 +20,21 @@ const btn=(label,cmd)=>'<button type="button" data-cmd="'+cmd+'">'+label+'</butt
 const num=(id,label,value,min,max)=>'<label class="ns162Field">'+label+'<input id="ns162'+id+'" data-setting="'+id+'" type="number" inputmode="numeric" value="'+clamp(value,min,max,min)+'" min="'+min+'" max="'+max+'"></label>';
 function thumbnails(){
  for(const canvas of root.querySelectorAll('canvas[data-preview]')){
-  window.NS162_TROLL?.drawIcon?.(canvas,canvas.dataset.preview);
+  const kind=canvas.dataset.preview;if(kind==='goblin'||kind==='troll')window.NS162_TROLL?.drawIcon?.(canvas,kind);else window.__NS110_BRIDGE?.arenaClassicEnemy?.(canvas.getContext('2d'),kind,{x:32,y:38,angle:-Math.PI/2,frame:0,scale:['boss','rotfiend','werewolfAlpha'].includes(kind)?.38:.72});
  }
 }
 function header(){
  $('ns162Title').textContent=adapter?.solo?'SOLO TEST LAB':adapter?.host?'SERVER TEST LAB · HOST':'SERVER TEST LAB · GOST';
- $('ns162MiniText').textContent=selected==='troll'?'🧌 Trol':'👹 Goblin';
+ $('ns162MiniText').textContent=enemyNames[selected];
  $('ns162MiniSpawn').disabled=!editable()||(selected==='troll'&&st().trollAlive===true);
- $('ns162MiniSpawn').textContent=selected==='troll'?'＋ Trol':'＋ Goblin';
+ $('ns162MiniSpawn').textContent='＋ '+enemyNames[selected];
  root.querySelector('.ns162Dock')?.classList.toggle('collapsed',minimized);
  shell?.classList.toggle('collapsed',minimized);
 }
 function render(){
  if(!adapter||!root)return;
  header();
- const s=st(),wave=clamp(s.wave,1,99,1),def=clamp(s.defaultCount,1,80,60),boss=wave===10;
+ const s=st(),wave=clamp(s.wave,1,99,1),def=clamp(s.defaultCount,1,2080,100),boss=wave===10;
  $('ns162Tabs').innerHTML=tabs.map(([key,label])=>'<button type="button" data-tab="'+key+'" class="'+(key===tab?'active':'')+'">'+label+'</button>').join('');
  let content='';
  if(tab==='mobs'){
@@ -42,33 +43,34 @@ function render(){
   '<div class="ns162Picker">'+
    '<button type="button" data-enemy="goblin" class="'+(selected==='goblin'?'active':'')+'"><canvas data-preview="goblin" width="64" height="64"></canvas><b>Goblin</b><small>Običan neprijatelj</small></button>'+
    '<button type="button" data-enemy="troll" '+(!available?'disabled':'')+' class="'+(selected==='troll'?'active':'')+'"><canvas data-preview="troll" width="64" height="64"></canvas><b>🧌 Trol</b><small>BOSS · talas 10</small></button>'+
+  (s.rosterAvailable?Object.entries(enemyNames).filter(([k])=>!['goblin','troll'].includes(k)).map(([k,n])=>'<button type="button" data-enemy="'+k+'" class="'+(selected===k?'active':'')+'"><canvas data-preview="'+k+'" width="64" height="64"></canvas><b>'+n+'</b></button>').join(''):'')+
   '</div>'+
   (!available?'<p>Server još nema potvrđenu podršku za novog trola. Solo radi samostalno.</p>':'')+
-  '<div class="ns162Summary">Na mapi: <b>'+clamp(s.alive,0,80,0)+' živih</b> od '+clamp(s.total,0,80,0)+' neprijatelja · najviše 80 ukupno'+(s.trollAlive?' · 🧌 Trol je već tu (1/1)':'')+'</div>'+
-  row(num('quantity','Broj komada',selected==='troll'?1:settings.quantity,1,selected==='troll'?1:10)+num('hp','Život (HP)',selected==='troll'?(settings.hp===35?900:settings.hp):settings.hp,1,selected==='troll'?2000:500))+
-  row(btn('＋ STVORI '+(selected==='troll'?'TROLA':'GOBLINA'),'spawnMob')+btn('🧹 Očisti neprijatelje','clearMobs'))+
+  '<div class="ns162Summary">Na mapi: <b>'+clamp(s.alive,0,160,0)+' živih</b> od '+clamp(s.total,0,160,0)+' neprijatelja · najviše 160 aktivnih'+(s.trollAlive?' · 🧌 Trol je već tu (1/1)':'')+'</div>'+
+  row(num('quantity','Broj komada',selected==='troll'?1:settings.quantity,1,selected==='troll'?1:10)+num('hp','Život (HP)',selected==='troll'?(settings.hp===35?900:settings.hp):settings.hp,1,10000))+
+  row(btn('＋ STVORI '+(enemyNames[selected]),'spawnMob')+btn('🧹 Očisti neprijatelje','clearMobs'))+
   '<details><summary>🔧 Napredna podešavanja neprijatelja</summary>'+
   row(btn(s.freezeAI?'▶ Odmrzni sve':'❄ Zamrzni sve','freezeAI')+btn('▶ Vrati talas','resetWave'))+
-  row(num('mobId','ID neprijatelja (trol 95)',settings.mobId,0,95)+num('singleHp','Njegov HP',settings.singleHp,1,2000))+
+  row(num('mobId','ID neprijatelja (trol 95)',settings.mobId,0,160)+num('singleHp','Njegov HP',settings.singleHp,1,2000))+
   row(btn('Izmeni HP','setMob')+btn('Obriši izabranog','removeMob'))+
   row(btn('❄ Zamrzni izabranog','toggleMobFreeze'))+
   row(num('enemyHp','HP svima',settings.enemyHp,1,2000)+btn('Primeni svima','enemyHp'))+
   '</details>';
  }else if(tab==='waves'){
   content='<h3>Testiranje talasa</h3><div class="ns162Summary"><strong>DEFAULT · talas '+wave+'</strong><b>'+
-   (boss?'79 goblina + 1 TROL (BOSS)':def+' goblina')+'</b>'+
+   (def+' neprijatelja ukupno')+'</b>'+
    '<small>'+(s.customCount==null?'Originalni raspored, bez izmena':'TEST IZMENA · '+s.customCount+' neprijatelja')+'</small></div>'+
    row(num('wave','Idi na talas',wave,1,99)+btn('▶ POKRENI','wave'))+
    row(num('count','Test broj neprijatelja',s.customCount??def,1,80)+btn('Primeni test broj','count'))+
    row(btn('↻ Ponovi talas','resetWave')+btn('✓ Vrati DEFAULT','resetCount'))+
-   '<p>Talas 1: 60 · talas 2: 70 · od talasa 3: 80. Na talasu 10 jedan goblin se zamenjuje trolom. Nema dodatnih neprijatelja preko ograničenja.</p>';
+   '<p>Talas 1: 100 · svaki sledeći +20. Najviše 160 aktivnih; kasnije dolaze pojačanja.</p>';
  }else if(tab==='allies'){
   content='<h3>🛡 Saveznici</h3><p>Testni čuvar sa mačem i štitom automatski prati igrača i napada neprijatelje. Maksimum 3.</p>'+
   '<div class="ns162Summary">Aktivno: '+clamp(s.allies?.length,0,3,0)+'/3</div>'+
   row(btn('＋ Stvori saveznika','spawnAlly')+btn('🧹 Ukloni saveznike','clearAllies'));
  }else if(tab==='items'){
   content='<h3>📦 Predmeti</h3><p>Sanduk koristi originalni izbor nadogradnje. Ostalo su samo testni ukrasi.</p>'+
-  row(btn('＋ Sanduk','spawnChest')+btn('🧹 Ukloni sanduke','clearChests'))+
+  row(btn('＋ Classic sanduk','spawnChest')+btn('＋ Postojeći sanduk','spawnArenaChest')+btn('🧹 Ukloni sanduke','clearChests'))+
   '<label class="ns162Field">Testni predmet<select id="ns162Prop" data-setting="prop">'+
   [['torch','🔥 Baklja'],['banner','🚩 Zastava'],['target','🎯 Meta']].map(([id,name])=>'<option value="'+id+'"'+(settings.prop===id?' selected':'')+'>'+name+'</option>').join('')+'</select></label>'+
   row(btn('＋ Dodaj predmet','spawnProp')+btn('🧹 Očisti testne predmete','clearProps'));
@@ -101,7 +103,7 @@ function dispatch(command){
  if(!adapter)return;
  const s=st();let packet={action:command};
  if(command==='spawnMob')packet={action:command,kind:selected,quantity:selected==='troll'?1:clamp(settings.quantity,1,10,1),
-  hp:clamp(settings.hp,1,selected==='troll'?2000:500,selected==='troll'?900:35)};
+  hp:clamp(settings.hp,1,selected==='troll'?2000:500,enemyHp[selected]||35)};
  else if(command==='wave')packet.value=clamp(settings.wave,1,99,1);
  else if(command==='count')packet.value=clamp(settings.count,1,80,60);
  else if(command==='setMob'||command==='removeMob'||command==='toggleMobFreeze'){
@@ -111,6 +113,8 @@ function dispatch(command){
  else if(command==='freezeAI')packet.value=!s.freezeAI;
  else if(command==='godMode')packet.value=!s.godMode;
  else if(command==='weapon')packet.value=settings.weapon;
+ else if(command==='spawnArenaChest'){packet.action='spawnChest';packet.style='arena'}
+ else if(command==='spawnChest')packet.style='classic';
  else if(command==='spawnProp')packet.kind=settings.prop;
  else if(command==='heroLook')packet.look={skin:settings.skin,heroClass:settings.heroClass,
   bodyStyle:settings.bodyStyle,visualSize:clamp(settings.visualSize,70,112,79)/100};
@@ -119,7 +123,7 @@ function dispatch(command){
  else if(editable()){
   if(selected==='troll'&&command==='spawnMob'&&s.bossAvailable===false)flash='Novi server još ne podržava trola';
   else if(selected==='troll'&&command==='spawnMob'&&s.trollAlive)flash='Trol je već na mapi. Ukloni ga pre novog spawnovanja.';
-  else {adapter.command?.(packet);flash='✓ '+(command==='spawnMob'?(selected==='troll'?'Stvaram trola':'Stvaram goblina'):'Test komanda poslata')}
+  else {adapter.command?.(packet);flash='✓ '+(command==='spawnMob'?('Stvaram '+enemyNames[selected]):'Test komanda poslata')}
  }else flash='Samo host može da menja svet';
  $('ns162Message').textContent=flash; // no per-command full DOM rebuild
  if(!minimized&&['wave','count','resetCount','resetWave','undo','resetLab','spawnMob'].includes(command))
@@ -184,7 +188,7 @@ function open(next){
   $('ns162Content').addEventListener('click',e=>{
    const enemy=e.target.closest('[data-enemy]')?.dataset.enemy;
    if(enemy){if(enemy==='troll'&&st().bossAvailable===false)return;
-    selected=enemy;settings.hp=enemy==='troll'?900:35;render();return}
+    selected=enemy;settings.hp=enemyHp[enemy]||35;render();return}
    const command=e.target.closest('[data-cmd]')?.dataset.cmd;
    if(command)dispatch(command);
   });

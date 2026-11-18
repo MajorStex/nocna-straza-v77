@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright-core');
 const root=path.resolve(__dirname,'../public'),read=f=>fs.readFileSync(path.join(root,f),'utf8'),forge=read('v173-ability-forge.js'),creator=read('v171-character-creator.js'),voice=read('v172-character-voices.js'),html=read('index.html');
 for(const code of [forge,creator,voice])new Function(code);
-assert.match(html,/name="ns-release" content="(?: 17[345678]|18[0-9]|[2-9][0-9]{2})"/);assert.match(html,/v173-ability-forge\.js\?v=173/);
+assert(Number(html.match(/name="ns-release" content="(\d+)"/)?.[1])>=173,'release must not regress below V173');assert.match(html,/v173-ability-forge\.js\?v=173/);
 assert(html.indexOf('v173-ability-forge.js')<html.indexOf('v171-character-creator.js'));
 assert(!/fetch\(|setInterval\(|requestAnimationFrame\(|new WebSocket/.test(forge));
 const w={};vm.runInNewContext(forge,{window:w});vm.runInNewContext(read("v174-independent-ai.js"),{window:w});vm.runInNewContext(read("v176-scenes.js"),{window:w});const A=w.NS173_ABILITIES,I=w.NS174_AI,S=w.NS176_SCENES;

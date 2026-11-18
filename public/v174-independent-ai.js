@@ -8,7 +8,7 @@ if(window.NS174_AI)return;
 const MODES={hunt:'Slobodno kretanje / potera',patrol:'Patrola po krugu',roam:'Slobodna šetnja u radijusu',guard:'Čuvaj lokaciju',still:'Stoji na mestu'};
 const REACTIONS={hostile:'Napada neprijatelje',defend:'Samo se brani',passive:'Ne ulazi u borbu'};
 const FACTIONS={enemy:'Neprijateljski',ally:'Saveznički',neutral:'Neutralni',red:'Crvena frakcija',blue:'Plava frakcija',player:'Igrač'};
-const SPECIALS={none:'Bez specijalnog napada',slam:'Udarac o tlo',frost:'Ledeni talas'};
+const SPECIALS={none:'Bez specijalnog napada',slam:'Udarac o tlo',frost:'Ledeni talas',beam:'Matrijarh · laserski zrak',slow:'Alfa · zavijanje'};
 const STATES={idle:'Miruje',patrol:'Patrolira',roam:'Šeta',guard:'Čuva',chase:'Prati metu',return:'Vraća se',fight:'U borbi',cast:'Priprema napad'};
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),val=(n,d,a,b)=>clamp(n!==null&&n!==''&&Number.isFinite(Number(n))?Number(n):d,a,b),enumOf=(o,k,d)=>Object.hasOwn(o,k)?k:d;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -112,10 +112,12 @@ function bossTick(actor,opponents,target,dt,callbacks={}){
  if(stage>b.stage){b.stage=stage;callbacks.phase?.(actor,stage)}
  b.cooldown=Math.max(0,b.cooldown-dt);
  if(b.cast){actor.brain.state='cast';b.cast.remaining-=dt;if(b.cast.remaining>0)return true;const cast=b.cast;b.cast=null;
-  for(const t of opponents){if(!hostile(actor,t)||distance(t,cast)>cast.radius)continue;callbacks.damage?.(actor,t,Math.round(c.power*phaseBuff(actor).damage*(1+Math.min(.8,(actor.s.level-1)*.009))));if(c.special==='frost'&&t.hp>0)t.slow=Math.max(t.slow||0,2.5)}
+  for(const t of opponents){if(!hostile(actor,t))continue;const x=t.x-cast.x,y=t.y-cast.y;
+  if(c.special==='beam'){const u=Math.cos(cast.angle),v=Math.sin(cast.angle),a=x*u+y*v,z=Math.abs(-x*v+y*u);if(a<0||a>cast.length||z>cast.radius)continue}else if(distance(t,cast)>cast.radius)continue;
+  if(c.special!=='slow')callbacks.damage?.(actor,t,Math.round(c.power*phaseBuff(actor).damage*(1+Math.min(.8,(actor.s.level-1)*.009))));if((c.special==='frost'||c.special==='slow')&&t.hp>0)t.slow=Math.max(t.slow||0,2.55)}
   callbacks.impact?.(actor,cast);b.cooldown=c.cooldown;return true}
- if(c.special==='none'||b.stage<2||b.cooldown>0||!target||!hostile(actor,target)||distance(actor,target)>Math.min(320,c.radius*2.2))return false;
- b.cast={x:target.x,y:target.y,radius:c.radius,remaining:c.windup,total:c.windup,type:c.special};actor.brain.state='cast';callbacks.warn?.(actor,b.cast);return true;
+ if(c.special==='none'||(b.stage<2&&!actor.c.classicModel)||b.cooldown>0||!target||!hostile(actor,target)||distance(actor,target)>(actor.c.classicModel?700:Math.min(320,c.radius*2.2)))return false;
+ b.cast={x:target.x,y:target.y,radius:c.radius,remaining:c.windup,total:c.windup,type:c.special};if(c.special==='beam')Object.assign(b.cast,{x:actor.x,y:actor.y,angle:Math.atan2(target.y-actor.y,target.x-actor.x),radius:[39,47,56][stage-1],length:[380,425,475][stage-1]});if(c.special==='slow')b.cast.radius=[124,145,163][stage-1];actor.brain.state='cast';callbacks.warn?.(actor,b.cast);return true;
 }
 function cancelCast(actor){if(actor.boss?.cast){actor.boss.cast=null;actor.boss.cooldown=Math.max(actor.boss.cooldown,1)}}
 const esc=s=>String(s).replace(/[&<>"']/g,k=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[k]));
@@ -127,6 +129,6 @@ function editorHtml(spec){
  (boss.enabled?'<div class="ccGrid">'+r('boss','phase2','Faza II · HP %',40,90,5)+r('boss','phase3','Faza III · HP %',10,boss.phase2-10,5)+r('boss','rage','Bonus u III fazi %',0,65,5)+'<label class="ccFull">Specijalni napad<select data-ai-group="boss" data-ai-field="special">'+selects(SPECIALS,boss.special)+'</select></label>'+(boss.special==='none'?'':r('boss','power','Osnovna šteta',5,85,1)+r('boss','radius','Radijus udara',35,180,5)+r('boss','windup','Upozorenje (s)',.65,3,.05)+r('boss','cooldown','Cooldown (s)',4,30,.5))+'</div><p>Od faze II specijalni napad upozorava crvenim krugom. Iz kruga možeš da izađeš pre udara. Faza III pojačava borbu.</p>':'')+'<div class="ccRow"><button data-action="asEnemy">▶ Test ponašanja</button><button data-action="asHero">Test kao heroj</button></div>';
 }
 function drawDebug(g,actor){const p=actor.placement;if(!p)return;g.save();g.lineWidth=1;g.setLineDash([5,5]);const ring=(r,color)=>{if(!Number.isFinite(r)||r<=0)return;g.strokeStyle=color;g.beginPath();g.arc(p.x,p.y,r,0,Math.PI*2);g.stroke()};if(p.ai.mode!=='hunt'){ring(p.ai.radius,'#d3c18188');ring(territory(actor),'#d98b7b88')}g.setLineDash([]);g.fillStyle='#e9d6a6';g.fillRect(p.x-2,p.y-2,4,4);g.font='10px system-ui';g.fillText(STATES[actor.brain?.state]||'',actor.x+12,actor.y+12);g.restore()}
-function drawWarning(g,actor){const a=actor.boss?.cast;if(!a)return;const t=clamp(1-a.remaining/a.total,0,1);g.save();g.fillStyle='#c84d4438';g.strokeStyle='#f38e70';g.lineWidth=2;g.beginPath();g.arc(a.x,a.y,a.radius,0,Math.PI*2);g.fill();g.stroke();g.beginPath();g.arc(a.x,a.y,a.radius*t,0,Math.PI*2);g.stroke();g.restore()}
+function drawWarning(g,actor){const a=actor.boss?.cast;if(!a)return;const t=clamp(1-a.remaining/a.total,0,1);g.save();g.fillStyle='#c84d4438';g.strokeStyle='#f38e70';g.lineWidth=2;if(a.type==='beam'){g.translate(a.x,a.y);g.rotate(a.angle);g.fillRect(0,-a.radius,a.length,a.radius*2);g.strokeRect(0,-a.radius,a.length,a.radius*2);g.fillRect(0,-2,a.length*t,4)}else{if(a.type==='slow'){g.strokeStyle='#81c6ba';g.fillStyle='#68aaa629'}g.beginPath();g.arc(a.x,a.y,a.radius,0,Math.PI*2);g.fill();g.stroke();g.beginPath();g.arc(a.x,a.y,a.radius*t,0,Math.PI*2);g.stroke()}g.restore()}
 window.NS174_AI={MODES,REACTIONS,FACTIONS,SPECIALS,STATES,clean,cleanBoss,cleanPlacement,attach,hostile,markHit,boundMove,decide,phaseBuff,bossTick,cancelCast,editorHtml,drawDebug,drawWarning,selects};
 })();
