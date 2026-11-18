@@ -1132,7 +1132,7 @@ function ui(){
  };
  canvas.addEventListener('pointerdown',e=>{
   if(!el('ns158Menu')?.hidden){closeArenaMenu();return}
-  if(N.phase!=='running'||N.paused||N.stick.ptr!==null)return;
+  if(N.phase!=='running'||N.paused||(!N.solo&&N.netStalled)||N.stick.ptr!==null)return;
   if(e.pointerType==='mouse')return; // Desktop steers with WASD; auto-attack never needs clicks.
   e.preventDefault();A()?.unlock();N.stick.ptr=e.pointerId;
   N.stick.startX=e.clientX;N.stick.startY=e.clientY;
@@ -1157,7 +1157,7 @@ function ui(){
  window.addEventListener('online',arenaResumeNetwork);
  window.addEventListener('offline',()=>{
   if(N.solo||N.phase!=='running')return;
-  arenaClearHeldControls();N.pending=[];N.delta={x:0,y:0};N.rejoinCorrection=true;
+  arenaClearHeldControls();N.netStalled=true;N.pending=[];N.delta={x:0,y:0};N.rejoinCorrection=true;
  });
  window.addEventListener('keydown',e=>{
   if(N.phase!=='running'||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
@@ -1167,7 +1167,7 @@ function ui(){
   if((k==='escape'||k==='p')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation?.();toggleArenaPause();return}
   if(k==='q'&&!e.repeat){e.preventDefault();requestArenaSwap();return}
   if(k==='m'&&!e.repeat){e.preventDefault();setArenaMap(el('ns192MapPanel').hidden);return}
-  if(N.paused)return;
+  if(N.paused||(!N.solo&&N.netStalled))return;
   if(k===' '||k==='shift'||k==='k'){e.preventDefault();if(!e.repeat)requestArenaDodge();return}
   if(/^[1-8]$/.test(k)){e.preventDefault();if(!e.repeat){spellSlot=Number(k)-1;spellHudAt=0;requestArenaSpell(spellSlot)}return}
   A()?.unlock();N.keys.add(k);if(k.startsWith('arrow'))e.preventDefault();
@@ -2507,7 +2507,7 @@ function connect(match,id,ticket,rejoin=false){
   if(N.ws!==ws||['idle','ended'].includes(N.phase))return;
   window.NS159_VOICE?.stop();
   if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-  N.ws=null;
+  N.ws=null;arenaClearHeldControls();N.pending=[];N.delta={x:0,y:0};N.rejoinCorrection=true;
   if(e?.code===1008){N.phase='error';status('NOVA ZONA: nevažeći pristup sobi. Vrati se u lobby.');return}
   if(!N.lostSince)N.lostSince=Date.now();
   if(Date.now()-N.lostSince>=120000){
