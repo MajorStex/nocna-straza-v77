@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 212 -->
+<!-- current-release: 213 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V212 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V213 (razvojna grana, ne LIVE); V211 je poslednja potvrđena produkcija, V212 je prošla posebne spawn i frame testove. Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #39 i relay #7. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: V205 tri legendarne varijante postojećeg oružja, otključavanje u kovnici posle +3; server autoritativan, fiksna grafika.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V213 — 18.11.2026
+- Stabilnost pre novih funkcija: povratak iz background-a ili povratak interneta ubrzava reconnect istog autentifikovanog slota. Sveže veze se ne prekidaju, zastarela veza se osvežava, bez duplih socket-a i uz postojeći rok od 120s. Start ACK samo posle validnog welcome-a. Dve stare mrežne provere sada ciljaju tačan aktuelni preview, potvrđuju staged spawn, zajedničko stanje na istom tick-u, jedinstveni XP drop i reconnect; nema testnog opterećenja produkcije. Objava nije dokazana dok se ne završe provere.
+
 ### V212 — 18.11.2026
 - Additive spawn ne resetuje istoriju interpolacije ili udaljene heroje; novi talas briše samo položaje starih neprijatelja. Keš putanja se zadržava kroz talase i zagreva tokom odmora, najviše jedno novo polje po tihom ticku. Provera kolizije je nepromenjena. Lokalna replika zakazana van trenutnog render zadatka. Dodata posebna browser provera vremena kadra pri promeni talasa i spawn-u. Status objave proveriti nezavisno.
 
