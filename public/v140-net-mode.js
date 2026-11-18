@@ -589,10 +589,6 @@ function ui(){
  // Same free-position pointer joystick as the normal game: it appears
  // where the player touches the arena, not in a fixed bottom-left spot.
  const pad=el('ns140Pad'),knob=el('ns140Knob'),canvas=el('ns140Canvas');
- const resetStick=()=>{
-  N.stick.ptr=null;N.stick.x=0;N.stick.y=0;
-  pad.classList.remove('active');knob.style.transform='translate(0px,0px)';
- };
  const moveStick=e=>{
   const dx=e.clientX-N.stick.startX,dy=e.clientY-N.stick.startY,dist=Math.hypot(dx,dy);
   if(dist<N.stick.deadZone){N.stick.x=N.stick.y=0}
@@ -793,6 +789,10 @@ function revealArenaMap(seen,x,y,w,h,radius=3){
 }
 let arenaMapWorld=null,arenaMapSeen=new Uint8Array(ARENA_MAP_CELLS**2),arenaMapBase=null,arenaMapAt=0;
 function resetArenaMap(){arenaMapWorld=null;arenaMapSeen.fill(0);arenaMapBase=null;arenaMapAt=0;setArenaMap(false)}
+function resetStick(){
+ N.stick.ptr=null;N.stick.x=0;N.stick.y=0;
+ el('ns140Pad')?.classList.remove('active');const knob=el('ns140Knob');if(knob)knob.style.transform='translate(0px,0px)';
+}
 function setArenaMap(open){const p=el('ns192MapPanel');if(!p)return;p.hidden=!open;N.keys.clear();resetStick();arenaMapAt=0}
 function refreshArenaMap(now){
  if(!N.me||now-arenaMapAt<180)return;arenaMapAt=now;
