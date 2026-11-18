@@ -95,3 +95,17 @@ test('V214 clears held movement, revive and spell aim on loss of focus or networ
  assert.match(source,/else if\(action==='refresh'\)\{\s*arenaClearHeldControls\(\)/);
  assert.match(source,/N\.netStalled=true;N\.pending=\[\];N\.delta=\{x:0,y:0\};arenaClearHeldControls\(\)/);
 });
+
+test('V214 direct transport close releases stale input before scheduling same-seat retry',()=>{
+ const a=source.indexOf('ws.onclose=e=>{'),b=source.indexOf('ws.onerror=',a);
+ assert(a>=0&&b>a);
+ const ws={},N={ws,phase:'running',keys:new Set(['w']),pending:[{seq:6}],delta:{x:9,y:4},lostSince:0,retry:0};
+ const callbacks=[],c=vm.createContext({N,ws,match:'room',id:'p1',ticket:'test-ticket',window:{},document:{hidden:false},Date:{now:()=>100},arenaClearHeldControls(){N.keys.clear()},status(){},clearTimeout(){},setTimeout(fn){callbacks.push(fn);return 1},connect(...args){callbacks.push(args)}});
+ vm.runInContext(source.slice(a,b),c);
+ ws.onclose({code:1006});
+ assert.equal(N.ws,null);assert.equal(N.phase,'reconnecting');assert.equal(N.keys.size,0);assert.equal(N.pending.length,0);assert.equal(N.delta.x,0);assert.equal(N.delta.y,0);assert.equal(N.rejoinCorrection,true);assert.equal(callbacks.length,1);
+ callbacks[0]();assert.deepEqual(Array.from(callbacks[1]),['room','p1','test-ticket',true]);
+ assert.match(source,/arenaClearHeldControls\(\);N\.netStalled=true;N\.pending=\[\]/);
+ assert.match(source,/N\.paused\|\|\(!N\.solo&&N\.netStalled\)\|\|N\.stick\.ptr!==null/);
+ assert.match(source,/if\(N\.paused\|\|\(!N\.solo&&N\.netStalled\)\)return/);
+});
