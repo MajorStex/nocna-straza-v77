@@ -1152,10 +1152,12 @@ function ui(){
    return;
   }
   if(N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'presence',state:'active'}))}catch{}
-  if(N.phase==='reconnecting'&&N.match&&N.ticket){
-   if(N.retryTimer){clearTimeout(N.retryTimer);N.retryTimer=null}
-   if(!N.ws){if(N.lostSince&&Date.now()-N.lostSince>=120000){N.phase='error';status('ISTEKAO ROK ZA POVRATAK · LOBBY')}else connect(N.match,N.id,N.ticket,true)}
-  }
+  arenaResumeNetwork();
+ });
+ window.addEventListener('online',arenaResumeNetwork);
+ window.addEventListener('offline',()=>{
+  if(N.solo||N.phase!=='running')return;
+  resetStick();N.pending=[];N.delta={x:0,y:0};N.rejoinCorrection=true;
  });
  window.addEventListener('keydown',e=>{
   if(N.phase!=='running'||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName))return;
@@ -1596,6 +1598,26 @@ function moveLocal(p,dx,dy){
 // Network health is separate from FPS; WebSocket gaps are missed snapshots, not raw UDP loss.
 function arenaMemoryStats(){const history=N.mobHistory||[];return {historyFrames:history.length,historyEntries:history.reduce((n,h)=>n+h.positions.size+h.heroes.size,0),pendingInputs:N.pending?.length||0,spellDedupe:spellSeen.size,spellEffects:spellFx.length,pathFields:N.soloCrowd?.cachedFields??null,heapBytes:Number.isFinite(performance.memory?.usedJSHeapSize)?performance.memory.usedJSHeapSize:null}}
 function arenaNetHealth(age,rtt,jitter){return age>=8000?'reconnect':age>=3000?'stalled':age>=500||(rtt??0)>=250||jitter>=80?'unstable':'ok'}
+// V213: a resumed browser must never create a second room or duplicate socket.
+function arenaResumeAction(phase,socketState,age,hidden,lost){
+ if(hidden||lost>=120000)return '';
+ if(phase==='reconnecting'&&socketState===null)return 'retry';
+ if(phase==='running'&&socketState===1&&age>=8000)return 'refresh';
+ return '';
+}
+function arenaResumeNetwork(){
+ if(N.solo||!N.match||!N.ticket)return;
+ const lost=N.lostSince?Date.now()-N.lostSince:0;
+ if(N.phase==='reconnecting'&&lost>=120000){N.phase='error';status('ISTEKAO ROK ZA POVRATAK · LOBBY');return}
+ const now=performance.now(),action=arenaResumeAction(N.phase,N.ws?.readyState??null,Math.max(0,now-(N.lastState||N.netStartedAt||now)),document.hidden,lost);
+ if(action==='retry'){
+  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
+  connect(N.match,N.id,N.ticket,true);
+ }else if(action==='refresh'){
+  N.netResyncAt=now;N.netRecoveries=(N.netRecoveries||0)+1;N.netStalled=true;N.pending=[];N.delta={x:0,y:0};N.rejoinCorrection=true;
+  try{N.ws.close(4001,'resume stale socket')}catch{}
+ }
+}
 function arenaNetWatch(now){
  if(N.solo||N.phase!=='running'||!N.ws||N.ws.readyState!==1)return 'ok';
  const age=Math.max(0,now-(N.lastState||N.netStartedAt||now)),health=arenaNetHealth(age,N.diagRtt,N.arrivalJitter||0);
@@ -2457,7 +2479,7 @@ function connect(match,id,ticket,rejoin=false){
    if(m.t==='roster'){
    status('V'+(document.querySelector('meta[name="ns-release"]')?.content||'207')+' · NOVA ZONA: '+m.ready.length+'/'+m.total+' POVEZANIH');return;
   }
-  if(m.t==='start'||m.t==='s'&&N.phase==='waiting'&&Number.isFinite(m.startedAt)&&m.startedAt>0&&Array.isArray(m.players)&&m.players.some(q=>q[0]===N.id&&q[5]===1)){
+  if(m.t==='start'&&['waiting','running'].includes(N.phase)||m.t==='s'&&N.phase==='waiting'&&Number.isFinite(m.startedAt)&&m.startedAt>0&&Array.isArray(m.players)&&m.players.some(q=>q[0]===N.id&&q[5]===1)){
    if(ws.readyState===1)try{ws.send(JSON.stringify({t:'startAck'}))}catch{}
    if(N.phase==='waiting'){
     N.phase='running';N.retry=0;N.lostSince=0;N.netStartedAt=performance.now();N.netStalled=false;
