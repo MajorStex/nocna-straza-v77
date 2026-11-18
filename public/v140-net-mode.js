@@ -292,6 +292,14 @@ function arenaForgeUpgrade(e,p,weapon,expected){
  p.forgeTiers={...(p.forgeTiers||{}),[weapon]:expected+1};return true;
 }
 function arenaForgePacket(p){return [arenaForgeCount(p?.forgeScrap,99),arenaForgeCount(p?.forgeEssence,30),ARENA_FORGE_WEAPONS.flatMap((w,i)=>{const t=arenaForgeTier(p,w);return t?[i,t]:[]})]}
+// V205: legendary forms of existing weapons, unlocked once per run.
+const ARENA_LEGENDS=[{weapon:'longsword',name:'Zorina oštrica',desc:'Leči 5 HP pri udarcu · 5 s',cd:150,fx:6},{weapon:'warhammer',name:'Gromovnik',desc:'Udar talasa · najviše 5 meta · 6 s',cd:180,fx:1},{weapon:'glaive',name:'Zmajev očnjak',desc:'Vatrena linija · najviše 4 mete · 6 s',cd:180,fx:2}];
+const arenaLegendMask=p=>Number.isSafeInteger(p?.legendMask)?p.legendMask&7:0;
+function arenaLegend(p,weapon=p?.activeWeapon){const i=ARENA_LEGENDS.findIndex(x=>x.weapon===weapon);return i>=0&&(arenaLegendMask(p)&(1<<i))?ARENA_LEGENDS[i]:null}
+function arenaLegendInfo(e,p,weapon){const i=ARENA_LEGENDS.findIndex(x=>x.weapon===weapon);if(i<0||!p||!p.online||p.hp<=0||p.knocked||p.finalDead||p.background||p.paused||e?.invalid||weapon!==p.activeWeapon||arenaForgeTier(p,weapon)!==3||!p.guildUnlocked||!arenaTradeNear(e,p,'guild')||(arenaLegendMask(p)&(1<<i)))return null;
+ return {i,affordable:arenaForgeCount(p.forgeScrap,99)>=30&&arenaForgeCount(p.forgeEssence,30)>=4};
+}
+function arenaLegendCraft(e,p,weapon){const info=arenaLegendInfo(e,p,weapon);if(!info?.affordable)return false;p.forgeScrap-=30;p.forgeEssence-=4;p.legendMask=arenaLegendMask(p)|(1<<info.i);return true}
 function arenaAttackPeriod(p){return Math.max(9,Math.round(19*(arenaWeapon(p).speed||1)*(p.perks?.haste?.93:1)))}
 function arenaAttackReach(p,m){return Math.max(30,({dragon:135,werewolfAlpha:125,boss:125,rotfiend:125,elephant:100,troll:95}[m.kind]||83)+arenaWeapon(p).range)}
 function arenaAttackDamage(p,tick){const crit=p.perks?.crit&&((tick*37+(Number(p.id?.slice(1))||1)*13)%100<10);return Math.max(1,Math.round((p.damage||22)*arenaWeapon(p).damage*(1+arenaForgeTier(p)*.08)*(crit?1.6:1)))}
@@ -359,6 +367,19 @@ function arenaEvolutionStrike(p,target,mobs,tick,kill,emit,damageRule){
   else if(e.id==='ember')match=dist<=(94+r*.2)**2;
   else {const diff=Math.atan2(Math.sin(Math.atan2(dy,dx)-a),Math.cos(Math.atan2(dy,dx)-a));match=dist<=185**2&&Math.abs(diff)<=.76}
   if(match&&arenaExtraDamage(m,p,tick,(p.damage||22)*e.ratio,kill,damageRule)&&++hits>=e.cap)break;
+ }
+ return true;
+}
+// Same strike logic on server and offline client; existing effect IDs and kill path.
+function arenaLegendStrike(p,target,mobs,world,tick,kill,emit,damageRule){
+ const l=arenaLegend(p);if(!l||!target||!p.online||p.hp<=0||p.knocked||p.finalDead||p.paused||p.background||tick<(p.legendReady||0))return false;
+ if(!arenaAcidClear(world,p.x,p.y,target.x,target.y,3))return false;
+ if(l.weapon==='longsword'){if(p.hp>=(p.maxHp||100))return false;p.legendReady=tick+l.cd;p.hp=Math.min(p.maxHp||100,p.hp+5);arenaExtraEvent(p,tick,l.fx,p.x,p.y,emit);return true}
+ const dx=target.x-p.x,dy=target.y-p.y,mag=Math.hypot(dx,dy)||1,ux=dx/mag,uy=dy/mag,cap=l.weapon==='warhammer'?5:4;
+ p.legendReady=tick+l.cd;arenaExtraEvent(p,tick,l.fx,l.weapon==='warhammer'?p.x:target.x,l.weapon==='warhammer'?p.y:target.y,emit);
+ let hits=0;for(const m of mobs){if(m.hp<=0)continue;const x=m.x-p.x,y=m.y-p.y,front=x*ux+y*uy;
+  const match=l.weapon==='warhammer'?x*x+y*y<=135**2:front>=0&&front<=225&&Math.abs(-x*uy+y*ux)<=42;
+  if(match&&arenaAcidClear(world,p.x,p.y,m.x,m.y,3)&&arenaExtraDamage(m,p,tick,arenaAttackDamage(p,tick)*(l.weapon==='warhammer'?.55:.65),kill,damageRule)&&++hits>=cap)break;
  }
  return true;
 }
@@ -1210,7 +1231,7 @@ function stop(notify=false){
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
  A()?.stop();window.NS160_LAB?.close();LAB_AUTO_PAUSE=false;closeArenaMenu(false);N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
- N.breakState=null;N.breakSupported=false;N.expedition=null;N.expSupported=false;N.rule=null;N.ruleSupported=false;N.defenseSupported=false;N.accountSupported=false;N.pingSupported=false;N.rescueSupported=false;N.forgeSupported=false;N.rescue=null;N.rescueVisual=null;N.pings=[];N.lastPingMark=0;N.rewardProfile=null;N.rewardPacket=null;N.rewardApplied='';N.expBase=null;N.expOutdoorCrowd=null;N.expOutdoorWorld=null;if(el('ns196Exp'))el('ns196Exp').hidden=true;N.explore=null;N.exploreSupported=false;N.tradeUiKey='';N.runUiKey='';N.questPeriod=null;N.questPeriodAt=0;if(el('ns195Quest'))el('ns195Quest').hidden=true;if(el('ns195Trade'))el('ns195Trade').hidden=true;N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];N.drops=[];N.soloDrops=[];N.weaponDrops=[];N.levelBossDone=[];N.dropSeq=0;N.soloUpgradeSeq=0;
+ N.breakState=null;N.breakSupported=false;N.expedition=null;N.expSupported=false;N.rule=null;N.ruleSupported=false;N.defenseSupported=false;N.legendSupported=false;N.accountSupported=false;N.pingSupported=false;N.rescueSupported=false;N.forgeSupported=false;N.rescue=null;N.rescueVisual=null;N.pings=[];N.lastPingMark=0;N.rewardProfile=null;N.rewardPacket=null;N.rewardApplied='';N.expBase=null;N.expOutdoorCrowd=null;N.expOutdoorWorld=null;if(el('ns196Exp'))el('ns196Exp').hidden=true;N.explore=null;N.exploreSupported=false;N.tradeUiKey='';N.runUiKey='';N.questPeriod=null;N.questPeriodAt=0;if(el('ns195Quest'))el('ns195Quest').hidden=true;if(el('ns195Trade'))el('ns195Trade').hidden=true;N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];N.drops=[];N.soloDrops=[];N.weaponDrops=[];N.levelBossDone=[];N.dropSeq=0;N.soloUpgradeSeq=0;
  LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;LAB_SUPPORTED=false;LAB_LOOK=null;LAB_UNDO=null;LAB_SERVER_BUILD=0;
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
@@ -1361,6 +1382,8 @@ function requestArenaCraft(weapon,tier){
  if(N.solo){if(!arenaForgeUpgrade(N.explore,N.me,weapon,tier))return false;announceArena('ORUŽJE UNAPREĐENO · +'+(tier+1));A()?.play('choose');N.tradeUiKey='';refreshArenaRun();return true}
  if(N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'arenaCraft',weapon,tier,rev:N.expedition?.rev||0}));return true}return false;
 }
+function requestArenaLegend(weapon){if(!(N.solo||N.legendSupported)||N.rule?.victory||N.expedition?.id||N.paused||LAB_PAUSE.paused||N.choice||N.soloChoice||(!N.solo&&N.netStalled)||(N.solo?LAB.enabled||N.soloState!=='play':LAB_REMOTE?.enabled||N.waveState!=='play')||!arenaLegendInfo(N.explore,N.me,weapon)?.affordable)return false;
+ if(N.solo){if(!arenaLegendCraft(N.explore,N.me,weapon))return false;announceArena('LEGENDARNO ORUŽJE');A()?.play('choose');N.tradeUiKey='';refreshArenaRun();return true}if(N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'legendCraft',weapon,rev:N.expedition?.rev||0}));return true}return false}
 function refreshDefenseRepair(){const b=el('ns204Repair');if(!b)return;const p=N.me,r=N.rule,between=N.solo?N.soloState==='between':N.waveState==='between';const t=r?.mode==='defense'&&!r.victory&&between&&p?.hp>0&&p.online&&!p.knocked&&!N.expedition?.id&&!N.choice&&!N.soloChoice&&!N.paused&&!LAB_PAUSE.paused&&!N.netStalled&&!(N.solo?LAB.enabled:LAB_REMOTE?.enabled)?r.towers.find(t=>t.hp>0&&t.hp<180&&(p.x-t.x)**2+(p.y-t.y)**2<=95**2):null;b.hidden=!t||N.phase!=='running';if(b.hidden)return;b.textContent='POPRAVI +30 HP · 2 METALA ('+(p.forgeScrap||0)+')';b.disabled=(p.forgeScrap||0)<2;b.onclick=()=>{if(N.solo){if(arenaDefenseRepair(r,N.world,p,t.id,t.hp)){announceArena('POPRAVLJENO');refreshDefenseRepair()}}else if(N.defenseSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'defenseRepair',id:t.id,hp:t.hp,rev:N.expedition?.rev||0}));b.disabled=true}}}
 function refreshArenaRun(){
  refreshDefenseRepair();
@@ -1371,13 +1394,14 @@ function refreshArenaRun(){
  const t=N.solo?N.soloTick:N.tick;
  const near=(!N.expedition?.id&&!N.paused&&!LAB_PAUSE.paused&&!N.choice&&!N.soloChoice&&el('ns158Menu')?.hidden!==false&&el('ns192MapPanel')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled))?arenaTradeNear(e,p):null;
  trade.hidden=!near;
- const key=near?near.type+'|'+(p.arenaKeys||0)+'|'+(p.guildMask||0)+'|'+(p.guildUnlocked?1:0)+'|'+(p.xp||0)+'|'+(p.hp||0)+'|'+Math.max(0,Math.ceil(((p.burgerUntil||0)-t)/30))+'|'+e.vow+'|'+(N.expedition?.rope?1:0)+'|'+(p.activeWeapon||'sword')+'|'+arenaForgeTier(p)+'|'+(p.forgeScrap||0)+'|'+(p.forgeEssence||0)+'|'+(N.solo?N.soloState:N.waveState):'';
+ const key=near?near.type+'|'+(p.arenaKeys||0)+'|'+(p.guildMask||0)+'|'+(p.guildUnlocked?1:0)+'|'+(p.xp||0)+'|'+(p.hp||0)+'|'+Math.max(0,Math.ceil(((p.burgerUntil||0)-t)/30))+'|'+e.vow+'|'+(N.expedition?.rope?1:0)+'|'+(p.activeWeapon||'sword')+'|'+arenaForgeTier(p)+'|'+(p.forgeScrap||0)+'|'+(p.forgeEssence||0)+'|'+arenaLegendMask(p)+'|'+(N.solo?N.soloState:N.waveState):'';
  if(key!==N.tradeUiKey){N.tradeUiKey=key;trade.textContent='';if(near){
   const title=document.createElement('b');title.textContent=near.type==='market'?'BURGER BAR · plaćaš XP':near.type==='guild'?'STARA KOVNICA · potreban ključ':'OBELISK · jedan zavet za tim';trade.append(title);
   for(const row of ARENA_SHOP_ITEMS.filter(x=>x[3]===near.type)){const b=document.createElement('button');b.type='button';b.textContent=row[1]+(row[2]?' · '+row[2]+' XP':'');b.disabled=!arenaTradeInfo(e,p,row[0],t);b.onclick=()=>requestArenaTrade(row[0]);trade.append(b)}
   if(near.type==='guild'&&(N.solo||N.forgeSupported)){
    const weapon=p.activeWeapon||'sword',tier=arenaForgeTier(p,weapon),info=arenaForgeInfo(e,p,weapon,tier);const label=document.createElement('div');label.textContent='KOVANJE · '+weapon.toUpperCase()+' +'+tier+' · metal '+(p.forgeScrap||0)+' · esencija '+(p.forgeEssence||0);trade.append(label);
    const b=document.createElement('button');b.type='button';b.textContent=tier===3?'MAKSIMALNO +3':'UNAPREDI +'+(tier+1)+' · '+ARENA_FORGE_COST[tier][0]+' metal / '+ARENA_FORGE_COST[tier][1]+' esencija';b.disabled=!info?.affordable||(N.solo?N.soloState!=='play':N.waveState!=='play');b.onclick=()=>{if(requestArenaCraft(weapon,tier))b.disabled=true};trade.append(b);
+   const legend=ARENA_LEGENDS.find(l=>l.weapon===weapon);if(legend&&(N.solo||N.legendSupported)){const owned=arenaLegend(p,weapon),info=arenaLegendInfo(e,p,weapon),name=document.createElement('div');name.textContent='★ '+legend.name+' · '+legend.desc;name.style.color='#ffd47a';trade.append(name);const craft=document.createElement('button');craft.type='button';craft.textContent=owned?'LEGENDARNO · OTKLJUČANO':tier<3?'POTREBNO +3':'ISKOVAJ LEGENDU · 30 METALA / 4 ESENCIJE';craft.disabled=!info?.affordable||(N.solo?N.soloState!=='play':N.waveState!=='play');craft.onclick=()=>{if(requestArenaLegend(weapon))craft.disabled=true};trade.append(craft)}
   }
   if(near.type==='guild'&&N.expSupported){const b=document.createElement('button');b.type='button';b.textContent=N.expedition?.rope?'KANAP NABAVLJEN':'KANAP ZA PEĆINU · 58 XP';b.disabled=!!N.expedition?.rope||p.xp<58||(!p.guildUnlocked&&!p.arenaKeys);b.onclick=()=>{if(N.solo){if(expRope(N.expedition,e,p)){announceArena('KANAP NABAVLJEN');N.tradeUiKey=''}}else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'arenaTrade',id:'ropeKey',rev:N.expedition?.rev||0}))};trade.append(b)}
  }}
@@ -1568,7 +1592,7 @@ function snapshot(m){
    }
   }
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
-   p.revivesUsed=Number(row[15])||0;p.reviveProgress=Number(row[16])||0;p.finalDead=row[17]===1;p.downedUntil=Number(row[18])||0;p.enemySlowUntil=Number(row[19])||0;const oldDash=p.dodgeUntil||0;p.dodgeUntil=Number(row[20])||0;p.dodgeReady=Number(row[21])||0;p.dodgeX=(Number(row[22])||0)/1000;p.dodgeY=(Number(row[23])||0)/1000;p.activeWeapon=ARENA_CLASSIC_WEAPONS[row[24]]?row[24]:undefined;p.secondaryWeapon=ARENA_CLASSIC_WEAPONS[row[25]]?row[25]:null;if(Number.isFinite(row[26]))p.speedMult=clamp(row[26],1,1.5);p.sosUsed=row[27]===1;if(Array.isArray(row[28])){const a=row[28];p.arenaKeys=Number(a[0])||0;p.arenaShards=Number(a[1])||0;p.guildMask=Number(a[2])||0;p.guildUnlocked=a[3]===1;p.burgerUntil=Number(a[4])||0;}if(id===N.id&&N.forgeSupported)applyArenaForge(p,m.forge);if(id===N.id&&p.dodgeUntil>oldDash&&p.dodgeUntil>N.tick)A()?.play('step',{gain:1});
+   p.revivesUsed=Number(row[15])||0;p.reviveProgress=Number(row[16])||0;p.finalDead=row[17]===1;p.downedUntil=Number(row[18])||0;p.enemySlowUntil=Number(row[19])||0;const oldDash=p.dodgeUntil||0;p.dodgeUntil=Number(row[20])||0;p.dodgeReady=Number(row[21])||0;p.dodgeX=(Number(row[22])||0)/1000;p.dodgeY=(Number(row[23])||0)/1000;p.activeWeapon=ARENA_CLASSIC_WEAPONS[row[24]]?row[24]:undefined;p.secondaryWeapon=ARENA_CLASSIC_WEAPONS[row[25]]?row[25]:null;if(Number.isFinite(row[26]))p.speedMult=clamp(row[26],1,1.5);p.sosUsed=row[27]===1;if(Array.isArray(row[28])){const a=row[28];p.arenaKeys=Number(a[0])||0;p.arenaShards=Number(a[1])||0;p.guildMask=Number(a[2])||0;p.guildUnlocked=a[3]===1;p.burgerUntil=Number(a[4])||0;}if(id===N.id&&N.forgeSupported)applyArenaForge(p,m.forge);if(id===N.id&&N.legendSupported)p.legendMask=arenaLegendMask({legendMask:m.legend});if(id===N.id&&p.dodgeUntil>oldDash&&p.dodgeUntil>N.tick)A()?.play('step',{gain:1});
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
    A()?.play('swing',{weapon:p.activeWeapon||(id===N.id?localArenaLook().weapon:N.looks.get(id)?.look?.weapon)||B().getVillageHeroLook?.(id)?.weapon||'sword',variant:attackTick,
@@ -1792,7 +1816,7 @@ function startSolo(){
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
  N.soloChests=[[603,2368],[291,1379],[3119,2452],[2506,2256],[3460,3116],[930,1524],[2922,602],[3601,527],[624,876]].map((p,i)=>({id:i+1,x:p[0],y:p[1],opened:false,style:'classic'}));
  N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();B().unlockSound?.();
- resetExp(N.world);N.expSupported=true;N.rule=arenaRuleInit(N.world,mode);N.ruleSupported=true;N.defenseSupported=true;resetArenaBreakables(N.world);N.breakSupported=true;N.explore=arenaExploreInit(N.world);N.exploreSupported=true;N.rescue=arenaRescueInit(N.world);N.rescueSupported=true;N.forgeSupported=true;N.rescueVisual=null;N.tradeUiKey='';N.runUiKey='';
+ resetExp(N.world);N.expSupported=true;N.rule=arenaRuleInit(N.world,mode);N.ruleSupported=true;N.defenseSupported=true;N.legendSupported=true;resetArenaBreakables(N.world);N.breakSupported=true;N.explore=arenaExploreInit(N.world);N.exploreSupported=true;N.rescue=arenaRescueInit(N.world);N.rescueSupported=true;N.forgeSupported=true;N.rescueVisual=null;N.tradeUiKey='';N.runUiKey='';
  N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt*(p.spellSlowFactor||1),y*N.world.speed*dt*(p.spellSlowFactor||1)));
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;resetRenderQuality();
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.stick.ptr=null;N.stick.x=N.stick.y=0;
@@ -1924,6 +1948,7 @@ function stepSolo(dt){
     A()?.play('hit',{weapon:N.me?.activeWeapon||localArenaLook().weapon||'sword',variant:N.soloTick,gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
     if(target.hp===0)extraKill(target);
     arenaEvolutionStrike(me,target,N.soloMobs,N.soloTick,extraKill,showArenaSpell,soloDamageRule);
+     if(!LAB.enabled&&!N.explore?.invalid)arenaLegendStrike(me,target,N.soloMobs,N.world,N.soloTick,extraKill,showArenaSpell,soloDamageRule);
    }else if(!LAB.enabled){const tower=!N.expedition?.id&&!N.explore?.invalid?arenaRuleTower(N.rule,N.world,me,arenaAttackDamage(me,N.soloTick),arenaAttackReach(me,{kind:'goblin'}),N.players):null;const hit=tower||arenaBreakHit(N.breakState,N.world,me,N.soloTick,N.soloWave,arenaAttackDamage(me,N.soloTick),arenaAttackReach(me,{kind:'goblin'}));if(hit){N.soloSwing=N.soloTick;me.attackTick=N.soloTick;me.attackAngle=Math.atan2(hit.y-me.y,hit.x-me.x);me.facingAngle=me.attackAngle;arenaMapBase=null;A()?.play('hit',{weapon:me.activeWeapon||'sword',gain:.4});if(hit.hp===0){if(hit.collider)N.soloCrowd?.refreshObstacles?.([hit.collider]);announceArena(hit.kind==='nightTower'?(N.rule.victory?'POBEDA · TRI KULE UNIŠTENE':'KULA UNIŠTENA'):hit.kind==='barrel'?'BURE RAZBIJENO':'KUTIJA RAZBIJENA')}}}
   }
   arenaExplorePickup(N.explore,N.players);expCollect(N.expedition,N.players);
@@ -2172,7 +2197,8 @@ function connect(match,id,ticket,rejoin=false){
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
   if(m.t==='ruleVictory'){announceArena(m.mode==='defense'?'SELO ODBRANJENO':m.mode==='campaign'?'KAMPANJA ZAVRŠENA':'POBEDA · TRI KULE UNIŠTENE');return}
   if(m.t==='expeditionResult'&&m.id===N.id){if(!m.ok)announceArena('OKUPI ŽIVE SAIGRAČE KOD ULAZA');return}if(m.t==='expeditionClear'){announceArena('ZONA OČIŠĆENA · +3 ČVORIŠTA');return}
-  if(m.t==='defenseRepairResult'){announceArena(m.ok?'POPRAVLJENO':'POPRAVKA NEDOSTUPNA');return}
+  if(m.t==='legendCraftResult'){announceArena(m.ok?'LEGENDARNO ORUŽJE':'KOVANJE NIJE DOSTUPNO');if(m.ok)A()?.play('choose');N.tradeUiKey='';return}
+   if(m.t==='defenseRepairResult'){announceArena(m.ok?'POPRAVLJENO':'POPRAVKA NEDOSTUPNA');return}
    if(m.t==='arenaCraftResult'){announceArena(m.ok?'ORUŽJE UNAPREĐENO':'KOVANJE NIJE DOSTUPNO');if(m.ok)A()?.play('choose');N.tradeUiKey='';return}
    if(m.t==='arenaTradeResult'&&m.id===N.id){if(m.ok){announceArena('RAZMENA USPEŠNA');A()?.play('choose')}else announceArena('RAZMENA NIJE DOSTUPNA');return}
   if(m.t==='fieldKit'&&m.id===N.id){announceArena('ZAVOJ · +'+Math.max(0,Math.min(18,Number(m.hp)||0))+' HP');A()?.play('choose');return}
@@ -2184,7 +2210,7 @@ function connect(match,id,ticket,rejoin=false){
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.world=m.world||N.world;resetExp(N.world);N.expSupported=m.arenaExpedition===196;N.ruleSupported=m.arenaRules===197;N.defenseSupported=m.arenaDefense===204;N.accountSupported=m.arenaAccount===198;N.pingSupported=m.arenaPings===199;N.rescueSupported=m.arenaRescue===202;N.forgeSupported=m.arenaForge===203;N.rescue=null;N.rescueVisual=null;N.rule=null;resetArenaBreakables(N.world);N.breakSupported=m.arenaBreakables===194;N.exploreSupported=m.arenaExplore===195;N.explore=null;N.tradeUiKey='';N.phase='waiting';
+   N.world=m.world||N.world;resetExp(N.world);N.expSupported=m.arenaExpedition===196;N.ruleSupported=m.arenaRules===197;N.defenseSupported=m.arenaDefense===204;N.legendSupported=m.arenaLegend===205;N.accountSupported=m.arenaAccount===198;N.pingSupported=m.arenaPings===199;N.rescueSupported=m.arenaRescue===202;N.forgeSupported=m.arenaForge===203;N.rescue=null;N.rescueVisual=null;N.rule=null;resetArenaBreakables(N.world);N.breakSupported=m.arenaBreakables===194;N.exploreSupported=m.arenaExplore===195;N.explore=null;N.tradeUiKey='';N.phase='waiting';
    if(rejoin){N.rejoinPreviousTick=N.tick;N.tick=-1;N.lastState=0;N.rejoinCorrection=true;N.pending=[];N.delta={x:0,y:0};N.players.clear();N.me=null;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.lastMyHp=null;N.reviveHeld='';spellFx=[];spellAim=null;N.arrivalJitter=0;N.interpolationTicks=3;}
    attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
@@ -2468,7 +2494,7 @@ function sessionHud(now){
  const holder=el('ns152Choice'),hud=el('ns152Wave'),remaining=el('ns152Remaining');
  if(!holder||!hud||!remaining)return;
  if(now-N.uiAt>=140||N.choiceUiId!==(choice?(choice.seq+':'+choice.owner):'')){
-  N.uiAt=now;refreshArenaDodge();refreshArenaLoot();refreshArenaRun();expHud();const swap=el('ns192Swap');if(swap){swap.hidden=!(N.solo||N.loadoutSupported)||!N.me?.secondaryWeapon||N.me.hp<=0;swap.textContent='⇄ '+(N.me?.activeWeapon||'sword')+' / '+(N.me?.secondaryWeapon||'')}
+  N.uiAt=now;refreshArenaDodge();refreshArenaLoot();refreshArenaRun();expHud();const swap=el('ns192Swap');if(swap){swap.hidden=!(N.solo||N.loadoutSupported)||!N.me?.secondaryWeapon||N.me.hp<=0;swap.textContent='⇄ '+(arenaLegend(N.me)?.name||N.me?.activeWeapon||'sword')+' / '+(arenaLegend(N.me,N.me?.secondaryWeapon)?.name||N.me?.secondaryWeapon||'')}
   hud.textContent=ruleTitle(wave);
   const xpHud=el('ns168XpHud'),xpText=el('ns168XpText'),xpFill=el('ns168XpFill');
   const xpEnabled=N.solo||LAB_SERVER_BUILD>=168;
