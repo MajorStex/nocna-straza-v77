@@ -768,7 +768,7 @@ function arenaMagicAvailable(){return N.phase==='running'&&(N.solo||magicSupport
 function magicPoint(clientX,clientY){const r=el('ns140Canvas').getBoundingClientRect(),z=clamp(Math.max(r.width/750,r.height/760),.7,1.45);return{x:N.me.x+(clientX-r.left-r.width/2)/z,y:N.me.y+(clientY-r.top-r.height/2)/z}}
 function spellTarget(slot){const s=ARENA_SPELLS[slot],p=N.me;if(s.heal)return{x:p.x,y:p.y};let best=null,dist=Math.min(250,s.range)**2;for(const m of (N.solo?N.soloMobs:N.mpMobs)){if(m.hp<=0)continue;const d=(m.x-p.x)**2+(m.y-p.y)**2;if(d<dist){best=m;dist=d}}const angle=p.facingAngle??p.attackAngle??0;return best?{x:best.x,y:best.y}:{x:p.x+Math.cos(angle)*105,y:p.y+Math.sin(angle)*105}}
 function showArenaSpell(event){if(!Array.isArray(event)||event.length!==5||!Number.isSafeInteger(event[0])||spellSeen.has(event[0])||!ARENA_SPELLS[event[1]]||!event.slice(2).every(Number.isFinite))return;spellSeen.set(event[0],event[4]);for(const [id,t] of spellSeen)if(event[4]-t>120)spellSeen.delete(id);spellFx.push({event,at:performance.now()});if(spellFx.length>18)spellFx.shift();const me=N.me;if(me&&(event[2]-me.x)**2+(event[3]-me.y)**2<640**2)B().arenaSpellSound?.(ARENA_SPELLS[event[1]].id,event[2],event[3],me)}
-function requestArenaSpell(slot,point){if(!arenaMagicAvailable()||!ARENA_SPELLS[slot])return false;const p=N.me,s=ARENA_SPELLS[slot],state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state||state[0]<s.cost*10||state[2][slot]>0)return false;const q=point||spellTarget(slot);if(point&&(q.x<30||q.y<30||q.x>N.world.w-30||q.y>N.world.h-30))return false;const x=Math.round(clamp(q.x,30,N.world.w-30)),y=Math.round(clamp(q.y,30,N.world.h-30));if((x-p.x)**2+(y-p.y)**2>s.range**2)return false;if(N.solo){const e=arenaSpellCast({p,players:N.players,mobs:N.soloMobs,world:N.world,tick:N.soloTick,cls:localArenaLook().heroClass,slot,x,y,damageRule:soloDamageRule,clearPath:N.expedition?.id?(a,b)=>arenaAcidClear(N.world,a.x,a.y,b.x,b.y,3):undefined,kill:m=>{m.deadUntil=N.soloTick+105;N.soloKills++;p.kills++;spawnSoloXpCrystal(m)}});if(e){showArenaSpell(e);spellHudAt=0;return true}return false}if(N.ws?.readyState!==1||N.ws.bufferedAmount>=4000||performance.now()-spellPendingAt<170)return false;spellPendingAt=performance.now();N.ws.send(JSON.stringify({t:'spell',seq:++spellSeq,slot,x,y}));return true}
+function requestArenaSpell(slot,point){if(!arenaMagicAvailable()||!ARENA_SPELLS[slot])return false;const p=N.me,s=ARENA_SPELLS[slot],state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state||state[0]<s.cost*10||state[2][slot]>0)return false;const q=point||spellTarget(slot);if(point&&(q.x<30||q.y<30||q.x>N.world.w-30||q.y>N.world.h-30))return false;const x=Math.round(clamp(q.x,30,N.world.w-30)),y=Math.round(clamp(q.y,30,N.world.h-30));if((x-p.x)**2+(y-p.y)**2>s.range**2)return false;if(N.solo){const e=arenaSpellCast({p,players:N.players,mobs:N.soloMobs,world:N.world,tick:N.soloTick,cls:localArenaLook().heroClass,slot,x,y,damageRule:soloDamageRule,clearPath:N.expedition?.id?(a,b)=>arenaAcidClear(N.world,a.x,a.y,b.x,b.y,3):undefined,kill:m=>{m.deadUntil=N.soloTick+105;N.soloKills++;p.kills++;spawnSoloXpCrystal(m)}});if(e){showArenaSpell(e);spellHudAt=0;return true}return false}if(N.ws?.readyState!==1||N.ws.bufferedAmount>=4000||performance.now()-spellPendingAt<170)return false;spellPendingAt=performance.now();N.ws.send(JSON.stringify({t:'spell',seq:++spellSeq,slot,x,y,rev:N.expedition?.rev||0}));return true}
 function refreshMagicHud(now){const dock=el('ns189Magic');if(!dock)return;const enabled=arenaMagicAvailable();if(dock.hidden===enabled)dock.hidden=!enabled;if(!enabled){spellAim=null;el('ns189Picker').hidden=true;return}if(now-spellHudAt<140)return;spellHudAt=now;const p=N.me,state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state){el('ns189Cast').disabled=true;return}const s=ARENA_SPELLS[spellSlot],mana=state[0]/10,remaining=state[2][spellSlot]/30,b=el('ns189Cast');el('ns189Mana').textContent=Math.floor(mana)+' / '+state[1]+' MP';el('ns189ManaFill').style.width=Math.min(100,mana/state[1]*100)+'%';b.textContent=s.icon+' '+s.sr+(remaining>0?' · '+Math.ceil(remaining)+'s':' · '+s.cost+' MP');b.disabled=mana<s.cost||remaining>0;b.style.borderColor=s.color;const picker=el('ns189Picker');if(!picker.hidden&&picker.dataset.slot!==String(spellSlot)){picker.dataset.slot=String(spellSlot);picker.querySelectorAll('button').forEach((q,i)=>q.setAttribute('aria-pressed',String(i===spellSlot)))}}
 function mountArenaMagic(root,style){style.textContent+='#ns189Magic{position:absolute;left:calc(10px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;width:min(205px,42vw);font:700 11px system-ui;color:#e3f4ff;background:#152a35e8;border:1px solid #7196bf;border-radius:11px;padding:5px;touch-action:none}#ns189Magic[hidden],#ns189Picker[hidden]{display:none!important}#ns189Magic button{background:#243d50;color:#e8f6ff;border:1px solid #7698b8;border-radius:7px;min-height:34px;font:700 11px system-ui;touch-action:none}#ns189Magic button:disabled{opacity:.52}#ns189ManaTrack{height:5px;background:#14202f;border-radius:5px;overflow:hidden;margin:3px 0}#ns189ManaFill{height:100%;background:#58abeb}#ns189CastRow{display:flex;gap:4px}#ns189Cast{flex:1}#ns189Picker{position:absolute;bottom:100%;left:0;width:min(280px,75vw);display:grid;grid-template-columns:repeat(2,1fr);gap:4px;padding:6px;background:#142933f5;border:1px solid #83a1bc;border-radius:9px}#ns189Picker button[aria-pressed=true]{border-color:#ffe1a2;background:#3e4b5d}';const dock=document.createElement('div');dock.id='ns189Magic';dock.hidden=true;dock.innerHTML='<span id="ns189Mana">0 MP</span><div id="ns189ManaTrack"><div id="ns189ManaFill"></div></div><div id="ns189CastRow"><button id="ns189Cast" type="button" aria-label="Baci magiju">✦ Iskra</button><button id="ns189Swap" type="button" aria-label="Izaberi magiju">⇄</button></div><div id="ns189Picker" hidden></div>';root.append(dock);const picker=el('ns189Picker');for(const [i,s] of ARENA_SPELLS.entries()){const b=document.createElement('button');b.type='button';b.textContent=s.icon+' '+s.sr+' · '+s.cost+' MP';b.onclick=()=>{spellSlot=i;picker.hidden=true;spellHudAt=0;refreshMagicHud(performance.now())};picker.append(b)}el('ns189Swap').onclick=()=>{picker.hidden=!picker.hidden;spellHudAt=0;refreshMagicHud(performance.now())};const btn=el('ns189Cast');btn.addEventListener('pointerdown',e=>{if(!arenaMagicAvailable()||btn.disabled||e.button>0)return;e.preventDefault();e.stopPropagation();A()?.unlock();B().unlockSound?.();spellAim={id:e.pointerId,slot:spellSlot,x:e.clientX,y:e.clientY,moved:false,point:null};try{btn.setPointerCapture(e.pointerId)}catch{}});btn.addEventListener('pointermove',e=>{if(spellAim?.id!==e.pointerId)return;spellAim.moved=spellAim.moved||Math.hypot(e.clientX-spellAim.x,e.clientY-spellAim.y)>12;if(spellAim.moved)spellAim.point=magicPoint(e.clientX,e.clientY)});btn.addEventListener('pointerup',e=>{if(spellAim?.id!==e.pointerId)return;const a=spellAim;spellAim=null;requestArenaSpell(a.slot,a.moved?magicPoint(e.clientX,e.clientY):null)});for(const name of ['pointercancel','lostpointercapture'])btn.addEventListener(name,()=>{spellAim=null});btn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();requestArenaSpell(spellSlot)}})}
 function drawArenaMagic(g,now,visible){if(spellAim?.point&&N.me){const p=spellAim.point,s=ARENA_SPELLS[spellAim.slot],valid=(p.x-N.me.x)**2+(p.y-N.me.y)**2<=s.range**2;g.save();g.strokeStyle=valid?s.color:'#f87878';g.lineWidth=2;g.beginPath();g.arc(p.x,p.y,s.radius,0,Math.PI*2);g.stroke();g.restore()}if(!spellFx.length)return;spellFx=spellFx.filter(q=>now-q.at<720);for(const q of spellFx){const [id,slot,x,y]=q.event,s=ARENA_SPELLS[slot];if(x+s.radius<visible.left||x-s.radius>visible.right||y+s.radius<visible.top||y-s.radius>visible.bottom)continue;const life=1-clamp((now-q.at)/720,0,1);g.save();g.translate(x,y);g.globalAlpha=life;const classicDraw=B().arenaSpellDraw;if(classicDraw)classicDraw(g,{id,value:{id:s.id,radius:s.radius}},life);else{g.strokeStyle=s.color;g.lineWidth=2;g.beginPath();g.arc(0,0,s.radius*(1-life*.8),0,Math.PI*2);g.stroke()}g.restore()}}
@@ -838,7 +838,7 @@ function ui(){
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
  '<div id="ns152Choice" hidden><div id="ns152ChoiceCard"><h3 id="ns152ChoiceTitle">OTVOREN SANDUK</h3><p id="ns152ChoiceText"></p><div id="ns152Choices"><button data-pick="edge">⚔ OŠTRIJA OŠTRICA · +20% ŠTETE</button><button data-pick="heart">♥ ČUVAROVO SRCE · +25 HP</button><button data-pick="boots">➤ BRŽE ČIZME · +10% BRZINE</button></div><span id="ns152Timer">7 s</span></div></div>';
  document.body.append(style,root);mountArenaMagic(root,style);mountArenaRun(root,style);const eb=document.createElement('button');eb.id='ns196Exp';eb.type='button';eb.hidden=true;eb.style.cssText='position:absolute;z-index:8;left:50%;bottom:75px;transform:translateX(-50%);background:#18352f;color:#ffe9b7;border:1px solid #9dc9ae;border-radius:8px;padding:9px;font:bold 12px system-ui';root.append(eb);
- el('ns192SOS').onclick=()=>{if(N.sosSupported&&N.me?.knocked&&!N.me.sosUsed&&N.ws?.readyState===1){N.ws.send(JSON.stringify({t:'sos'}));el('ns192SOS').disabled=true}};el('ns192Loot').onclick=()=>requestArenaLoot();el('ns192Swap').onclick=()=>requestArenaSwap();el('ns192MapBtn').onclick=()=>setArenaMap(true);el('ns192MapClose').onclick=()=>setArenaMap(false);el('ns192BigMap').onclick=e=>requestMapPing(e);
+ el('ns192SOS').onclick=()=>{if(N.sosSupported&&N.me?.knocked&&!N.me.sosUsed&&N.ws?.readyState===1){N.ws.send(JSON.stringify({t:'sos',rev:N.expedition?.rev||0}));el('ns192SOS').disabled=true}};el('ns192Loot').onclick=()=>requestArenaLoot();el('ns192Swap').onclick=()=>requestArenaSwap();el('ns192MapBtn').onclick=()=>setArenaMap(true);el('ns192MapClose').onclick=()=>setArenaMap(false);el('ns192BigMap').onclick=e=>requestMapPing(e);
  el('ns192Dodge').addEventListener('pointerdown',e=>{e.preventDefault();requestArenaDodge()});
  const reviveButton=el('ns190Revive');
  reviveButton.addEventListener('pointerdown',e=>{const target=nearArenaRevive();if(!target)return;e.preventDefault();N.reviveHeld=target.id;N.reviveAt=0;try{reviveButton.setPointerCapture(e.pointerId)}catch{}});
@@ -922,7 +922,7 @@ function ui(){
    const option=btn.dataset.pick;
    if(N.solo){resolveSoloChest(option);return}
    if(N.choice?.owner!==N.id||N.ws?.readyState!==1)return;
-   N.ws.send(JSON.stringify({t:'chestPick',option}));
+   N.ws.send(JSON.stringify({t:'chestPick',option,seq:N.choice.seq,rev:N.expedition?.rev||0}));
    btn.disabled=true;
   };
  }
@@ -1172,7 +1172,7 @@ function nearArenaLoot(){
 function requestArenaLoot(){
  const d=nearArenaLoot();if(!d)return false;
  if(N.solo){if(arenaTakeWeapon(N.weaponDrops,N.me,d.id)){A()?.play('choose');return true}return false}
- if(N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'weaponLoot',id:d.id}));return true}return false;
+ if(N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'weaponLoot',id:d.id,rev:N.expedition?.rev||0}));return true}return false;
 }
 function refreshArenaLoot(){
  const b=el('ns192Loot'),d=nearArenaLoot();if(!b)return;b.hidden=!d;if(d){const old=arenaWeapon(N.me),next=ARENA_CLASSIC_WEAPONS[d.weapon],sign=n=>(n>0?'+':'')+n;
@@ -1185,14 +1185,14 @@ function drawArenaWeaponLoot(g,view){
 function requestArenaSwap(){
  if(!N.me||N.me.hp<=0||N.me.knocked||!N.me.secondaryWeapon||N.phase!=='running'||N.paused||N.choice||N.soloChoice||LAB_PAUSE.paused||!el('ns158Menu')?.hidden)return false;
  if(N.solo)return arenaSwapWeapon(N.me,N.soloTick);
- if(N.loadoutSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'weaponSwap'}));return true}return false;
+ if(N.loadoutSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'weaponSwap',rev:N.expedition?.rev||0}));return true}return false;
 }
 function requestArenaDodge(){
  if(N.phase!=='running'||!N.me||N.me.hp<=0||N.me.knocked||N.me.finalDead||N.paused||LAB_PAUSE.paused||N.reviveHeld||N.choice||N.soloChoice||el('ns158Menu')?.hidden===false||(N.solo?N.soloState:N.waveState)!=='play')return false;
  const v=input(),tick=N.solo?N.soloTick:N.tick,now=performance.now();if(Math.hypot(v.x,v.y)<=.2||tick<(N.me.dodgeReady||0))return false;
  if(N.solo){if(!arenaDodge(N.me,tick,v.x,v.y))return false;N.soloInvul=Math.max(N.soloInvul,N.me.shield);A()?.play('step',{gain:1});return true}
  if(!N.dodgeSupported||N.ws?.readyState!==1||N.ws.bufferedAmount>=4000||now-(N.lastDashRequest||-1000)<350)return false;
- N.lastDashRequest=now;N.ws.send(JSON.stringify({t:'dodge',x:v.x,y:v.y}));return true;
+ N.lastDashRequest=now;N.ws.send(JSON.stringify({t:'dodge',x:v.x,y:v.y,rev:N.expedition?.rev||0}));return true;
 }
 function refreshArenaDodge(){
  const b=el('ns192Dodge');if(!b)return;
@@ -1256,7 +1256,7 @@ function refreshArenaRun(){
  if(key!==N.tradeUiKey){N.tradeUiKey=key;trade.textContent='';if(near){
   const title=document.createElement('b');title.textContent=near.type==='market'?'BURGER BAR · plaćaš XP':near.type==='guild'?'STARA KOVNICA · potreban ključ':'OBELISK · jedan zavet za tim';trade.append(title);
   for(const row of ARENA_SHOP_ITEMS.filter(x=>x[3]===near.type)){const b=document.createElement('button');b.type='button';b.textContent=row[1]+(row[2]?' · '+row[2]+' XP':'');b.disabled=!arenaTradeInfo(e,p,row[0],t);b.onclick=()=>requestArenaTrade(row[0]);trade.append(b)}
-  if(near.type==='guild'&&N.expSupported){const b=document.createElement('button');b.type='button';b.textContent=N.expedition?.rope?'KANAP NABAVLJEN':'KANAP ZA PEĆINU · 58 XP';b.disabled=!!N.expedition?.rope||p.xp<58||(!p.guildUnlocked&&!p.arenaKeys);b.onclick=()=>{if(N.solo){if(expRope(N.expedition,e,p)){announceArena('KANAP NABAVLJEN');N.tradeUiKey=''}}else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'arenaTrade',id:'ropeKey'}))};trade.append(b)}
+  if(near.type==='guild'&&N.expSupported){const b=document.createElement('button');b.type='button';b.textContent=N.expedition?.rope?'KANAP NABAVLJEN':'KANAP ZA PEĆINU · 58 XP';b.disabled=!!N.expedition?.rope||p.xp<58||(!p.guildUnlocked&&!p.arenaKeys);b.onclick=()=>{if(N.solo){if(expRope(N.expedition,e,p)){announceArena('KANAP NABAVLJEN');N.tradeUiKey=''}}else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'arenaTrade',id:'ropeKey',rev:N.expedition?.rev||0}))};trade.append(b)}
  }}
  const periodAt=N.solo?Date.now():(N.serverNow||Date.now());if(!N.questPeriod||Math.abs(periodAt-(N.questPeriodAt||0))>=45000){N.questPeriod=arenaQuestPeriod(periodAt);N.questPeriodAt=periodAt}
  const qkey=[e.kills,e.trolls,e.worms,e.chests,e.revives,e.wave,e.invalid,p.kills,...N.questPeriod.map(a=>a[0])].join(':');
@@ -1269,7 +1269,7 @@ function refreshArenaRun(){
 function requestArenaTrade(id){
  const p=N.me,e=N.explore,t=N.solo?N.soloTick:N.tick;if(!arenaTradeInfo(e,p,id,t)||N.paused||LAB_PAUSE.paused||N.choice||N.soloChoice)return false;
  if(N.solo){if(!arenaTrade(e,p,id,t,N.players))return false;announceArena('RAZMENA USPEŠNA');A()?.play('choose');N.tradeUiKey='';refreshArenaRun();return true}
- if(N.exploreSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'arenaTrade',id}));return true}return false;
+ if(N.exploreSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'arenaTrade',id,rev:N.expedition?.rev||0}));return true}return false;
 }
 function drawArenaExplore(g,view){
  const e=N.explore;if(!e)return;
@@ -1306,7 +1306,7 @@ function soloExp(id){const z=N.expedition,p=N.me;if(LAB.enabled||N.explore?.inva
  }else{const old=z.saved;if(!old)return false;z.id=0;const base=expWorld(N.expBase,0);N.world=N.expOutdoorWorld||base;Object.assign(N.world,base);N.expOutdoorWorld=null;resetArenaBreakables(N.world);arenaBreakRestore(N.breakState,N.world,old.breakables);N.soloMobs=old.mobs;N.soloChests=old.chests;N.soloDrops=old.drops;N.weaponDrops=old.weaponDrops;N.explore.drops=old.exploreDrops;N.soloTotal=old.total;N.soloReserve=old.reserve;N.soloBatch=old.batch;for(const d of [...N.soloDrops,...N.weaponDrops])if(Number.isFinite(d.expires))d.expires+=N.soloTick-old.at;expPlace(N.players,old.portal,N.soloTick);z.saved=null}
  z.rev++;N.breakSupported=true;N.acidShots=[];spellFx=[];if(!id&&N.expOutdoorCrowd){N.soloCrowd=N.expOutdoorCrowd;N.expOutdoorCrowd=null;N.soloCrowd.clear()}else N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt*(p.spellSlowFactor||1),y*N.world.speed*dt*(p.spellSlowFactor||1)));resetArenaMap(true);N.tradeUiKey='';announceArena(z.id===1?'TEMPLE':z.id===2?'PEĆINA':'POVRATAK NA MAPU');return true
 }
-function requestExp(id){if(N.solo)return soloExp(id);if(N.expSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'expedition',id}));return true}return false}
+function requestExp(id){if(N.solo)return soloExp(id);if(N.expSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'expedition',id,rev:N.expedition?.rev||0}));return true}return false}
 function expHud(){const b=el('ns196Exp'),z=N.expedition,p=N.me;if(!b)return;const point=z?.id?EXP_EXIT:z?.portals.find(o=>expNear(p,o));b.hidden=!(N.phase==='running'&&z&&(N.solo||N.expSupported)&&point&&expNear(p,point)&&p?.hp>0&&!p.knocked&&!N.choice&&!N.soloChoice&&!N.paused&&!LAB_PAUSE.paused&&el('ns158Menu')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled));if(b.hidden)return;const id=z.id?0:point.id;b.textContent=z.id?(z.done&(1<<z.id)?'↩ IZLAZ':'POBEDI ČUVARE ZA IZLAZ'):id===1?(z.done&2?'TEMPLE · ZAVRŠEN':z.key?'ULAZ U TEMPLE':'TEMPLE · potreban ključ trola'):(z.done&4?'PEĆINA · ZAVRŠENA':z.rope?'ULAZ U PEĆINU':'PEĆINA · kanap iz kovnice');b.disabled=!!N.explore?.invalid||!expAllowed(z,N.players,p,id,N.solo?N.soloMobs:N.mpMobs);b.onclick=()=>requestExp(id)}
 function drawExp(g,view){const z=N.expedition;if(!z||(!N.solo&&!N.expSupported))return;if(z.id){g.fillStyle='#303b40';g.strokeStyle='#87918c';g.lineWidth=2;for(const o of N.world.obstacles){if(o.x>view.right||o.y>view.bottom||o.x+o.w<view.left||o.y+o.h<view.top)continue;g.fillRect(o.x,o.y,o.w,o.h);g.strokeRect(o.x,o.y,o.w,o.h)}}
  const marks=z.id?[{...EXP_EXIT,id:0}]:[...z.portals];if(z.keyDrop&&!z.id)marks.push({...z.keyDrop,id:3});for(const p of marks){if(p.x<view.left-40||p.x>view.right+40||p.y<view.top-40||p.y>view.bottom+40)continue;g.save();g.translate(p.x,p.y);g.fillStyle=p.id===3?'#f7d77e':'#90c9c6';g.strokeStyle='#102725';g.lineWidth=3;g.beginPath();g.arc(0,0,p.id===3?9:24,0,Math.PI*2);g.fill();g.stroke();g.font='bold 11px system-ui';g.textAlign='center';g.fillStyle='#fff1cb';g.fillText(['IZLAZ','TEMPLE','PEĆINA','KLJUČ TROLA'][p.id],0,-30);g.restore()}}
@@ -1332,12 +1332,14 @@ function moveLocal(p,dx,dy){
 function snapshot(m){
  if(!Number.isInteger(m.tick)||m.tick<=N.tick||!Array.isArray(m.players))return;
  const arrived=performance.now(),previousTick=N.tick;
+ // A checkpoint rollback can reuse earlier effect IDs; reset the dedupe only then.
+ if(Number.isInteger(N.rejoinPreviousTick)){if(m.tick<N.rejoinPreviousTick)spellSeen.clear();N.rejoinPreviousTick=null;}
  if(previousTick>=0&&N.lastState&&m.tick-previousTick<=30){
   const variation=Math.min(250,Math.abs((arrived-N.lastState)-(m.tick-previousTick)*1000/30));
   N.arrivalJitter=(N.arrivalJitter||0)*.85+variation*.15;
   N.interpolationTicks=clamp(3+Math.ceil(N.arrivalJitter/34),3,7);
  }
- N.tick=m.tick;N.lastState=arrived;if(magicSupported&&Array.isArray(m.spell)&&Number.isFinite(m.spell[0])&&Number.isFinite(m.spell[1])&&Array.isArray(m.spell[2])&&m.spell[2].length===8){spellView=m.spell;spellSeq=Math.max(spellSeq,Number(m.spell[3])||0)}if(magicSupported&&Array.isArray(m.spellFx))for(const event of m.spellFx.slice(-18))showArenaSpell(event);N.serverMs=Number(m.ms)||0;
+ N.tick=m.tick;N.lastState=arrived;if(magicSupported&&Array.isArray(m.spell)&&Number.isFinite(m.spell[0])&&Number.isFinite(m.spell[1])&&Array.isArray(m.spell[2])&&m.spell[2].length===8){spellView=m.spell;spellSeq=Math.max(spellSeq,Number(m.spell[3])||0)}N.serverMs=Number(m.ms)||0;
  if(Number.isFinite(m.serverNow))N.serverNow=m.serverNow;
  if(typeof m.globalPaused==='boolean')LAB_PAUSE.paused=m.globalPaused;
  if(Array.isArray(m.allies))LAB_REMOTE={...(LAB_REMOTE||{}),allies:m.allies.slice(0,3).map(a=>({id:a[0],x:a[1]/10,y:a[2]/10,hp:a[3],lastAttack:a[4]}))};
@@ -1431,7 +1433,7 @@ function snapshot(m){
   }
   if(id===N.id){
    N.me=p;const ack=Number(m.ack)||0;
-   if(N.rejoinCorrection){N.rejoinCorrection=false;N.pending=[];N.delta={x:0,y:0};N.seq=Math.max(N.seq,ack);p.x=x;p.y=y;p.motion=null;}
+   if(N.rejoinCorrection){N.rejoinCorrection=false;N.pending=[];N.delta={x:0,y:0};N.seq=Math.max(N.seq,ack);N.ack=ack;p.x=x;p.y=y;p.motion=null;}
    if(ack>N.ack){N.ack=ack;N.pending=N.pending.filter(e=>e.seq>ack)}
    let dx=N.delta.x,dy=N.delta.y;for(const item of N.pending){dx+=item.dx;dy+=item.dy}
    const n=Math.hypot(dx,dy);if(n>105){dx*=105/n;dy*=105/n}
@@ -1440,6 +1442,8 @@ function snapshot(m){
    else if(err>3){const t=clamp(err/135,.07,.24);p.x+=(targetX-p.x)*t;p.y+=(targetY-p.y)*t}
   }
  }
+ // Process effect positions only after the authoritative zone and player positions.
+ if(magicSupported&&Array.isArray(m.spellFx))for(const event of m.spellFx.slice(-18))showArenaSpell(event);
 }
 
 /* Local-only entry for the SAME V140 arena. Never creates a lobby, WebSocket or
@@ -1968,7 +1972,7 @@ function connect(match,id,ticket,rejoin=false){
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL){N.phase='error';status('NOVA ZONA privremeno dostupna od nivoa 0');return false}
  if(!rejoin){
   resetArenaMagic();resetArenaMap();LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
-  resetRenderQuality();N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.delta={x:0,y:0};N.pending=[];
+  resetRenderQuality();N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.rejoinPreviousTick=null;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
   N.arrivalJitter=0;N.interpolationTicks=3;N.rejoinCorrection=false;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.drops=[];N.lastMyHp=null;N.hurtUntil=0;
@@ -2007,7 +2011,7 @@ function connect(match,id,ticket,rejoin=false){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
    N.world=m.world||N.world;resetExp(N.world);N.expSupported=m.arenaExpedition===196;N.ruleSupported=m.arenaRules===197;N.accountSupported=m.arenaAccount===198;N.pingSupported=m.arenaPings===199;N.rule=null;resetArenaBreakables(N.world);N.breakSupported=m.arenaBreakables===194;N.exploreSupported=m.arenaExplore===195;N.explore=null;N.tradeUiKey='';N.phase='waiting';
-   if(rejoin){N.mobHistory=[];N.mobRenderTick=null;N.lastState=0;N.rejoinCorrection=true;N.pending=[];N.delta={x:0,y:0};N.arrivalJitter=0;N.interpolationTicks=3;}
+   if(rejoin){N.rejoinPreviousTick=N.tick;N.tick=-1;N.lastState=0;N.rejoinCorrection=true;N.pending=[];N.delta={x:0,y:0};N.players.clear();N.me=null;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.lastMyHp=null;N.reviveHeld='';spellFx=[];spellAim=null;N.arrivalJitter=0;N.interpolationTicks=3;}
    attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
@@ -2262,14 +2266,14 @@ function nearArenaRevive(){
 }
 function releaseArenaRevive(){
  const target=N.reviveHeld;N.reviveHeld='';N.reviveAt=0;
- if(target&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'revive',target,hold:0}))}catch{}
+ if(target&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'revive',target,hold:0,rev:N.expedition?.rev||0}))}catch{}
 }
 function tickArenaRevive(now){
  const button=el('ns190Revive');if(!button)return;
  const near=nearArenaRevive();if(N.reviveHeld&&(!near||near.id!==N.reviveHeld))releaseArenaRevive();
  button.hidden=!near;
  if(near&&now-(N.reviveHudAt||0)>100){N.reviveHudAt=now;button.textContent=(N.reviveHeld?'PODIŽEM… ':'DRŽI ZA REVIVE · ')+Math.round(100*clamp(near.reviveProgress||0,0,75)/75)+'%'}
- if(N.reviveHeld&&N.ws?.readyState===1&&now-(N.reviveAt||0)>=100&&N.ws.bufferedAmount<4000){N.reviveAt=now;N.ws.send(JSON.stringify({t:'revive',target:N.reviveHeld,hold:1}))}
+ if(N.reviveHeld&&N.ws?.readyState===1&&now-(N.reviveAt||0)>=100&&N.ws.bufferedAmount<4000){N.reviveAt=now;N.ws.send(JSON.stringify({t:'revive',target:N.reviveHeld,hold:1,rev:N.expedition?.rev||0}))}
 }
 // Screen-space arrows reuse existing snapshot positions.
 function arenaEdgePoint(dx,dy,w,h){
@@ -2567,7 +2571,7 @@ function frame(now){
     N.ws.send(JSON.stringify({t:'look',look}));
    }
   }
-  if(N.ws?.readyState===1&&now-N.lastInput>=(N.paused?500:50)&&N.ws.bufferedAmount<4000){
+  if(!N.rejoinCorrection&&N.tick>=0&&N.ws?.readyState===1&&now-N.lastInput>=(N.paused?500:50)&&N.ws.bufferedAmount<4000){
   const seq=++N.seq;N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
   if(N.pending.length>26)N.pending.shift();
   N.delta={x:0,y:0};N.lastInput=now;
@@ -2575,7 +2579,7 @@ function frame(now){
   // Server still validates the 83px enemy hitbox; no client damage accepted.
   const autoTarget=N.me&&N.mpMobs.some(m=>m.hp>0&&
    (m.x-N.me.x)**2+(m.y-N.me.y)**2<83**2);
-  N.ws.send(JSON.stringify({t:'i',seq,ax:Math.round(v.x*127),ay:Math.round(v.y*127),attack:autoTarget?1:0}));
+  N.ws.send(JSON.stringify({t:'i',seq,ax:Math.round(v.x*127),ay:Math.round(v.y*127),attack:autoTarget?1:0,rev:N.expedition?.rev||0}));
  }
  if(N.ws?.readyState===1&&now-N.lastPing>2000){N.lastPing=now;N.ws.send(JSON.stringify({t:'ping',sent:now}))}
  const r=canvas.getBoundingClientRect(),dpr=RENDER_Q.dpr;
