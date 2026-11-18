@@ -1,0 +1,31 @@
+name: Verify V176 live
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/verify-v176-live.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Compare production with GitHub
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          const files=['index.html','v176-scenes.js','v171-character-creator.js','v172-character-voices.js','v175-faction-relations.js','v174-independent-ai.js','v173-ability-forge.js','v140-net-mode.js','v115-village.js'];
+          const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+          for(let i=0;i<12;i++){
+            const results=await Promise.all(files.map(async file=>{
+              try{const u=new URL('https://nocna-straza-v77.stefanstevic1996.workers.dev/'+(file==='index.html'?'':file));u.searchParams.set('verify',process.env.GITHUB_RUN_ID+'-'+i);const r=await fetch(u,{cache:'no-store',signal:AbortSignal.timeout(15000)});const b=Buffer.from(await r.arrayBuffer()),match=hash(b)===hash(fs.readFileSync('public/'+file));console.log(file,r.status,match,file==='index.html'?b.toString().match(/<meta name="ns-release" content="(\d+)"/)?.[1]:'');return r.ok&&match}catch{return false}
+            }));
+            if(results.every(Boolean)){console.log('PRODUCTION EXACT V176: true');process.exit(0)}
+            await new Promise(r=>setTimeout(r,6500));
+          }
+          process.exitCode=1;
+          JS
