@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "build": "node tests/current-deployment.test.cjs"
+    "build": "node tests/current-deployment.test.cjs && NO_BROWSER=1 node tests/v220-temple-art.test.cjs"
   },
   "devDependencies": {
     "wrangler": "^4.150.0"
