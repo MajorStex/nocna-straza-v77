@@ -66,3 +66,9 @@ test('V181 remote hero and enemy share monotonic buffered time even when jitter 
  assert(moving/frames>.7,'most frames continue moving despite irregular arrivals');
  assert(N.mobHistory.length<=12);
 });
+
+
+test('V213 resume only reconnects original room when stale, never opens duplicate sockets',()=>{
+ const a=source.indexOf('function arenaResumeAction('),b=source.indexOf('function arenaResumeNetwork(',a),c=vm.createContext({});vm.runInContext(source.slice(a,b),c);const resume=c.arenaResumeAction;
+ assert.equal(resume('running',1,0,false,0),'');assert.equal(resume('running',1,7999,false,0),'');assert.equal(resume('running',1,8000,false,0),'refresh');assert.equal(resume('running',1,9000,true,0),'');assert.equal(resume('reconnecting',null,0,false,119999),'retry');assert.equal(resume('reconnecting',null,0,false,120000),'');for(const state of [0,1,2,3])assert.equal(resume('reconnecting',state,0,false,0),'');assert.equal(resume('idle',null,100000,false,0),'');assert.match(source,/window.addEventListener\('online',arenaResumeNetwork\)/);assert.match(source,/connect\(N.match,N.id,N.ticket,true\)/);
+});
