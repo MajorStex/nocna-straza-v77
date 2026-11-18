@@ -48,3 +48,31 @@ console.log('V206 SOLO RESULTS PASS',checks,'checks');
  ck(src.includes("if(p.type==='crystal')continue;"),'no duplicate static crystal art');ck(src.includes('if(Math.min(w,h)<72)'),'small collider gets crate sprite');
  console.log('V207 SOLO MAP AND SCENERY PASS',checks,'cumulative checks');
 })();
+
+{const source=src,i=source.indexOf('N.world={"w":4200')+"N.world=".length,W=JSON.parse(source.slice(i,source.indexOf(";\n",i)));
+
+;(()=>{
+ const begin=source.indexOf('// BEGIN V208 OBJECTIVES'),end=source.indexOf('// END V208 OBJECTIVES',begin),clearStart=source.indexOf('function arenaAcidClear('),clearEnd=source.indexOf('\nfunction ',clearStart+1);
+ assert(begin>=0&&end>begin&&clearEnd>clearStart);
+ const api=new Function(source.slice(clearStart,clearEnd)+'\n'+source.slice(begin,end)+'\nreturn {fieldObjectiveInit,fieldObjectiveStep,fieldObjectiveSpec,fieldObjectiveRestore}')();
+ const fences=W.classicProps.filter(p=>p.type==='fence');assert(fences.length>=10);
+ for(const f of fences){assert(W.obstacles.some(o=>o.kind==='fence'&&o.classic===1&&Math.abs(o.x+o.w/2-f.x)<=1&&Math.abs(o.y+o.h/2-f.y)<=1));}
+ let checks=0;const ck=(v,m)=>{checks++;assert(v,m)};
+ const ps=new Map(Array.from({length:6},(_,i)=>['p'+i,{id:'p'+i,x:2100,y:2100,online:true,hp:60,maxHp:100,xpCollected:0,arenaKeys:0,xp:0}]));
+ let e={kills:0,worms:0,field:api.fieldObjectiveInit()},tick=10;const reward=(p,n)=>p.xp+=n;
+ ck(!api.fieldObjectiveStep(e,ps,W,tick++,reward),'no initial reward');e.kills=19;ck(!api.fieldObjectiveStep(e,ps,W,tick++,reward),'19 insufficient');e.kills=20;ck(api.fieldObjectiveStep(e,ps,W,tick++,reward),'20 done');ck([...ps.values()].every(p=>p.arenaKeys===1&&p.hp===72),'one initial key each');ck(!api.fieldObjectiveStep(e,ps,W,tick++,reward),'no repeat');
+ for(let stage=1;stage<=24;stage++){
+  tick=e.field.next;api.fieldObjectiveStep(e,ps,W,tick++,reward);ck(e.field.stage===stage,'next stage');
+  const [type,target]=api.fieldObjectiveSpec(e.field),p=ps.values().next().value;
+  if(type==='wormhunt'){e.worms+=target;ck(api.fieldObjectiveStep(e,ps,W,tick++,reward),'worm hunt')}
+  else if(type==='collect'){p.xpCollected+=target;ck(api.fieldObjectiveStep(e,ps,W,tick++,reward),'crystal count')}
+  else if(type==='hold'){const o=e.field.objects[0];for(const q of ps.values()){q.x=o.x;q.y=o.y}for(let n=0;n<target*30-1;n++)ck(!api.fieldObjectiveStep(e,ps,W,tick++,reward),'hold not early');ck(api.fieldObjectiveStep(e,ps,W,tick++,reward),'hold done')}
+  else{const arr=e.field.objects;ck(arr.length===target,'placed objects');for(let i=0;i<arr.length;i++){for(const q of ps.values()){q.x=arr[i].x;q.y=arr[i].y}ck(api.fieldObjectiveStep(e,ps,W,tick++,reward)===(i===arr.length-1),'shared pickup once')}}
+  ck(e.field.completed===stage+1,'completion count');e.field=api.fieldObjectiveRestore(JSON.parse(JSON.stringify(e.field)));const prev=p.xp;
+  ck(!api.fieldObjectiveStep(e,ps,W,tick++,reward),'no replay after restore');ck(p.xp===prev,'no repeated reward');
+ }
+ e.invalid=true;const before=e.field.completed;ck(!api.fieldObjectiveStep(e,ps,W,e.field.next+10000,reward),'editor blocked');ck(e.field.completed===before,'no editor progress');
+ console.log('V208 OBJECTIVES PASS',checks,'checks, 25 mission completions, 6 players, fence colliders');
+})();
+
+}
