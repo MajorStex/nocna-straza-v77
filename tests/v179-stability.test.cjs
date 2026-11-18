@@ -78,3 +78,17 @@ test('V218 worm faces selected player in all phases, independent of movement',()
  assert.equal(face({wormAngle:2.5},new Map(),0,0),2.5);
  assert.match(source,/angle:arenaWormFace\(m,N.players,x,y\)/);
 });
+
+test('V219 menu sits below dodge, opens upward and is separate from top HUD',()=>{
+ const rule=id=>source.match(new RegExp('#'+id+'\\{([^}]+)\\}'))?.[1]||'';
+ const bottom=id=>Number(rule(id).match(/bottom:calc\((\d+)px/)?.[1]);
+ const height=id=>Number(rule(id).match(/(?:^|;)height:(\d+)px/)?.[1]);
+ assert.match(rule('ns158MenuBtn'),/position:absolute/);assert.match(rule('ns158MenuBtn'),/right:calc\(12px/);
+ assert.equal(bottom('ns158MenuBtn'),12);assert.equal(height('ns158MenuBtn'),44);
+ assert(bottom('ns192Dodge')>=bottom('ns158MenuBtn')+height('ns158MenuBtn')+8);
+ assert(bottom('ns190Revive')>=bottom('ns192Dodge')+height('ns192Dodge')+8);
+ assert.match(source,/<\/div><button type="button" id="ns158MenuBtn"/);
+ assert.match(source,/#ns158Menu\{position:absolute;z-index:13;right:calc\(12px[^}]+bottom:calc\(64px/);
+ assert.match(source,/max-height:calc\(100dvh - 76px/);
+ assert.match(source,/menuButton\.onclick=\(\)=>/);
+});
