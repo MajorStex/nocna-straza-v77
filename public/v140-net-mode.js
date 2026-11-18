@@ -32,9 +32,24 @@ function createArenaCrowdSteering(world,move){
  const CELL=56,COLS=Math.ceil(world.w/CELL),ROWS=Math.ceil(world.h/CELL),COUNT=COLS*ROWS,INF=65535;
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+ const BLOCK=128,collisionCells=new Map();let obstacleRef=null;
+ function indexObstacles(){
+  collisionCells.clear();obstacleRef=world.obstacles;const pad=world.r+3;
+  for(const o of world.obstacles){for(let y=Math.floor((o.y-pad)/BLOCK);y<=Math.floor((o.y+o.h+pad)/BLOCK);y++)for(let x=Math.floor((o.x-pad)/BLOCK);x<=Math.floor((o.x+o.w+pad)/BLOCK);x++){
+   const k=x+','+y;let list=collisionCells.get(k);if(!list)collisionCells.set(k,list=[]);list.push(o)
+  }}
+ }
+ indexObstacles();
+ function nearbyPoint(x,y){if(obstacleRef!==world.obstacles)indexObstacles();return collisionCells.get(Math.floor(x/BLOCK)+','+Math.floor(y/BLOCK))||[]}
+ function nearbySegment(minX,minY,maxX,maxY){
+  if(obstacleRef!==world.obstacles)indexObstacles();
+  const l=Math.floor(minX/BLOCK),r=Math.floor(maxX/BLOCK),t=Math.floor(minY/BLOCK),b=Math.floor(maxY/BLOCK);
+  if((r-l+1)*(b-t+1)>96)return world.obstacles;
+  const out=new Set();for(let y=t;y<=b;y++)for(let x=l;x<=r;x++)for(const o of collisionCells.get(x+','+y)||[])out.add(o);return out
+ }
  const walkable=(x,y)=>{
   if(x<world.r||y<world.r||x>world.w-world.r||y>world.h-world.r)return false;
-  return world.obstacles.every(o=>{
+  return nearbyPoint(x,y).every(o=>{
    const px=clamp(x,o.x,o.x+o.w),py=clamp(y,o.y,o.y+o.h);
    return (x-px)**2+(y-py)**2>=(world.r+3)**2;
   });
@@ -56,8 +71,8 @@ function createArenaCrowdSteering(world,move){
  }
  function field(x,y){
   const goal=nearestOpen(x,y);if(goal<0)return null;
-  if(flows.has(goal))return flows.get(goal);
-  if(flows.size>=8)flows.clear();
+  if(flows.has(goal)){const cached=flows.get(goal);flows.delete(goal);flows.set(goal,cached);return cached}
+  if(flows.size>=16)flows.delete(flows.keys().next().value);
   const distance=new Uint16Array(COUNT);distance.fill(INF);
   const q=new Uint16Array(COUNT);let head=0,tail=0;
   q[tail++]=goal;distance[goal]=0;
@@ -74,7 +89,7 @@ function createArenaCrowdSteering(world,move){
  }
  function clearPath(x1,y1,x2,y2){
   const minX=Math.min(x1,x2),maxX=Math.max(x1,x2),minY=Math.min(y1,y2),maxY=Math.max(y1,y2),pad=world.r+2;
-  for(const o of world.obstacles){
+  for(const o of nearbySegment(minX,minY,maxX,maxY)){
    if(o.x-pad>maxX||o.x+o.w+pad<minX||o.y-pad>maxY||o.y+o.h+pad<minY)continue;
    const lx=o.x-world.r-2,rx=o.x+o.w+world.r+2;
    const ly=o.y-world.r-2,ry=o.y+o.h+world.r+2;
@@ -178,7 +193,7 @@ function createArenaCrowdSteering(world,move){
  function refreshObstacles(changed){
   if(!changed?.length)return;
   // Recompute only grid cells within the released hitbox; never rebuild the 4200² map.
-  const pad=world.r+3;
+  indexObstacles();const pad=world.r+3;
   for(const o of changed){if(!o)continue;
    const left=Math.max(0,Math.floor((o.x-pad)/CELL)),right=Math.min(COLS-1,Math.floor((o.x+o.w+pad)/CELL)),top=Math.max(0,Math.floor((o.y-pad)/CELL)),bottom=Math.min(ROWS-1,Math.floor((o.y+o.h+pad)/CELL));
    for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++)open[y*COLS+x]=walkable((x+.5)*CELL,(y+.5)*CELL)?1:0;
