@@ -9,7 +9,7 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: hitna ispravka orijentacije crva prema odabranoj meti u Nova zona SOLO/MP, bez izmene napada, kretanja i grafike.
-- Blokade: Cloudflare Actions objava prijavila nedostajuće kredencijale; serverski CI je ranije vraćao failure bez logova. Ne pretpostavljati da je to rešeno. Neophodno je proveriti konačan CI, upareni relay i klijent, stvarni LIVE URL i fizičke telefone.
+- Blokade: GitHub Actions nema Cloudflare kredencijale. Dodat je režim provere postojeće nativne Workers Builds objave kada oba secreta nedostaju; bez lažno zelenog statusa. Zahteva identičan LIVE HTML i runtime fajlove, kompatibilni relay V218 i QA 13/13. GitHub push nije potvrda objave; Cloudflare dashboard/autorizacija i stvarni LIVE još moraju biti provereni.
 - Sledeće: završni V205 CI, kompatibilnost relay/klijent, LIVE i fizički test 2 pa 6 Android uređaja; V206 balans težine, V207 kompletna optimizacija. Plan nije implementacija.
 
 ## Arhitektura i pravila rada
