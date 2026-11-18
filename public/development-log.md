@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 209 -->
+<!-- current-release: 210 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V209 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V210 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: V205 tri legendarne varijante postojećeg oružja, otključavanje u kovnici posle +3; server autoritativan, fiksna grafika.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V210 — 18.11.2026 (KOD; objavu proveriti)
+- Nova zona: originalna donja kapija sa kolizijom i četiri zatvorena bočna otvora, 535 propova i 351 collider, isti svet Solo/MP. Kapija se otvara na spawn matrijarha ili truležnog kolosa; server čuva stanje kroz breakables snapshot/checkpoint. Kutije 60–78 HP, faze pukotina u keširanim spriteovima, ograničen efekat drvenih krhotina, jedan XP drop pri uništenju, bez dupliranja kroz reconnect. Direktne provere zatvaranja/otvaranja, kolizije, prenosa stanja i nagrade prošle. CI i šest online igrača još nisu potvrđeni; ne označavati produkciju V210 bez dokaza.
+
 ### V209 — 18.11.2026 (KOD; testovi i objava još nisu potvrđeni)
 - Originalni teren, pećina na originalnoj lokaciji, isti 528 objekata i 344 prepreke u Solo i MP. Prostorni indeks proveren na 121 prikazu kamere, LRU grafički keš ograničen na 24 MiB. Usklađeni V209 release markeri i tačan preview relay SHA, šest stvarnih WebSocket klijenata na isključivo testnom Worker-u; provere ACK, istog slota, kontinuiteta i dijagnostika timeout-a. Poslednja neuspešna provera koristila je zastareli preview URL. Ne tvrditi da je novi test prošao dok CI ne potvrdi. Produkcija ostaje V189 dok se ne potvrde oba deploy-a.
 
