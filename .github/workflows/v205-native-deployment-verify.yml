@@ -33,7 +33,7 @@ jobs:
           if not release: raise SystemExit('Missing release marker in candidate')
           expected = release.group(1).decode()
           def digest(data): return hashlib.sha256(data).hexdigest()
-          files = ['v140-net-mode.js', 'development-log.md']
+          files = ['v140-net-mode.js', 'development-log.md', 'v152-arena-audio.js', 'v159-voice.js', 'v165-classic-voice.js']
           def read(url, attempt):
               separator = '&' if '?' in url else '?'
               req = urllib.request.Request(url + separator + 'release-verify=' + os.environ.get('GITHUB_SHA','manual') + '-' + str(attempt), headers={'Cache-Control':'no-cache','User-Agent':'NocturnaReadOnlyReleaseCheck/1.0'})
