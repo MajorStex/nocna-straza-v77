@@ -239,10 +239,11 @@ function stepArenaWorms(mobs,players,world,tick,wave,shots,seq,damage){
   if(m.kind!=='worm'||m.hp<=0||m.labFrozen)continue;
   let target=alive.find(p=>p.id===m.targetId);
   if(!target){let best=Infinity;for(const p of alive){const d=(p.x-m.x)**2+(p.y-m.y)**2;if(d<best){target=p;best=d}}}
-  m.wormHold=false;if(!target){m.wormWindup=0;continue}
+  m.wormHold=false;m.wormFaceTarget=target?.id||'';if(!target){m.wormWindup=0;continue}
   const dx=target.x-m.x,dy=target.y-m.y,dist=dx*dx+dy*dy;
   const inRange=dist<=190**2&&arenaAcidClear(world,m.x,m.y,target.x,target.y,8);
-  if(inRange||m.wormWindup>tick){m.wormHold=true;m.wormAngle=Math.atan2(dy,dx)}
+  // V218: face the authoritative target in every phase; movement and shot rules stay unchanged.
+  m.wormAngle=Math.atan2(dy,dx);if(inRange||m.wormWindup>tick)m.wormHold=true;
   if(m.wormWindup&&tick>=m.wormWindup){
    m.wormWindup=0;
    if(inRange&&shots.length<60){const a=m.wormAngle;shots.push({id:++seq,x:m.x+Math.cos(a)*18,y:m.y+Math.sin(a)*18,vx:Math.cos(a)*200,vy:Math.sin(a)*200,expires:tick+75,damage:Math.min(40,Math.round(10*(1+.06*(wave-1))))});m.attackTick=tick}
@@ -1652,7 +1653,7 @@ function snapshot(m){
     A()?.play('hit',{weapon:weaponHits.get(q[0])||'sword',variant:hitTick,x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
-   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=ARENA_KINDS[q[8]]||'goblin';mob.heavyAngle=(Number(q[10])||0)/100;mob.heavyCast=Array.isArray(q[11])&&q[11].length>=5&&q[11].every(Number.isFinite)?{x:q[11][0],y:q[11][1],r:q[11][2],start:q[11][3],end:q[11][4],kind:q[11][5]||0,angle:q[11][6]||0,length:q[11][7]||0}:null;mob.heavyPhase=Number(q[12])||1;mob.heavyGait=Number.isFinite(q[13])?q[13]/100:0;mob.wormWindup=m.tick+(Number(q[9])||0);mob.wormAngle=(Number(q[10])||0)/100;
+   mob.hitTick=Number(q[4])||0;mob.attackTick=attackTick;mob.labFrozen=q[7]===1;mob.kind=ARENA_KINDS[q[8]]||'goblin';mob.heavyAngle=(Number(q[10])||0)/100;mob.heavyCast=Array.isArray(q[11])&&q[11].length>=5&&q[11].every(Number.isFinite)?{x:q[11][0],y:q[11][1],r:q[11][2],start:q[11][3],end:q[11][4],kind:q[11][5]||0,angle:q[11][6]||0,length:q[11][7]||0}:null;mob.heavyPhase=Number(q[12])||1;mob.heavyGait=Number.isFinite(q[13])?q[13]/100:0;mob.wormWindup=m.tick+(Number(q[9])||0);mob.wormAngle=(Number(q[10])||0)/100;mob.wormFaceTarget=Number.isInteger(q[14])&&q[14]>=1&&q[14]<=6?'p'+q[14]:'';
    return mob;
   });
   // Fixed-size position history: up to 80 goblins, six small network snapshots.
@@ -2206,12 +2207,20 @@ function drawClassicArenaWorm(ctx,e,model){function ellipse(x,y,rx,ry,color){ctx
  if(e.spitWindup>0){ellipse(0,-5,3+Math.sin(phase*6)*1.2,3,'#d0ff83')}
  ctx.restore();if(e.hp<e.maxHp){ctx.save();ctx.translate(e.x,e.y);ctx.fillStyle='#17241b';ctx.fillRect(-r,-r*2.3,r*2,4);ctx.fillStyle='#9bc56c';ctx.fillRect(-r,-r*2.3,r*2*clamp(e.hp/Math.max(1,e.maxHp),0,1),4);ctx.restore()}
 }
+// V218: render toward the server-selected target, never the movement vector.
+function arenaWormFace(m,players,x,y){
+ const valid=p=>p?.online&&p.hp>0&&!p.knocked&&!p.finalDead;
+ let target=players.get(m.wormFaceTarget);
+ if(!valid(target)){target=null;let count=0;for(const p of players.values())if(valid(p)){target=p;count++}if(count!==1)target=null}
+ if(target){const dx=target.x-x,dy=target.y-y;if(dx*dx+dy*dy>0.0001)return Math.atan2(dy,dx)}
+ return Number.isFinite(m.wormAngle)?m.wormAngle:0;
+}
 function drawArenaWorm(g,m,now,visible){
  if(m.hp<=0||m.x<visible.left-45||m.x>visible.right+45||m.y<visible.top-55||m.y>visible.bottom+55)return;
  const tick=N.solo?N.soloTick:N.tick,alpha=N.solo?clamp(N.soloAcc*30,0,1):1;
  const x=N.solo?(m.prevX??m.x)+(m.x-(m.prevX??m.x))*alpha:m.x,y=N.solo?(m.prevY??m.y)+(m.y-(m.prevY??m.y))*alpha:m.y;
- const winding=m.wormWindup>tick,dx=x-(m.wormDrawX??x),dy=y-(m.wormDrawY??y);m.wormDrawX=x;m.wormDrawY=y;if(dx*dx+dy*dy>.05)m.wormFacing=Math.atan2(dy,dx);
- drawClassicArenaWorm(g,{x,y,r:18.9,angle:winding?m.wormAngle:m.wormFacing??m.wormAngle??0,frame:now/105+m.id,spitWindup:winding?1:0,flash:tick-(m.hitTick||-100)<5?1:0,hp:m.hp,maxHp:m.maxHp},{color:'#638a67'});
+ const winding=m.wormWindup>tick;
+ drawClassicArenaWorm(g,{x,y,r:18.9,angle:arenaWormFace(m,N.players,x,y),frame:now/105+m.id,spitWindup:winding?1:0,flash:tick-(m.hitTick||-100)<5?1:0,hp:m.hp,maxHp:m.maxHp},{color:'#638a67'});
 }
 function drawArenaAcid(g,now,visible){
  for(const s of N.acidShots||[]){const lead=N.solo?0:clamp((now-N.lastState)/1000,0,.07),x=s.x+s.vx*lead,y=s.y+s.vy*lead;if(x<visible.left||x>visible.right||y<visible.top||y>visible.bottom)continue;
