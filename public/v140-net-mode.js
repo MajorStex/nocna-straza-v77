@@ -1274,6 +1274,7 @@ function status(note){
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
 function stop(notify=false){
+ arenaHeroVoiceState=null;
  if(N.soloResultToken)B().arenaSoloCancel?.(N.soloResultToken);N.soloResultToken=null;N.soloResult=null;el('ns140Root')?.classList.remove('ns206Ended');if(el('ns206Results'))el('ns206Results').hidden=true;
  resetArenaMagic();resetArenaMap();N.prepareAttempt=(N.prepareAttempt||0)+1;
  window.NS179_DIAGNOSTICS?.close();
@@ -1424,7 +1425,7 @@ function refreshFieldObjective(){
 }
 function drawFieldObjectives(g,v){
  const q=N.explore?.field;if(!q||q.next||N.explore.invalid||N.expedition?.id||N.rule?.mode!=='normal')return;const [type]=fieldObjectiveSpec(q);const color=FIELD_COLORS[type]||'#f4dda2';
- for(const o of q.objects||[]){if(o.taken||o.x<v.left-140||o.x>v.right+140||o.y<v.top-140||o.y>v.bottom+140)continue;g.save();g.translate(o.x,o.y);g.strokeStyle=color;g.fillStyle=color;g.lineWidth=2;g.beginPath();g.arc(0,0,type==='hold'?135:12,0,Math.PI*2);g.stroke();g.font='bold 15px system-ui';g.textAlign='center';g.fillText(({carrot:'🥕',mushroom:'🍄',rune:'✧',firefly:'✦',supplies:'🎒',hold:'⚑'})[type]||'◆',0,5);g.restore()}
+ for(const o of q.objects||[]){if(o.taken||o.x<v.left-140||o.x>v.right+140||o.y<v.top-140||o.y>v.bottom+140)continue;g.save();g.translate(o.x,o.y);if(type==='carrot'){g.fillStyle='#10201999';g.beginPath();g.ellipse(0,9,10,4,0,0,Math.PI*2);g.fill();g.rotate(.23);g.fillStyle='#db8d39';g.strokeStyle='#b56828';g.lineWidth=1.4;g.beginPath();g.moveTo(-7,-2);g.quadraticCurveTo(-9,4,0,14);g.quadraticCurveTo(8,6,7,-2);g.closePath();g.fill();g.stroke();g.strokeStyle='#f5ba68';g.beginPath();g.moveTo(-4,4);g.lineTo(2,3);g.moveTo(-1,9);g.lineTo(3,8);g.stroke();g.fillStyle='#7eb76b';for(const a of [-.65,0,.65]){g.save();g.rotate(a);g.beginPath();g.ellipse(0,-7,3,8,0,0,Math.PI*2);g.fill();g.restore()}}else if(type==='mushroom'){g.fillStyle='#c8b78d';g.fillRect(-3,0,6,10);g.fillStyle='#a85f4d';g.beginPath();g.ellipse(0,-3,11,7,0,Math.PI,Math.PI*2);g.lineTo(11,0);g.lineTo(-11,0);g.closePath();g.fill();g.fillStyle='#f1d9ad';g.fillRect(-5,-5,3,2);g.fillRect(4,-3,2,2)}else{g.strokeStyle=color;g.fillStyle=color;g.lineWidth=2;g.beginPath();g.arc(0,0,type==='hold'?135:12,0,Math.PI*2);g.stroke();g.font='bold 15px system-ui';g.textAlign='center';g.fillText(({rune:'✧',firefly:'✦',supplies:'🎒',hold:'⚑'})[type]||'◆',0,5);}g.restore()}
 }
 
 function mountArenaRun(root,style){
@@ -1735,7 +1736,42 @@ function soloHordePoints(){
  }
  return N.soloSpawnCache=points;
 }
-function buildSoloWave(wave,requested=LAB.customCount===null?labDefaultCount(wave):LAB.customCount,batch=0){
+// BEGIN V211 STAGGERED INGRESS — bounded, deterministic, shared by Solo and relay.
+function arenaIngressTotal(wave){return Math.min(180,24+Math.max(0,wave-1)*8)}
+function arenaIngressCap(wave){return Math.min(38,12+Math.floor(Math.max(0,wave-1)*1.5))}
+function arenaIngressFirst(wave){return Math.min(9,3+Math.floor((wave-1)/4)+(wave%10===0?3:0))}
+function arenaIngressSpeed(m,wave){if(!['troll','boss','rotfiend','werewolfAlpha','dragon'].includes(m.kind))m.moveSpeed=Math.round((m.moveSpeed||98)*Math.min(1,.67+Math.max(0,wave-1)*.018));return m}
+function arenaIngressPick(points,count,players,mobs,world,batch){
+ const living=[...players.values()].filter(p=>p.hp>0&&!p.knocked&&!p.finalDead&&p.online!==false);
+ if(!living.length)for(const p of players.values())if(p.hp>0&&!p.knocked)living.push(p);
+ if(!living.length)return [];
+ const sectors=Array.from({length:8},()=>[]),used=mobs.filter(m=>m.hp>0);
+ for(let i=0;i<points.length;i++){const pt=points[i],x=pt[0],y=pt[1];if(x<1020&&y<1020)continue;
+  let nearest=null,ds=Infinity;for(const p of living){const d=(x-p.x)**2+(y-p.y)**2;if(d<ds){ds=d;nearest=p}}
+  if(ds<620**2||ds>1500**2||used.some(m=>(m.x-x)**2+(m.y-y)**2<96**2))continue;
+  const angle=Math.atan2(y-nearest.y,x-nearest.x),sector=(Math.floor((angle+Math.PI)/(Math.PI/4))+8)%8;
+  sectors[sector].push({pt,dist:Math.sqrt(ds),rank:Math.abs(Math.sqrt(ds)-790),i});
+ }
+ for(const group of sectors)group.sort((a,b)=>a.rank-b.rank||a.i-b.i);
+ const out=[];for(let pass=0;pass<3&&out.length<count;pass++)for(let i=0;i<8&&out.length<count;i++){
+  const group=sectors[(batch*3+i*3)%8];while(group.length){const q=group.shift(),[x,y]=q.pt;if(!arenaAcidClear(world,x,y,x,y,35)||out.some(a=>(a.pt[0]-x)**2+(a.pt[1]-y)**2<100**2))continue;out.push(q);break}
+ }
+ return out;
+}
+function arenaIngressReinforce(mobs,reserve,wave,batch,tick,make){
+ if(reserve<=0||tick%36!==0)return 0;
+ const alive=mobs.reduce((n,m)=>n+(m.hp>0?1:0),0);
+ // Recycle expired corpses only after their interpolation history can no longer reference them.
+ for(let i=mobs.length-1;i>=0;i--)if(mobs[i].hp<=0&&tick>(mobs[i].deadUntil||0)+30)mobs.splice(i,1);
+ const n=Math.min(reserve,Math.max(0,arenaIngressCap(wave)-alive),Math.min(7,1+Math.floor(wave/4)+batch%3));
+ if(n<=0)return 0;
+ const slots=new Set(mobs.map(m=>m.id)),free=[];for(let i=0;i<160;i++)if(i!==95&&!slots.has(i))free.push(i);
+ const fresh=make(Math.min(n,free.length),batch+1),added=Math.min(fresh.length,free.length);
+ for(let i=0;i<added;i++){const m=fresh[i];m.id=free[i];m.attackAt=tick+30+(i%3)*7;m.prevX=m.x;m.prevY=m.y;m.vx=m.vy=0;m.deadUntil=0;mobs.push(m)}
+ return added;
+}
+// END V211 STAGGERED INGRESS
+function buildSoloWave(wave,requested=LAB.customCount===null?labDefaultCount(wave):LAB.customCount,batch=0,ingress=false){
  const points=soloHordePoints(),count=Math.min(160,requested,points.length);
  const alive=[...N.players.values()].filter(p=>p.hp>0&&!p.knocked);
  const shift=(Math.max(1,wave)*17+batch*31)%points.length;
@@ -1745,7 +1781,7 @@ function buildSoloWave(wave,requested=LAB.customCount===null?labDefaultCount(wav
  const safe=ranked.filter(item=>item.dist>=470&&!(item.pt[0]<1020&&item.pt[1]<1020));
  safe.sort((a,b)=>Math.abs(a.dist-740)-Math.abs(b.dist-740)||
   ((a.i+shift)%points.length)-((b.i+shift)%points.length));
- const spawnList=safe.slice(0,count).map(({pt,dist},i)=>{
+ const spawnList=(ingress?arenaIngressPick(points,count,N.players,batch?N.soloMobs:[],N.world,batch):safe.slice(0,count)).map(({pt,dist},i)=>{
   const hp=Math.min(420,35+(wave-1)*9);
   return {id:i>=95?i+1:i,x:pt[0],y:pt[1],sx:pt[0],sy:pt[1],hp,maxHp:hp,
    moveSpeed:arenaMobSpeed(wave,i>=95?i+1:i),spawnDistance:Math.round(dist),attackAt:(i%4)*7,attackTick:-100,deadUntil:0,
@@ -1757,7 +1793,7 @@ function buildSoloWave(wave,requested=LAB.customCount===null?labDefaultCount(wav
   spawnList.push({...pos,id:95,kind:'troll',hp:900,maxHp:900,moveSpeed:98,
    attackAt:0,attackTick:-100,hitTick:-100,targetId:''});
  }
- return arenaHeavyWave(spawnList.map(m=>arenaWormVariant(m,wave,batch)),wave,batch,N.world);
+ const list=arenaHeavyWave(spawnList.map(m=>arenaWormVariant(m,wave,batch)),wave,batch,N.world);return ingress?list.map(m=>arenaIngressSpeed(m,wave)):list;
 }
 
 // Test-only actions: use the existing New Zone simulation, not legacy editor logic.
@@ -1875,7 +1911,7 @@ function stepSoloAllies(){
  }
 }
 function startSoloHorde(wave){
- N.acidShots=[];N.soloBatch=0;N.soloMobs=buildSoloWave(wave,LAB.customCount===null?arenaRuleCount(LAB.enabled?null:N.rule,labDefaultCount(wave)):LAB.customCount);N.soloTotal=(LAB.enabled||LAB.customCount!==null)?N.soloMobs.length:arenaRuleCount(N.rule,labDefaultCount(wave));N.soloReserve=Math.max(0,N.soloTotal-N.soloMobs.length);
+ N.acidShots=[];N.soloBatch=0;const progressive=!LAB.enabled&&LAB.customCount===null&&N.rule?.mode==='normal';N.soloTotal=progressive?arenaIngressTotal(wave):arenaRuleCount(N.rule,labDefaultCount(wave));N.soloMobs=buildSoloWave(wave,progressive?arenaIngressFirst(wave):LAB.customCount===null?arenaRuleCount(LAB.enabled?null:N.rule,labDefaultCount(wave)):LAB.customCount,0,progressive);if(LAB.enabled||LAB.customCount!==null)N.soloTotal=N.soloMobs.length;N.soloReserve=Math.max(0,N.soloTotal-N.soloMobs.length);
 }
 function nextSoloHorde(){
  if(!(N.soloReserve>0))return false;const next=buildSoloWave(N.soloWave,N.soloReserve,(N.soloBatch||0)+1);if(!next.length)return false;N.soloBatch=(N.soloBatch||0)+1;N.soloReserve-=next.length;N.acidShots=[];N.soloMobs=next;N.soloCrowd.clear();announceArena('STIŽE POJAČANJE · '+next.length);return true;
@@ -1892,6 +1928,7 @@ function soloWaveDone(){
 }
 
 function startSolo(){
+ arenaHeroVoiceState=null;
  const mode=arenaRuleMode(arguments[0]);
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL||B().NET?.role||!['idle','error'].includes(N.phase))return false;
  if(N.ws){try{N.ws.close()}catch{}N.ws=null}
@@ -2109,7 +2146,7 @@ function stepSolo(dt){
     N.choiceUiId='';A()?.play('chest');
    }
   }
-  if(N.expedition?.id){if(expReward(N.expedition,N.soloMobs,N.players))announceArena('ZONA OČIŠĆENA · +3 ČVORIŠTA')}else if(!LAB.enabled&&N.soloState==='play'&&N.soloMobs.every(m=>m.hp<=0)){if(N.soloReserve>0)nextSoloHorde();else soloWaveDone();}
+  if(N.expedition?.id){if(expReward(N.expedition,N.soloMobs,N.players))announceArena('ZONA OČIŠĆENA · +3 ČVORIŠTA')}else if(!LAB.enabled&&N.soloState==='play'){if(N.rule?.mode==='normal'&&!LAB.freezeAI){const n=arenaIngressReinforce(N.soloMobs,N.soloReserve,N.soloWave,N.soloBatch,N.soloTick,(count,batch)=>buildSoloWave(N.soloWave,count,batch,true));if(n){N.soloReserve-=n;N.soloBatch++}}if(N.soloMobs.every(m=>m.hp<=0)){if(N.soloReserve>0){if(N.rule?.mode!=='normal')nextSoloHorde()}else soloWaveDone();}}
   if(N.me.hp<=0||N.rule?.victory){finishSoloRun(N.me.hp<=0?'dead':'victory');return}
  }
 }
@@ -2316,6 +2353,7 @@ function connect(match,id,ticket,rejoin=false){
  if(rejoin?(N.phase!=='reconnecting'||!!N.ws):N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL){N.phase='error';status('NOVA ZONA privremeno dostupna od nivoa 0');return false}
  if(!rejoin){
+  arenaHeroVoiceState=null;
   resetArenaMagic();resetArenaMap();LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_SUPPORTED=false;LAB_WEAPON=null;LAB_LOOK=null;LAB_SERVER_BUILD=0;
   resetRenderQuality();N.diagSnapshots=0;N.diagChars=0;N.diagRtt=null;N.seq=N.ack=0;N.tick=-1;N.rejoinPreviousTick=null;N.netMissing=0;N.netCorrections=0;N.netRecoveries=0;N.netServerSkipped=null;N.checkpointErrors=null;N.netStalled=false;N.netResyncAt=null;N.netStartedAt=0;N.delta={x:0,y:0};N.pending=[];
   N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.me=null;N.retry=0;N.lostSince=0;
@@ -2911,8 +2949,16 @@ function resetRenderSamples(now=0){
  N.frames=0;N.fpsAt=now;N.lastFrame=0;
 }
 function resetRenderQuality(){RENDER_Q=newRenderBudget(window.devicePixelRatio||1);N.fps=0;resetRenderSamples()}
+let arenaHeroVoiceState=null;
+function arenaHeroVoicePulse(){
+ const p=N.me;if(!p)return;const wave=N.solo?N.soloWave:N.wave,level=p.level||1,hp=p.hp||0,low=hp>0&&hp/(p.maxHp||100)<=.35,kills=p.kills||0;
+ const old=arenaHeroVoiceState;if(!old){arenaHeroVoiceState={wave,level,hp,low,kills,match:N.match};B().voiceLine?.('start',true,true);return}
+ let cue=null;if(old.hp>0&&hp<=0)cue='dead';else if(low&&!old.low)cue='lowHp';else if(wave>old.wave)cue='wave';else if(level>old.level)cue='level';else if(kills>old.kills)cue='kill';
+ arenaHeroVoiceState={wave,level,hp,low,kills,match:N.match};if(cue)B().voiceLine?.(cue,cue==='dead'||cue==='lowHp'||cue==='wave',true);
+}
 function frame(now){
  if(N.phase!=='running'||document.hidden)return;
+ arenaHeroVoicePulse();
  if(N.solo&&N.me&&(N.me.hp<=0||N.rule?.victory)){finishSoloRun(N.me.hp<=0?'dead':'victory');return}
  const canvas=el('ns140Canvas'),g=canvas?.getContext('2d');if(!g)return;
  const frameStart=performance.now();
