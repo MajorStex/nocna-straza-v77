@@ -1,0 +1,32 @@
+name: Verify V174 live independent AI
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/verify-v174-live.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Compare exact files with permanent production Worker
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          const base='https://nocna-straza-v77.stefanstevic1996.workers.dev';
+          const digest=b=>crypto.createHash('sha256').update(b).digest('hex');
+          const files={'index.html':'/','v171-character-creator.js':'/v171-character-creator.js?v=174','v172-character-voices.js':'/v172-character-voices.js?v=173','v173-ability-forge.js':'/v173-ability-forge.js?v=173','v174-independent-ai.js':'/v174-independent-ai.js?v=174','v115-village.js':'/v115-village.js?v=166&ui=170','v165-classic-voice.js':'/v165-classic-voice.js?v=166&ui=169','v140-net-mode.js':'/v140-net-mode.js?v=168'};
+          for(let i=0;i<10;i++){
+            const results=await Promise.all(Object.entries(files).map(async ([name,path])=>{
+              try{const u=new URL(base+path);u.searchParams.set('verify',process.env.GITHUB_RUN_ID+'-'+i);const r=await fetch(u,{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(15000)});const bytes=Buffer.from(await r.arrayBuffer()),hash=digest(bytes),match=hash===digest(fs.readFileSync('public/'+name));console.log(name,r.status,'match',match,'release',name==='index.html'?bytes.toString().match(/<meta name="ns-release" content="(\d+)"/)?.[1]:'');return r.ok&&match}catch(e){console.error(name,String(e));return false}
+            }));
+            if(results.every(Boolean)){console.log('PRODUCTION EXACT V174: true');process.exit(0)}
+            await new Promise(r=>setTimeout(r,6500));
+          }
+          console.log('PRODUCTION EXACT V174: false');process.exitCode=1;
+          JS
