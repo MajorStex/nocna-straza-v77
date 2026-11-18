@@ -2854,6 +2854,17 @@ function drawClassicScenery(g,p){
  }
  g.drawImage(sprite,p.x-pad,p.y-pad);
 }
+// V215: bound reusable painter records; never retain scene entities between frames.
+// Overflow is drawn normally (not culled), then discarded. Same depth/kind/id ordering.
+function createArenaDrawScratch(cap=1024){
+ const pool=[],jobs=[];
+ return {jobs,add(depth,kind,id,ref){
+  const i=jobs.length,job=i<cap?(pool[i]||(pool[i]={depth:0,kind:0,id:0,ref:null})):{depth:0,kind:0,id:0,ref:null};
+  job.depth=depth;job.kind=kind;job.id=id;job.ref=ref;jobs.push(job);
+ },clear(){for(const job of jobs)job.ref=null;jobs.length=0},get poolSize(){return pool.length}};
+}
+function arenaDepthOrder(a,b){return a.depth-b.depth||a.kind-b.kind||a.id-b.id}
+const arenaDrawScratch=createArenaDrawScratch();
 function drawDepthSortedWorld(g,now,dt,visible){
  const sprites=window.NS154_GOBLINS;
  if(!sprites?.prepare||!sprites?.drawOne){
@@ -2874,26 +2885,26 @@ function drawDepthSortedWorld(g,now,dt,visible){
   alpha:N.solo?clamp(N.soloAcc*30,0,1):1,visible};
  // Precompute visible goblins in ONE scan. They are never re-animated in sorting.
  const prepared=sprites.prepare(mobs,opt);N.visibleMobs=prepared.length;
- const jobs=[];
+ const scratch=arenaDrawScratch,jobs=scratch.jobs;try{
  const obs=N.world.obstacles||[];
  for(let i=0;i<obs.length;i++){
   const o=obs[i];
   if(o.classic||o.kind==='tree'||o.kind==='rock'||o.kind==='expWall')continue;
   if(o.x>visible.right+14||o.x+o.w<visible.left-14||
      o.y>visible.bottom+17||o.y+o.h<visible.top-17)continue;
-  jobs.push({depth:o.y+o.h+12,kind:0,id:i,o});
+  scratch.add(o.y+o.h+12,0,i,o);
  }
  const chests=N.solo?N.soloChests:N.chests;
  for(const chest of chests)if(chest.x>=visible.left-35&&chest.x<=visible.right+35&&
    chest.y>=visible.top-35&&chest.y<=visible.bottom+35)
-  jobs.push({depth:chest.y+13,kind:1,id:chest.id,chest});
+  scratch.add(chest.y+13,1,chest.id,chest);
  const classicProps=N.world.classicProps;
- if(classicProps)for(const {id,p} of visibleClassicProps(classicProps,visible))jobs.push({depth:p.y+p.r*.45,kind:8,id,p});
+ if(classicProps)for(const {id,p} of visibleClassicProps(classicProps,visible))scratch.add(p.y+p.r*.45,8,id,p);
  const decor=classicProps?[]:window.NS157_SCENERY?.generate(N.world)||[];
  for(const item of decor){
   if(item.x<visible.left-66||item.x>visible.right+66||
      item.y<visible.top-148||item.y>visible.bottom+26)continue;
-  jobs.push({depth:item.depth,kind:4,id:item.id,item});
+  scratch.add(item.depth,4,item.id,item);
  }
  const people=[];
  for(const p of N.players.values()){
@@ -2902,32 +2913,33 @@ function drawDepthSortedWorld(g,now,dt,visible){
   if(p.x<visible.left-75||p.x>visible.right+75||
      p.y<visible.top-95||p.y>visible.bottom+50)continue;
   people.push(p);
-  jobs.push({depth:p.y+13,kind:2,id:Number(p.id.slice(1)),p});
+  scratch.add(p.y+13,2,Number(p.id.slice(1)),p);
  }
- for(const entry of prepared)jobs.push({depth:entry.depth,kind:3,id:entry.mob.id,entry});
- for(const m of N.solo?N.soloMobs:N.mpMobs)if(arenaSpecial(m)&&m.hp>0&&m.x>=visible.left-110&&m.x<=visible.right+110&&m.y>=visible.top-145&&m.y<=visible.bottom+100)jobs.push({depth:m.y+15,kind:7,id:m.id,m});
- for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm'&&m.hp>0&&m.x>=visible.left-45&&m.x<=visible.right+45&&m.y>=visible.top-55&&m.y<=visible.bottom+55)jobs.push({depth:m.y+12,kind:6,id:m.id,m});
+ for(const entry of prepared)scratch.add(entry.depth,3,entry.mob.id,entry);
+ for(const m of N.solo?N.soloMobs:N.mpMobs)if(arenaSpecial(m)&&m.hp>0&&m.x>=visible.left-110&&m.x<=visible.right+110&&m.y>=visible.top-145&&m.y<=visible.bottom+100)scratch.add(m.y+15,7,m.id,m);
+ for(const m of (N.solo?N.soloMobs:N.mpMobs))if(m.kind==='worm'&&m.hp>0&&m.x>=visible.left-45&&m.x<=visible.right+45&&m.y>=visible.top-55&&m.y<=visible.bottom+55)scratch.add(m.y+12,6,m.id,m);
  for(const boss of (N.solo?N.soloMobs:N.mpMobs)){
   if(boss.kind!=='troll'||boss.hp<=0||boss.x<visible.left-80||boss.x>visible.right+80||boss.y<visible.top-160||boss.y>visible.bottom+40)continue;
-  jobs.push({depth:boss.y+14,kind:5,id:boss.id,boss});
+  scratch.add(boss.y+14,5,boss.id,boss);
  }
  // 80 goblins + ~12 props + six players: deterministic O(n log n),
  // far cheaper than multiple complete canvas render passes.
- jobs.sort((a,b)=>a.depth-b.depth||a.kind-b.kind||a.id-b.id);
+ jobs.sort(arenaDepthOrder);
  for(const item of jobs){
-  if(item.kind===0){const sprite=cottageSprite(item.o,item.id);
-   if(sprite)g.drawImage(sprite,item.o.x-13,item.o.y-16)}
-  else if(item.kind===1)drawArenaChests(g,[item.chest],visible);
-  else if(item.kind===2)drawArenaPlayerBody(g,item.p,now,dt);
-  else if(item.kind===4)window.NS157_SCENERY?.drawOne(g,item.item);
-  else if(item.kind===5)window.NS162_TROLL?.drawOne(g,item.boss,opt);
-  else if(item.kind===6)drawArenaWorm(g,item.m,now,visible);
-  else if(item.kind===7)drawArenaHeavy(g,item.m,now,visible);
-  else if(item.kind===8)drawClassicScenery(g,item.p);
-  else sprites.drawOne(g,item.entry,opt);
+  if(item.kind===0){const sprite=cottageSprite(item.ref,item.id);
+   if(sprite)g.drawImage(sprite,item.ref.x-13,item.ref.y-16)}
+  else if(item.kind===1)drawArenaChests(g,[item.ref],visible);
+  else if(item.kind===2)drawArenaPlayerBody(g,item.ref,now,dt);
+  else if(item.kind===4)window.NS157_SCENERY?.drawOne(g,item.ref);
+  else if(item.kind===5)window.NS162_TROLL?.drawOne(g,item.ref,opt);
+  else if(item.kind===6)drawArenaWorm(g,item.ref,now,visible);
+  else if(item.kind===7)drawArenaHeavy(g,item.ref,now,visible);
+  else if(item.kind===8)drawClassicScenery(g,item.ref);
+  else sprites.drawOne(g,item.ref,opt);
  }
  // Names and HP remain legible above a large horde, even when bodies are occluded.
  for(const p of people)drawArenaPlayerLabel(g,p);
+ }finally{scratch.clear()}
 }
 // V160 lightweight synchronized stick-figure ally + decorative test props.
 function drawLabThings(g,now,visible){
