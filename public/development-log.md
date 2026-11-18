@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 208 -->
+<!-- current-release: 209 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V208 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V209 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: V205 tri legendarne varijante postojećeg oružja, otključavanje u kovnici posle +3; server autoritativan, fiksna grafika.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V209 — 18.11.2026 (KOD; testovi i objava još nisu potvrđeni)
+- Originalni teren, pećina na originalnoj lokaciji, isti 528 objekata i 344 prepreke u Solo i MP. Prostorni indeks proveren na 121 prikazu kamere, LRU grafički keš ograničen na 24 MiB. Usklađeni V209 release markeri i tačan preview relay SHA, šest stvarnih WebSocket klijenata na isključivo testnom Worker-u; provere ACK, istog slota, kontinuiteta i dijagnostika timeout-a. Poslednja neuspešna provera koristila je zastareli preview URL. Ne tvrditi da je novi test prošao dok CI ne potvrdi. Produkcija ostaje V189 dok se ne potvrde oba deploy-a.
+
 ### V208 — 18.11.2026 (KOD; objavu proveriti)
 - Classic: 44 drvena segmenta ograde u severozapadnom delu mape, sa otvorenim prolazom; isti fizički colliders u Solo i MP. Nova zona normal: početni cilj 20 ubistava, potom rotacija 6 Classic sporednih zadataka, sakupljanje 10 XP kristala i odbrana kontrolne tačke 20 s. Nagrade jednokratne, samo u partiji, bez Sandboxa; cilj, predmeti i napredak deo postojećeg snapshot / checkpoint stanja. HUD: najbliži cilj, zarobljenik/čuvari, pećina/kanap; oznake na minimapi. Classic zaključana kapija, evakuacija i preostali nasumični exploration događaji nisu preneti u ovom izdanju. Classic pauza: lokalni zoom, prikaz cele mape, reset, stvarni PNG 2400×2400 i JSON rasporeda aktivne mape. Za veliki zoom-out keširan teren. Temple: ključ trola ostaje zajednički, dijamant budi uspavane čuvare, izlaz nakon čišćenja i nagrada jednom; core deo postojećeg snapshot-a i checkpoint-a. Classic mapa rekonstruiše isti osnovni raspored, nije još identična svim objektima aktivne Classic instance.
 
