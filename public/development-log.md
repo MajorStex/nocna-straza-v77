@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 207 -->
+<!-- current-release: 208 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V207 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V208 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: V205 tri legendarne varijante postojećeg oružja, otključavanje u kovnici posle +3; server autoritativan, fiksna grafika.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V208 — 18.11.2026 (KOD; objavu proveriti)
+- Classic: drvene ograde u severozapadnom delu mape, sa otvorenim prolazom; isti fizički colliders u Solo i MP. Nova zona normal: početni cilj 20 ubistava, potom rotacija 6 Classic sporednih zadataka, sakupljanje 10 XP kristala i odbrana kontrolne tačke 20 s. Nagrade jednokratne, samo u partiji, bez Sandboxa; cilj, predmeti i napredak deo postojećeg snapshot / checkpoint stanja. HUD: najbliži cilj, zarobljenik/čuvari, pećina/kanap; oznake na minimapi. Classic zaključana kapija, evakuacija i preostali nasumični exploration događaji nisu preneti u ovom izdanju.
+
 ### V207 — 18.11.2026 (KOD; objavu proveriti)
 - Nova zona: uklonjen dvostruki render klasičnih prepreka kao kućica; mali nasleđeni colliders crtaju se kao crate, originalni veći objekti ostaju na istim koordinatama. 31 dekorativni plavi kristal postaje jednokratni 5 XP drop po Classic pravilima, jedan nepristupačan položaj automatski korigovan; identično Solo/server, 160 maksimalno dropova, rezervisani kristali do sakupljanja, postojeći snapshot / checkpoint, bez novih mrežnih poruka. HUD i naslov koriste V207.
 
