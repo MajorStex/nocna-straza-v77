@@ -268,9 +268,33 @@ const ARENA_CLASSIC_WEAPONS={sword:{range:0,damage:1,arc:1.25},longsword:{range:
 const ARENA_CORE_REWARDS=['edge','heart','boots'];
 const ARENA_EXTRA_REWARDS=['axe','spear','dagger','rapier','glaive','greataxe','scimitar','morningstar','longsword','halberd','warhammer','mace','falchion','flail','trollclub','trollmaul','regen','leech','crit','armor','swift','haste','aegis','aura','shock','bombs','shuriken','frost','magnet','thorns'];
 const arenaWeapon=p=>ARENA_CLASSIC_WEAPONS[p.activeWeapon]||ARENA_CLASSIC_WEAPONS.sword;
+// V203: run-bound forge upgrades keyed by weapon type. No permanent account currency.
+const ARENA_FORGE_COST=[[8,0],[16,1],[24,2]];
+const ARENA_FORGE_WEAPONS=Object.keys(ARENA_CLASSIC_WEAPONS);
+const arenaForgeCount=(v,max)=>Number.isSafeInteger(v)?Math.max(0,Math.min(max,v)):0;
+function arenaForgeTier(p,weapon=p?.activeWeapon||'sword'){return ARENA_FORGE_WEAPONS.includes(weapon)&&Object.hasOwn(p?.forgeTiers||{},weapon)?arenaForgeCount(p.forgeTiers[weapon],3):0}
+function arenaForgeLoot(p,m){
+ if(!p||!m)return;
+ const heavy=['troll','rotfiend','boss','werewolfAlpha','dragon'].includes(m.kind);
+ p.forgeKills=arenaForgeCount(p.forgeKills,1000000)+1;
+ if(heavy||p.forgeKills%4===0)p.forgeScrap=Math.min(99,arenaForgeCount(p.forgeScrap,99)+(heavy?4:1));
+ if(heavy)p.forgeEssence=Math.min(30,arenaForgeCount(p.forgeEssence,30)+(m.kind==='dragon'?3:1));
+}
+function arenaForgeInfo(e,p,weapon,expected){
+ if(!p||!p.online||!ARENA_FORGE_WEAPONS.includes(weapon)||weapon!==(p.activeWeapon||'sword')||!Number.isSafeInteger(expected)||expected<0||expected>=3||arenaForgeTier(p,weapon)!==expected||!arenaTradeNear(e,p,'guild')||(!p.guildUnlocked&&!(p.arenaKeys>0)))return null;
+ const cost=ARENA_FORGE_COST[expected];
+ return {weapon,tier:expected,cost,affordable:arenaForgeCount(p.forgeScrap,99)>=cost[0]&&arenaForgeCount(p.forgeEssence,30)>=cost[1]};
+}
+function arenaForgeUpgrade(e,p,weapon,expected){
+ const info=arenaForgeInfo(e,p,weapon,expected);if(!info?.affordable)return false;
+ if(!p.guildUnlocked){p.arenaKeys--;p.guildUnlocked=true}
+ p.forgeScrap-=info.cost[0];p.forgeEssence=arenaForgeCount(p.forgeEssence,30)-info.cost[1];
+ p.forgeTiers={...(p.forgeTiers||{}),[weapon]:expected+1};return true;
+}
+function arenaForgePacket(p){return [arenaForgeCount(p?.forgeScrap,99),arenaForgeCount(p?.forgeEssence,30),ARENA_FORGE_WEAPONS.flatMap((w,i)=>{const t=arenaForgeTier(p,w);return t?[i,t]:[]})]}
 function arenaAttackPeriod(p){return Math.max(9,Math.round(19*(arenaWeapon(p).speed||1)*(p.perks?.haste?.93:1)))}
 function arenaAttackReach(p,m){return Math.max(30,({dragon:135,werewolfAlpha:125,boss:125,rotfiend:125,elephant:100,troll:95}[m.kind]||83)+arenaWeapon(p).range)}
-function arenaAttackDamage(p,tick){const crit=p.perks?.crit&&((tick*37+(Number(p.id?.slice(1))||1)*13)%100<10);return Math.max(1,Math.round((p.damage||22)*arenaWeapon(p).damage*(crit?1.6:1)))}
+function arenaAttackDamage(p,tick){const crit=p.perks?.crit&&((tick*37+(Number(p.id?.slice(1))||1)*13)%100<10);return Math.max(1,Math.round((p.damage||22)*arenaWeapon(p).damage*(1+arenaForgeTier(p)*.08)*(crit?1.6:1)))}
 function arenaRewardOptions(p,seq){
  const pool=ARENA_EXTRA_REWARDS.filter(k=>ARENA_CLASSIC_WEAPONS[k]?k!==p.activeWeapon&&k!==p.secondaryWeapon:!p.perks?.[k]);
  // Always preserve one safe default and one normal upgrade. Third slot is original treasure.
@@ -479,6 +503,7 @@ function arenaExplorePacket(e){return e?{vow:e.vow,drops:e.drops.map(d=>[d.id,d.
 function arenaExploreKill(e,p,m,tick,lab=false){
  if(!e||!p||!m||m.exploreCounted)return;
  m.exploreCounted=true;if(lab){e.invalid=true;return}if(e.invalid)return;
+ arenaForgeLoot(p,m);
  e.kills++;if(m.kind==='caveSpider')p.arenaShards=Math.min(999,(p.arenaShards||0)+2);if(m.kind==='caveThief')p.arenaKeys=Math.min(99,(p.arenaKeys||0)+1);if(m.kind==='troll')e.trolls++;if(m.kind==='worm')e.worms++;
  const add=type=>{if(e.drops.length<24)e.drops.push({type,id:++e.seq,x:Math.round(m.x),y:Math.round(m.y)})};
  if(e.kills%18===0||m.kind==='boss'||m.kind==='werewolfAlpha')add('key');
@@ -1160,7 +1185,7 @@ function stop(notify=false){
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
  A()?.stop();window.NS160_LAB?.close();LAB_AUTO_PAUSE=false;closeArenaMenu(false);N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
- N.breakState=null;N.breakSupported=false;N.expedition=null;N.expSupported=false;N.rule=null;N.ruleSupported=false;N.accountSupported=false;N.pingSupported=false;N.rescueSupported=false;N.rescue=null;N.rescueVisual=null;N.pings=[];N.lastPingMark=0;N.rewardProfile=null;N.rewardPacket=null;N.rewardApplied='';N.expBase=null;N.expOutdoorCrowd=null;N.expOutdoorWorld=null;if(el('ns196Exp'))el('ns196Exp').hidden=true;N.explore=null;N.exploreSupported=false;N.tradeUiKey='';N.runUiKey='';N.questPeriod=null;N.questPeriodAt=0;if(el('ns195Quest'))el('ns195Quest').hidden=true;if(el('ns195Trade'))el('ns195Trade').hidden=true;N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];N.drops=[];N.soloDrops=[];N.weaponDrops=[];N.levelBossDone=[];N.dropSeq=0;N.soloUpgradeSeq=0;
+ N.breakState=null;N.breakSupported=false;N.expedition=null;N.expSupported=false;N.rule=null;N.ruleSupported=false;N.accountSupported=false;N.pingSupported=false;N.rescueSupported=false;N.forgeSupported=false;N.rescue=null;N.rescueVisual=null;N.pings=[];N.lastPingMark=0;N.rewardProfile=null;N.rewardPacket=null;N.rewardApplied='';N.expBase=null;N.expOutdoorCrowd=null;N.expOutdoorWorld=null;if(el('ns196Exp'))el('ns196Exp').hidden=true;N.explore=null;N.exploreSupported=false;N.tradeUiKey='';N.runUiKey='';N.questPeriod=null;N.questPeriodAt=0;if(el('ns195Quest'))el('ns195Quest').hidden=true;if(el('ns195Trade'))el('ns195Trade').hidden=true;N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];N.drops=[];N.soloDrops=[];N.weaponDrops=[];N.levelBossDone=[];N.dropSeq=0;N.soloUpgradeSeq=0;
  LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;LAB_SUPPORTED=false;LAB_LOOK=null;LAB_UNDO=null;LAB_SERVER_BUILD=0;
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
@@ -1300,6 +1325,17 @@ function syncArenaAccount(){
  if(applied!==undefined){N.rewardApplied=key;return !!applied}return false
 }
 
+function applyArenaForge(p,v){
+ if(!p||!Array.isArray(v)||v.length!==3||!Array.isArray(v[2]))return;
+ p.forgeScrap=arenaForgeCount(v[0],99);p.forgeEssence=arenaForgeCount(v[1],30);const tiers={};
+ for(let i=0;i+1<v[2].length&&i<34;i+=2){const w=ARENA_FORGE_WEAPONS[v[2][i]],n=v[2][i+1];if(w&&Number.isInteger(n)&&n>=1&&n<=3)tiers[w]=n}p.forgeTiers=tiers;
+}
+function requestArenaCraft(weapon,tier){
+ if(!(N.solo||N.forgeSupported)||N.expedition?.id||N.paused||LAB_PAUSE.paused||N.choice||N.soloChoice||N.netStalled&&!N.solo||(N.solo?LAB.enabled||N.soloState!=='play':LAB_REMOTE?.enabled||N.waveState!=='play'))return false;
+ const info=arenaForgeInfo(N.explore,N.me,weapon,tier);if(!info?.affordable)return false;
+ if(N.solo){if(!arenaForgeUpgrade(N.explore,N.me,weapon,tier))return false;announceArena('ORUŽJE UNAPREĐENO · +'+(tier+1));A()?.play('choose');N.tradeUiKey='';refreshArenaRun();return true}
+ if(N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'arenaCraft',weapon,tier,rev:N.expedition?.rev||0}));return true}return false;
+}
 function refreshArenaRun(){
  const run=el('ns195Run'),trade=el('ns195Trade'),quest=el('ns195Quest');if(!run||!trade||!quest)return;
  const e=N.explore,p=N.me,allowed=!!(e&&p&&(N.solo||N.exploreSupported)&&N.phase==='running');
@@ -1308,10 +1344,14 @@ function refreshArenaRun(){
  const t=N.solo?N.soloTick:N.tick;
  const near=(!N.expedition?.id&&!N.paused&&!LAB_PAUSE.paused&&!N.choice&&!N.soloChoice&&el('ns158Menu')?.hidden!==false&&el('ns192MapPanel')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled))?arenaTradeNear(e,p):null;
  trade.hidden=!near;
- const key=near?near.type+'|'+(p.arenaKeys||0)+'|'+(p.guildMask||0)+'|'+(p.guildUnlocked?1:0)+'|'+(p.xp||0)+'|'+(p.hp||0)+'|'+Math.max(0,Math.ceil(((p.burgerUntil||0)-t)/30))+'|'+e.vow+'|'+(N.expedition?.rope?1:0):'';
+ const key=near?near.type+'|'+(p.arenaKeys||0)+'|'+(p.guildMask||0)+'|'+(p.guildUnlocked?1:0)+'|'+(p.xp||0)+'|'+(p.hp||0)+'|'+Math.max(0,Math.ceil(((p.burgerUntil||0)-t)/30))+'|'+e.vow+'|'+(N.expedition?.rope?1:0)+'|'+(p.activeWeapon||'sword')+'|'+arenaForgeTier(p)+'|'+(p.forgeScrap||0)+'|'+(p.forgeEssence||0):'';
  if(key!==N.tradeUiKey){N.tradeUiKey=key;trade.textContent='';if(near){
   const title=document.createElement('b');title.textContent=near.type==='market'?'BURGER BAR · plaćaš XP':near.type==='guild'?'STARA KOVNICA · potreban ključ':'OBELISK · jedan zavet za tim';trade.append(title);
   for(const row of ARENA_SHOP_ITEMS.filter(x=>x[3]===near.type)){const b=document.createElement('button');b.type='button';b.textContent=row[1]+(row[2]?' · '+row[2]+' XP':'');b.disabled=!arenaTradeInfo(e,p,row[0],t);b.onclick=()=>requestArenaTrade(row[0]);trade.append(b)}
+  if(near.type==='guild'&&(N.solo||N.forgeSupported)){
+   const weapon=p.activeWeapon||'sword',tier=arenaForgeTier(p,weapon),info=arenaForgeInfo(e,p,weapon,tier);const label=document.createElement('div');label.textContent='KOVANJE · '+weapon.toUpperCase()+' +'+tier+' · metal '+(p.forgeScrap||0)+' · esencija '+(p.forgeEssence||0);trade.append(label);
+   const b=document.createElement('button');b.type='button';b.textContent=tier===3?'MAKSIMALNO +3':'UNAPREDI +'+(tier+1)+' · '+ARENA_FORGE_COST[tier][0]+' metal / '+ARENA_FORGE_COST[tier][1]+' esencija';b.disabled=!info?.affordable;b.onclick=()=>{if(requestArenaCraft(weapon,tier))b.disabled=true};trade.append(b);
+  }
   if(near.type==='guild'&&N.expSupported){const b=document.createElement('button');b.type='button';b.textContent=N.expedition?.rope?'KANAP NABAVLJEN':'KANAP ZA PEĆINU · 58 XP';b.disabled=!!N.expedition?.rope||p.xp<58||(!p.guildUnlocked&&!p.arenaKeys);b.onclick=()=>{if(N.solo){if(expRope(N.expedition,e,p)){announceArena('KANAP NABAVLJEN');N.tradeUiKey=''}}else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'arenaTrade',id:'ropeKey',rev:N.expedition?.rev||0}))};trade.append(b)}
  }}
  const periodAt=N.solo?Date.now():(N.serverNow||Date.now());if(!N.questPeriod||Math.abs(periodAt-(N.questPeriodAt||0))>=45000){N.questPeriod=arenaQuestPeriod(periodAt);N.questPeriodAt=periodAt}
@@ -1500,7 +1540,7 @@ function snapshot(m){
    }
   }
   p.attackTick=attackTick;p.online=!!online;p.knocked=!!knocked;
-   p.revivesUsed=Number(row[15])||0;p.reviveProgress=Number(row[16])||0;p.finalDead=row[17]===1;p.downedUntil=Number(row[18])||0;p.enemySlowUntil=Number(row[19])||0;const oldDash=p.dodgeUntil||0;p.dodgeUntil=Number(row[20])||0;p.dodgeReady=Number(row[21])||0;p.dodgeX=(Number(row[22])||0)/1000;p.dodgeY=(Number(row[23])||0)/1000;p.activeWeapon=ARENA_CLASSIC_WEAPONS[row[24]]?row[24]:undefined;p.secondaryWeapon=ARENA_CLASSIC_WEAPONS[row[25]]?row[25]:null;if(Number.isFinite(row[26]))p.speedMult=clamp(row[26],1,1.5);p.sosUsed=row[27]===1;if(Array.isArray(row[28])){const a=row[28];p.arenaKeys=Number(a[0])||0;p.arenaShards=Number(a[1])||0;p.guildMask=Number(a[2])||0;p.guildUnlocked=a[3]===1;p.burgerUntil=Number(a[4])||0;}if(id===N.id&&p.dodgeUntil>oldDash&&p.dodgeUntil>N.tick)A()?.play('step',{gain:1});
+   p.revivesUsed=Number(row[15])||0;p.reviveProgress=Number(row[16])||0;p.finalDead=row[17]===1;p.downedUntil=Number(row[18])||0;p.enemySlowUntil=Number(row[19])||0;const oldDash=p.dodgeUntil||0;p.dodgeUntil=Number(row[20])||0;p.dodgeReady=Number(row[21])||0;p.dodgeX=(Number(row[22])||0)/1000;p.dodgeY=(Number(row[23])||0)/1000;p.activeWeapon=ARENA_CLASSIC_WEAPONS[row[24]]?row[24]:undefined;p.secondaryWeapon=ARENA_CLASSIC_WEAPONS[row[25]]?row[25]:null;if(Number.isFinite(row[26]))p.speedMult=clamp(row[26],1,1.5);p.sosUsed=row[27]===1;if(Array.isArray(row[28])){const a=row[28];p.arenaKeys=Number(a[0])||0;p.arenaShards=Number(a[1])||0;p.guildMask=Number(a[2])||0;p.guildUnlocked=a[3]===1;p.burgerUntil=Number(a[4])||0;}if(id===N.id&&N.forgeSupported)applyArenaForge(p,m.forge);if(id===N.id&&p.dodgeUntil>oldDash&&p.dodgeUntil>N.tick)A()?.play('step',{gain:1});
   if(Number.isInteger(attackTick)&&attackTick>0&&previousAttack!==undefined&&previousAttack!==attackTick){
    const myPosition=N.me||N.players.get(N.id)||p;
    A()?.play('swing',{weapon:p.activeWeapon||(id===N.id?localArenaLook().weapon:N.looks.get(id)?.look?.weapon)||B().getVillageHeroLook?.(id)?.weapon||'sword',variant:attackTick,
@@ -1724,7 +1764,7 @@ function startSolo(){
  N.soloWave=1;N.soloState='play';N.soloChoice=null;N.soloChestSeq=0;N.soloBetweenUntil=0;
  N.soloChests=[[603,2368],[291,1379],[3119,2452],[2506,2256],[3460,3116],[930,1524],[2922,602],[3601,527],[624,876]].map((p,i)=>({id:i+1,x:p[0],y:p[1],opened:false,style:'classic'}));
  N.choiceUiId='';N.hurtUntil=0;N.lastMyHp=null;A()?.unlock();B().unlockSound?.();
- resetExp(N.world);N.expSupported=true;N.rule=arenaRuleInit(N.world,mode);N.ruleSupported=true;resetArenaBreakables(N.world);N.breakSupported=true;N.explore=arenaExploreInit(N.world);N.exploreSupported=true;N.rescue=arenaRescueInit(N.world);N.rescueSupported=true;N.rescueVisual=null;N.tradeUiKey='';N.runUiKey='';
+ resetExp(N.world);N.expSupported=true;N.rule=arenaRuleInit(N.world,mode);N.ruleSupported=true;resetArenaBreakables(N.world);N.breakSupported=true;N.explore=arenaExploreInit(N.world);N.exploreSupported=true;N.rescue=arenaRescueInit(N.world);N.rescueSupported=true;N.forgeSupported=true;N.rescueVisual=null;N.tradeUiKey='';N.runUiKey='';
  N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt*(p.spellSlowFactor||1),y*N.world.speed*dt*(p.spellSlowFactor||1)));
  N.lastFrame=N.lastState=N.lastPing=N.lastInput=0;resetRenderQuality();
  N.delta={x:0,y:0};N.pending=[];N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.stick.ptr=null;N.stick.x=N.stick.y=0;
@@ -2102,7 +2142,8 @@ function connect(match,id,ticket,rejoin=false){
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
   if(m.t==='ruleVictory'){announceArena(m.mode==='campaign'?'KAMPANJA ZAVRŠENA':'POBEDA · TRI KULE UNIŠTENE');return}
   if(m.t==='expeditionResult'&&m.id===N.id){if(!m.ok)announceArena('OKUPI ŽIVE SAIGRAČE KOD ULAZA');return}if(m.t==='expeditionClear'){announceArena('ZONA OČIŠĆENA · +3 ČVORIŠTA');return}
-  if(m.t==='arenaTradeResult'&&m.id===N.id){if(m.ok){announceArena('RAZMENA USPEŠNA');A()?.play('choose')}else announceArena('RAZMENA NIJE DOSTUPNA');return}
+  if(m.t==='arenaCraftResult'){announceArena(m.ok?'ORUŽJE UNAPREĐENO':'KOVANJE NIJE DOSTUPNO');if(m.ok)A()?.play('choose');N.tradeUiKey='';return}
+   if(m.t==='arenaTradeResult'&&m.id===N.id){if(m.ok){announceArena('RAZMENA USPEŠNA');A()?.play('choose')}else announceArena('RAZMENA NIJE DOSTUPNA');return}
   if(m.t==='fieldKit'&&m.id===N.id){announceArena('ZAVOJ · +'+Math.max(0,Math.min(18,Number(m.hp)||0))+' HP');A()?.play('choose');return}
   if(m.t==='sos'&&/^p[1-6]$/.test(m.id)){announceArena(m.id===N.id?'SOS POSLAT':'SOS · '+(N.looks.get(m.id)?.look?.name||m.id));return}
   if(m.t==='levelBoss'){announceArena('MATRIJARH · NIVO '+Math.max(10,Math.min(100,Number(m.level)||10)));return}
@@ -2112,7 +2153,7 @@ function connect(match,id,ticket,rejoin=false){
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.world=m.world||N.world;resetExp(N.world);N.expSupported=m.arenaExpedition===196;N.ruleSupported=m.arenaRules===197;N.accountSupported=m.arenaAccount===198;N.pingSupported=m.arenaPings===199;N.rescueSupported=m.arenaRescue===202;N.rescue=null;N.rescueVisual=null;N.rule=null;resetArenaBreakables(N.world);N.breakSupported=m.arenaBreakables===194;N.exploreSupported=m.arenaExplore===195;N.explore=null;N.tradeUiKey='';N.phase='waiting';
+   N.world=m.world||N.world;resetExp(N.world);N.expSupported=m.arenaExpedition===196;N.ruleSupported=m.arenaRules===197;N.accountSupported=m.arenaAccount===198;N.pingSupported=m.arenaPings===199;N.rescueSupported=m.arenaRescue===202;N.forgeSupported=m.arenaForge===203;N.rescue=null;N.rescueVisual=null;N.rule=null;resetArenaBreakables(N.world);N.breakSupported=m.arenaBreakables===194;N.exploreSupported=m.arenaExplore===195;N.explore=null;N.tradeUiKey='';N.phase='waiting';
    if(rejoin){N.rejoinPreviousTick=N.tick;N.tick=-1;N.lastState=0;N.rejoinCorrection=true;N.pending=[];N.delta={x:0,y:0};N.players.clear();N.me=null;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.lastMyHp=null;N.reviveHeld='';spellFx=[];spellAim=null;N.arrivalJitter=0;N.interpolationTicks=3;}
    attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
