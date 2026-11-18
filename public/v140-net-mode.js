@@ -241,7 +241,7 @@ function stepArenaWorms(mobs,players,world,tick,wave,shots,seq,damage){
 // V192 Classic loadout, weapon attributes and inventory rewards.
 const ARENA_CLASSIC_WEAPONS={sword:{range:0,damage:1,arc:1.25},longsword:{range:18,damage:1.13,arc:1.03},axe:{range:8,damage:1.35,arc:1.20},spear:{range:27,damage:.9,arc:.72},halberd:{range:28,damage:1.21,arc:.92},warhammer:{range:4,damage:1.32,arc:.87},mace:{range:1,damage:1.14,arc:1.11},dagger:{range:-24,damage:.91,arc:1.20},falchion:{range:10,damage:1.20,arc:1.31},flail:{range:8,damage:1.16,arc:1.31},rapier:{range:12,damage:1.02,arc:.82},glaive:{range:34,damage:1.18,arc:.84},greataxe:{range:12,damage:1.46,arc:1.08},scimitar:{range:8,damage:1.11,arc:1.38},morningstar:{range:6,damage:1.22,arc:1.18},trollclub:{range:4,damage:1.16,arc:1.06,speed:1.23},trollmaul:{range:0,damage:1.29,arc:.90,speed:1.40}};
 const ARENA_CORE_REWARDS=['edge','heart','boots'];
-const ARENA_EXTRA_REWARDS=['axe','spear','dagger','rapier','glaive','greataxe','scimitar','morningstar','longsword','halberd','warhammer','mace','falchion','flail','trollclub','trollmaul','regen','leech','crit','armor','swift','haste','aegis'];
+const ARENA_EXTRA_REWARDS=['axe','spear','dagger','rapier','glaive','greataxe','scimitar','morningstar','longsword','halberd','warhammer','mace','falchion','flail','trollclub','trollmaul','regen','leech','crit','armor','swift','haste','aegis','aura','shock','bombs','shuriken','frost','magnet','thorns'];
 const arenaWeapon=p=>ARENA_CLASSIC_WEAPONS[p.activeWeapon]||ARENA_CLASSIC_WEAPONS.sword;
 function arenaAttackPeriod(p){return Math.max(9,Math.round(19*(arenaWeapon(p).speed||1)*(p.perks?.haste?.93:1)))}
 function arenaAttackReach(p,m){return Math.max(30,({werewolfAlpha:125,boss:125,rotfiend:125,elephant:100,troll:95}[m.kind]||83)+arenaWeapon(p).range)}
@@ -261,6 +261,7 @@ function arenaGrantReward(p,pick,tick){
   if(pick==='swift')p.speedMult=Math.min(1.5,(p.speedMult||1)*1.05);
   if(pick==='regen')p.regenAt=tick+360;if(pick==='aegis')p.aegisAt=tick+210;
   if(pick==='leech')p.leechKills=p.kills||0;
+  if(ARENA_EXTRA_TIMERS[pick]){p.arenaExtraAt??={};p.arenaExtraAt[pick]=tick+ARENA_EXTRA_TIMERS[pick]}
  }else return false;return true;
 }
 function arenaSwapWeapon(p,tick){
@@ -274,7 +275,68 @@ function arenaPerkTick(p,tick){
  if(p.perks.leech){const n=Math.floor(((p.kills||0)-(p.leechKills||0))/7);if(n>0){p.hp=Math.min(p.maxHp||100,p.hp+n*3);p.leechKills=(p.leechKills||0)+n*7}}
 }
 function arenaIncoming(p,damage){return Math.max(1,damage-(p.perks?.armor?2:0))}
- // END V192 Loadout
+ // BEGIN V193 PASSIVES AND EVOLUTIONS
+// Same deterministic 30Hz mechanics in Solo and the authoritative room.
+const ARENA_EXTRA_TIMERS={aura:48,shock:270,bombs:150,shuriken:90,frost:360};
+const ARENA_EVOLUTIONS={sword:{id:'moon',perk:'aura',cd:120,cap:8,ratio:.56,fx:7},spear:{id:'storm',perk:'shock',cd:120,cap:4,ratio:.78,fx:1},axe:{id:'ember',perk:'bombs',cd:150,cap:6,ratio:.67,fx:2},dagger:{id:'phantom',perk:'shuriken',cd:114,cap:5,ratio:.53,fx:4}};
+function arenaExtraEvent(p,tick,slot,x,y,emit){
+ if(p.extraFxTick!==tick){p.extraFxTick=tick;p.extraFxN=0}
+ const seat=Number(p.id?.slice(1))||1,n=p.extraFxN||0;if(n>=10)return;
+ p.extraFxN=n+1;emit([1000000000+tick*64+(seat-1)*10+n,slot,Math.round(x),Math.round(y),tick]);
+}
+function arenaExtraDamage(m,p,tick,d,kill){
+ if(!m||m.hp<=0)return false;m.hp=Math.max(0,m.hp-Math.max(1,Math.round(d)));m.hitTick=tick;
+ if(m.hp===0)kill(m,p);return true;
+}
+function arenaExtraNearest(p,mobs,r){
+ let best=null,ds=r*r;for(const m of mobs){if(m.hp<=0)continue;const d=(m.x-p.x)**2+(m.y-p.y)**2;if(d<ds){best=m;ds=d}}return best;
+}
+function arenaEvolutionUnlock(p,tick,emit){
+ const e=ARENA_EVOLUTIONS[p.activeWeapon];if(!e||p.hp<=0||p.knocked||(p.level||1)<5||!p.perks?.[e.perk])return null;
+ p.arenaEvolved??={};p.arenaEvoReady??={};
+ if(!p.arenaEvolved[e.id]){p.arenaEvolved[e.id]=1;p.arenaEvoReady[e.id]=tick+12;arenaExtraEvent(p,tick,e.fx,p.x,p.y,emit)}
+ return e;
+}
+function arenaEvolutionStrike(p,target,mobs,tick,kill,emit){
+ const e=arenaEvolutionUnlock(p,tick,emit);if(!e||tick<(p.arenaEvoReady[e.id]||0))return false;
+ p.arenaEvoReady[e.id]=tick+e.cd;
+ const a=Math.atan2(target.y-p.y,target.x-p.x),ux=Math.cos(a),uy=Math.sin(a);
+ const x=e.id==='ember'?(target.hp>0?target.x:p.x+ux*85):p.x,y=e.id==='ember'?(target.hp>0?target.y:p.y+uy*85):p.y;
+ let hits=0;arenaExtraEvent(p,tick,e.fx,x,y,emit);
+ for(const m of mobs){if(m.hp<=0)continue;const dx=m.x-x,dy=m.y-y,r=m.bodyRadius||14,dist=dx*dx+dy*dy;
+  let match=false;
+  if(e.id==='moon')match=dist<=(132+r*.25)**2;
+  else if(e.id==='storm'){const front=dx*ux+dy*uy;match=front>=6&&front<=226&&Math.abs(dx*uy-dy*ux)<=30+r*.35}
+  else if(e.id==='ember')match=dist<=(94+r*.2)**2;
+  else {const diff=Math.atan2(Math.sin(Math.atan2(dy,dx)-a),Math.cos(Math.atan2(dy,dx)-a));match=dist<=185**2&&Math.abs(diff)<=.76}
+  if(match&&arenaExtraDamage(m,p,tick,(p.damage||22)*e.ratio,kill)&&++hits>=e.cap)break;
+ }
+ return true;
+}
+function arenaCombatExtras(p,mobs,world,tick,kill,emit){
+ if(!p||p.hp<=0||p.knocked||p.finalDead||p.paused||p.background||!p.perks)return;
+ const t=p.arenaExtraAt??={};arenaEvolutionUnlock(p,tick,emit);
+ // One scheduled bomb and one shuriken per player; no per-projectile timers.
+ const bomb=p.arenaBomb;
+ if(bomb&&tick>=bomb.at){p.arenaBomb=null;let hits=0;for(const m of mobs){if(m.hp<=0||(m.x-bomb.x)**2+(m.y-bomb.y)**2>(64+(m.bodyRadius||14)*.35)**2)continue;
+  if(arenaExtraDamage(m,p,tick,22,kill)&&++hits>=16)break}arenaExtraEvent(p,tick,2,bomb.x,bomb.y,emit)}
+ const shot=p.arenaShuriken;
+ if(shot){const x=shot.x+shot.vx/30,y=shot.y+shot.vy/30;if(tick>=shot.end||!arenaAcidClear(world,shot.x,shot.y,x,y,8))p.arenaShuriken=null;
+  else {shot.x=x;shot.y=y;for(const m of mobs){if(m.hp<=0||(m.x-x)**2+(m.y-y)**2>((m.bodyRadius||14)+8)**2)continue;
+   arenaExtraDamage(m,p,tick,12,kill);p.arenaShuriken=null;arenaExtraEvent(p,tick,0,x,y,emit);break}}}
+ for(const k of Object.keys(ARENA_EXTRA_TIMERS)){
+  if(!p.perks[k])continue;if(!Number.isFinite(t[k])){t[k]=tick+ARENA_EXTRA_TIMERS[k];continue}
+  if(tick<t[k])continue;t[k]=tick+ARENA_EXTRA_TIMERS[k];
+  if(k==='aura'){let hits=0;for(const m of mobs){if((m.x-p.x)**2+(m.y-p.y)**2>97**2)continue;if(arenaExtraDamage(m,p,tick,4,kill)&&++hits>=4)break}arenaExtraEvent(p,tick,7,p.x,p.y,emit)}
+  else if(k==='shock'){const m=arenaExtraNearest(p,mobs,235);if(m){arenaExtraDamage(m,p,tick,13,kill);arenaExtraEvent(p,tick,1,m.x,m.y,emit)}}
+  else if(k==='bombs'){const m=arenaExtraNearest(p,mobs,300);if(m){p.arenaBomb={x:m.x,y:m.y,at:tick+24};arenaExtraEvent(p,tick,2,m.x,m.y,emit)}}
+  else if(k==='shuriken'){const m=arenaExtraNearest(p,mobs,300);if(m){const a=Math.atan2(m.y-p.y,m.x-p.x),ux=Math.cos(a),uy=Math.sin(a);p.arenaShuriken={x:p.x+ux*20,y:p.y+uy*20,vx:ux*255,vy:uy*255,end:tick+51};arenaExtraEvent(p,tick,0,p.x,p.y,emit)}}
+  else if(k==='frost'){for(const m of mobs){if(m.hp<=0||(m.x-p.x)**2+(m.y-p.y)**2>150**2)continue;m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+51);m.spellSlowFactor=Math.min(m.spellSlowFactor||1,.69)}arenaExtraEvent(p,tick,3,p.x,p.y,emit)}
+ }
+}
+function arenaThorns(p,m,tick,kill,emit){if(p.perks?.thorns&&arenaExtraDamage(m,p,tick,7,kill)){arenaExtraEvent(p,tick,0,m.x,m.y,emit);return true}return false}
+// END V193 PASSIVES AND EVOLUTIONS
+// END V192 Loadout
 // V192 original weapon drops: bounded world pool, sole owner accepts in reach.
 const ARENA_WORLD_WEAPONS=['rapier','glaive','greataxe','scimitar','morningstar','longsword','falchion'];
 function arenaMaybeWeaponDrop(drops,m,wave,tick,id){
@@ -808,7 +870,7 @@ function refreshArenaMap(now){
  }
  draw(el('ns192Mini'));if(!el('ns192MapPanel')?.hidden)draw(el('ns192BigMap'));
 }
-const arenaRewardLabel=k=>({edge:'⚔ OŠTRIJA OŠTRICA · +20% ŠTETE',heart:'♥ ČUVAROVO SRCE · +25 HP',boots:'➤ BRŽE ČIZME · +10% BRZINE',regen:'❤ TRAVARSKI MELEM · 5 HP/12s',leech:'ŽIVOTNI TALISMAN · 3 HP/7 ubistava',crit:'PRECIZAN ZAMAH · 10% kritičnih',armor:'OJAČANI OKLOP · -2 štete',swift:'LAKI KORACI · +5% brzine',haste:'BRŽI NAPADI · -7% cooldown',aegis:'TRENUTAK ČELIKA · zaštita/7s'}[k]||'⚔ '+k.toUpperCase()+' · DRUGI SLOT');
+const arenaRewardLabel=k=>({edge:'⚔ OŠTRIJA OŠTRICA · +20% ŠTETE',heart:'♥ ČUVAROVO SRCE · +25 HP',boots:'➤ BRŽE ČIZME · +10% BRZINE',regen:'❤ TRAVARSKI MELEM · 5 HP/12s',leech:'ŽIVOTNI TALISMAN · 3 HP/7 ubistava',crit:'PRECIZAN ZAMAH · 10% kritičnih',armor:'OJAČANI OKLOP · -2 štete',swift:'LAKI KORACI · +5% brzine',haste:'BRŽI NAPADI · -7% cooldown',aegis:'TRENUTAK ČELIKA · zaštita/7s',aura:'OTROVNI OBLAK · 4 DMG/1,6s',shock:'VARNO KOPLJE · 13 DMG/9s',bombs:'NEBESKE BOMBE · 22 DMG/5s',shuriken:'MALI ŠURIKEN · 12 DMG/3s',frost:'LEDENI UDAH · usporavanje/12s',magnet:'MAGNET ZA XP · +60 domet',thorns:'BODLJIKAVI PRSLUK · 7 DMG'}[k]||'⚔ '+k.toUpperCase()+' · DRUGI SLOT');
 function nearArenaLoot(){
  if(!(N.solo||N.lootSupported)||!N.me||N.me.hp<=0||N.me.knocked||N.choice||N.soloChoice||N.paused||LAB_PAUSE.paused||!el('ns192MapPanel')?.hidden)return null;
  let best=null,dist=135**2;for(const d of N.weaponDrops||[]){if(d.weapon===N.me.activeWeapon)continue;const n=(d.x-N.me.x)**2+(d.y-N.me.y)**2;if(n<=dist){dist=n;best=d}}return best;
@@ -1217,8 +1279,9 @@ function stepSoloXpCrystals(){
  for(const d of N.soloDrops){
   if(d.expires<=N.soloTick)continue;
   const dx=p.x-d.x,dy=p.y-d.y,dist=Math.hypot(dx,dy);
-  if(dist<120&&dist>0.00001){
-   const pull=Math.min(dist,(200+(120-dist)*2.2)/30);
+  const attract=120+(p.perks?.magnet?60:0);
+  if(dist<attract&&dist>0.00001){
+   const pull=Math.min(dist,(200+(attract-dist)*2.2)/30);
    d.x+=dx/dist*pull;d.y+=dy/dist*pull;
   }
   if((p.x-d.x)**2+(p.y-d.y)**2<=25**2){
@@ -1254,6 +1317,8 @@ function stepSolo(dt){
    }
    continue;
   }
+  const extraKill=m=>{m.deadUntil=N.soloTick+105;N.soloKills++;me.kills++;spawnSoloXpCrystal(m)};
+  arenaCombatExtras(me,N.soloMobs,N.world,N.soloTick,extraKill,showArenaSpell);
   arenaPerkTick(me,N.soloTick);N.soloInvul=Math.max(N.soloInvul,me.shield||0);arenaSpellTick(me,N.looks.get('p1')?.look?.heroClass||'warrior');arenaSpellExpire(N.soloMobs,N.soloTick);
   // Fixed physics 30Hz, steering only at 15Hz, interpolation at display FPS.
   for(const mob of N.soloMobs){mob.prevX=mob.x;mob.prevY=mob.y}
@@ -1280,6 +1345,7 @@ function stepSolo(dt){
     me.hp=Math.max(0,me.hp-arenaIncoming(me,Math.min(mob.kind==='troll'?60:30,Math.round((mob.kind==='troll'?17:7)*(1+.06*(N.soloWave-1))))));N.hurtUntil=performance.now()+290;
     A()?.play('hurt');
     mob.attackTick=N.soloTick;mob.attackAt=N.soloTick+(mob.kind==='troll'?77:39+(mob.id%5)*4);
+    arenaThorns(me,mob,N.soloTick,extraKill,showArenaSpell);
     N.soloInvul=N.soloTick+28;
    }
   }
@@ -1299,7 +1365,8 @@ function stepSolo(dt){
     target.hp=Math.max(0,target.hp-arenaAttackDamage(me,N.soloTick));
     A()?.play('swing',{weapon:N.me?.activeWeapon||localArenaLook().weapon||'sword'});
     A()?.play('hit',{weapon:N.me?.activeWeapon||localArenaLook().weapon||'sword',variant:N.soloTick,gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
-    if(target.hp===0){target.deadUntil=N.soloTick+105;N.soloKills++;me.kills++;spawnSoloXpCrystal(target)}
+    if(target.hp===0)extraKill(target);
+    arenaEvolutionStrike(me,target,N.soloMobs,N.soloTick,extraKill,showArenaSpell);
    }
   }
   stepSoloXpCrystals();
