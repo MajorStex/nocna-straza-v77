@@ -1,4 +1,4 @@
-name: V205 native Cloudflare release verification (read only)
+name: V211 permanent Cloudflare URL verification (read only)
 on:
   pull_request:
     branches: [main]
@@ -11,7 +11,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    if: github.event_name != 'pull_request' || github.head_ref == 'v190-arena-arrows-revive'
+    if: github.event_name != 'pull_request' || github.head_ref == 'verify/v211-native-live'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -19,12 +19,12 @@ jobs:
       - name: Verify exact client release assets and relay release marker
         env:
           EXPECTED_RELAY_RELEASE: '211'
-          EXPECTED_PREVIEW_RELAY_SHA: '02171c9f9b91ea720216e711f9146be2a32237c1'
+          EXPECTED_PREVIEW_RELAY_SHA: '1181c1ef94b2a3807ceca3de300917b471abb391'
         run: |
           python3 - <<'PY'
           import os, re, json, hashlib, time, urllib.request
           from pathlib import Path
-          preview = os.environ.get('GITHUB_REF_NAME') != 'main'
+          preview = False  # Explicit production-only read probe; never writes or deploys
           suffix = '.stefanstevic1996.workers.dev'
           client = 'https://' + ('v190-arena-arrows-revive-' if preview else '') + 'nocna-straza-v77' + suffix + '/'
           relay = 'https://' + ('v189-arena-abilities-' if preview else '') + 'nocna-straza-relay' + suffix + '/health'
@@ -49,7 +49,7 @@ jobs:
                   if not h.get('ok') or h.get('arenaRelease') != int(os.environ['EXPECTED_RELAY_RELEASE']) or h.get('arenaWorld') != {'w':4200,'h':4200} or h.get('arenaXp') is not True: raise ValueError('Relay health/release mismatch')
                   qa = h.get('arenaQa') or {}
                   if qa.get('ok') is not True or qa.get('suites') != 13 or not re.fullmatch('[a-f0-9]{40}', str(qa.get('commit',''))): raise ValueError('Cloudflare full server QA proof missing')
-                  if preview and qa['commit'] != os.environ['EXPECTED_PREVIEW_RELAY_SHA']: raise ValueError('Cloudflare preview relay QA commit mismatch')
+                  if qa['commit'] != os.environ['EXPECTED_PREVIEW_RELAY_SHA']: raise ValueError('Cloudflare production relay QA commit mismatch')
                   message = ('PREVIEW' if preview else 'PRODUCTION') + ' VERIFIED: client V'+expected+' SHA-256 and relay V'+str(h['arenaRelease'])+' /health; Cloudflare QA 13/13 commit '+qa['commit']+'; not a gameplay test'
                   print(message)
                   with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f: f.write(message+'\n\n'+client+'\n')
