@@ -30,7 +30,11 @@ const {chromium}=require('playwright-core');
    assert(boot.xpText.includes('NIVO 1'));
    assert(boot.canvas[0]>0&&boot.canvas[1]>0,'world renders on Android viewport');
    assert(boot.scenery>=120);
-   assert(boot.spawns>=60);
+   assert(boot.spawns>=3&&boot.spawns<=12,'V211 first wave starts with a small bounded active group');
+   // Observe real elapsed simulation, not a fast-forward frame that could hide startup stalls.
+   await page.waitForFunction(()=>window.NS140_ARENA.diagnostics.soloMobCount>3,null,{timeout:10000});
+   const reinforced=await page.evaluate(()=>window.NS140_ARENA.diagnostics);
+   assert(reinforced.soloMobCount<=12,'wave-one active cap');
    assert(!errors.some(e=>/SyntaxError|ReferenceError|TypeError/.test(e)),'browser runtime error '+errors.join(','));
    console.log('V168 MOBILE CHROMIUM PASS',width+'px',JSON.stringify(boot));
    await page.close();
