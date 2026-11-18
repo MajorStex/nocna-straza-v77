@@ -1,16 +1,16 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 203 -->
+<!-- current-release: 204 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V203 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V204 (razvojna grana, ne LIVE); GitHub main je ranije proveren na V189 (klijent) i V168 (relay). Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
-- Sada se radi: V203 crafting — postojeća kovnica, metal i esencija bossova, unapređenje svih 17 tipova oružja do +3. Fiksna grafika; Solo i MP dele pravila, server autoritativan.
+- Sada se radi: V204 poseban režim Odbrana sela u Novoj zoni (20 talasa). Mirni Village ostaje netaknut. Fiksna grafika, autoritativni server i Solo paritet.
 - Blokade: Cloudflare Actions objava prijavila nedostajuće kredencijale; serverski CI je ranije vraćao failure bez logova. Ne pretpostavljati da je to rešeno. Neophodno je proveriti konačan CI, upareni relay i klijent, stvarni LIVE URL i fizičke telefone.
-- Sledeće: završni V203 CI, kompatibilnost relay/klijent, LIVE i fizička 2 pa 6 Android uređaja; V204 odbrana sela, V205 legendarna oprema, V206 balans, V207 završni testovi. Plan nije implementacija.
+- Sledeće: završni V204 CI, kompatibilnost relay/klijent, LIVE i fizički test 2 pa 6 Android uređaja; V205 legendarna oprema, V206 balans, V207 kompletna optimizacija. Plan nije implementacija.
 
 ## Arhitektura i pravila rada
 - GitHub klijent: MajorStex/nocna-straza-v77; relay: MajorStex/nocna-straza-relay. Izvornu datoteku i status grane proveriti direktno kroz povezani GitHub; novi ChatGPT nalog mora dobiti ovlašćen pristup od vlasnika.
@@ -33,6 +33,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 
 <!-- HISTORY -->
 ## ISTORIJA VERZIJA — od novijih ka starijim
+### V204 — 18.11.2026 (KOD / simulirani TEST; LIVE nije potvrđen)
+- Odbrana sela kao odvojena pravila Nove zone, Solo/MP do šest igrača, 20 talasa sa postojećim trolom na 10. i rotfiendom na 20. Tri branjena objekta (kuća, kapija, sklonište; 180 HP po objektu), vizuelna oznaka HP i ruševine; uništenje svih znači poraz. Dva stražara kod preostalih objekata pružaju podršku napadom koji ne može zadati poslednji udarac. Nema zasebnog AI-ja stanovnika ili fizički novih barikada; stanovnici su predstavljeni skloništem. Najviše 12 goblina cilja objekte odjednom, postojeći steering, postojeći snapshot. Popravka +30 HP za 2 metala u pripremi između talasa, bez obnove potpuno uništenog objekta. Pauza za pripremu 20 s posle izbora nagrade; server omogućava kretanje i ACK u toj fazi. Pobednička nagrada je 2+2 po sačuvanom objektu (4–8 shards) po živom prisutnom igraču, samo u partiji. Ekspedicije i rescue nisu aktivni u ovom modu. Mirno selo i klasični mod nisu menjani.
+- Server potvrđuje HP, pogotke, popravke, materijale, nagrade, reviziju zone i checkpoint; identične Solo funkcije. Test tests/v204-defense.test.mjs: 1.310/1.310 simuliranih provera, 100 scenarija, 160 mobova, 12 napadača maksimalno, tri pozicije potvrđene na stvarnoj geometriji, dva boss talasa, šest istih snapshotova, inter-wave movement, duplikat popravke, zastarela komanda i trajanje checkpointa. Dodatna izolovana provera pariteta. Fizički uređaji, kompletan CI i produkcija i dalje nepotvrđeni. Balans težine tek V206.
 ### V203 — 18.11.2026 (KOD / simulirani TEST; LIVE nije potvrđen)
 - Kovanje u postojećoj Staroj kovnici u Novoj zoni. Metal: 1 na svako četvrto priznato ubistvo, 4 za teškog bossa; esencija: 1 za trola/rotfienda/bossa/alpha vukodlaka, 3 za zmaja. Inventar ograničen na 99 metala i 30 esencija. +1 košta 8 metala, +2 16 metala i 1 esenciju, +3 24 metala i 2 esencije. Svaki stepen +8% direktne štete oružjem, najviše +24%. Potreban ključ za prvo otključavanje kovnice. Svih 17 postojećih tipova oružja. Nadogradnja vezana za tip oružja i igrača u toj partiji, ne za fizički predmet ili trajni profil. Crafting novih unikatnih oružja ostaje V205.
 - Server proverava udaljenost, aktivno oružje, očekivani stepen, materijale, reviziju zone, cooldown i validan režim. Ponavljanje komande ne troši materijale drugi put. Snapshot inventara je privatan za sedište (12 znakova u osnovnom testu), nema novih objekata/streamova; checkpoint nakon uspešnog kovanja. Solo identična pravila. Editor ne daje materijale. Grafika ostaje ista.
