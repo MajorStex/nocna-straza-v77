@@ -1036,7 +1036,7 @@ function ui(){
  // Lazy-load independent voice client only when entering New Zone.
  if(!window.NS159_VOICE&&!document.getElementById('ns159VoiceScript')){
   const voiceScript=document.createElement('script');voiceScript.id='ns159VoiceScript';
-  voiceScript.src='./v159-voice.js?v=166';voiceScript.async=true;
+  voiceScript.src='./v159-voice.js?v=166';voiceScript.src+='&release=217';voiceScript.async=true;
   document.head.append(voiceScript);
  }
  el('ns140Close').onclick=()=>stop(true);
