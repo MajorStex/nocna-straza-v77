@@ -38,26 +38,14 @@ test('diagnostic UI is opt-in and its report excludes credential fields',()=>{
  assert.doesNotMatch(report,/\.ticket|\.code|\.token|\.friendId|\.data\b/);
 });
 
-test('V181 preserve character render resolution during every performance adjustment',()=>{
+test('V199 fixed visual quality under all measured loads',()=>{
  const begin=source.indexOf('function newRenderBudget('),end=source.indexOf('let RENDER_Q=',begin);
  assert.ok(begin>=0&&end>begin);
  const c=vm.createContext({});vm.runInContext(source.slice(begin,end),c);
- const q=c.newRenderBudget(3);
- assert.equal(q.dpr,1.5);assert.equal(q.fxLevel,2);
- c.tuneRenderBudget(q,48,26,16);assert.equal(q.fxLevel,2);
- c.tuneRenderBudget(q,48,26,16);assert.equal(q.fxLevel,1);
- for(let i=0;i<30;i++){c.tuneRenderBudget(q,45,30,18);assert.equal(q.dpr,1.5);}
- assert.equal(q.fxLevel,0);
- for(let i=0;i<4;i++)c.tuneRenderBudget(q,60,17,8);
- assert.equal(q.fxLevel,0);
- c.tuneRenderBudget(q,60,17,8);assert.equal(q.fxLevel,1);
- for(let i=0;i<60;i++){c.tuneRenderBudget(q,60,17,8);assert.equal(q.dpr,1.5);}
- assert.equal(q.fxLevel,2);
+ for(const cap of [3,1.5,.75]){const q=c.newRenderBudget(cap),dpr=q.dpr;
+ for(let i=0;i<1000;i++){c.tuneRenderBudget(q,i%2?30:60,i%2?34:16,i%2?25:2);assert.equal(q.dpr,dpr);assert.equal(q.fxLevel,2);assert.equal(q.changes,0)}
+ assert.equal(q.windows,1000)}
  assert.match(source,/characterQualityLocked:true/);
- const low=c.newRenderBudget(.75);for(let i=0;i<10;i++)c.tuneRenderBudget(low,30,34,20);
- assert.equal(low.dpr,.75);
- const fxUses=[...source.matchAll(/RENDER_Q\.fxLevel/g)];
- assert.equal(fxUses.length,3,'adaptive FX only read by crystal pulse and diagnostics');
 });
 
 test('V181 remote hero and enemy share monotonic buffered time even when jitter raises delay',()=>{
