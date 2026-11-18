@@ -56,6 +56,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Require up-to-date development handoff before each release
+        run: node tests/v199-development-log.test.cjs
       - name: Validate main game release and saved mobile shortcut
         run: node tests/current-deployment.test.cjs
       - name: Test isolated V140 mode if present in this release
