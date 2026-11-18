@@ -1826,6 +1826,9 @@ function attachVoiceToArena(){
  if(window.NS159_VOICE)start();
  else window.addEventListener('ns159VoiceReady',start,{once:true});
 }
+// V196: explicitly opt in to isolated Cloudflare preview; guests inherit the same relay.
+const EXP_PREVIEW_RELAY='https://v189-arena-abilities-nocna-straza-relay.stefanstevic1996.workers.dev';
+function arenaPreviewRequested(){try{return new URLSearchParams(location.search).get('arenaPreview')==='1'}catch{return false}}
 function connect(match,id,ticket,rejoin=false){
  if(rejoin?(N.phase!=='reconnecting'||!!N.ws):N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL){N.phase='error';status('NOVA ZONA privremeno dostupna od nivoa 0');return false}
@@ -1840,7 +1843,7 @@ function connect(match,id,ticket,rejoin=false){
  N.phase=rejoin?'reconnecting':'connecting';
  status('V168 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
- try{ws=new WebSocket('wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
+ try{ws=new WebSocket(N.relayPreview?EXP_PREVIEW_RELAY.replace(/^https:/,'wss:')+'/arena/'+match:'wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
  catch{N.phase='error';status('Server Nove Zone nije dostupan');return false}
  N.ws=ws;
  if(N.timeout)clearTimeout(N.timeout);
@@ -1978,7 +1981,7 @@ async function startHost(){
  const attempt=(N.prepareAttempt||0)+1;N.prepareAttempt=attempt;
  N.phase='preparing';status('V168 · PRIPREMAM ZASEBAN MP SERVER...');
  try{
-  const req=await fetch('https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
+  N.relayPreview=arenaPreviewRequested();const req=await fetch(N.relayPreview?EXP_PREVIEW_RELAY+'/arena/create':'https://nocna-straza-relay.stefanstevic1996.workers.dev/arena/create',{
    method:'POST',headers:{'content-type':'application/json'},
    body:JSON.stringify({code,seats}),signal:typeof globalThis.AbortSignal?.timeout==='function'?globalThis.AbortSignal.timeout(15000):undefined});
   const data=await req.json().catch(()=>null);
@@ -1991,7 +1994,7 @@ async function startHost(){
    if(peer.id===net.localId)continue;
    const c=net.clients.get(peer.id);
    if(!c?.open)throw Error('guest_disconnected');
-   c.send({t:'arena140Offer',match:data.match,id:peer.id,ticket:data.tickets[peer.id],protocol:140});
+   c.send({t:'arena140Offer',match:data.match,id:peer.id,ticket:data.tickets[peer.id],protocol:140,...(N.relayPreview?{previewRelay:1}:{})});
   }
   N.phase='idle';return connect(data.match,net.localId,data.tickets[net.localId]);
  }catch(err){
@@ -2005,7 +2008,7 @@ function acceptOffer(d){
  const b=B(),net=b.NET;if(net?.role!=='guest'||net.phase!=='lobby'||d?.protocol!==140||
  !/^[a-f0-9]{24}$/.test(d.match)||d.id!==net.localId||typeof d.ticket!=='string')return false;
  if(N.phase!=='idle')return N.match===d.match;
- return connect(d.match,d.id,d.ticket);
+ N.relayPreview=d.previewRelay===1;return connect(d.match,d.id,d.ticket);
 }
 // V152: movement phase is frozen when idle; a light breathing bob remains.
 // This avoids the old permanently-walking character pose in the test arena.
