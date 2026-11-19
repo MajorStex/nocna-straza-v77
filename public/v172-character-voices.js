@@ -18,7 +18,8 @@ const EVENTS={
 };
 const MAX_MS=5000,MAX_BYTES=192000,VARIANTS=3,MAX_ACTIVE=2,MAX_CACHE=24;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const scope=()=>String(window.__NS110_BRIDGE?.getActiveAccount?.()?.id||'offline').replace(/[^a-z0-9_-]/gi,'').slice(0,64)||'offline';
+const profileScope=()=>String(window.__NS110_BRIDGE?.getActiveAccount?.()?.id||'offline').replace(/[^a-z0-9_-]/gi,'').slice(0,40)||'offline';
+const scope=()=>{const uid=window.NS82_CLOUD?.user;return uid?'u:'+uid+':'+profileScope():profileScope()};
 function valid(id,event,slot){return /^[-a-z0-9]{1,50}$/i.test(id||'')&&Object.hasOwn(EVENTS,event)&&Number.isInteger(slot)&&slot>=0&&slot<VARIANTS}
 const key=(owner,id,event,slot)=>owner+'|'+id+'|'+event+'|'+slot;
 let dbp=null;
@@ -26,13 +27,46 @@ function db(){if(!dbp)dbp=new Promise((resolve,reject)=>{const req=indexedDB.ope
  req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains('clips')){const store=d.createObjectStore('clips',{keyPath:'key'});store.createIndex('character','character',{unique:false})}};
  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);req.onblocked=()=>reject(Error('Voice storage is blocked'));}).catch(e=>{dbp=null;throw e});return dbp}
 async function tx(mode,fn){const d=await db();return new Promise((res,rej)=>{const tr=d.transaction('clips',mode);let value;try{const req=fn(tr.objectStore('clips'));if(req){req.onsuccess=()=>{value=req.result};req.onerror=()=>rej(req.error)}}catch(e){rej(e);return}tr.oncomplete=()=>res(value);tr.onerror=()=>rej(tr.error);tr.onabort=()=>rej(tr.error||Error('Aborted'))})}
-async function list(id,owner=scope()){if(!id)return [];return (await tx('readonly',s=>s.index('character').getAll(owner+'|'+id))||[]).filter(x=>valid(id,x.event,x.slot)&&x.blob instanceof Blob&&x.blob.size<=MAX_BYTES)}
-async function put(id,event,slot,blob,ms,owner=scope()){
+async function rawList(id,owner=scope()){if(!id)return [];return (await tx('readonly',s=>s.index('character').getAll(owner+'|'+id))||[]).filter(x=>valid(id,x.event,x.slot)&&(x.deleted===true||x.blob instanceof Blob&&x.blob.size<=MAX_BYTES))}
+async function list(id,owner=scope()){return (await rawList(id,owner)).filter(x=>!x.deleted)}
+async function put(id,event,slot,blob,ms,owner=scope(),updated=Date.now()){
  if(!valid(id,event,slot)||!(blob instanceof Blob)||!blob.size||blob.size>MAX_BYTES||!/^audio\//i.test(blob.type))throw Error('Neispravan ili prevelik audio snimak');
- const k=key(owner,id,event,slot);await tx('readwrite',s=>s.put({key:k,character:owner+'|'+id,id,owner,event,slot,blob,ms:clamp(ms||0,0,MAX_MS),updated:Date.now()}));decoded.delete(k);return true;
+ const k=key(owner,id,event,slot);await tx('readwrite',s=>s.put({key:k,character:owner+'|'+id,id,owner,event,slot,blob,ms:clamp(ms||0,0,MAX_MS),updated}));decoded.delete(k);return true;
 }
-async function remove(id,event,slot,owner=scope()){if(!valid(id,event,slot))return false;const k=key(owner,id,event,slot);await tx('readwrite',s=>s.delete(k));decoded.delete(k);return true}
+async function remove(id,event,slot,owner=scope(),updated=Date.now()){if(!valid(id,event,slot))return false;const k=key(owner,id,event,slot);await tx('readwrite',s=>s.put({key:k,character:owner+'|'+id,id,owner,event,slot,deleted:true,updated}));decoded.delete(k);return true}
 async function removeCharacter(id,owner=scope()){for(const c of await list(id,owner))await remove(id,c.event,c.slot,owner)}
+// V227: lazy account backup and portable character package, never on the frame/network tick.
+const syncJobs=new Map();
+async function encodeClip(row){
+ if(row.deleted)return {event:row.event,slot:row.slot,updated:row.updated,deleted:true};
+ const bytes=new Uint8Array(await row.blob.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+ return {event:row.event,slot:row.slot,updated:row.updated,deleted:false,mime:row.blob.type,ms:row.ms,data:btoa(binary)};
+}
+function decodeClip(row){if(!valid('character',row.event,row.slot)||typeof row.data!=='string'||row.data.length>256000||!/^audio\//i.test(row.mime||''))throw Error('Neispravan snimak');const data=atob(row.data);if(!data.length||data.length>MAX_BYTES)throw Error('Neispravan snimak');return new Blob([Uint8Array.from(data,x=>x.charCodeAt(0))],{type:row.mime})}
+function syncCharacter(id){
+ const owner=scope(),profile=profileScope(),cloud=window.NS82_CLOUD,jobKey=owner+'|'+id;
+ if(!valid(id,'attack',0))return Promise.resolve({cloud:false,clips:0});
+ if(syncJobs.has(jobKey))return syncJobs.get(jobKey);
+ const job=(async()=>{
+  const check=()=>{if(scope()!==owner)throw Error('Promenjen nalog')};
+  let local=await rawList(id,owner);check();
+  // Old browser recordings are matched by the existing random character ID, not by display name.
+  if(owner!==profile&&window.NS171_CREATOR?.listCharacters().some(c=>c.id===id)){
+   const existing=new Set(local.map(r=>r.event+':'+r.slot));
+   for(const r of await rawList(id,profile)){check();if(existing.has(r.event+':'+r.slot))continue;if(r.deleted)await remove(id,r.event,r.slot,owner,r.updated||0);else await put(id,r.event,r.slot,r.blob,r.ms,owner,r.updated||0)}
+   local=await rawList(id,owner);check();
+  }
+  if(!cloud?.online)return {cloud:false,clips:local.filter(r=>!r.deleted).length};
+  const remote=await cloud.characterVoiceRead(profile,id);check();
+  const map=new Map(local.map(r=>[r.event+':'+r.slot,r])),writes=[];
+  for(const r of remote){const k=r.event+':'+r.slot,here=map.get(k);if(!here||r.updated>=here.updated){if(!here||r.updated>here.updated||!!r.deleted!==!!here.deleted){if(r.deleted)await remove(id,r.event,r.slot,owner,r.updated);else await put(id,r.event,r.slot,decodeClip(r),r.ms,owner,r.updated);check()}map.delete(k)}}
+  for(const r of map.values()){writes.push(await encodeClip(r));check()}
+  if(writes.length)await cloud.characterVoiceWrite(profile,id,writes);check();
+  return {cloud:true,clips:(await list(id,owner)).length};
+ })().finally(()=>{if(syncJobs.get(jobKey)===job)syncJobs.delete(jobKey)});
+ syncJobs.set(jobKey,job);return job;
+}
+async function exportClips(id){const owner=scope(),rows=await list(id,owner),out=[];for(const r of rows){out.push(await encodeClip(r));if(scope()!==owner)throw Error('Promenjen nalog')}return out}
 let context=null,master=null,active=[],lastGlobal=-Infinity,epoch=0,bank=new Map(),decoded=new Map(),lastVariant=new Map(),voiceEnabled=true,volume=.78;
 const clock=()=>performance.now()/1000;
 function contextReady(){if(!context){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;context=new AC();master=context.createGain();master.gain.value=volume;const comp=context.createDynamicsCompressor();comp.threshold.value=-20;comp.ratio.value=3;master.connect(comp);comp.connect(context.destination)}if(context.state==='suspended')context.resume().catch(()=>{});return context}
@@ -121,7 +155,7 @@ async function refresh(){
 }
 function mount(element,api){
  unmount();host=element;bridge=api;notice='';chosenEvent='attack';chosenSlot=0;
- const p=document.createElement('div');p.className='ccVoiceStudio';p.innerHTML='<h3>VOICE STUDIO · GLAS KARAKTERA</h3><p>Glas je vezan za karakter, ne za heroja ili protivnika. Snimci ostaju lokalno na ovom uređaju. Live mikrofon ostaje u svom režimu. Snima se samo tvoj glas, ne glasovi ekipe.</p><div class="ccGrid"><label>Situacija<select data-voice-event></select></label><label>Varijanta<select data-voice-slot><option value="0">1</option><option value="1">2</option><option value="2">3</option></select></label></div><p data-voice-hint></p><div class="ccRow"><button data-voice-action="savechar">Sačuvaj karakter</button><button data-voice-action="record">🔴 Snimi (5 s)</button><button data-voice-action="stop" disabled>■ Zaustavi</button></div><div class="ccNumbers" data-voice-status aria-live="polite"></div><p data-voice-count></p><div data-voice-list></div><div class="ccGrid"><label>Jačina glasova<input data-voice-volume type="range" min="0" max="100" value="78"></label><label>Glasovi tokom testa<select data-voice-enabled><option value="on">Uključeni</option><option value="off">Isključeni</option></select></label></div><p>Najviše dve replike istovremeno; udaljeni likovi su tiši. Smrt i povreda imaju prednost nad usputnim govorom.</p>';
+ const p=document.createElement('div');p.className='ccVoiceStudio';p.innerHTML='<h3>VOICE STUDIO · GLAS KARAKTERA</h3><p>Glas je vezan za stalni ID karaktera. Snimci se čuvaju lokalno; dugme Sačuvaj u editoru sinhronizuje ih sa prijavljenim nalogom. Live mikrofon ostaje u svom režimu. Snima se samo tvoj glas, ne glasovi ekipe.</p><div class="ccGrid"><label>Situacija<select data-voice-event></select></label><label>Varijanta<select data-voice-slot><option value="0">1</option><option value="1">2</option><option value="2">3</option></select></label></div><p data-voice-hint></p><div class="ccRow"><button data-voice-action="savechar">Sačuvaj karakter</button><button data-voice-action="record">🔴 Snimi (5 s)</button><button data-voice-action="stop" disabled>■ Zaustavi</button></div><div class="ccNumbers" data-voice-status aria-live="polite"></div><p data-voice-count></p><div data-voice-list></div><div class="ccGrid"><label>Jačina glasova<input data-voice-volume type="range" min="0" max="100" value="78"></label><label>Glasovi tokom testa<select data-voice-enabled><option value="on">Uključeni</option><option value="off">Isključeni</option></select></label></div><p>Najviše dve replike istovremeno; udaljeni likovi su tiši. Smrt i povreda imaju prednost nad usputnim govorom.</p>';
  if(window.NS177_WORKSHOP?.active&&window.NS177_WORKSHOP.mode!=='solo'){const share=document.createElement('label');share.className='ccLabCheck';const check=document.createElement('input');check.type='checkbox';check.dataset.voiceShare='1';share.append(check,document.createTextNode(' Pusti preslušavanje i ekipi (tiho)'));p.append(share)}const select=p.querySelector('[data-voice-event]');for(const [k,v] of Object.entries(EVENTS)){const o=document.createElement('option');o.value=k;o.textContent=v.label;select.append(o)}
  p.querySelector('[data-voice-volume]').value=Math.round(volume*100);p.querySelector('[data-voice-enabled]').value=voiceEnabled?'on':'off';
  p.addEventListener('change',e=>{if(e.target.matches('[data-voice-event]')){chosenEvent=e.target.value;chosenSlot=0;stopPreview();notice='';refresh()}if(e.target.matches('[data-voice-slot]'))chosenSlot=Number(e.target.value);if(e.target.matches('[data-voice-enabled]'))setEnabled(e.target.value==='on')});
@@ -131,5 +165,5 @@ function mount(element,api){
  if(!document.getElementById('ns172VoiceStyle')){const s=document.createElement('style');s.id='ns172VoiceStyle';s.textContent='#ns171Creator .ccVoiceRow{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:6px;align-items:center;margin:6px 0;padding:5px;border:1px solid #52685d;border-radius:9px;font-size:12px}#ns171Creator .ccVoiceStudio button[hidden]{display:none!important}#ns171Creator .ccVoiceStudio button:disabled{opacity:.45}';document.head.append(s)}
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden){discard();silence();if(panel){tell('Snimanje je prekinuto jer je igra sklonjena.');refresh()}}});
-window.NS172_VOICES={EVENTS,MAX_MS,MAX_ACTIVE,MAX_BYTES,VARIANTS,list,put,remove,removeCharacter,mount,unmount,prepare,unlock:contextReady,stopAll,silence,emitter,candidate,dispatch,mixAt,setEnabled,setVolume,test:{get played(){return played},get playedEvents(){return {...playedEvents}},get active(){return active.length},get pending(){return pending},get recording(){return !!recording},get busy(){return busy},get cacheSize(){return decoded.size},get scope(){return scope()},get bankSize(){return bank.size},get mime(){return preferredMime()}}};
+window.NS172_VOICES={EVENTS,MAX_MS,MAX_ACTIVE,MAX_BYTES,VARIANTS,list,put,remove,removeCharacter,syncCharacter,exportClips,mount,unmount,prepare,unlock:contextReady,stopAll,silence,emitter,candidate,dispatch,mixAt,setEnabled,setVolume,test:{get played(){return played},get playedEvents(){return {...playedEvents}},get active(){return active.length},get pending(){return pending},get recording(){return !!recording},get busy(){return busy},get cacheSize(){return decoded.size},get scope(){return scope()},get bankSize(){return bank.size},get mime(){return preferredMime()}}};
 })();
