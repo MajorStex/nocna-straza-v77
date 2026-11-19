@@ -1363,6 +1363,7 @@ function status(note){
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
 function stop(notify=false){
+ resetGuardVoice();
  if(N.mpProgressToken)B().arenaMpCancel?.(N.mpProgressToken);N.mpProgressToken=null;
  arenaHeroVoiceState=null;N.watchId='';N.mpResult=null;if(el('ns228Spectate'))el('ns228Spectate').hidden=true;
  if(N.soloResultToken)B().arenaSoloCancel?.(N.soloResultToken);N.soloResultToken=null;N.soloResult=null;el('ns140Root')?.classList.remove('ns206Ended');if(el('ns206Results'))el('ns206Results').hidden=true;
@@ -2144,6 +2145,7 @@ function soloWaveDone(){
 }
 
 function startSolo(){
+ resetGuardVoice();
  arenaHeroVoiceState=null;
  const mode=arenaRuleMode(arguments[0]);
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL||B().NET?.role||!['idle','error'].includes(N.phase))return false;
@@ -2612,6 +2614,7 @@ function connect(match,id,ticket,rejoin=false){
  }
  N.match=match;N.id=id;N.ticket=ticket;if(!rejoin){captureArenaAccount();N.paused=false;N.mpProgressToken=B().arenaMpBegin?.(match,id)||null;N.mpBaseRanks=B().arenaBaseRanks?.()||[0,0,0,0,0];}
  N.phase=rejoin?'reconnecting':'connecting';
+ resetGuardVoice();
  status('V168 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
  try{ws=new WebSocket(N.relayPreview?EXP_PREVIEW_RELAY.replace(/^https:/,'wss:')+'/arena/'+match:'wss://nocna-straza-relay.stefanstevic1996.workers.dev/arena/'+match)}
@@ -3281,6 +3284,31 @@ function resetRenderSamples(now=0){
  N.frames=0;N.fpsAt=now;N.lastFrame=0;
 }
 function resetRenderQuality(){RENDER_Q=newRenderBudget(window.devicePixelRatio||1);N.fps=0;resetRenderSamples()}
+// V237: observe the existing authoritative guard state. No new packet or per-enemy voice loop.
+let guardVoiceState=null,guardVoiceObservedAt=0;
+function guardVoiceCue(old,next){
+ if(!old||!next||next.tick<old.tick||old.phase===4)return null;
+ if(old.phase===1&&next.phase===2)return 'release';
+ if(old.phase!==2&&old.phase!==3)return null;
+ if(next.phase===4&&old.hp>0&&next.hp===0)return 'death';
+ if(next.phase!==2&&next.phase!==3)return null;
+ if(next.hp<old.hp)return 'hurt';
+ if(next.attackTick>=0&&next.attackTick>old.attackTick&&next.tick-next.attackTick<=12)return 'attack';
+ return null;
+}
+function resetGuardVoice(){guardVoiceState=null;guardVoiceObservedAt=0;A()?.stopGuardVoice?.(true)}
+function arenaGuardVoicePulse(now){
+ const r=N.rescue,p=N.me,tick=N.solo?N.soloTick:N.tick;
+ if(!r||!p||!rescueVisible()||N.paused||LAB_PAUSE.paused||!Number.isFinite(tick)){guardVoiceState=null;guardVoiceObservedAt=0;return}
+ if(guardVoiceState&&guardVoiceState.tick===tick&&guardVoiceState.phase===r.phase&&guardVoiceState.hp===r.hp&&guardVoiceState.attackTick===r.attackTick){if(now-guardVoiceObservedAt>1000){guardVoiceState=null;guardVoiceObservedAt=0}return}
+ const next={phase:r.phase,hp:r.hp,attackTick:r.attackTick??-100,tick};
+ const cue=now-guardVoiceObservedAt<=1000?guardVoiceCue(guardVoiceState,next):null;
+ guardVoiceState=next;guardVoiceObservedAt=now;
+ if(!cue)return;
+ const dx=r.x-p.x,distance=Math.hypot(dx,r.y-p.y);
+ if(cue==='release'){if(distance<=700)A()?.play?.('choose');return} // no original release recording in the export
+ A()?.playGuardVoice?.(cue,distance,dx);
+}
 let arenaHeroVoiceState=null;
 function arenaHeroVoicePulse(){
  const p=N.me;if(!p)return;const wave=N.solo?N.soloWave:N.wave,level=p.level||1,hp=p.hp||0,low=hp>0&&hp/(p.maxHp||100)<=.35,kills=p.kills||0;
@@ -3291,6 +3319,7 @@ function arenaHeroVoicePulse(){
 function frame(now){
  if(N.phase!=='running'||document.hidden)return;
  arenaHeroVoicePulse();
+ arenaGuardVoicePulse(now);
  if(N.solo&&N.me&&(N.me.hp<=0||N.rule?.victory)){finishSoloRun(N.me.hp<=0?'dead':'victory');return}
  const canvas=el('ns140Canvas'),g=canvas?.getContext('2d');if(!g)return;
  const frameStart=performance.now();
