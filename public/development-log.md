@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 231 -->
+<!-- current-release: 232 -->
 <!-- reviewed: 2026-11-19 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V231 oznake ključeva i kanap iz sanduka, V230 kompaktan HUD, V229 vote-only pauza. LIVE V231 tek proveriti.
+- Razvoj: V232 tempo stvaranja neprijatelja približen Classic modu, glatka interpolacija pri pojačanju i promeni talasa; V231 loot obaveštenja i kanap. LIVE tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V232 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
+- Normal Nova zona SOLO/MP: 4 početna neprijatelja, 12 ukupno u prvom talasu; rast +8 po talasu do 180, cap aktivnih ostaje 38; interval 96 tickova (3,2 s) do 36 (1,2 s), batch 1–4, približavanje iz osam sektora, ciljna udaljenost 690 umesto 790 uz bezbedni minimum 620. Classic referenca je kod (4 početna, 27s vremenski talas), ne ponovni pregled videa. Zadržan kill-based završetak, bossovi i mrežna frekvencija. MP: normalno pojačanje ne briše istoriju postojećih protivnika/heroja; na promeni talasa brišu se samo stare mob pozicije uz isti render clock, da reciklirani ID ne vuče stari položaj. 94.266 izolovanih server provera u 54 scenarija (1–6 simuliranih igrača), 80 izolovanih interpolation provera; nisu fizički FPS/testovi. CI i LIVE tek proveriti.
+
 ### V231 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
 - Nova zona SOLO/MP: poruke pri promeni postojećeg stanja inventara: ključ za kovnicu, ključ trola za Temple, dijamanti i kanap za pećinu. Baseline pri ulasku/reconnectu sprečava lažne duplikate obaveštenja. Kanap jednokratni bonus iz map chest #3/#6/#9 ili sanduka posle talasa 3+ ako ranije nije nabavljen; postojeći izbor nagrade i kupovina u kovnici (58 XP) ostaju. Server potvrđuje isključivo pri zaključenju izbora i čuva postojeće expedition.rope kroz checkpoint; XP upgrade, sandbox, unutrašnja zona i defense isključeni. Nema novih periodičnih paketa. 16814 izolovanih provera eligibility, dedupe, SOLO/server pariteta i labela; klijentska sintaksa prošla. CI, LIVE i fizički telefoni nisu potvrđeni.
 
