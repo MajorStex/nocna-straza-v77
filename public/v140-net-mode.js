@@ -480,34 +480,46 @@ function arenaRescueInit(world){
  if(!safe)return null;
  for(const distance of [1100,900,700,500]){for(let i=0;i<48;i++){const a=i*2.39996323,x=Math.round(safe.x+Math.cos(a)*distance),y=Math.round(safe.y+Math.sin(a)*distance);if(arenaAcidClear(world,x,y,safe.x,safe.y,18)&&arenaAcidClear(world,x,y,x,y,32)){camp={x,y};break}}if(camp)break}
  if(!camp)return null;
- return {phase:0,x:camp.x,y:camp.y,safeX:safe.x,safeY:safe.y,hp:100,leader:'',hurtAt:0};
+ return {phase:0,x:camp.x,y:camp.y,safeX:safe.x,safeY:safe.y,hp:100,leader:'',hurtAt:0,companion:false,attackAt:0,attackTick:-100,face:1};
 }
 function arenaRescueRestore(world,v){const initial=arenaRescueInit(world);if(!initial||!v||!Number.isInteger(v.phase)||v.phase<0||v.phase>4||![v.x,v.y,v.safeX,v.safeY,v.hp,v.hurtAt].every(Number.isFinite))return initial;
  if(!arenaAcidClear(world,v.x,v.y,v.x,v.y,12)||v.safeX!==initial.safeX||v.safeY!==initial.safeY)return initial;
- return {...initial,phase:v.phase,x:v.x,y:v.y,hp:Math.max(0,Math.min(100,v.hp)),leader:/^p[1-6]$/.test(v.leader||'')?v.leader:'',hurtAt:v.hurtAt};
+ return {...initial,phase:v.phase,x:v.x,y:v.y,hp:Math.max(0,Math.min(100,v.hp)),leader:/^p[1-6]$/.test(v.leader||'')?v.leader:'',hurtAt:v.hurtAt,companion:v.companion===true&&(v.phase===2||v.phase===3),attackAt:Number.isFinite(v.attackAt)?v.attackAt:0,attackTick:Number.isFinite(v.attackTick)?v.attackTick:-100,face:v.face===-1?-1:1};
 }
-function arenaRescuePacket(r){return r?[r.phase,Math.round(r.x*10),Math.round(r.y*10),r.safeX,r.safeY,r.hp,r.leader]:null}
-function arenaRescueStep(r,players,mobs,world,tick,wave){
- if(!r||r.phase>=3||wave<5||tick%3!==0)return false;
+function arenaRescuePacket(r){return r?[r.phase,Math.round(r.x*10),Math.round(r.y*10),r.safeX,r.safeY,r.hp,r.leader,r.companion?1:0,r.attackTick||-100,r.face===-1?-1:1]:null}
+function arenaRescueStep(r,players,mobs,world,tick,wave,kill){
+ if(!r||r.phase===4||(r.phase===3&&!r.companion)||wave<5||tick%3!==0)return false;
  if(r.phase===0){r.phase=1;return true}
  const living=[...players.values()].filter(p=>p.online&&!p.background&&!p.paused&&!p.knocked&&!p.finalDead&&p.hp>0);
  if(!living.length)return false;
  const near=(a,b)=>(a.x-b.x)**2+(a.y-b.y)**2;
  if(r.phase===1){const p=living.filter(p=>near(p,r)<=75**2&&arenaAcidClear(world,p.x,p.y,r.x,r.y,3)).sort((a,b)=>near(a,r)-near(b,r)||a.id.localeCompare(b.id))[0];
   if(!p||mobs.some(m=>m.hp>0&&!m.labFrozen&&near(m,r)<125**2))return false;
-  r.phase=2;r.leader=p.id;r.hurtAt=tick+30;return true;
+  r.phase=2;r.companion=true;r.leader=p.id;r.hurtAt=tick+30;r.attackAt=tick+12;r.attackTick=-100;return true;
  }
  let p=living.find(p=>p.id===r.leader);
- if(!p||near(p,r)>620**2){p=living.filter(p=>near(p,r)<=620**2).sort((a,b)=>near(a,r)-near(b,r)||a.id.localeCompare(b.id))[0];r.leader=p?.id||''}
- if(p&&near(p,r)>62**2){const angle=Math.atan2(p.y-r.y,p.x-r.x),stride=Math.min(18,Math.sqrt(near(p,r))-52);
-  for(const shift of [0,.65,-.65,1.3,-1.3,1.9,-1.9]){const a=angle+shift,x=r.x+Math.cos(a)*stride,y=r.y+Math.sin(a)*stride;if(arenaAcidClear(world,r.x,r.y,x,y,12)){r.x=x;r.y=y;break}}
+ if(!p||near(p,r)>620**2){p=living.slice().sort((a,b)=>near(a,r)-near(b,r)||a.id.localeCompare(b.id))[0];r.leader=p?.id||''}
+ let target=null,best=Infinity;
+ // Single bounded scan at 10Hz; prioritize threats near the leader, never other players.
+ if(p&&near(p,r)<=165**2)for(const m of mobs){
+  if(m.hp<=0||m.labFrozen||m.expSleeping||near(m,p)>132**2)continue;
+  const d=near(m,r);if(d>145**2||d>=best)continue;
+  if(!arenaAcidClear(world,r.x,r.y,m.x,m.y,3))continue;target=m;best=d;
+ }
+ const moveTarget=target||p,stop=target?39:65;
+ if(moveTarget&&near(moveTarget,r)>stop**2){const angle=Math.atan2(moveTarget.y-r.y,moveTarget.x-r.x),stride=Math.min(17,Math.sqrt(near(moveTarget,r))-stop);
+  for(const shift of [0,.65,-.65,1.3,-1.3,1.9,-1.9]){const a=angle+shift,x=r.x+Math.cos(a)*stride,y=r.y+Math.sin(a)*stride;if(arenaAcidClear(world,r.x,r.y,x,y,12)){r.face=x<r.x?-1:1;r.x=x;r.y=y;break}}
+ }
+ if(target&&p&&near(target,r)<=50**2&&tick>=(r.attackAt||0)&&arenaAcidClear(world,r.x,r.y,target.x,target.y,3)){
+  r.attackAt=tick+30;r.attackTick=tick;r.face=target.x<r.x?-1:1;
+  target.hp=Math.max(0,target.hp-8);target.hitTick=tick;if(target.hp===0&&typeof kill==='function')kill(target,p);
  }
  if(tick>=r.hurtAt){r.hurtAt=tick+30;let attackers=0;
-  for(const m of mobs){if(m.hp<=0||m.labFrozen||near(m,r)>48**2||!arenaAcidClear(world,m.x,m.y,r.x,r.y,3))continue;if(++attackers>=2)break}
+  for(const m of mobs){if(m.hp<=0||m.labFrozen||m.expSleeping||near(m,r)>48**2||!arenaAcidClear(world,m.x,m.y,r.x,r.y,3))continue;if(++attackers>=2)break}
   r.hp=Math.max(0,r.hp-attackers*8);
  }
- if(r.hp<=0){r.phase=4;r.leader='';return true}
- if((r.x-r.safeX)**2+(r.y-r.safeY)**2<=92**2&&living.some(p=>near(p,r)<=150**2)){r.phase=3;r.leader='';for(const p of living)p.arenaShards=Math.min(999,(p.arenaShards||0)+3);return true}
+ if(r.hp<=0){r.phase=4;r.leader='';r.companion=false;return true}
+ if(r.phase===2&&(r.x-r.safeX)**2+(r.y-r.safeY)**2<=92**2&&living.some(p=>near(p,r)<=150**2)){r.phase=3;for(const p of living)p.arenaShards=Math.min(999,(p.arenaShards||0)+3);return true}
  return false;
 }
 // BEGIN V208 OBJECTIVES
@@ -1605,8 +1617,8 @@ function requestArenaTrade(id){
 function arenaRescueLabel(r){return !r||!r.phase?'':r.phase===1?'OSLOBODI ZAROBLJENIKA · OČISTI OKOLINU I PRIĐI KAVEZU':r.phase===2?(r.leader?'PRATI DO SEOSKE STRAŽE':'PRIĐI ZAROBLJENIKU')+' · '+r.hp+' HP':r.phase===3?'ZAROBLJENIK SPAŠEN · +3 ◇':'ZAROBLJENIK JE PAO'}
 function applyArenaRescue(v){
  const prev=N.rescue;
- if(!N.rescueSupported||!Array.isArray(v)||v.length!==7||!v.slice(0,6).every(Number.isFinite)||!Number.isInteger(v[0])||v[0]<0||v[0]>4||v[5]<0||v[5]>100||typeof v[6]!=='string'){N.rescue=null;N.rescueVisual=null;return}
- const next={phase:v[0],x:v[1]/10,y:v[2]/10,safeX:v[3],safeY:v[4],hp:v[5],leader:v[6]};
+ if(!N.rescueSupported||!Array.isArray(v)||![7,10].includes(v.length)||!v.slice(0,6).every(Number.isFinite)||!Number.isInteger(v[0])||v[0]<0||v[0]>4||v[5]<0||v[5]>100||typeof v[6]!=='string'){N.rescue=null;N.rescueVisual=null;return}
+ const next={phase:v[0],x:v[1]/10,y:v[2]/10,safeX:v[3],safeY:v[4],hp:v[5],leader:v[6],companion:v[7]===1,attackTick:Number.isFinite(v[8])?v[8]:-100,face:v[9]===-1?-1:1};
  const now=performance.now(),old=N.rescueVisual;const t=old?clamp((now-old.at)/100,0,1):1;
  if(!prev||prev.phase!==next.phase||!old||Math.hypot(next.x-prev.x,next.y-prev.y)>100)N.rescueVisual={x:next.x,y:next.y,tx:next.x,ty:next.y,at:now};
  else if(next.x!==old.tx||next.y!==old.ty)N.rescueVisual={x:old.x+(old.tx-old.x)*t,y:old.y+(old.ty-old.y)*t,tx:next.x,ty:next.y,at:now};
@@ -2348,7 +2360,7 @@ function stepSolo(dt){
   }
   showSoloCombatEvents(combatBefore);
   arenaExplorePickup(N.explore,N.players);expCollect(N.expedition,N.players);
-   if(!N.expedition?.id&&!LAB.enabled&&!N.explore?.invalid&&!LAB.freezeAI){const old=N.rescue?.phase;if(N.rule?.mode!=='defense'&&arenaRescueStep(N.rescue,N.players,N.soloMobs,N.world,N.soloTick,N.soloWave)&&old!==N.rescue.phase)announceArena(arenaRescueLabel(N.rescue));}
+   if(!N.expedition?.id&&!LAB.enabled&&!N.explore?.invalid&&!LAB.freezeAI){const old=N.rescue?.phase;if(N.rule?.mode!=='defense'&&arenaRescueStep(N.rescue,N.players,N.soloMobs,N.world,N.soloTick,N.soloWave,extraKill)&&old!==N.rescue.phase)announceArena(arenaRescueLabel(N.rescue));}
   arenaFieldKits(N.breakState,N.players,N.soloTick,(_,hp)=>{announceArena('ZAVOJ · +'+hp+' HP');A()?.play('choose')});
   stepSoloXpCrystals();
   if(!N.expedition?.id&&!LAB.enabled&&!N.explore?.invalid&&N.rule?.mode==='normal'&&fieldObjectiveStep(N.explore,N.players,N.world,N.soloTick,(p,n)=>{const c=p.xpCollected;addSoloRunXp(n);p.xpCollected=c}))announceArena('✓ ZADATAK ZAVRŠEN');
