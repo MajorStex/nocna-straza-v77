@@ -489,6 +489,56 @@ function arenaRescueRestore(world,v){const initial=arenaRescueInit(world);if(!in
 }
 function arenaRescuePacket(r){return r?[r.phase,Math.round(r.x*10),Math.round(r.y*10),r.safeX,r.safeY,Math.min(100,r.hp),r.leader]:null}
 function arenaRescueGuardPacket(r){return r?[r.hp,r.companion?1:0,r.attackTick??-100,r.face===-1?-1:1]:null}
+// V238: four deterministic classic-goblin sentries reuse existing mob IDs/snapshots.
+// Shared SOLO/MP code: no extra spawn stream, model or multiplayer fields.
+const CAGE_GUARD_COUNT=4;
+function arenaCageGuardsPlace(mobs,rescue,world,wave){
+ if(wave!==5||!rescue||!mobs||mobs.length<CAGE_GUARD_COUNT)return 0;
+ const points=[];
+ for(let i=0;i<CAGE_GUARD_COUNT;i++){
+  let found=null;
+  for(let k=0;k<56&&!found;k++){
+   const a=i*Math.PI/2+((k%8)-3.5)*.13,r=84+Math.floor(k/8)*13;
+   const x=Math.round(rescue.x+Math.cos(a)*r),y=Math.round(rescue.y+Math.sin(a)*r);
+   if(!arenaAcidClear(world,x,y,x,y,15)||points.some(p=>(p.x-x)**2+(p.y-y)**2<50**2))continue;
+   found={x,y};
+  }
+  if(!found)return 0;points.push(found);
+ }
+ for(let i=0;i<CAGE_GUARD_COUNT;i++){
+  const m=mobs[i],p=points[i];
+  Object.assign(m,{kind:'goblin',bodyRadius:undefined,heavyCast:null,wormHold:false,wormWindup:0,
+   hp:71,maxHp:71,moveSpeed:108,cageGuard:true,guardX:p.x,guardY:p.y,guardActive:false,
+   x:p.x,y:p.y,sx:p.x,sy:p.y,prevX:p.x,prevY:p.y,animX:p.x,animY:p.y,
+   vx:0,vy:0,targetId:'',retargetAt:0,attackAt:30+i*5,attackTick:-100,hitTick:-100});
+ }
+ return CAGE_GUARD_COUNT;
+}
+// Guard is idle until approached; after combat it returns to its original post.
+// Only four sentries are ever inspected, every third simulation tick (10 Hz).
+function arenaCageGuardsStep(mobs,players,world,tick){
+ if(tick%3!==0)return;
+ const living=[...players.values()].filter(p=>p.online!==false&&p.hp>0&&!p.knocked&&!p.finalDead&&!p.background&&!p.paused);
+ for(const m of mobs){
+  if(!m.cageGuard||m.hp<=0)continue;
+  const nearest=living.filter(p=>(p.x-m.x)**2+(p.y-m.y)**2<=265**2&&(p.x-m.guardX)**2+(p.y-m.guardY)**2<=430**2)
+   .sort((a,b)=>((a.x-m.x)**2+(a.y-m.y)**2)-((b.x-m.x)**2+(b.y-m.y)**2)||String(a.id).localeCompare(String(b.id)))[0];
+  const tracked=living.find(p=>p.id===m.targetId&&(p.x-m.guardX)**2+(p.y-m.guardY)**2<=400**2);
+  const homeDist=(m.x-m.guardX)**2+(m.y-m.guardY)**2;
+  m.guardActive=!!(homeDist<=450**2&&(nearest||(m.guardActive&&tracked)));
+  if(m.guardActive){
+   if(nearest)m.targetId=nearest.id;
+   continue;
+  }
+  m.targetId='';m.vx=m.vy=0;
+  if(homeDist<=9**2)continue;
+  const d=Math.sqrt(homeDist),step=Math.min(12,d),a=Math.atan2(m.guardY-m.y,m.guardX-m.x);
+  for(const shift of [0,.6,-.6,1.2,-1.2]){
+   const x=m.x+Math.cos(a+shift)*step,y=m.y+Math.sin(a+shift)*step;
+   if(arenaAcidClear(world,m.x,m.y,x,y,13)){m.x=x;m.y=y;break}
+  }
+ }
+}
 function arenaRescueStep(r,players,mobs,world,tick,wave,kill){
  if(!r||r.phase===4||(r.phase===3&&!r.companion)||wave<5||tick%3!==0)return false;
  if(r.phase===0){r.phase=1;return true}
@@ -496,7 +546,7 @@ function arenaRescueStep(r,players,mobs,world,tick,wave,kill){
  if(!living.length)return false;
  const near=(a,b)=>(a.x-b.x)**2+(a.y-b.y)**2;
  if(r.phase===1){const p=living.filter(p=>near(p,r)<=75**2&&arenaAcidClear(world,p.x,p.y,r.x,r.y,3)).sort((a,b)=>near(a,r)-near(b,r)||a.id.localeCompare(b.id))[0];
-  if(!p||mobs.some(m=>m.hp>0&&!m.labFrozen&&near(m,r)<125**2))return false;
+  if(!p||mobs.some(m=>m.hp>0&&(m.cageGuard||(!m.labFrozen&&near(m,r)<125**2))))return false;
   r.phase=2;r.companion=true;r.leader=p.id;r.hurtAt=tick+30;r.attackAt=tick+12;r.attackTick=-100;return true;
  }
  let p=living.find(p=>p.id===r.leader);
@@ -1620,7 +1670,7 @@ function requestArenaTrade(id){
 // Original verified character catalog cc-mwmurfo8-i81d. Shared public asset, no account reads.
 const RESCUE_GUARD_SPEC=Object.freeze({"id":"cc-mwmurfo8-i81d","name":"Noćni stražar","role":"enemy","race":"human","helmet":"iron","torso":"plate","shoulders":"round","arms":"bracers","legs":"leather","boots":"heavy","weapon":"sword","offhand":"shield","gait":"natural","behavior":"melee","skin":"#cfaa85","armor":"#647b77","accent":"#d5b173","size":0.95,"leg":1,"arm":1,"width":0.85,"head":1,"hp":140,"speed":145,"damage":24,"armorPoints":5,"growth":7,"attackRate":0.85,"mana":100,"manaRegen":7,"abilities":[{"type":"none","name":"","mana":22,"cooldown":5,"power":35,"range":165,"duration":3,"unlock":1},{"type":"none","name":"","mana":22,"cooldown":5,"power":35,"range":165,"duration":3,"unlock":1}],"ai":{"v":1,"mode":"hunt","reaction":"hostile","radius":120,"vision":650,"leash":650,"wait":1.3,"pace":0.55,"flee":0},"boss":{"v":1,"enabled":false,"phase2":70,"phase3":35,"rage":25,"special":"slam","power":28,"radius":85,"windup":1.3,"cooldown":9},"classicModel":""});
 const RESCUE_PRISONER_SPEC=Object.freeze({...RESCUE_GUARD_SPEC,offhand:'none'});
-function arenaRescueLabel(r){return !r||!r.phase?'':r.phase===1?'OSLOBODI NOĆNOG STRAŽARA · OČISTI OKOLINU I PRIĐI KAVEZU':r.phase===2?(r.leader?'PRATI DO SEOSKE STRAŽE':'PRIĐI ZAROBLJENIKU')+' · '+r.hp+' HP':r.phase===3?'NOĆNI STRAŽAR · SAVEZNIK · '+r.hp+' HP':'NOĆNI STRAŽAR JE PAO'}
+function arenaRescueLabel(r){return !r||!r.phase?'':r.phase===1?'OSLOBODI NOĆNOG STRAŽARA · PORAZI 4 GOBLINA I PRIĐI KAVEZU':r.phase===2?(r.leader?'PRATI DO SEOSKE STRAŽE':'PRIĐI ZAROBLJENIKU')+' · '+r.hp+' HP':r.phase===3?'NOĆNI STRAŽAR · SAVEZNIK · '+r.hp+' HP':'NOĆNI STRAŽAR JE PAO'}
 function applyArenaRescue(v,guard){
  const prev=N.rescue;
  if(!N.rescueSupported||!Array.isArray(v)||v.length!==7||!v.slice(0,6).every(Number.isFinite)||!Number.isInteger(v[0])||v[0]<0||v[0]>4||v[5]<0||v[5]>100||typeof v[6]!=='string'){N.rescue=null;N.rescueVisual=null;return}
@@ -2128,7 +2178,7 @@ function stepSoloAllies(){
  }
 }
 function startSoloHorde(wave){
- N.acidShots=[];N.soloBatch=0;const progressive=!LAB.enabled&&LAB.customCount===null&&N.rule?.mode==='normal';N.soloTotal=progressive?arenaIngressTotal(wave):arenaRuleCount(N.rule,labDefaultCount(wave));N.soloMobs=buildSoloWave(wave,progressive?arenaIngressFirst(wave):LAB.customCount===null?arenaRuleCount(LAB.enabled?null:N.rule,labDefaultCount(wave)):LAB.customCount,0,progressive);if(LAB.enabled||LAB.customCount!==null)N.soloTotal=N.soloMobs.length;N.soloReserve=Math.max(0,N.soloTotal-N.soloMobs.length);
+ N.acidShots=[];N.soloBatch=0;const progressive=!LAB.enabled&&LAB.customCount===null&&N.rule?.mode==='normal';N.soloTotal=progressive?arenaIngressTotal(wave):arenaRuleCount(N.rule,labDefaultCount(wave));N.soloMobs=buildSoloWave(wave,progressive?arenaIngressFirst(wave):LAB.customCount===null?arenaRuleCount(LAB.enabled?null:N.rule,labDefaultCount(wave)):LAB.customCount,0,progressive);if(!LAB.enabled&&N.rule?.mode!=='defense'&&!N.expedition?.id)arenaCageGuardsPlace(N.soloMobs,N.rescue,N.world,wave);if(LAB.enabled||LAB.customCount!==null)N.soloTotal=N.soloMobs.length;N.soloReserve=Math.max(0,N.soloTotal-N.soloMobs.length);
 }
 function nextSoloHorde(){
  if(!(N.soloReserve>0))return false;const next=buildSoloWave(N.soloWave,N.soloReserve,(N.soloBatch||0)+1);if(!next.length)return false;N.soloBatch=(N.soloBatch||0)+1;N.soloReserve-=next.length;N.acidShots=[];N.soloMobs=next;N.soloCrowd.clear();announceArena('STIŽE POJAČANJE · '+next.length);return true;
@@ -2329,7 +2379,8 @@ function stepSolo(dt){
   // Fixed physics 30Hz, steering only at 15Hz, interpolation at display FPS.
   for(const mob of N.soloMobs){mob.prevX=mob.x;mob.prevY=mob.y}
   if(!LAB.freezeAI){
-   const goblins=N.soloMobs;
+   if(!LAB.enabled&&!N.expedition?.id)arenaCageGuardsStep(N.soloMobs,N.players,N.world,N.soloTick);
+   const goblins=N.soloMobs.filter(m=>!m.cageGuard||m.guardActive);
    const locked=goblins.filter(m=>m.labFrozen).map(m=>[m,m.x,m.y]);
    const siege=!LAB.enabled&&!N.expedition?.id?arenaDefenseGroups(N.rule,goblins,N.soloTick):null;
    if(N.soloTick%2===0){N.soloCrowd.step(siege?siege.normal:goblins,N.players,N.soloTick);if(siege)N.soloCrowd.step(siege.raid,siege.targets,N.soloTick)}
@@ -2343,7 +2394,7 @@ function stepSolo(dt){
   if(!LAB.freezeAI&&!LAB.enabled&&!N.expedition?.id&&arenaDefenseStep(N.rule,N.soloMobs,N.world,N.soloTick,N.soloWave)){showSoloCombatEvents(combatBefore);finishSoloRun('defeat');return}
   if(LAB.allies.length)stepSoloAllies();
   if(!LAB.freezeAI)for(const mob of N.soloMobs){
-   if(mob.hp<=0||mob.labFrozen||(mob.kind==='worm'||arenaSpecial(mob)))continue; // no individual respawns during a wave
+   if(mob.hp<=0||mob.labFrozen||(mob.cageGuard&&!mob.guardActive)||(mob.kind==='worm'||arenaSpecial(mob)))continue; // no individual respawns during a wave
    const d2=(me.x-mob.x)**2+(me.y-mob.y)**2;
    if(!LAB.godMode&&d2<=(mob.kind==='troll'?65:34)**2&&N.soloTick>mob.attackAt&&N.soloTick>N.soloInvul&&arenaAcidClear(N.world,mob.x,mob.y,me.x,me.y,3)){
     me.hp=Math.max(0,me.hp-arenaIncoming(me,Math.min(mob.kind==='troll'?60:30,Math.round((mob.kind==='troll'?17:7)*(1+.06*(N.soloWave-1))))));N.hurtUntil=performance.now()+290;
