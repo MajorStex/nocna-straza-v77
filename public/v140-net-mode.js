@@ -17,10 +17,10 @@ const ARENA_SPELLS=[
   {id:'heal',icon:'✚',en:'Healing Circle',sr:'Krug lečenja',cost:36,price:11,cd:15,radius:135,damage:0,heal:28,range:290,color:'#8be3b2',audio:660,cap:6},
   {id:'nova',icon:'✺',en:'Arcane Nova',sr:'Magični talas',cost:61,price:22,cd:19,radius:150,damage:68,range:325,color:'#d2aaff',audio:190,cap:9}
  ];
-function arenaSpellInit(p,cls){const mage=cls==='mage',max=mage?102:64;if(!Number.isFinite(p.spellMana)){p.spellMana=max;p.spellCd=Array(8).fill(0)}p.spellMax=max;p.spellMana=Math.min(max,p.spellMana);p.spellRegen=mage?4.3:2.5;if(!Array.isArray(p.spellCd)||p.spellCd.length!==8)p.spellCd=Array(8).fill(0)}
+function arenaSpellInit(p,cls){const mage=cls==='mage',max=(mage?102:64)+(p.baseManaBonus||0);if(!Number.isFinite(p.spellMana)){p.spellMana=max;p.spellCd=Array(8).fill(0)}p.spellMax=max;p.spellMana=Math.min(max,p.spellMana);p.spellRegen=(mage?4.3:2.5)+(p.baseManaRegen||0);if(!Array.isArray(p.spellCd)||p.spellCd.length!==8)p.spellCd=Array(8).fill(0)}
 function arenaSpellTick(p,cls){arenaSpellInit(p,cls);p.spellMana=Math.min(p.spellMax,p.spellMana+p.spellRegen/30)}
 function arenaSpellState(p,tick){return [Math.round((p.spellMana||0)*10),p.spellMax||64,(p.spellCd||Array(8).fill(0)).map(t=>Math.max(0,t-tick)),p.spellSeq||0]}
-function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill,damageRule,clearPath}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2||(clearPath&&!clearPath(p,{x,y})))return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.bodyRadius||(m.kind==='troll'?34:14)),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2&&(!clearPath||clearPath({x,y},m)))victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(['troll','rotfiend','boss','werewolfAlpha','dragon'].includes(m.kind)?.48:1)*(cls==='mage'?1.09:1)));m.hp=Math.max(0,m.hp-Math.max(0,damageRule?damageRule(p,m,damage):damage));m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
+function arenaSpellCast({p,players,mobs,world,tick,cls,slot,x,y,kill,damageRule,clearPath}){if(!p||p.hp<=0||p.knocked||!Number.isInteger(slot)||!ARENA_SPELLS[slot]||!Number.isFinite(x)||!Number.isFinite(y))return false;arenaSpellInit(p,cls);const s=ARENA_SPELLS[slot];if(tick<(p.spellTryAt??-100)+5||tick<(p.spellCd[slot]||0)||p.spellMana<s.cost||x<30||y<30||x>world.w-30||y>world.h-30||(p.x-x)**2+(p.y-y)**2>s.range**2||(clearPath&&!clearPath(p,{x,y})))return false;p.spellTryAt=tick;p.spellMana-=s.cost;p.spellCd[slot]=tick+Math.round(s.cd*30);if(s.heal){for(const a of players.values()){if(a.hp<=0||a.knocked||a.online===false||(a.x-x)**2+(a.y-y)**2>=s.radius**2)continue;a.hp=Math.min(a.maxHp||100,a.hp+s.heal)}}else{const victims=[];for(const m of mobs){if(m.hp<=0)continue;const radius=s.radius+(m.bodyRadius||(m.kind==='troll'?34:14)),d=(m.x-x)**2+(m.y-y)**2;if(d<=radius**2&&(!clearPath||clearPath({x,y},m)))victims.push({m,d,radius})}victims.sort((a,b)=>a.d-b.d||a.m.id-b.m.id);for(let i=0;i<Math.min(s.cap,victims.length);i++){const {m,d,radius}=victims[i],damage=Math.max(1,Math.round(s.damage*Math.max(.42,1-Math.sqrt(d)/radius*.5)*(['troll','rotfiend','boss','werewolfAlpha','dragon'].includes(m.kind)?.48:1)*(cls==='mage'?1.09:1)*(p.baseSpellPower||1)));m.hp=Math.max(0,m.hp-Math.max(0,damageRule?damageRule(p,m,damage):damage));m.hitTick=tick;if(s.slow){m.spellSlowUntil=Math.max(m.spellSlowUntil||0,tick+Math.round(s.slow*30));m.spellSlowFactor=.69}if(m.hp===0)kill(m,p)}}return [tick*6+Number(p.id.slice(1))-1,slot,Math.round(x),Math.round(y),tick]}
 function arenaSpellExpire(mobs,tick){for(const m of mobs)if(m.spellSlowFactor&&tick>=m.spellSlowUntil){m.spellSlowFactor=0;m.spellSlowUntil=0}}
 function arenaSpellEvents(events,tick){return events.filter(e=>tick-e[4]<=24).slice(-18)}
 // END V189 SPELL MECHANICS
@@ -1349,6 +1349,7 @@ function status(note){
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
 function stop(notify=false){
+ if(N.mpProgressToken)B().arenaMpCancel?.(N.mpProgressToken);N.mpProgressToken=null;
  arenaHeroVoiceState=null;N.watchId='';N.mpResult=null;if(el('ns228Spectate'))el('ns228Spectate').hidden=true;
  if(N.soloResultToken)B().arenaSoloCancel?.(N.soloResultToken);N.soloResultToken=null;N.soloResult=null;el('ns140Root')?.classList.remove('ns206Ended');if(el('ns206Results'))el('ns206Results').hidden=true;
  resetArenaMagic();resetArenaMap();N.prepareAttempt=(N.prepareAttempt||0)+1;
@@ -2231,6 +2232,9 @@ function finishArenaMp(message){
  const team=rows.filter(q=>q&&/^p[1-6]$/.test(q.id)).slice(0,6).map(q=>({id:q.id,name:String(q.name||q.id).slice(0,24),kills:count(q.kills),level:Math.max(1,count(q.level,1000)),crystals:count(q.crystals),revives:count(q.revives,3)}));
  const own=team.find(p=>p.id===N.id)||{},reason=message.reason==='victory'?'victory':message.reason==='village_destroyed'?'defeat':'dead';
  N.mpResult={mp:true,team,stats:{kills:own.kills||0,seconds:count(raw?.seconds??N.tick/30,86400),wave:Math.max(1,count(raw?.wave??N.wave,10000)),level:own.level||1,crystals:own.crystals||0,bosses:N.explore?.trolls||0,chests:N.explore?.chests||0,mode:arenaRuleMode(N.rule?.mode),reason}};
+ // Only an explicit new relay end packet is eligible; never settle a guessed fallback.
+ if(raw?.progression===233&&raw.blocked===false&&raw.players?.find(q=>q.id===N.id)?.eligible===true&&['team_wipe','village_destroyed','victory'].includes(message.reason)){try{N.mpResult.reward=B().arenaMpFinish?.(N.mpProgressToken,N.match,N.id,{...N.mpResult.stats,mode:arenaRuleMode(raw.mode),bosses:0,chests:0,blocked:false})||null}catch(e){console.warn('MP reward settlement failed',e)}}
+ if(N.mpProgressToken)B().arenaMpCancel?.(N.mpProgressToken);N.mpProgressToken=null;
  releaseArenaRevive();N.phase='ended';N.paused=false;N.pending=[];N.keys.clear();N.stick.ptr=null;N.stick.x=N.stick.y=0;
  try{window.NS159_VOICE?.stop();closeArenaMenu(false);window.NS160_LAB?.close();A()?.stop()}catch{}
  if(el('ns228Spectate'))el('ns228Spectate').hidden=true;if(el('ns152Choice'))el('ns152Choice').hidden=true;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;setArenaMap(false);
@@ -2248,15 +2252,24 @@ function showSoloResults(result){
  const s=result.stats,r=result.reward||{},duration=String(Math.floor(s.seconds/60)).padStart(2,'0')+':'+String(s.seconds%60).padStart(2,'0');
  add(card,'small','NOVA ZONA · '+(result.mp?'MULTIPLAYER · ':'')+s.mode.toUpperCase());add(card,'h2',s.reason==='victory'?'POBEDA':s.reason==='defeat'?'SELO JE PALO':result.mp?'TIM JE PAO':'STRAŽAR JE PAO');add(card,'p','Rezultati završene partije');
  const grid=add(card,'div',undefined,'ns206Grid');for(const [label,v] of [['UBISTVA',s.kills],['VREME BORBE',duration],['TALAS',s.wave],['NIVO U PARTIJI',s.level],['BOSSOVI',s.bosses],['XP KRISTALI',s.crystals]]){const t=add(grid,'div',undefined,'ns206Tile');add(t,'small',label);add(t,'b',String(v))}
- if(result.mp){const team=add(card,'div',undefined,'ns206Reward');add(team,'strong','STATISTIKA TIMA');for(const p of result.team){add(team,'p',p.name+(p.id===N.id?' (TI)':'')+' · '+p.kills+' kill · lvl '+p.level+' · '+p.crystals+' XP · revive '+p.revives+'/3')}const buttons=add(card,'div',undefined,'ns206Buttons');const b=add(buttons,'button','PONOVO IGRAJ · LOBBY');b.type='button';b.onclick=()=>{if(b.disabled)return;b.disabled=true;stop(false)};add(team,'p','Vratite se u istu sobu i pokrenite novu partiju.');return}
- const rewards=add(card,'div',undefined,'ns206Reward');add(rewards,'strong','TRAJNI NAPREDAK HEROJA');
+ if(result.mp){const team=add(card,'div',undefined,'ns206Reward');add(team,'strong','STATISTIKA TIMA');for(const p of result.team){add(team,'p',p.name+(p.id===N.id?' (TI)':'')+' · '+p.kills+' kill · lvl '+p.level+' · '+p.crystals+' XP · revive '+p.revives+'/3')}const buttons=add(card,'div',undefined,'ns206Buttons');const b=add(buttons,'button','PONOVO IGRAJ · LOBBY');b.type='button';b.onclick=()=>{if(b.disabled)return;b.disabled=true;stop(false)};if(result.reward)add(team,'p','✦ +'+(r.honor||0)+' Honor Points · +'+(r.heroXp||0)+' XP heroja · +'+(r.points||0)+' talenata');else add(team,'p','Trajna nagrada nije potvrđena za ovu partiju.');const base=add(buttons,'button','✦ GUARDIAN BASE');base.type='button';base.onclick=()=>showArenaBaseResults(result,card);add(team,'p','Vratite se u istu sobu i pokrenite novu partiju.');return}
+ const rewards=add(card,'div',undefined,'ns206Reward');add(rewards,'strong','TRAJNI NAPREDAK HEROJA');add(rewards,'p','✦ +'+(r.honor||0)+' HONOR POINTS · UKUPNO '+(r.honorBalance??B().meta?.points??0));
  add(rewards,'p','+'+(r.heroXp||0)+' XP heroja · +'+(r.points||0)+' poena za talente · +'+(r.coins||0)+' profilnih poena');
  if(r.level){add(rewards,'p',(r.heroName||'STRAŽAR')+' · NIVO '+r.level+(r.free?' · '+r.free+' slobodnih poena':''));const track=add(rewards,'div',undefined,'ns206Track'),fill=add(track,'div',undefined,'ns206Fill');fill.style.width=(r.need?clamp(100*r.inside/r.need,0,100):100)+'%'}
  add(rewards,'p',s.blocked?'Sandbox / izmenjena partija — bez trajnih nagrada.':!result.reward?'Nagrada nije potvrđena za ovaj profil.':r.coins?'Napredak je obračunat jednom za ovu partiju.':'Za nagradu je potrebno najmanje 60 s aktivne borbe i 10 ubistava.');
  const buttons=add(card,'div',undefined,'ns206Buttons');const button=(label,fn)=>{const b=add(buttons,'button',label);b.type='button';b.onclick=()=>{if(b.disabled)return;for(const x of buttons.children)x.disabled=true;fn()}};
- button('PONOVO IGRAJ',()=>{stop(false);startSolo(s.mode)});button('NADOGRADI HEROJA',()=>stop(false));button('GLAVNI MENI',()=>{stop(false);window.__nightWatch?.showMenu?.()});
+ button('PONOVO IGRAJ',()=>{stop(false);startSolo(s.mode)});button('NADOGRADI HEROJA',()=>stop(false));const base=add(buttons,'button','✦ GUARDIAN BASE');base.type='button';base.onclick=()=>showArenaBaseResults(result,card);button('GLAVNI MENI',()=>{stop(false);window.__nightWatch?.showMenu?.()});
 }
 
+// Reuse the existing base data and purchase method without changing menu/lobby state.
+function showArenaBaseResults(result,card){
+ const view=B().arenaBaseView?.();if(!view)return;
+ card.replaceChildren();
+ const add=(tag,value,cls)=>{const x=document.createElement(tag);if(cls)x.className=cls;x.textContent=value;card.append(x);return x};
+ const back=add('button','← NAZAD');back.type='button';back.onclick=()=>showSoloResults(result);
+ add('h2','GUARDIAN BASE');add('p','✦ '+view.points+' HONOR POINTS');
+ for(const item of view.items){const btn=add('button',item.name+' · '+item.rank+'/3 · '+(item.rank===3?'MAKSIMALNO':item.cost+' ✦'));btn.type='button';btn.style.cssText='display:block;width:100%;margin-top:6px;text-align:left';btn.disabled=item.rank>=3||view.points<item.cost;btn.onclick=()=>{if(B().arenaBuyBase?.(item.id))showArenaBaseResults(result,card)};add('p',item.desc)}
+}
 function stepSolo(dt){
  if(!N.solo||!N.me||N.rule?.victory)return;
  N.soloAcc=Math.min(.15,N.soloAcc+dt);
@@ -2570,7 +2583,7 @@ function connect(match,id,ticket,rejoin=false){
   N.arrivalJitter=0;N.interpolationTicks=3;N.rejoinCorrection=false;
   N.wave=1;N.waveState='play';N.choice=null;N.choiceUiId='';N.chests=[];N.drops=[];N.lastMyHp=null;N.hurtUntil=0;
  }
- N.match=match;N.id=id;N.ticket=ticket;if(!rejoin){captureArenaAccount();N.paused=false;}
+ N.match=match;N.id=id;N.ticket=ticket;if(!rejoin){captureArenaAccount();N.paused=false;N.mpProgressToken=B().arenaMpBegin?.(match,id)||null;N.mpBaseRanks=B().arenaBaseRanks?.()||[0,0,0,0,0];}
  N.phase=rejoin?'reconnecting':'connecting';
  status('V168 · '+(rejoin?'VRAĆAM ISTOG IGRAČA':'POVEZIVANJE NA NOVI SERVER')+'...');
  let ws;
@@ -2587,7 +2600,7 @@ function connect(match,id,ticket,rejoin=false){
   // Legacy V152 rejects >500-byte hello packets. Negotiate before sending looks.
   N.lookSyncEnabled=false;N.lastLookSignature=JSON.stringify(localArenaLook());
   N.lastLookCheck=performance.now();rememberLook(id,0,localArenaLook());
-  ws.send(JSON.stringify({t:'hello',id,ticket,protocol:140,startAck:1}));
+  ws.send(JSON.stringify({t:'hello',id,ticket,protocol:140,startAck:1,baseRanks:N.mpBaseRanks||[0,0,0,0,0]}));
  };
  ws.onmessage=e=>{
   if(N.ws!==ws)return;let m;try{m=JSON.parse(e.data)}catch{return}
