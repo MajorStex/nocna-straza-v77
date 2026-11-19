@@ -6,7 +6,7 @@
 if(window.NS177_WORKSHOP)return;
 const B=()=>window.__NS110_BRIDGE,C=()=>window.NS171_CREATOR,S=()=>window.NS176_SCENES,V=()=>window.NS159_VOICE;
 const $=id=>document.getElementById(id),now=()=>performance.now(),seat=id=>/^p[1-6]$/.test(id||''),clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),finite=(n,d=0)=>Number.isFinite(n)?n:d;
-const W=780,H=500,MAX=12,PREFIX='ns177Workshop';let mapW=W,mapH=H;function setWorldBounds(world){const b=S().worldBounds(world);mapW=b.w;mapH=b.h;}
+const W=780,H=500,MAX=24,PREFIX='ns177Workshop';let mapW=W,mapH=H;function setWorldBounds(world){const b=S().worldBounds(world);mapW=b.w;mapH=b.h;}
 let mode='',room='',owner='',epoch='',seq=0,rev=0,lastSend=0,lastMove=0,lastJoin=0,lastStatus=0,lastVoice=0,manifest=null,signature='',guests=new Map(),proposals=new Map(),view=null,canvas=null,g=null,raf=0,lastFrame=0,dirty=true,remoteRows=new Map(),remotePlayers=new Map(),remoteFx=[],remoteSeq=-1,remoteRev=-1,lastRx=0,lastManifestAt=0,stick={id:null,x:0,y:0,dx:0,dy:0},keys=new Set(),restore=null,savedId='',waiting='',hostUid=new WeakMap(),uid=0,localPos=null;
 const net=()=>B()?.NET,Q=()=>window.NS178_SOCIAL;let guestImmersive=false,guestZoom=1,allowPlacement=false,actionSeq=0,heroRevision=0,remoteReady=false,remotePaused=false,remoteUsedProps=0,remoteSceneTime=0;let enteredRoom='',pendingPromote=null,guestEditing=false,offers=new Map(),clipAt=-10000,guestClipAt=-10000;
 const lobby=()=>net()?.phase==='lobby'&&['host','guest'].includes(net()?.role);
