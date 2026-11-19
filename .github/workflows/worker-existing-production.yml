@@ -84,6 +84,8 @@ jobs:
         run: node tests/v166-classic-sync.test.cjs
       - name: V237 exact shared guard audio and state transitions
         run: node tests/v237-guard-voice.test.cjs
+      - name: V238 cave goblin guard SOLO and identical sentry AI tests
+        run: node tests/v238-cage-guards.test.cjs
       - name: Verify portrait lobby width at 320/360/393/412px on actual Chromium
         run: |
           npm install --no-save --no-package-lock playwright-core@1.58.2
