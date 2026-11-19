@@ -1821,8 +1821,10 @@ function snapshot(m){
  N.waveReserve=Number.isInteger(m.waveReserve)&&m.waveReserve>=0&&m.waveReserve<=N.waveTotal?m.waveReserve:0;
  const batch=Number.isInteger(m.waveBatch)?m.waveBatch:0,batchChanged=N.waveBatch!==batch;N.waveBatch=batch;
  if(Array.isArray(m.mobs)){
-  const waveChanged=N.wave!==priorWave||batchChanged;
-  if(waveChanged){N.mobHistory=[];N.mobRenderTick=null;}
+  // Normal ingress appends mobs; keep the shared render clock and hero history.
+  const progressive=N.rule?.mode==='normal'&&!LAB_REMOTE?.enabled;
+  const waveChanged=N.wave!==priorWave||(!progressive&&batchChanged);
+  if(waveChanged){for(const sample of N.mobHistory)sample.positions.clear();}
   const previous=new Map(waveChanged?[]:N.mpMobs.map(q=>[q.id,q]));
   N.mpMobs=m.mobs.filter(q=>Array.isArray(q)&&Number.isInteger(q[0])&&q[0]>=0&&(q[0]<267||(N.expSupported&&N.expedition?.id&&q[0]>=300&&q[0]<=306))&&
    Number.isFinite(q[1])&&Number.isFinite(q[2])&&Number.isFinite(q[3])).map(q=>{
@@ -1921,9 +1923,12 @@ function soloHordePoints(){
  return N.soloSpawnCache=points;
 }
 // BEGIN V211 STAGGERED INGRESS — bounded, deterministic, shared by Solo and relay.
-function arenaIngressTotal(wave){return Math.min(180,24+Math.max(0,wave-1)*8)}
+// V232: approach the Classic opening tempo while retaining kill-based waves.
+function arenaIngressTotal(wave){return Math.min(180,12+Math.max(0,wave-1)*8)}
 function arenaIngressCap(wave){return Math.min(38,12+Math.floor(Math.max(0,wave-1)*1.5))}
-function arenaIngressFirst(wave){return Math.min(9,3+Math.floor((wave-1)/4)+(wave%10===0?3:0))}
+function arenaIngressFirst(wave){return Math.min(9,4+Math.floor((wave-1)/4)+(wave%10===0?3:0))}
+function arenaIngressInterval(wave){return Math.max(36,96-6*Math.max(0,wave-1))}
+function arenaIngressBatch(wave){return Math.min(4,1+Math.floor(Math.max(0,wave-1)/3))}
 function arenaIngressSpeed(m,wave){if(!['troll','boss','rotfiend','werewolfAlpha','dragon'].includes(m.kind))m.moveSpeed=Math.round((m.moveSpeed||98)*Math.min(1,.67+Math.max(0,wave-1)*.018));return m}
 function arenaIngressPick(points,count,players,mobs,world,batch){
  const living=[...players.values()].filter(p=>p.hp>0&&!p.knocked&&!p.finalDead&&p.online!==false);
@@ -1934,7 +1939,7 @@ function arenaIngressPick(points,count,players,mobs,world,batch){
   let nearest=null,ds=Infinity;for(const p of living){const d=(x-p.x)**2+(y-p.y)**2;if(d<ds){ds=d;nearest=p}}
   if(ds<620**2||ds>1500**2||used.some(m=>(m.x-x)**2+(m.y-y)**2<96**2))continue;
   const angle=Math.atan2(y-nearest.y,x-nearest.x),sector=(Math.floor((angle+Math.PI)/(Math.PI/4))+8)%8;
-  sectors[sector].push({pt,dist:Math.sqrt(ds),rank:Math.abs(Math.sqrt(ds)-790),i});
+  sectors[sector].push({pt,dist:Math.sqrt(ds),rank:Math.abs(Math.sqrt(ds)-690),i});
  }
  for(const group of sectors)group.sort((a,b)=>a.rank-b.rank||a.i-b.i);
  const out=[];for(let pass=0;pass<3&&out.length<count;pass++)for(let i=0;i<8&&out.length<count;i++){
@@ -1943,11 +1948,11 @@ function arenaIngressPick(points,count,players,mobs,world,batch){
  return out;
 }
 function arenaIngressReinforce(mobs,reserve,wave,batch,tick,make){
- if(reserve<=0||tick%36!==0)return 0;
+ if(reserve<=0||tick%arenaIngressInterval(wave)!==0)return 0;
  const alive=mobs.reduce((n,m)=>n+(m.hp>0?1:0),0);
  // Recycle expired corpses only after their interpolation history can no longer reference them.
  for(let i=mobs.length-1;i>=0;i--)if(mobs[i].hp<=0&&tick>(mobs[i].deadUntil||0)+30)mobs.splice(i,1);
- const n=Math.min(reserve,Math.max(0,arenaIngressCap(wave)-alive),Math.min(7,1+Math.floor(wave/4)+batch%3));
+ const n=Math.min(reserve,Math.max(0,arenaIngressCap(wave)-alive),arenaIngressBatch(wave));
  if(n<=0)return 0;
  const slots=new Set(mobs.map(m=>m.id)),free=[];for(let i=0;i<160;i++)if(i!==95&&!slots.has(i))free.push(i);
  const fresh=make(Math.min(n,free.length),batch+1),added=Math.min(fresh.length,free.length);
