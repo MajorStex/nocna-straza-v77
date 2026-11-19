@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify exact client release assets and relay release marker
         env:
-          EXPECTED_RELAY_RELEASE: '226'
+          EXPECTED_RELAY_RELEASE: '227'
           EXPECTED_PREVIEW_RELAY_SHA: '02171c9f9b91ea720216e711f9146be2a32237c1'
         run: |
           python3 - <<'PY'
@@ -33,7 +33,7 @@ jobs:
           if not release: raise SystemExit('Missing release marker in candidate')
           expected = release.group(1).decode()
           def digest(data): return hashlib.sha256(data).hexdigest()
-          files = ['v140-net-mode.js', 'v152-arena-audio.js', 'v171-character-creator.js', 'v174-independent-ai.js', 'v175-faction-relations.js', 'v176-scenes.js', 'v177-workshop.js', 'development-log.md']
+          files = ['v140-net-mode.js', 'v152-arena-audio.js', 'v171-character-creator.js', 'v172-character-voices.js', 'auth-v82.js', 'v174-independent-ai.js', 'v175-faction-relations.js', 'v176-scenes.js', 'v177-workshop.js', 'development-log.md']
           def read(url, attempt):
               separator = '&' if '?' in url else '?'
               req = urllib.request.Request(url + separator + 'release-verify=' + os.environ.get('GITHUB_SHA','manual') + '-' + str(attempt), headers={'Cache-Control':'no-cache','User-Agent':'NocturnaReadOnlyReleaseCheck/1.0'})
