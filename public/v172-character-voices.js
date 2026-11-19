@@ -34,9 +34,9 @@ async function put(id,event,slot,blob,ms,owner=scope(),updated=Date.now()){
  const k=key(owner,id,event,slot);await tx('readwrite',s=>s.put({key:k,character:owner+'|'+id,id,owner,event,slot,blob,ms:clamp(ms||0,0,MAX_MS),updated}));decoded.delete(k);return true;
 }
 async function remove(id,event,slot,owner=scope(),updated=Date.now()){if(!valid(id,event,slot))return false;const k=key(owner,id,event,slot);await tx('readwrite',s=>s.put({key:k,character:owner+'|'+id,id,owner,event,slot,deleted:true,updated}));decoded.delete(k);return true}
-async function removeCharacter(id,owner=scope()){for(const c of await list(id,owner))await remove(id,c.event,c.slot,owner)}
+async function removeCharacter(id,owner=scope()){if(!valid(id,'attack',0)||owner!==scope())return false;const stamp=Date.now();for(const event of Object.keys(EVENTS))for(let slot=0;slot<VARIANTS;slot++)await remove(id,event,slot,owner,stamp);if(owner===scope()&&window.NS82_CLOUD?.online)await syncCharacter(id);return true}
 // V227: lazy account backup and portable character package, never on the frame/network tick.
-const syncJobs=new Map();
+const syncJobs=new Map(),syncedOnce=new Set();
 async function encodeClip(row){
  if(row.deleted)return {event:row.event,slot:row.slot,updated:row.updated,deleted:true};
  const bytes=new Uint8Array(await row.blob.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
@@ -62,7 +62,7 @@ function syncCharacter(id){
   for(const r of remote){const k=r.event+':'+r.slot,here=map.get(k);if(!here||r.updated>=here.updated){if(!here||r.updated>here.updated||!!r.deleted!==!!here.deleted){if(r.deleted)await remove(id,r.event,r.slot,owner,r.updated);else await put(id,r.event,r.slot,decodeClip(r),r.ms,owner,r.updated);check()}map.delete(k)}}
   for(const r of map.values()){writes.push(await encodeClip(r));check()}
   if(writes.length)await cloud.characterVoiceWrite(profile,id,writes);check();
-  return {cloud:true,clips:(await list(id,owner)).length};
+  syncedOnce.add(jobKey);return {cloud:true,clips:(await list(id,owner)).length};
  })().finally(()=>{if(syncJobs.get(jobKey)===job)syncJobs.delete(jobKey)});
  syncJobs.set(jobKey,job);return job;
 }
@@ -76,7 +76,7 @@ function stopAll(){epoch++;pendingActors.clear();pending=0;for(const v of [...ac
 function silence(){epoch++;pendingActors.clear();pending=0;for(const v of [...active])stopVoice(v);active=[];lastGlobal=-Infinity}
 const decoding=new Map();
 async function decode(clip){let b=decoded.get(clip.key);if(b){decoded.delete(clip.key);decoded.set(clip.key,b);return b}if(decoding.has(clip.key))return decoding.get(clip.key);const ac=context;if(!ac)return null;const job=(async()=>{try{const buffer=await ac.decodeAudioData(await clip.blob.arrayBuffer());decoded.set(clip.key,buffer);while(decoded.size>MAX_CACHE)decoded.delete(decoded.keys().next().value);return buffer}catch{return null}})();decoding.set(clip.key,job);try{return await job}finally{if(decoding.get(clip.key)===job)decoding.delete(clip.key)}}
-async function prepare(ids){const e=epoch,owner=scope();const unique=[...new Set(ids.filter(Boolean))];const rows=await Promise.all(unique.map(id=>list(id,owner).catch(()=>[])));if(epoch!==e)return false;for(let i=0;i<unique.length;i++){const events=new Map();for(const c of rows[i]){if(!events.has(c.event))events.set(c.event,[]);events.get(c.event).push(c)}bank.set(unique[i],events)}if(context){let warm=0;for(const map of bank.values())for(const event of ['attack','near','spawn','hurt']){const clip=map.get(event)?.[0];if(clip&&warm++<6)decode(clip).catch(()=>{})}}return true}
+async function prepare(ids){const e=epoch,owner=scope();const unique=[...new Set(ids.filter(Boolean))];const rows=[];for(const id of unique){if(!syncedOnce.has(owner+'|'+id)&&window.NS82_CLOUD?.online){try{await syncCharacter(id)}catch{}}if(epoch!==e||scope()!==owner)return false;rows.push(await list(id,owner).catch(()=>[]))}if(epoch!==e)return false;for(let i=0;i<unique.length;i++){const events=new Map();for(const c of rows[i]){if(!events.has(c.event))events.set(c.event,[]);events.get(c.event).push(c)}bank.set(unique[i],events)}if(context){let warm=0;for(const map of bank.values())for(const event of ['attack','near','spawn','hurt']){const clip=map.get(event)?.[0];if(clip&&warm++<6)decode(clip).catch(()=>{})}}return true}
 function setVolume(v){volume=clamp(Number(v)||0,0,1);if(master)master.gain.value=volume}
 function setEnabled(v){voiceEnabled=!!v;if(!voiceEnabled)silence()}
 function emitter(){return {times:Object.create(null),last:-Infinity}}
@@ -165,5 +165,5 @@ function mount(element,api){
  if(!document.getElementById('ns172VoiceStyle')){const s=document.createElement('style');s.id='ns172VoiceStyle';s.textContent='#ns171Creator .ccVoiceRow{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:6px;align-items:center;margin:6px 0;padding:5px;border:1px solid #52685d;border-radius:9px;font-size:12px}#ns171Creator .ccVoiceStudio button[hidden]{display:none!important}#ns171Creator .ccVoiceStudio button:disabled{opacity:.45}';document.head.append(s)}
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden){discard();silence();if(panel){tell('Snimanje je prekinuto jer je igra sklonjena.');refresh()}}});
-window.NS172_VOICES={EVENTS,MAX_MS,MAX_ACTIVE,MAX_BYTES,VARIANTS,list,put,remove,removeCharacter,syncCharacter,exportClips,mount,unmount,prepare,unlock:contextReady,stopAll,silence,emitter,candidate,dispatch,mixAt,setEnabled,setVolume,test:{get played(){return played},get playedEvents(){return {...playedEvents}},get active(){return active.length},get pending(){return pending},get recording(){return !!recording},get busy(){return busy},get cacheSize(){return decoded.size},get scope(){return scope()},get bankSize(){return bank.size},get mime(){return preferredMime()}}};
+window.NS172_VOICES={EVENTS,MAX_MS,MAX_ACTIVE,MAX_BYTES,VARIANTS,list,put,remove,removeCharacter,syncCharacter,exportClips,refresh,mount,unmount,prepare,unlock:contextReady,stopAll,silence,emitter,candidate,dispatch,mixAt,setEnabled,setVolume,test:{get played(){return played},get playedEvents(){return {...playedEvents}},get active(){return active.length},get pending(){return pending},get recording(){return !!recording},get busy(){return busy},get cacheSize(){return decoded.size},get scope(){return scope()},get bankSize(){return bank.size},get mime(){return preferredMime()}}};
 })();
