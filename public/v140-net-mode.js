@@ -1045,7 +1045,8 @@ function ui(){
  '#ns163VoiceSettings p{margin:0;font:10px/1.3 system-ui;color:#c8dbce}'+
  '#ns163VoiceMic{touch-action:none;user-select:none;-webkit-user-select:none;background:#275a45!important}'+
  '#ns163VoiceMode{font-size:11px}'+
- '#ns140Root #ns159Voice{right:calc(98px + env(safe-area-inset-right))!important;bottom:calc(126px + env(safe-area-inset-bottom))!important;max-width:min(148px,34vw)!important}#ns140Root:has(#ns190Revive:not([hidden])) #ns159Voice{bottom:calc(184px + env(safe-area-inset-bottom))!important}'+
+ '#ns140Root #ns159Voice,body:has(#ns140Root:not([hidden])) #ns159Voice{display:none!important}'+
+ '#ns228Spectate{position:absolute;z-index:7;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(290px,58vw);padding:7px;background:#17352fee;border:1px solid #91ac96;border-radius:10px;text-align:center;color:#f5e3ba;font:700 12px system-ui}#ns228Spectate[hidden]{display:none!important}#ns228Spectate div{display:flex;gap:4px;margin-top:5px}#ns228Spectate button{flex:1;min-height:38px;padding:4px;background:#29453e;color:#fff0cb;border:1px solid #87a596;border-radius:7px;font-weight:700;touch-action:manipulation}'+
  '#ns140Root:has(#ns158Menu:not([hidden])) #ns159Voice{visibility:hidden}#ns140Root:has(#ns152Choice:not([hidden])) #ns158MenuBtn,#ns140Root:has(#ns192MapPanel:not([hidden])) #ns158MenuBtn{visibility:hidden}'+
  '@media(max-width:780px){#ns140Bar{flex-wrap:nowrap;min-height:47px;padding:5px 8px}#ns140Status{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}#ns140Stats{max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ns152Music,#ns152Sound,#ns157Pause,#ns140Close{display:none}}'+
  '#ns140Pad.active{display:block}'+
@@ -1059,7 +1060,7 @@ function ui(){
  '<button id="ns192SOS" type="button" hidden>⚑ POŠALJI SOS</button><button id="ns192Loot" type="button" hidden>UZMI ORUŽJE</button>'+
  '<button id="ns192Swap" type="button" hidden>⇄ ORUŽJE</button>'+
  '<button id="ns192Dodge" type="button" hidden>DODGE</button>'+
- '<button id="ns190Revive" type="button" hidden>DRŽI ZA REVIVE</button>'+
+ '<button id="ns190Revive" type="button" hidden>DRŽI ZA REVIVE</button><section id="ns228Spectate" hidden><span id="ns228WatchLabel">POSMATRAŠ</span><div><button id="ns228Prev" type="button" aria-label="Prethodni igrač">◀</button><button id="ns228Self" type="button">MOJ HEROJ</button><button id="ns228Next" type="button" aria-label="Sledeći igrač">▶</button></div></section>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
@@ -1067,6 +1068,7 @@ function ui(){
  document.body.append(style,root);mountArenaMagic(root,style);mountArenaRun(root,style);const eb=document.createElement('button');eb.id='ns196Exp';eb.type='button';eb.hidden=true;eb.style.cssText='position:absolute;z-index:8;left:50%;bottom:75px;transform:translateX(-50%);background:#18352f;color:#ffe9b7;border:1px solid #9dc9ae;border-radius:8px;padding:9px;font:bold 12px system-ui';root.append(eb);
  el('ns192SOS').onclick=()=>{if(N.sosSupported&&N.me?.knocked&&!N.me.sosUsed&&N.ws?.readyState===1){N.ws.send(JSON.stringify({t:'sos',rev:N.expedition?.rev||0}));el('ns192SOS').disabled=true}};el('ns192Loot').onclick=()=>requestArenaLoot();el('ns192Swap').onclick=()=>requestArenaSwap();el('ns192MapBtn').onclick=()=>setArenaMap(true);el('ns192MapClose').onclick=()=>setArenaMap(false);el('ns192BigMap').onclick=e=>requestMapPing(e);
  el('ns192Dodge').addEventListener('pointerdown',e=>{e.preventDefault();requestArenaDodge()});
+ el('ns228Prev').onclick=()=>cycleArenaSpectate(-1);el('ns228Next').onclick=()=>cycleArenaSpectate(1);el('ns228Self').onclick=()=>{N.watchId=N.id;refreshArenaSpectate()};
  const reviveButton=el('ns190Revive');
  reviveButton.addEventListener('pointerdown',e=>{const target=nearArenaRevive();if(!target)return;e.preventDefault();N.reviveHeld=target.id;N.reviveAt=0;try{reviveButton.setPointerCapture(e.pointerId)}catch{}});
  for(const type of ['pointerup','pointercancel','lostpointercapture'])reviveButton.addEventListener(type,releaseArenaRevive);
@@ -1322,7 +1324,7 @@ function status(note){
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
 function stop(notify=false){
- arenaHeroVoiceState=null;
+ arenaHeroVoiceState=null;N.watchId='';N.mpResult=null;if(el('ns228Spectate'))el('ns228Spectate').hidden=true;
  if(N.soloResultToken)B().arenaSoloCancel?.(N.soloResultToken);N.soloResultToken=null;N.soloResult=null;el('ns140Root')?.classList.remove('ns206Ended');if(el('ns206Results'))el('ns206Results').hidden=true;
  resetArenaMagic();resetArenaMap();N.prepareAttempt=(N.prepareAttempt||0)+1;
  window.NS179_DIAGNOSTICS?.close();
@@ -1821,6 +1823,7 @@ function snapshot(m){
   }
   if(id===N.id){
    N.me=p;const ack=Number(m.ack)||0;
+   if(p.knocked||p.finalDead){N.pending=[];N.delta={x:0,y:0};p.x=x;p.y=y;N.stick.x=N.stick.y=0;}else N.watchId='';
    if(N.rejoinCorrection){N.rejoinCorrection=false;N.pending=[];N.delta={x:0,y:0};N.seq=Math.max(N.seq,ack);N.ack=ack;p.x=x;p.y=y;p.motion=null;}
    if(ack>N.ack){N.ack=ack;N.pending=N.pending.filter(e=>e.seq>ack)}
    let dx=N.delta.x,dy=N.delta.y;for(const item of N.pending){dx+=item.dx;dy+=item.dy}
@@ -2157,6 +2160,18 @@ function finishSoloRun(reason){
  status(reason==='victory'?'POBEDA':'KRAJ PARTIJE');
  showSoloResults(N.soloResult);return true;
 }
+function finishArenaMp(message){
+ if(N.solo||N.mpResult||N.phase!=='running')return false;
+ const raw=message?.stats,rows=Array.isArray(raw?.players)?raw.players:[...N.players.values()].map(p=>({id:p.id,name:N.looks.get(p.id)?.look?.name||p.id,kills:p.kills,level:p.level,crystals:p.xpCollected,revives:p.revivesUsed}));
+ const count=(v,max=1000000)=>Math.max(0,Math.min(max,Math.floor(Number(v)||0)));
+ const team=rows.filter(q=>q&&/^p[1-6]$/.test(q.id)).slice(0,6).map(q=>({id:q.id,name:String(q.name||q.id).slice(0,24),kills:count(q.kills),level:Math.max(1,count(q.level,1000)),crystals:count(q.crystals),revives:count(q.revives,3)}));
+ const own=team.find(p=>p.id===N.id)||{},reason=message.reason==='victory'?'victory':message.reason==='village_destroyed'?'defeat':'dead';
+ N.mpResult={mp:true,team,stats:{kills:own.kills||0,seconds:count(raw?.seconds??N.tick/30,86400),wave:Math.max(1,count(raw?.wave??N.wave,10000)),level:own.level||1,crystals:own.crystals||0,bosses:N.explore?.trolls||0,chests:N.explore?.chests||0,mode:arenaRuleMode(N.rule?.mode),reason}};
+ releaseArenaRevive();N.phase='ended';N.paused=false;N.pending=[];N.keys.clear();N.stick.ptr=null;N.stick.x=N.stick.y=0;
+ try{window.NS159_VOICE?.stop();closeArenaMenu(false);window.NS160_LAB?.close();A()?.stop()}catch{}
+ if(el('ns228Spectate'))el('ns228Spectate').hidden=true;if(el('ns152Choice'))el('ns152Choice').hidden=true;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;setArenaMap(false);
+ status(reason==='victory'?'POBEDA · MP':'KRAJ PARTIJE · MP');showSoloResults(N.mpResult);return true;
+}
 function showSoloResults(result){
  const root=el('ns140Root');if(!root)return;
  let overlay=el('ns206Results');if(!overlay){
@@ -2167,8 +2182,9 @@ function showSoloResults(result){
  const card=document.createElement('div');card.className='ns206Card';overlay.append(card);
  const add=(parent,tag,value,cls)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(value!==undefined)node.textContent=value;parent.append(node);return node};
  const s=result.stats,r=result.reward||{},duration=String(Math.floor(s.seconds/60)).padStart(2,'0')+':'+String(s.seconds%60).padStart(2,'0');
- add(card,'small','NOVA ZONA · '+s.mode.toUpperCase());add(card,'h2',s.reason==='victory'?'POBEDA':s.reason==='defeat'?'SELO JE PALO':'STRAŽAR JE PAO');add(card,'p','Rezultati završene partije');
+ add(card,'small','NOVA ZONA · '+(result.mp?'MULTIPLAYER · ':'')+s.mode.toUpperCase());add(card,'h2',s.reason==='victory'?'POBEDA':s.reason==='defeat'?'SELO JE PALO':result.mp?'TIM JE PAO':'STRAŽAR JE PAO');add(card,'p','Rezultati završene partije');
  const grid=add(card,'div',undefined,'ns206Grid');for(const [label,v] of [['UBISTVA',s.kills],['VREME BORBE',duration],['TALAS',s.wave],['NIVO U PARTIJI',s.level],['BOSSOVI',s.bosses],['XP KRISTALI',s.crystals]]){const t=add(grid,'div',undefined,'ns206Tile');add(t,'small',label);add(t,'b',String(v))}
+ if(result.mp){const team=add(card,'div',undefined,'ns206Reward');add(team,'strong','STATISTIKA TIMA');for(const p of result.team){add(team,'p',p.name+(p.id===N.id?' (TI)':'')+' · '+p.kills+' kill · lvl '+p.level+' · '+p.crystals+' XP · revive '+p.revives+'/3')}const buttons=add(card,'div',undefined,'ns206Buttons');const b=add(buttons,'button','PONOVO IGRAJ · LOBBY');b.type='button';b.onclick=()=>{if(b.disabled)return;b.disabled=true;stop(false)};add(team,'p','Vratite se u istu sobu i pokrenite novu partiju.');return}
  const rewards=add(card,'div',undefined,'ns206Reward');add(rewards,'strong','TRAJNI NAPREDAK HEROJA');
  add(rewards,'p','+'+(r.heroXp||0)+' XP heroja · +'+(r.points||0)+' poena za talente · +'+(r.coins||0)+' profilnih poena');
  if(r.level){add(rewards,'p',(r.heroName||'STRAŽAR')+' · NIVO '+r.level+(r.free?' · '+r.free+' slobodnih poena':''));const track=add(rewards,'div',undefined,'ns206Track'),fill=add(track,'div',undefined,'ns206Fill');fill.style.width=(r.need?clamp(100*r.inside/r.need,0,100):100)+'%'}
@@ -2531,7 +2547,7 @@ function connect(match,id,ticket,rejoin=false){
    attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
     N.lookSyncEnabled=Number(m.serverBuild)>=153;
-    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;magicSupported=m.arenaSpells===189;N.reviveSupported=m.arenaRevive===190;N.rosterSupported=m.arenaRoster===191;N.dodgeSupported=m.arenaDodge===192;N.loadoutSupported=m.arenaLoadout===192;N.lootSupported=m.arenaLoot===192;N.sosSupported=m.arenaSOS===192;N.reviveHeld='';
+    LAB_SERVER_BUILD=Number(m.serverBuild)||0;LAB_SUPPORTED=LAB_SERVER_BUILD>=160;magicSupported=m.arenaSpells===189;N.reviveSupported=m.arenaRevive===190;N.noBleed=m.arenaNoBleed===228;N.spectateSupported=m.arenaSpectate===228;N.rosterSupported=m.arenaRoster===191;N.dodgeSupported=m.arenaDodge===192;N.loadoutSupported=m.arenaLoadout===192;N.lootSupported=m.arenaLoot===192;N.sosSupported=m.arenaSOS===192;N.reviveHeld='';
     if(Array.isArray(m.looks))for(const item of m.looks){
      if(Array.isArray(item)&&item.length===3)rememberLook(item[0],item[1],item[2]);
     }
@@ -2586,11 +2602,7 @@ function connect(match,id,ticket,rejoin=false){
   }
   if(m.t==='s'){if(N.phase!=='running')return;const before=N.diagSnapshots||0;snapshot(m);if((N.diagSnapshots||0)>before&&typeof e.data==='string')N.diagChars=(N.diagChars||0)+e.data.length;return}
   if(m.t==='pong'&&Number.isFinite(m.sent)){N.ping=Math.max(0,performance.now()-m.sent);N.diagRtt=N.ping;}
-  if(m.t==='end'){
-   window.NS159_VOICE?.stop();
-   N.phase='ended';status(m.reason==='village_destroyed'?'SELO UNIŠTENO · ODBRANA NIJE USPELA':'TEST ZAVRŠEN: '+String(m.reason||'kraj'));
-   setTimeout(()=>{if(N.ws===ws)stop()},1200);
-  }
+  if(m.t==='end'){finishArenaMp(m);return}
  };
  ws.onclose=e=>{
   if(N.ws!==ws||['idle','ended'].includes(N.phase))return;
@@ -2781,9 +2793,14 @@ function drawArenaXpCrystals(g,now,view){
  }
  g.restore();
 }
+// V228: spectating is camera-only; the actual player stays at the downed position.
+function arenaWatchChoices(){return [N.me,...[...N.players.values()].filter(p=>p.id!==N.id&&p.online&&p.hp>0&&!p.knocked&&!p.finalDead)].filter(Boolean)}
+function arenaWatchTarget(){const me=N.me;if(!me||N.solo||(!me.knocked&&!me.finalDead)){N.watchId='';return me}const choices=arenaWatchChoices();if(!N.watchId)N.watchId=N.id;const p=choices.find(p=>p.id===N.watchId)||me;N.watchId=p.id;return p}
+function cycleArenaSpectate(delta){const options=arenaWatchChoices();if(!N.me||(!N.me.knocked&&!N.me.finalDead)||options.length<2)return;const idx=Math.max(0,options.findIndex(p=>p.id===N.watchId));N.watchId=options[(idx+delta+options.length)%options.length].id;refreshArenaSpectate()}
+function refreshArenaSpectate(){const elPanel=el('ns228Spectate');if(!elPanel)return;const p=arenaWatchTarget(),available=!N.solo&&N.phase==='running'&&!!(N.me?.knocked||N.me?.finalDead)&&el('ns158Menu')?.hidden!==false;elPanel.hidden=!available;if(!available)return;el('ns228WatchLabel').textContent=p?.id===N.id?'MOJ HEROJ · '+(N.me.finalDead?'ELIMINISAN':'ČEKA REVIVE'):'POSMATRAŠ · '+String(N.looks.get(p?.id)?.look?.name||p?.id||'');el('ns228Prev').disabled=el('ns228Next').disabled=arenaWatchChoices().length<2;}
 function nearArenaRevive(){
  const me=N.me;if(N.solo||!N.reviveSupported||N.phase!=='running'||!me||me.hp<=0||me.knocked||me.finalDead||N.paused||LAB_PAUSE.paused||N.choice||N.waveState!=='play'||el('ns158Menu')?.hidden===false)return null;
- let best=null,d2=78**2;for(const p of N.players.values()){if(p.id===N.id||!p.online||!p.knocked||p.finalDead)continue;const d=(p.x-me.x)**2+(p.y-me.y)**2;if(d<=d2){best=p;d2=d}}return best;
+ let best=null,d2=78**2;for(const p of N.players.values()){if(p.id===N.id||!p.online||!p.knocked||p.finalDead)continue;const d=(p.x-me.x)**2+(p.y-me.y)**2;if(d<=d2&&arenaAcidClear(N.world,me.x,me.y,p.x,p.y,3)){best=p;d2=d}}return best;
 }
 function releaseArenaRevive(){
  const target=N.reviveHeld;N.reviveHeld='';N.reviveAt=0;
@@ -2807,7 +2824,7 @@ function drawArenaDirections(g,w,h,zoom,me){
  const draw=(p,color,label)=>{const q=arenaEdgePoint((p.x-me.x)*zoom,(p.y-me.y)*zoom,w,h);if(!q)return;g.save();g.translate(q.x,q.y);g.rotate(q.a);g.beginPath();g.moveTo(10,0);g.lineTo(-7,-7);g.lineTo(-4,0);g.lineTo(-7,7);g.closePath();g.fillStyle=color;g.strokeStyle='#10221e';g.lineWidth=2;g.stroke();g.fill();g.restore();if(label){g.save();g.textAlign='center';g.font='bold 10px system-ui';g.fillStyle=color;g.strokeStyle='#10221e';g.lineWidth=3;const x=clamp(q.x,36,w-36),y=q.y+(q.y<h/2?16:-12);g.strokeText(label,x,y);g.fillText(label,x,y);g.restore()}};
  const mobs=N.solo?N.soloMobs:N.mpMobs;let alive=0;for(const m of mobs)if(m.hp>0)alive++;
  if(alive>0&&alive<10&&!(N.solo?N.soloReserve:N.waveReserve))for(const m of mobs)if(m.hp>0)draw(m,'#ff6363','');
- for(const p of N.players.values())if(p.id!==N.id&&p.online&&!p.finalDead)draw(p,p.knocked?(p.sosUsed?'#ff6868':'#ffbf59'):'#62dcff',p.knocked?(p.sosUsed?'SOS · REVIVE':'REVIVE'):String(N.looks.get(p.id)?.look?.name||p.id).slice(0,10));
+ for(const p of N.players.values())if(p.id!==me.id&&p.online&&!p.finalDead&&(p.id!==N.id||p.knocked))draw(p,p.knocked?'#ff6868':'#62dcff',p.knocked?'✚ '+String(N.looks.get(p.id)?.look?.name||p.id).slice(0,12)+' · '+Math.round(Math.hypot(p.x-me.x,p.y-me.y)/10)+'m':String(N.looks.get(p.id)?.look?.name||p.id).slice(0,10));
 }
 function sessionHud(now){
  const wave=N.solo?N.soloWave:N.wave,state=N.solo?N.soloState:N.waveState;
@@ -2815,7 +2832,7 @@ function sessionHud(now){
  const holder=el('ns152Choice'),hud=el('ns152Wave'),remaining=el('ns152Remaining');
  if(!holder||!hud||!remaining)return;
  if(now-N.uiAt>=140||N.choiceUiId!==(choice?(choice.seq+':'+choice.owner):'')){
-  N.uiAt=now;refreshArenaDodge();refreshArenaLoot();refreshArenaRun();refreshFieldObjective();expHud();const swap=el('ns192Swap');if(swap){swap.hidden=!(N.solo||N.loadoutSupported)||!N.me?.secondaryWeapon||N.me.hp<=0;swap.textContent='⇄ '+(arenaLegend(N.me)?.name||N.me?.activeWeapon||'sword')+' / '+(arenaLegend(N.me,N.me?.secondaryWeapon)?.name||N.me?.secondaryWeapon||'')}
+  N.uiAt=now;refreshArenaDodge();refreshArenaSpectate();refreshArenaLoot();refreshArenaRun();refreshFieldObjective();expHud();const swap=el('ns192Swap');if(swap){swap.hidden=!(N.solo||N.loadoutSupported)||!N.me?.secondaryWeapon||N.me.hp<=0;swap.textContent='⇄ '+(arenaLegend(N.me)?.name||N.me?.activeWeapon||'sword')+' / '+(arenaLegend(N.me,N.me?.secondaryWeapon)?.name||N.me?.secondaryWeapon||'')}
   hud.textContent=ruleTitle(wave);
   const xpHud=el('ns168XpHud'),xpText=el('ns168XpText'),xpFill=el('ns168XpFill');
   const xpEnabled=N.solo||LAB_SERVER_BUILD>=168;
@@ -2829,7 +2846,7 @@ function sessionHud(now){
   const bosses=mobs.filter(m=>m.kind==='troll'&&m.hp>0).length;
   remaining.textContent=state==='between'?'ODMOR · NOVI TALAS USKORO':
    (bosses?'🧌 BOSS TROL · ':'')+'NEPRIJATELJI '+count+'/'+(N.solo?(LAB.enabled?mobs.length:N.soloTotal||mobs.length):N.waveTotal||N.hordeTotal);
-  if(!N.solo&&N.reviveSupported&&N.me?.knocked)remaining.textContent='OBORAN · '+Math.max(0,Math.ceil((N.me.downedUntil-N.tick)/30))+' s · čekaš REVIVE';
+  if(!N.solo&&N.reviveSupported&&N.me?.knocked)remaining.textContent=N.noBleed?'OBORAN · REVIVE '+Math.max(0,3-N.me.revivesUsed)+'/3 · BEZ KRVARENJA':'OBORAN · '+Math.max(0,Math.ceil((N.me.downedUntil-N.tick)/30))+' s · čekaš REVIVE';
   if(!N.solo&&N.me?.finalDead)remaining.textContent='ELIMINISAN · POSMATRAŠ';
   const key=choice?(choice.seq+':'+choice.owner):'';
   if(!choice){holder.hidden=true;N.choiceUiId=''}
@@ -2897,7 +2914,7 @@ function drawArenaPlayerLabel(g,p){
  g.fillStyle='#17251c';g.fillRect(p.x-23,labelY+7,46,5);
  g.fillStyle='#a8e2a6';g.fillRect(p.x-22,labelY+8,44*clamp(p.hp/(p.maxHp||100),0,1),3);
  g.fillStyle='#f0dfb6';g.font='bold 11px sans-serif';g.textAlign='center';
- g.fillText(p.knocked?'REVIVE '+Math.max(0,3-(p.revivesUsed||0))+'/3':p.finalDead?'ELIMINISAN':p.id===N.id?'TI':(look?.name||p.id),p.x,labelY);
+ g.fillText(p.knocked?'✚ '+(p.id===N.id?'TI':look?.name||p.id)+' · REVIVE '+Math.max(0,3-(p.revivesUsed||0))+'/3':p.finalDead?'ELIMINISAN':p.id===N.id?'TI':(look?.name||p.id),p.x,labelY);
  drawArenaVoiceBadge(g,p.id,p.x+38,labelY-2);
  g.restore();
 }
@@ -3144,13 +3161,13 @@ function frame(now){
   // Server still validates the 83px enemy hitbox; no client damage accepted.
   const autoTarget=N.me&&N.mpMobs.some(m=>m.hp>0&&
    (m.x-N.me.x)**2+(m.y-N.me.y)**2<83**2);
-  N.ws.send(JSON.stringify({t:'i',seq,ax:Math.round(v.x*127),ay:Math.round(v.y*127),attack:autoTarget?1:0,rev:N.expedition?.rev||0}));
+  N.ws.send(JSON.stringify({t:'i',seq,ax:Math.round(v.x*127),ay:Math.round(v.y*127),attack:autoTarget&&!N.me?.knocked&&!N.me?.finalDead?1:0,rev:N.expedition?.rev||0,...(N.spectateSupported&&(N.me?.knocked||N.me?.finalDead)?{watch:N.watchId||N.id}:{})}));
  }
  if(N.ws?.readyState===1&&now-N.lastPing>2000){N.lastPing=now;N.ws.send(JSON.stringify({t:'ping',sent:now}))}
  const r=canvas.getBoundingClientRect(),dpr=RENDER_Q.dpr;
  const ww=Math.round(r.width*dpr),hh=Math.round(r.height*dpr);if(canvas.width!==ww||canvas.height!==hh){canvas.width=ww;canvas.height=hh}
  g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#192e29';g.fillRect(0,0,r.width,r.height);
- const zoom=clamp(Math.max(r.width/750,r.height/760),.7,1.45),me=(N.me?.finalDead?[...N.players.values()].find(p=>p.online&&p.hp>0&&!p.knocked):null)||N.me||{x:N.world.w/2,y:N.world.h/2};
+ const zoom=clamp(Math.max(r.width/750,r.height/760),.7,1.45),me=arenaWatchTarget()||{x:N.world.w/2,y:N.world.h/2};
  g.setTransform(dpr*zoom,0,0,dpr*zoom,dpr*(r.width/2-me.x*zoom),dpr*(r.height/2-me.y*zoom));
  // Draw only lines covering the current camera, never all 4,200 world pixels.
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
