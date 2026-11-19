@@ -82,6 +82,8 @@ jobs:
         run: node tests/v164-level0-access.test.cjs
       - name: V166 protect original classic art, lobby and new voice compatibility
         run: node tests/v166-classic-sync.test.cjs
+      - name: V237 exact shared guard audio and state transitions
+        run: node tests/v237-guard-voice.test.cjs
       - name: Verify portrait lobby width at 320/360/393/412px on actual Chromium
         run: |
           npm install --no-save --no-package-lock playwright-core@1.58.2
