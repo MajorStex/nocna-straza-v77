@@ -32,6 +32,6 @@ ck(/N\.soloMobs=buildSoloWave[\s\S]{0,360}arenaCageGuardsPlace\(N\.soloMobs,N\.r
 ck(/arenaCageGuardsStep\(N\.soloMobs,N\.players,N\.world,N\.soloTick\)/.test(game),'10Hz SOLO AI');
 ck(/const goblins=N\.soloMobs\.filter\(m=>!m\.cageGuard\|\|m\.guardActive\)/.test(game),'no idle steering CPU');
 ck(/mob\.cageGuard&&!mob\.guardActive/.test(game),'no idle melee');
-ck(/NS154_GOBLINS\.drawOne/.test(game)&&/const W=48,H=56,POSES=10/.test(sprite),'reuse original cached 10-pose goblin atlas');
+ck(/sprites\.drawOne/.test(game)&&/const W=48,H=56,POSES=10/.test(sprite),'reuse original cached 10-pose goblin atlas');
 ck(/name="ns-release" content="238"/.test(html),'V238 cache marker');
 console.log('V238 CLIENT GUARDS PASS',JSON.stringify({checks,guards:4,spritesheetReused:true,extraNetworkPackets:0}));
