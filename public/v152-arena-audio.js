@@ -149,6 +149,9 @@ function play(kind,options={}){
  if(activeFx>=12)return false;
  last.set(key,now);
  const at=ctx.currentTime+.003,weapon=String(options.weapon||'sword');
+ const classic=window.__NS110_BRIDGE?.arenaClassicSfx;
+ const classicName=kind==='swing'?(['axe','halberd','warhammer','mace','flail'].includes(weapon)?'axe':['spear','dagger'].includes(weapon)?'spear':'attack'):({hit:'hit',hurt:'enemyHit',enemy:'goblinAttack',kill:'kill',boss:'boss',xp:'xp',level:'level',chest:'chest',step:'step',goblinStep:'step'})[kind];
+ if(classic&&classicName){classic(classicName,gain);return true}
  if(kind==='step'){hiss(at,.04,.080*gain,570);tone(78,at,.06,.04*gain,'sine',fxBus,.73)}
  else if(kind==='goblinStep'){hiss(at,.052,.034*gain,430);tone(63,at,.1,.034*gain,'sine',fxBus,.68)}
  else if(kind==='swing'){
