@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 223 -->
+<!-- current-release: 224 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V223 originalni borbeni vizuelni i zvučni efekti, lebdeće brojke stvarno skinutog HP, Solo i relay. V222/V223 LIVE nepotvrđeni; GitHub push nije dokaz objave.
+- Razvoj: V224 zajednička navigacija horde sa kolizijom cele putanje, zatvorena rupa u ogradi; V224 LIVE tek proveriti. GitHub push nije dokaz objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: hitna ispravka orijentacije crva prema odabranoj meti u Nova zona SOLO/MP, bez izmene napada, kretanja i grafike.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V224 — 19.11.2026 (KOD / izolovani TEST; LIVE tek proveriti)
+- Zatvorena rupa kod x264–330/y953 u spoljašnjoj ogradi; vidljivi segment i collider, kutija pomerena na y1004, originalna kapija ostaje funkcionalna. Solo i relay imaju identičnu mapu i algoritam. Flow fields koriste 36px mrežu, stvarni poluprečnik, swept-circle proveru segmenata i postupnu izgradnju (najviše 384 proširena čvora po AI koraku, dva nova polja po koraku, keš do 40). Kripovi uključujući trolove zaobilaze prepreke; 30Hz kretanje, 15Hz grupni AI sa naizmeničnim težim proračunom; nema novih mrežnih poruka. Obični kontakt napadi ne prolaze kroz zid. Test: 160/160 malih, 40/40 srednjih i 10/10 velikih zaobišlo izolovanu prepreku; 126000 provera pozicija. Cela mapa: 160 neprijatelja/6 simuliranih igrača, 38400 provera bez prodora; 24 polja umesto 240 ponovnih izgradnji, 7ms medijana / 10ms p95 u izolovanom JS okruženju, nije FPS ili Cloudflare CPU dokaz. Kapija zatvorena/otvorena i invalidacija keša proverene. Fizički uređaji, CI i LIVE tek potvrditi.
+
 ### V223 — 19.11.2026 (KOD / izolovani TEST; LIVE tek proveriti)
 - Nova zona Solo/MP: zlatna brojka stvarno skinutog HP, 600ms podizanje/fade, čestice smrti, originalni Classic zamah i postojeća foley biblioteka za oružje, pogodak, smrt, XP i korake. Relay šalje ograničeni niz kozmetičkih HP-loss događaja kroz postojeći snapshot (48, poslednjih 9 tickova), dedupe 512, viewport culling, lokalni zvuk sa prostornim stišavanjem. Istovremeni udarci u istom ticku sabiraju se po meti. 1402 izolovane provere; nije fizički test ili dokaz LIVE. Grafički asseti i borbena pravila ostaju isti. Potvrditi CI i Cloudflare.
 
