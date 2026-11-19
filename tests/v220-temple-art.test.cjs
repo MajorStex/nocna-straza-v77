@@ -28,6 +28,23 @@ const document={createElement(){created++;return {width:0,height:0,getContext:()
 verify(N=>new Function('N','document',extract)(N,document));
 assert.equal(created,2,'only two cached sprite canvases');
 console.log('V220 temple cache, view culling, portal visibility and depth sort PASS');
+// V221: use the actual solo map and movement function, including both sides of the portal.
+{
+ const fn=name=>{const a=source.indexOf('function '+name+'('),b=source.indexOf('\n',a),line=source.slice(a,b);assert(a>=0);return line.endsWith('}')?line:source.slice(a,source.indexOf('\n}',a)+2)};
+ const world=JSON.parse(source.match(/^ N\.world=(\{.*\});$/m)[1]),N={world,solo:true};
+ const names=['arenaAcidClear','expInit','installTempleCollider','expPlace','expNear','expParty','expAllowed','expWorld','moveLocal'];
+ const f=new Function('N','nearbyObstacles','clamp',names.map(fn).join('\n')+'\nreturn {expInit,installTempleCollider,expPlace,expAllowed,expWorld,moveLocal,arenaAcidClear}')(N,w=>w.obstacles,(v,a,b)=>Math.max(a,Math.min(b,v)));
+ const z=f.expInit(world),p=z.portals.find(q=>q.id===1);f.installTempleCollider(world,z);f.installTempleCollider(world,z);
+ const o=world.obstacles.find(q=>q.kind==='temple');assert(o);assert.equal(world.obstacles.filter(q=>q.kind==='temple').length,1);assert.deepEqual(f.expInit(world).portals,z.portals);
+ for(const radius of [14,22,30,42])for(const [x,y,dx,dy] of [[p.x,p.y+65,0,-5.2],[p.x,p.y-170,0,5.2],[p.x-125,p.y-50,5.2,0],[p.x+125,p.y-50,-5.2,0]]){
+  const a={x,y,bodyRadius:radius};for(let i=0;i<100;i++){f.moveLocal(a,dx,dy);const u=a.x-Math.max(o.x,Math.min(a.x,o.x+o.w)),v=a.y-Math.max(o.y,Math.min(a.y,o.y+o.h));assert(u*u+v*v>=radius*radius-1e-7)}
+ }
+ const players=new Map(Array.from({length:6},(_,i)=>['p'+(i+1),{id:'p'+(i+1),hp:100,online:true}]));
+ f.expPlace(players,p,0);for(const a of players.values())assert(f.arenaAcidClear(world,a.x,a.y,a.x,a.y,14));
+ assert(!f.expAllowed(z,players,players.get('p1'),1,[]));z.key=true;assert(f.expAllowed(z,players,players.get('p1'),1,[]));
+ assert(f.expWorld(world,0).obstacles.includes(o));assert(!f.expWorld(world,1).obstacles.includes(o));
+ console.log('V221 solo movement, locked entrance, six safe return seats PASS');
+}
 if(process.env.NO_BROWSER!=='1') (async()=>{
  const {chromium}=require('playwright-core');
  const bin=['/usr/bin/google-chrome','/usr/bin/chromium','/opt/google/chrome/chrome'].find(fs.existsSync);
