@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 225 -->
+<!-- current-release: 226 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V225 Character Creator / Workshop: nastavak scene, Ignore Players, instant respawn, patrola, 24 NPC i prenos podržanog izgleda u standardni hero profil. V224 LIVE potvrđen GitHub production statusom; V225 tek proveriti.
+- Razvoj: V226 Testiraj ponovo pokreće postojeći poligon uz sačuvani raspored, bezbedne početne pozicije igrača i zaštitu od starih MP paketa. V225 prikazan na korisničkom telefonu; V226 LIVE tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: hitna ispravka orijentacije crva prema odabranoj meti u Nova zona SOLO/MP, bez izmene napada, kretanja i grafike.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V226 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
+- Testiraj i Reset celog testa vraćaju neprijatelje (uključujući ubijene i ručno dodate) na sačuvane početne pozicije; vraćaju HP, MP, cooldown, XP, kill, predmete i vreme borbe. Čuvaju raspored, frakcije i Ignore Players. U režimu talasa čuva se raspored tekućeg talasa, uključujući ručno dodate. Respawn ostaje zasebna komanda samo za heroja. Igrači se raspoređuju oko centra uz proveru prepreka i razmaka; ako je početna tačka blokirana, traži se bezbedna alternativa. Host jedini resetuje stanje i povećava round; gosti dobijaju postojeći 10 Hz snapshot sa oznakom runde, brišu stare interpolacije i komande. Stari Input/Cast/Rescue/UseProp/Proposal/Hero/Vote se odbacuju, bez novog socketa. Manifest receive limit 96k zbog 24 NPC (prethodno 48k). Izolovani test: 1003 provere reseta (81 reset poziv, 405 teleportova gostiju; uključuje scene i wave, 24 NPC/6 igrača), 3704 mrežne provere tokom 100 resetova, odbacivanje starog snapshot-a, dedupe magije i tačna pozicija. Nije test fizičkih telefona ili potvrda LIVE.
+
 ### V225 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
 - Character Creator čuva do 30 likova lokalno po nalogu u ns171_creator_v1_<account>. Nova komanda Koristi u regularnoj igri kopira podržani izgled i standardno oružje u postojeći hero profil; ne prenosi custom HP/štetu/magije, niti custom neprijatelje u standardne talase. Testiraj nastavlja postojeći poligon i postavljene NPC; Reset celog testa je zaseban. Ignore Players isključuje igrače iz meta i napada, zadržava frakcije. Smrt ne zaustavlja vreme; hunt NPC patrolira bez mete uz kratke determinističke waypoint-e i raspoređeno opažanje, eksplicitni guard/still ostaju. Instant Respawn vraća samo mrtvog igrača uz 2s zaštite; MP host jedini odobrava zahtev i šalje postojeće 10Hz stanje. Limit 24 NPC u creator/scena/workshop, 12 default za auto spawn. 1087 izolovanih provera, 24/24 patroliralo posle smrti, 9s simulacija, manifest 49553 karaktera za test. Fizički test 6 uređaja, ceo CI i LIVE nisu potvrđeni. Cloud sync likova i proizvoljni NPC u regularnim talasima nisu implementirani.
 
