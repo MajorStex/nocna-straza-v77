@@ -1431,7 +1431,7 @@ function refreshArenaMap(now){
  for(let y=0;y<ARENA_MAP_CELLS;y++)for(let x=0;x<ARENA_MAP_CELLS;x++)if(!arenaMapSeen[y*ARENA_MAP_CELLS+x])g.fillRect(x*cell,y*cell,cell+.25,cell+.25);
  const dot=(x,y,color,r)=>{g.fillStyle=color;g.beginPath();g.arc(x/w.w*s,y/w.h*s,r,0,Math.PI*2);g.fill()};
  for(const c of N.solo?N.soloChests:N.chests)if(!c.opened&&seen(c.x,c.y))dot(c.x,c.y,'#f0c872',s>100?3.6:1.6);
- const z=N.expedition,marks=z?.id?[{...EXP_EXIT},...(z.id===1&&!z.core?[EXP_CORE]:[])]:[...(z?.portals||[]),...(N.explore?.landmarks||[]),...(N.rule?.towers||[]).filter(t=>t.hp>0),...(z?.keyDrop?[z.keyDrop]:[])];for(const a of marks)if(Number.isFinite(a.x)&&Number.isFinite(a.y)&&seen(a.x,a.y))dot(a.x,a.y,'#c9a5ff',s>100?4:2);for(const a of visibleArenaPings())dot(a[1],a[2],'#65e3ff',s>100?6:3);if(rescueVisible()){const r=N.rescue;dot(r.safeX,r.safeY,'#8fdb9f',s>100?5:2.5);if(r.phase<3)dot(r.x,r.y,'#f0bc65',s>100?5:2.5)}
+ const z=N.expedition,marks=z?.id?[{...EXP_EXIT},...(z.id===1&&!z.core?[EXP_CORE]:[])]:[...(z?.portals||[]),...(N.explore?.landmarks||[]),...(N.rule?.towers||[]).filter(t=>t.hp>0),...(z?.keyDrop?[z.keyDrop]:[])];for(const a of marks)if(Number.isFinite(a.x)&&Number.isFinite(a.y)&&seen(a.x,a.y))dot(a.x,a.y,'#c9a5ff',s>100?4:2);for(const a of visibleArenaPings())dot(a[1],a[2],'#65e3ff',s>100?6:3);if(rescueVisible()){const r=N.rescue;dot(r.safeX,r.safeY,'#8fdb9f',s>100?5:2.5);if(r.phase<3||(r.phase===3&&r.companion))dot(r.x,r.y,'#f0bc65',s>100?5:2.5)}
  if(!N.expedition?.id&&N.rule?.mode==='normal'&&!N.explore?.invalid&&!N.explore?.field?.next)for(const o of N.explore?.field?.objects||[])if(!o.taken)dot(o.x,o.y,'#f7d793',s>100?4:2);
  for(const p of N.players.values())if(p.online&&!p.finalDead)dot(p.x,p.y,p.id===N.id?'#77d9ff':p.knocked?'#ffb25a':'#7ee69c',s>100?5:2.5);
  }
@@ -1588,7 +1588,7 @@ function refreshArenaRun(){
  const run=el('ns195Run'),trade=el('ns195Trade'),quest=el('ns195Quest');if(!run||!trade||!quest)return;
  const e=N.explore,p=N.me,allowed=!!(e&&p&&(N.solo||N.exploreSupported)&&N.phase==='running');
  run.hidden=!allowed;if(!allowed){trade.hidden=true;quest.hidden=true;return}syncArenaAccount();
- run.title='Ključevi za kovnicu · dijamanti · trofeji';run.textContent='🔑 '+(p.arenaKeys||0)+' · ◇ '+(p.arenaShards||0)+' · 🏆 '+(e.invalid?'EDITOR':(arenaRunMask(e).toString(2).match(/1/g)||[]).length+'/12')+(rescueVisible()?' · '+(N.rescue.phase===1?'⛓':N.rescue.phase===2?'🛡 '+N.rescue.hp+' HP':N.rescue.phase===3?'✓':'✕'):'');
+ run.title='Ključevi za kovnicu · dijamanti · trofeji';run.textContent='🔑 '+(p.arenaKeys||0)+' · ◇ '+(p.arenaShards||0)+' · 🏆 '+(e.invalid?'EDITOR':(arenaRunMask(e).toString(2).match(/1/g)||[]).length+'/12')+(rescueVisible()?' · '+(N.rescue.phase===1?'⛓':(N.rescue.phase===2||N.rescue.companion)?'🛡 '+N.rescue.hp+' HP':N.rescue.phase===3?'✓':'✕'):'');
  const t=N.solo?N.soloTick:N.tick;
  const near=(!N.expedition?.id&&!N.paused&&!LAB_PAUSE.paused&&!N.choice&&!N.soloChoice&&el('ns158Menu')?.hidden!==false&&el('ns192MapPanel')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled))?arenaTradeNear(e,p):null;
  trade.hidden=!near;
@@ -1616,7 +1616,10 @@ function requestArenaTrade(id){
  if(N.solo){if(!arenaTrade(e,p,id,t,N.players))return false;announceArena('RAZMENA USPEŠNA');A()?.play('choose');N.tradeUiKey='';refreshArenaRun();return true}
  if(N.exploreSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'arenaTrade',id,rev:N.expedition?.rev||0}));return true}return false;
 }
-function arenaRescueLabel(r){return !r||!r.phase?'':r.phase===1?'OSLOBODI ZAROBLJENIKA · OČISTI OKOLINU I PRIĐI KAVEZU':r.phase===2?(r.leader?'PRATI DO SEOSKE STRAŽE':'PRIĐI ZAROBLJENIKU')+' · '+r.hp+' HP':r.phase===3?'ZAROBLJENIK SPAŠEN · +3 ◇':'ZAROBLJENIK JE PAO'}
+// Original verified character catalog cc-mwmurfo8-i81d. Shared public asset, no account reads.
+const RESCUE_GUARD_SPEC=Object.freeze({"id":"cc-mwmurfo8-i81d","name":"Noćni stražar","role":"enemy","race":"human","helmet":"iron","torso":"plate","shoulders":"round","arms":"bracers","legs":"leather","boots":"heavy","weapon":"sword","offhand":"shield","gait":"natural","behavior":"melee","skin":"#cfaa85","armor":"#647b77","accent":"#d5b173","size":0.95,"leg":1,"arm":1,"width":0.85,"head":1,"hp":140,"speed":145,"damage":24,"armorPoints":5,"growth":7,"attackRate":0.85,"mana":100,"manaRegen":7,"abilities":[{"type":"none","name":"","mana":22,"cooldown":5,"power":35,"range":165,"duration":3,"unlock":1},{"type":"none","name":"","mana":22,"cooldown":5,"power":35,"range":165,"duration":3,"unlock":1}],"ai":{"v":1,"mode":"hunt","reaction":"hostile","radius":120,"vision":650,"leash":650,"wait":1.3,"pace":0.55,"flee":0},"boss":{"v":1,"enabled":false,"phase2":70,"phase3":35,"rage":25,"special":"slam","power":28,"radius":85,"windup":1.3,"cooldown":9},"classicModel":""});
+const RESCUE_PRISONER_SPEC=Object.freeze({...RESCUE_GUARD_SPEC,offhand:'none'});
+function arenaRescueLabel(r){return !r||!r.phase?'':r.phase===1?'OSLOBODI NOĆNOG STRAŽARA · OČISTI OKOLINU I PRIĐI KAVEZU':r.phase===2?(r.leader?'PRATI DO SEOSKE STRAŽE':'PRIĐI ZAROBLJENIKU')+' · '+r.hp+' HP':r.phase===3?'NOĆNI STRAŽAR · SAVEZNIK · '+r.hp+' HP':'NOĆNI STRAŽAR JE PAO'}
 function applyArenaRescue(v,guard){
  const prev=N.rescue;
  if(!N.rescueSupported||!Array.isArray(v)||v.length!==7||!v.slice(0,6).every(Number.isFinite)||!Number.isInteger(v[0])||v[0]<0||v[0]>4||v[5]<0||v[5]>100||typeof v[6]!=='string'){N.rescue=null;N.rescueVisual=null;return}
@@ -1629,12 +1632,21 @@ function applyArenaRescue(v,guard){
 function rescueVisible(){return N.rule?.mode!=='defense'&&N.rescue&&N.rescue.phase>0&&!N.expedition?.id&&!N.explore?.invalid&&!(N.solo?LAB.enabled:LAB_REMOTE?.enabled)}
 function drawArenaRescue(g,view,now){
  if(!rescueVisible())return;const r=N.rescue,near=(x,y)=>x>=view.left-100&&x<=view.right+100&&y>=view.top-100&&y<=view.bottom+100;
- if(near(r.safeX,r.safeY)){g.save();g.translate(r.safeX,r.safeY);g.strokeStyle='#9bd2a6';g.fillStyle='#588b6830';g.lineWidth=3;g.beginPath();g.arc(0,0,92,0,Math.PI*2);g.fill();g.stroke();g.fillStyle='#d4f4d6';g.font='bold 12px system-ui';g.textAlign='center';g.fillText('SEOSKA STRAŽA',0,-98);g.restore()}
- if(r.phase>=3)return;
- const a=N.solo?null:N.rescueVisual,t=a?clamp((now-a.at)/100,0,1):1,x=a?a.x+(a.tx-a.x)*t:r.x,y=a?a.y+(a.ty-a.y)*t:r.y;
- if(!near(x,y))return;g.save();g.translate(x,y);g.fillStyle='#1c1e1c';g.beginPath();g.ellipse(0,7,14,7,0,0,Math.PI*2);g.fill();g.fillStyle='#bda783';g.fillRect(-8,-17,16,23);g.fillStyle='#e4bd91';g.beginPath();g.arc(0,-21,7,0,Math.PI*2);g.fill();g.fillStyle='#634f3d';g.fillRect(-7,6,5,8);g.fillRect(2,6,5,8);
- if(r.phase===1){g.strokeStyle='#a58c63';g.lineWidth=3;g.strokeRect(-24,-37,48,54);for(let i=-15;i<=15;i+=10){g.beginPath();g.moveTo(i,-37);g.lineTo(i,17);g.stroke()}}
- g.fillStyle='#241e18';g.fillRect(-24,-49,48,5);g.fillStyle='#9dd7a3';g.fillRect(-23,-48,46*r.hp/100,3);g.fillStyle='#f5da9c';g.font='bold 11px system-ui';g.textAlign='center';g.fillText(r.phase===1?'ZAROBLJENIK':'PRATNJA',0,-54);g.restore();
+ if(r.phase<3&&near(r.safeX,r.safeY)){g.save();g.translate(r.safeX,r.safeY);g.strokeStyle='#9bd2a6';g.fillStyle='#588b6830';g.lineWidth=3;g.beginPath();g.arc(0,0,92,0,Math.PI*2);g.fill();g.stroke();g.fillStyle='#d4f4d6';g.font='bold 12px system-ui';g.textAlign='center';g.fillText('SEOSKA STRAŽA',0,-98);g.restore()}
+ if(r.phase===4||(r.phase===3&&!r.companion))return;
+ if(N.solo){const old=N.rescueVisual,t=old?clamp((now-old.at)/100,0,1):1;
+  if(!old||old.phase!==r.phase||Math.hypot(r.x-old.tx,r.y-old.ty)>100)N.rescueVisual={x:r.x,y:r.y,tx:r.x,ty:r.y,at:now,phase:r.phase};
+  else if(r.x!==old.tx||r.y!==old.ty)N.rescueVisual={x:old.x+(old.tx-old.x)*t,y:old.y+(old.ty-old.y)*t,tx:r.x,ty:r.y,at:now,phase:r.phase};
+ }
+ const a=N.rescueVisual,t=a?clamp((now-a.at)/100,0,1):1,x=a?a.x+(a.tx-a.x)*t:r.x,y=a?a.y+(a.ty-a.y)*t:r.y;
+ if(!near(x,y))return;
+ const prisoner=r.phase===1,elapsed=(N.solo?N.soloTick:N.tick)-(r.attackTick??-100);
+ const attack=prisoner||elapsed<0||elapsed>11?0:Math.sin(Math.PI*(elapsed+1)/13);
+ const moving=!prisoner&&!!a&&now-a.at<130&&Math.abs(a.tx-a.x)+Math.abs(a.ty-a.y)>.4;
+ window.NS171_CREATOR?.draw(g,prisoner?RESCUE_PRISONER_SPEC:RESCUE_GUARD_SPEC,x,y,{scale:.95,phase:now*.014,moving,attack,side:r.face||1,unarmed:prisoner,now});
+ g.save();g.translate(x,y);
+ if(prisoner){g.strokeStyle='#a58c63';g.lineWidth=3;g.strokeRect(-26,-75,52,88);for(let i=-16;i<=16;i+=8){g.beginPath();g.moveTo(i,-75);g.lineTo(i,13);g.stroke()}}
+ g.fillStyle='#241e18';g.fillRect(-24,-86,48,5);g.fillStyle='#9dd7a3';g.fillRect(-23,-85,46*clamp(r.hp/GUARD_RESCUE_STATS.hp,0,1),3);g.fillStyle='#f5da9c';g.font='bold 11px system-ui';g.textAlign='center';g.fillText(prisoner?'NOĆNI STRAŽAR · KAVEZ':'NOĆNI STRAŽAR',0,-91);g.restore();
 }
 function drawArenaExplore(g,view){
  const e=N.explore;if(!e)return;
