@@ -634,7 +634,8 @@ function expInit(world){
  // Classic landmark coordinates, recovered from the original map generator.
  // Use an identical collision-checked fallback on solo and the authoritative relay.
  const portals=[],classic=world.w===4200&&world.h===4200&&(world.classicProps?.length||0)>400;
- const near=(x,y)=>!arenaAcidClear(world,x,y,x,y,48)||portals.some(p=>(p.x-x)**2+(p.y-y)**2<180**2);
+ const portalWorld=world.obstacles.some(o=>o.kind==='temple')?{...world,obstacles:world.obstacles.filter(o=>o.kind!=='temple')}:world;
+ const near=(x,y)=>!arenaAcidClear(portalWorld,x,y,x,y,48)||portals.some(p=>(p.x-x)**2+(p.y-y)**2<180**2);
  for(const id of (classic?[2,1]:[1,2])){
   if(classic){const candidates=id===2?[[1568,1792]]:[[2375,2200],[2370,1960],[1840,2200],[1890,1900],[2270,2360],[1925,2360]];
    for(const [x,y] of candidates)if(!near(x,y)){portals.push({id,x,y});break}
@@ -647,6 +648,12 @@ function expInit(world){
  }
  portals.sort((a,b)=>a.id-b.id);
  return {id:0,rev:0,done:0,key:false,rope:false,keyDrop:null,portals,saved:null,core:false};
+}
+// V221: permanent building collision, shared with the server and the navigation grid.
+function installTempleCollider(world,exp){
+ if(world.obstacles.some(o=>o.kind==='temple'))return;
+ const p=exp.portals.find(q=>q.id===1);if(!p)return;
+ world.obstacles=[...world.obstacles,{x:p.x-56,y:p.y-108,w:112,h:98,kind:'temple',classic:1}];
 }
 function expWorld(base,id){
  if(!id)return {...base};
@@ -664,7 +671,7 @@ function expMobs(id,wave,tick){
 function expNear(p,q,r=100){return !!(p&&q&&(p.x-q.x)**2+(p.y-q.y)**2<=r*r)}
 function expParty(players,p,q){if(!p||!p.online||p.hp<=0||p.knocked||p.finalDead||p.background||p.paused||!expNear(p,q))return false;const live=[...players.values()].filter(a=>a.online&&!a.finalDead&&(a.hp>0||a.knocked));return live.length>0&&live.every(a=>a.hp>0&&!a.knocked&&!a.background&&!a.paused&&expNear(a,q,175))}
 function expAllowed(z,players,p,id,mobs){if(!z||!Number.isInteger(id)||id<0||id>2||id===z.id)return false;if(z.id)return id===0&&!!(z.done&(1<<z.id))&&expParty(players,p,EXP_EXIT);return !(z.done&(1<<id))&&(id===1?z.key:z.rope)&&expParty(players,p,z.portals.find(q=>q.id===id))}
-function expPlace(players,point,tick){let i=0;for(const p of players.values()){const a=i++*Math.PI/3;p.x=point.x+Math.cos(a)*28;p.y=point.y+Math.sin(a)*28;p.tx=p.x;p.ty=p.y;p.ax=p.ay=0;p.attack=false;p.dodgeUntil=0;p.reviveTarget='';p.motion=null;p.shield=Math.max(p.shield||0,tick+30);p.arenaBomb=null;p.arenaShuriken=null}}
+function expPlace(players,point,tick){let i=0;for(const p of players.values()){const a=i++*Math.PI/3;p.x=point.x+Math.cos(a)*28;p.y=point.y+(point.id===1?45:0)+Math.sin(a)*28;p.tx=p.x;p.ty=p.y;p.ax=p.ay=0;p.attack=false;p.dodgeUntil=0;p.reviveTarget='';p.motion=null;p.shield=Math.max(p.shield||0,tick+30);p.arenaBomb=null;p.arenaShuriken=null}}
 function expWake(mobs,players,z){const living=[...players.values()].filter(p=>p.online&&p.hp>0&&!p.knocked&&!p.finalDead&&!p.paused&&!p.background);if(z?.id!==1)return false;let collected=false;if(!z.core&&living.some(p=>expNear(p,EXP_CORE,36))){z.core=true;collected=true}if(z.core)for(const m of mobs)if(m.expSleeping){m.expSleeping=false;m.labFrozen=false}return collected}
 function expDrop(z,m,invalid){if(z&&!z.id&&!z.key&&!z.keyDrop&&!invalid&&m.kind==='troll')z.keyDrop={x:m.x,y:m.y}}
 function expCollect(z,players){if(!z||z.id||!z.keyDrop)return false;for(const p of players.values())if(p.online&&p.hp>0&&!p.knocked&&!p.paused&&!p.background&&expNear(p,z.keyDrop,32)){z.key=true;z.keyDrop=null;return true}return false}
@@ -1540,7 +1547,7 @@ function drawRuleNight(g,w,h,zoom,me,now){if(N.expedition?.id||!arenaRuleDark(N.
 }
 function ruleTitle(wave){const r=N.rule;if(!r)return 'TALAS '+wave;if(r.mode==='defense')return (r.victory?'SELO ODBRANJENO':'ODBRANA '+wave+'/20')+' · '+r.towers.filter(t=>t.hp>0).length+'/3 OBJEKTA';if(r.victory)return 'POBEDA · '+(r.mode==='campaign'?'KAMPANJA':'TRI KULE');if(r.mode==='rush')return 'TALAS '+wave+' · OPSADA';if(r.mode==='campaign')return 'TALAS '+wave+' · '+(ARENA_CAMPAIGN[r.stage]?.[0]||'KAMPANJA');if(r.mode==='night'){const dark=arenaRuleDark(r),left=Math.ceil(((dark?3600:2400)-r.elapsed%3600)/30);return 'TALAS '+wave+' · '+(dark?'MRAK':'SVETLO')+' '+left+'s · KULE '+r.towers.filter(t=>t.hp<=0).length+'/3'}return 'TALAS '+wave}
 
-function resetExp(base){N.expBase={...base};N.expedition=expInit(base);N.expSupported=false}
+function resetExp(base){N.expedition=expInit(base);if(N.solo)installTempleCollider(base,N.expedition);N.expBase={...base};N.expSupported=false}
 function applyExp(v){if(!N.expSupported||!N.expedition||!Array.isArray(v)||![0,1,2].includes(v[0])||!Number.isSafeInteger(v[1]))return;
  const z=N.expedition,changed=z.id!==v[0]||z.rev!==v[1];z.id=v[0];z.rev=v[1];z.done=Number(v[2])||0;z.key=v[3]===1;z.rope=v[4]===1;z.keyDrop=Array.isArray(v[5])?{x:v[5][0],y:v[5][1]}:null;const coreWas=z.core;z.core=v[6]===1;if(z.id===1&&z.core&&!coreWas&&!changed)announceArena('DIJAMANT UZET · ČUVARI SE BUDE');
  if(changed){N.world=expWorld(N.expBase,z.id);resetArenaBreakables(N.world);N.breakSupported=true;N.mobHistory=[];N.mpMobs=[];N.mobRenderTick=null;N.players.clear();N.pending=[];N.delta={x:0,y:0};N.rejoinCorrection=true;resetArenaMap(true);N.tradeUiKey='';spellFx=[];announceArena(z.id===1?'TEMPLE':z.id===2?'PEĆINA':'POVRATAK NA MAPU')}
