@@ -31,7 +31,7 @@ function playGuardVoice(kind,distance,dx){
  if(guardActive){if(priority<=guardActive.priority||kind!=='death')return false;stopGuardVoice()}
  try{
   const source=ctx.createBufferSource(),gain=ctx.createGain(),pan=ctx.createStereoPanner?.();
-  source.buffer=buffer;gain.gain.value=volume*.95/(1+Math.pow(Math.max(0,distance)/170,1.55));source.connect(gain);
+  source.buffer=buffer;gain.gain.value=volume*.95*({attack:8,death:1.35,hurt:1}[kind]||1)/(1+Math.pow(Math.max(0,distance)/170,1.55));source.connect(gain);
   if(pan){pan.pan.value=clamp((Number(dx)||0)/270,-.85,.85);gain.connect(pan);pan.connect(master)}else gain.connect(master);
   const voice={source,gain,pan,priority};guardActive=voice;
   source.onended=()=>{if(guardActive===voice)guardActive=null;try{source.disconnect();gain.disconnect();pan?.disconnect()}catch{}};
