@@ -1054,7 +1054,7 @@ function ui(){
  '';
  const root=document.createElement('section');root.id='ns140Root';root.hidden=true;
  root.innerHTML='<canvas id="ns140Canvas"></canvas><div id="ns140Bar"><b id="ns140Status">V168 NOVA ZONA</b><span id="ns140Stats"></span><button type="button" id="ns152Music" title="Muzika">♫</button><button type="button" id="ns152Sound" title="Efekti">🔊</button><button type="button" id="ns157Pause" aria-label="Pauza">⏸</button><button type="button" id="ns140Retry" hidden>↻ POKUŠAJ PONOVO</button><button type="button" id="ns140Close">← LOBBY</button></div><button type="button" id="ns158MenuBtn" aria-controls="ns158Menu" aria-expanded="false">☰ MENI</button>'+
- '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><div id="ns163VoiceSettings"><strong>🎙 GLASOVNI CHAT · MULTIPLAYER</strong><button id="ns163VoiceMode" type="button">🎙 REŽIM: PTT · DRŽI</button><button id="ns163VoiceMic" type="button">🎙 DRŽI DA PRIČAŠ</button><button id="ns163VoiceOff" type="button">🔇 UGASI MIKROFON</button><p id="ns163VoiceHint">Drži dugme ili V · pusti da se utiša. Zvučnik je iznad heroja.</p></div><button id="ns160Open" type="button">🛠 SANDBOX / TEST LAB</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U MP igra teče dok svi povezani igrači ne izglasaju pauzu. Samo host uređuje Sandbox.</p></div>'+
+ '<div id="ns158Menu" hidden role="group" aria-label="Meni tokom igre"><button id="ns158MenuPause" type="button">⏸ PAUZIRAJ</button><button id="ns229VoteNo" type="button" hidden>✕ PROTIV PAUZE</button><button id="ns158MenuMusic" type="button">♫ MUZIKA</button><button id="ns158MenuSound" type="button">🔊 EFEKTI</button><div id="ns163VoiceSettings"><strong>🎙 GLASOVNI CHAT · MULTIPLAYER</strong><button id="ns163VoiceMode" type="button">🎙 REŽIM: PTT · DRŽI</button><button id="ns163VoiceMic" type="button">🎙 DRŽI DA PRIČAŠ</button><button id="ns163VoiceOff" type="button">🔇 UGASI MIKROFON</button><p id="ns163VoiceHint">Drži dugme ili V · pusti da se utiša. Zvučnik je iznad heroja.</p></div><button id="ns160Open" type="button">🛠 SANDBOX / TEST LAB</button><button id="ns158MenuLeave" class="danger" type="button">← NAPUSTI PARTIJU</button><p>U MP igra teče dok svi povezani igrači ne izglasaju pauzu. Samo host uređuje Sandbox.</p></div>'+
  '<div id="ns155Presence" aria-live="polite"></div><div id="ns157Events" aria-live="polite"></div><div id="ns168XpHud" role="status" aria-label="EXP napredak" hidden><span id="ns168XpText">NIVO 1 · EXP 0/160</span><div id="ns168XpTrack"><div id="ns168XpFill"></div></div></div><div id="ns152Hud"><strong id="ns152Wave">TALAS 1</strong><small id="ns152Remaining">GOBLINI</small></div>'+
  '<button id="ns192MapBtn" type="button" aria-label="Otvori mapu"><canvas id="ns192Mini" width="96" height="96"></canvas>MAPA</button><div id="ns192MapPanel" hidden><canvas id="ns192BigMap" width="420" height="420"></canvas><span style="color:#dbe5cf;font:12px system-ui">Plavo: ti · zeleno: tim · žuto: sanduk · ljubičasto: lokacije · klik: oznaka za tim</span><button type="button" id="ns192MapClose">ZATVORI MAPU</button></div>'+
  '<button id="ns192SOS" type="button" hidden>⚑ POŠALJI SOS</button><button id="ns192Loot" type="button" hidden>UZMI ORUŽJE</button>'+
@@ -1095,12 +1095,13 @@ function ui(){
   menuPanel.hidden=!opening;
   menuButton.setAttribute('aria-expanded',String(opening));
   if(opening&&el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
-  el('ns158MenuPause').textContent=N.solo?'▶ NASTAVI':LAB_PAUSE.paused?'▶ NASTAVI SVIMA':'🗳 GLASAJ ZA PAUZU';
+  refreshArenaPauseVote();
   refreshVoiceMenu();
  };
+ el('ns229VoteNo').onclick=()=>{if(!N.solo&&N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'pauseVote',vote:false}));closeArenaMenu()};
  el('ns158MenuPause').onclick=()=>{
   if(N.solo){closeArenaMenu();if(N.paused)toggleArenaPause(false)}
-  else {if(!LAB_SUPPORTED)announceArena('Glasanje zahteva novi V160 relay server');else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:LAB_PAUSE.paused?'globalResume':'pauseVote',vote:true}));closeArenaMenu()}
+  else {requestArenaTeamPause();closeArenaMenu()}
  };
  if(window.NS179_DIAGNOSTICS?.allowed()){
   const diag=document.createElement('button');diag.type='button';diag.textContent='⚙ DEVELOPER DIAGNOSTICS';diag.onclick=()=>window.NS179_DIAGNOSTICS?.open();el('ns158Menu').insertBefore(diag,el('ns158MenuLeave'));
@@ -1188,11 +1189,12 @@ function ui(){
   canvas.addEventListener(type,e=>{if(e.pointerId===N.stick.ptr)resetStick()});
  document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
-   resetRenderSamples();resetStick();
-   if(N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'presence',state:'background'}))}catch{}
+   resetRenderSamples();N.keys.clear();resetStick();N.delta={x:0,y:0};
+   if(!N.solo&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'presence',state:'background'}))}catch{}
    return;
   }
-  if(N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'presence',state:'active'}))}catch{}
+  N.keys.clear();resetStick();resetRenderSamples();
+  if(!N.solo&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'presence',state:'active'}))}catch{}
   if(N.phase==='reconnecting'&&N.match&&N.ticket){
    if(N.retryTimer){clearTimeout(N.retryTimer);N.retryTimer=null}
    if(!N.ws){if(N.lostSince&&Date.now()-N.lostSince>=120000){N.phase='error';status('ISTEKAO ROK ZA POVRATAK · LOBBY')}else connect(N.match,N.id,N.ticket,true)}
@@ -1273,7 +1275,7 @@ function closeArenaMenu(resumeAuto=true){
  const auto=LAB_AUTO_PAUSE;LAB_AUTO_PAUSE=false;
  if(auto&&resumeAuto&&N.solo&&N.phase==='running'&&N.paused)toggleArenaPause(false);
  else if(el('ns157PauseOverlay')&&!window.NS160_LAB?.active)
-  el('ns157PauseOverlay').hidden=!N.paused;
+  el('ns157PauseOverlay').hidden=!(N.solo?N.paused:LAB_PAUSE.paused);
 }
 function announceArena(message){
  const container=el('ns157Events');if(!container||!message)return;
@@ -1282,8 +1284,24 @@ function announceArena(message){
  while(container.children.length>2)container.firstElementChild?.remove();
  setTimeout(()=>chip.remove(),3600);
 }
+function refreshArenaPauseVote(){
+ const button=el('ns158MenuPause'),no=el('ns229VoteNo'),overlay=el('ns157PauseOverlay');
+ if(button){button.textContent=N.solo?'▶ NASTAVI':LAB_PAUSE.paused?'▶ NASTAVI SVIMA':LAB_PAUSE.expires?'🗳 GLASAJ ZA PAUZU · '+LAB_PAUSE.votes.length+'/'+LAB_PAUSE.needed:'🗳 GLASAJ ZA PAUZU';button.disabled=!N.solo&&!LAB_PAUSE.paused&&LAB_PAUSE.votes.includes(N.id)}
+ if(no)no.hidden=N.solo||LAB_PAUSE.paused||!LAB_PAUSE.expires;
+ if(N.solo||N.phase!=='running')return;
+ if(overlay)overlay.hidden=!LAB_PAUSE.paused||!el('ns158Menu')?.hidden||!!window.NS160_LAB?.active;
+ if(el('ns157PauseText'))el('ns157PauseText').textContent='TIMSKA PAUZA · izglasana jednoglasno. Pritisni NASTAVI za nastavak.';
+ if(el('ns157Pause'))el('ns157Pause').textContent=LAB_PAUSE.paused?'▶':'⏸';
+}
+function requestArenaTeamPause(){
+ if(N.solo||N.phase!=='running'||document.hidden)return false;
+ if(!LAB_SUPPORTED||N.ws?.readyState!==1){announceArena('Glasanje trenutno nije dostupno');return false}
+ if(!LAB_PAUSE.paused&&LAB_PAUSE.votes.includes(N.id))return false;
+ N.ws.send(JSON.stringify({t:LAB_PAUSE.paused?'globalResume':'pauseVote',vote:true}));return true;
+}
 function toggleArenaPause(force){
  if(N.phase!=='running')return false;
+ if(!N.solo)return requestArenaTeamPause();
  const paused=typeof force==='boolean'?force:!N.paused;
  if(N.paused===paused)return paused;
  if(N.solo&&N.paused&&!paused){
@@ -1302,7 +1320,6 @@ function toggleArenaPause(force){
  if(el('ns157PauseText'))el('ns157PauseText').textContent=N.solo?
   'Solo je zaustavljen. Talas i vreme se nastavljaju tek kada pritisneš NASTAVI.':
   'Pauza važi samo za tebe. Ostali nastavljaju, a tvoj stražar ostaje na mapi i može da primi štetu.';
- if(!N.solo&&N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'pause',paused}));
  return paused;
 }
 function renderPresence(){
@@ -1731,7 +1748,7 @@ function snapshot(m){
  }
  N.tick=m.tick;N.lastState=arrived;if(magicSupported&&Array.isArray(m.spell)&&Number.isFinite(m.spell[0])&&Number.isFinite(m.spell[1])&&Array.isArray(m.spell[2])&&m.spell[2].length===8){spellView=m.spell;spellSeq=Math.max(spellSeq,Number(m.spell[3])||0)}N.serverMs=Number(m.ms)||0;
  if(Number.isFinite(m.serverNow))N.serverNow=m.serverNow;
- if(typeof m.globalPaused==='boolean')LAB_PAUSE.paused=m.globalPaused;
+ if(typeof m.globalPaused==='boolean'&&LAB_PAUSE.paused!==m.globalPaused){LAB_PAUSE.paused=m.globalPaused;refreshArenaPauseVote()}
  if(Array.isArray(m.allies))LAB_REMOTE={...(LAB_REMOTE||{}),allies:m.allies.slice(0,3).map(a=>({id:a[0],x:a[1]/10,y:a[2]/10,hp:a[3],lastAttack:a[4]}))};
  N.diagSnapshots=(N.diagSnapshots||0)+1;
  const priorWave=N.wave,priorChoice=N.choice?.seq;
@@ -2538,7 +2555,7 @@ function connect(match,id,ticket,rejoin=false){
   if(m.t==='levelBoss'){announceArena('MATRIJARH · NIVO '+Math.max(10,Math.min(100,Number(m.level)||10)));return}
   if(m.t==='bossSummon'){announceArena('BOSS DOZIVA POJAČANJE · '+Math.max(0,Math.min(7,Number(m.count)||0)));return}
   if(m.t==='labState'){LAB_REMOTE={...m};if(!m.enabled){LAB_WEAPON=null;LAB_LOOK=null}window.NS160_LAB?.refresh();return}
-  if(m.t==='pauseState'){LAB_PAUSE={paused:!!m.paused,votes:Array.isArray(m.votes)?m.votes:[],needed:m.needed||1,expires:m.expires||0};window.NS160_LAB?.refresh();return}
+  if(m.t==='pauseState'){const previous=LAB_PAUSE;LAB_PAUSE={paused:!!m.paused,votes:Array.isArray(m.votes)?m.votes:[],needed:m.needed||1,expires:m.expires||0};refreshArenaPauseVote();if(N.phase==='running'&&LAB_PAUSE.expires&&LAB_PAUSE.expires!==previous.expires)announceArena('GLASANJE ZA PAUZU · MENI · '+LAB_PAUSE.votes.length+'/'+LAB_PAUSE.needed);window.NS160_LAB?.refresh();return}
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
@@ -2595,7 +2612,7 @@ function connect(match,id,ticket,rejoin=false){
     if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;
     if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
     N.lastFrame=0;
-    if(N.paused&&ws.readyState===1)ws.send(JSON.stringify({t:'pause',paused:true}));
+    // V229: reconnect never sends a personal/global pause command.
     status('V'+(document.querySelector('meta[name="ns-release"]')?.content||'207')+' · NOVA ZONA · AUTO NAPAD');
    }
    if(m.t==='start')return;
