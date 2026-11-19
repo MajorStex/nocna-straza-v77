@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 const url='https://nocna-straza-v77.stefanstevic1996.workers.dev/';
 const relay='https://nocna-straza-relay.stefanstevic1996.workers.dev/';
-const files=['v115-village.js','v165-classic-voice.js','v140-net-mode.js','v178-workshop-social.js','v171-character-creator.js','v177-workshop.js','v174-independent-ai.js','v176-scenes.js'];
+const files=['v115-village.js','v165-classic-voice.js','v140-net-mode.js','v152-arena-audio.js','v178-workshop-social.js','v171-character-creator.js','v177-workshop.js','v174-independent-ai.js','v176-scenes.js'];
 const localHtml=fs.readFileSync('public/index.html','utf8');
 const releaseConfig=fs.readFileSync('.github/workflows/v205-native-deployment-verify.yml','utf8');
 const expectedRelay=Number(releaseConfig.match(/EXPECTED_RELAY_RELEASE: '(\d+)'/)?.[1]);
