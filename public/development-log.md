@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 235 -->
+<!-- current-release: 236 -->
 <!-- reviewed: 2026-11-19 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V235 neponavljajuća organska tekstura cele spoljašnje mape, V233 zajednički napredak. Relay ostaje V233; LIVE V235 tek proveriti.
+- Razvoj: V236 Noćni stražar kao globalni saveznik u Novoj zoni; V235 tekstura i V233 napredak ostaju. LIVE tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V236 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
+- Globalni originalni model `cc-mwmurfo8-i81d` iz korisnikovog kataloga, bez pristupa njegovom nalogu; mač i štit samo nakon oslobađanja. Originalni izgled i proporcije, 140 HP, 24 štete, osnovna brzina 145, napad na 27 tickova (0,9 s, kvantizovano na 10 Hz), sustizanje i zaštita vođe do završetka spoljašnje partije; nagrada spasavanja samo jednom. Zadržan režim od 5. talasa, van Cave/Temple/Defense/Sandbox. Server autoritativan u MP, isti SOLO kod; postojeći 7-elementni rescue paket ostaje kompatibilan, dodatna 4 polja u postojećem snapshotu, nema novih periodičnih poruka. Stari model se više ne iscrtava u ažuriranom klijentu. Katalog nema glasove: audio snimci nisu uključeni. 2059 provera stvarnih rescue funkcija u simulaciji (uključujući realnu geometriju i 6 klijenata), ne fizički FPS. Sejv profila netaknut. LIVE tek proveriti.
+
 ### V235 — 19.11.2026 (KOD / simuliran TEST; LIVE tek proveriti)
 - Nova zona SOLO/MP: jedna deterministička 1536×1536 tekstura cele mape umesto ponavljanja 768px pločice. 23 nepravilne zone zemlje, mahovine, kamenja i lišća, tri diskretne izgažene staze, promenljiva gustina dekoracije. Jedno iscrtavanje vidljivog dela po frejmu; keš 9 MiB RGBA, priprema u browser idle kada je moguće. 610 mock Canvas provera (600 frejmova, cache i clipping) i JS sintaksa prošli. Stvarni prikaz i FPS nisu potvrđeni. Bez izmena mreže, sejva, servera, kolizija ili kvaliteta karaktera.
 
