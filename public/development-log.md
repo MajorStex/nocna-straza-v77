@@ -1,15 +1,15 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 220 -->
+<!-- current-release: 221 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V220 dodaje originalni Temple izgled u Nova zona; relay ostaje V218. V219 LIVE je potvrđen preciznim HTML i asset hashovima i relay QA 13/13. V220 LIVE tek proveriti. V212–V217 ostaju zasebne razvojne izmene. Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V221 stalna Temple kolizija, klijent i relay V221; V220 LIVE potvrđen produkcionim proverama. V221 tek proveriti. V212–V217 ostaju zasebne razvojne izmene. Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: hitna ispravka orijentacije crva prema odabranoj meti u Nova zona SOLO/MP, bez izmene napada, kretanja i grafike.
-- Blokade: GitHub Actions nema Cloudflare kredencijale. Dodat je režim provere postojeće nativne Workers Builds objave kada oba secreta nedostaju; bez lažno zelenog statusa. Zahteva identičan LIVE HTML i runtime fajlove, kompatibilni relay V218 i QA 13/13. GitHub push nije potvrda objave; Cloudflare dashboard/autorizacija i stvarni LIVE još moraju biti provereni.
+- Blokade: GitHub Actions nema Cloudflare kredencijale. Dodat je režim provere postojeće nativne Workers Builds objave kada oba secreta nedostaju; bez lažno zelenog statusa. Zahteva identičan LIVE HTML i runtime fajlove, kompatibilni relay V221 i QA 13/13. GitHub push nije potvrda objave; Cloudflare dashboard/autorizacija i stvarni LIVE još moraju biti provereni.
 - Sledeće: završni V205 CI, kompatibilnost relay/klijent, LIVE i fizički test 2 pa 6 Android uređaja; V206 balans težine, V207 kompletna optimizacija. Plan nije implementacija.
 
 ## Arhitektura i pravila rada
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V221 — 19.11.2026 (SOLO/MP Temple kolizija; LIVE tek proveriti)
+- Stalna prepreka na realnom položaju Temple 2270,2360, dimenzije 112×98; isti obstacle sistem i AI navigacija, ne crta dodatnu kuću. Ulaz ključem, povratak šest igrača ispred vrata i bez dupliranja prepreke posle prelaska zone. Stari checkpoint: samo preklopljeni akteri se premeštaju na slobodno mesto. 1623 izolovane provere servera/pariteta; regresije dodate u CI. V220 prethodno potvrđen LIVE.
+
 ### V220 — 19.11.2026 (Nova zona, vizuelni hotfix; LIVE tek proveriti)
 - Temple spolja: originalna kamena vektorska ilustracija na osnovu opštih referenci drevnih hramova, lučni ulaz, stubovi, stepenice, reljef, mahovina. Dve keširane varijante 288×312, postojeća 3/4 perspektiva, depth sort i view culling; ključ menja izgled vrata. Stara pozicija portala, lavirint, čuvari, nagrade i pravila ulaska ostaju isti. 23 izolovane provere prošle; Chromium piksel test uključen u produkcioni CI. V219 prethodno potvrđen LIVE, relay V218 QA 13/13.
 
