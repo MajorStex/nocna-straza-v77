@@ -1065,7 +1065,7 @@ function ui(){
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
  '<div id="ns152Choice" hidden><div id="ns152ChoiceCard"><h3 id="ns152ChoiceTitle">OTVOREN SANDUK</h3><p id="ns152ChoiceText"></p><div id="ns152Choices"><button data-pick="edge">⚔ OŠTRIJA OŠTRICA · +20% ŠTETE</button><button data-pick="heart">♥ ČUVAROVO SRCE · +25 HP</button><button data-pick="boots">➤ BRŽE ČIZME · +10% BRZINE</button></div><span id="ns152Timer">7 s</span></div></div>';
- document.body.append(style,root);mountArenaMagic(root,style);mountArenaRun(root,style);const eb=document.createElement('button');eb.id='ns196Exp';eb.type='button';eb.hidden=true;eb.style.cssText='position:absolute;z-index:8;left:50%;bottom:75px;transform:translateX(-50%);background:#18352f;color:#ffe9b7;border:1px solid #9dc9ae;border-radius:8px;padding:9px;font:bold 12px system-ui';root.append(eb);
+ document.body.append(style,root);mountArenaMagic(root,style);mountArenaRun(root,style);mountCompactArenaHud(root,style);const eb=document.createElement('button');eb.id='ns196Exp';eb.type='button';eb.hidden=true;eb.style.cssText='position:absolute;z-index:8;left:50%;bottom:75px;transform:translateX(-50%);background:#18352f;color:#ffe9b7;border:1px solid #9dc9ae;border-radius:8px;padding:9px;font:bold 12px system-ui';root.append(eb);
  el('ns192SOS').onclick=()=>{if(N.sosSupported&&N.me?.knocked&&!N.me.sosUsed&&N.ws?.readyState===1){N.ws.send(JSON.stringify({t:'sos',rev:N.expedition?.rev||0}));el('ns192SOS').disabled=true}};el('ns192Loot').onclick=()=>requestArenaLoot();el('ns192Swap').onclick=()=>requestArenaSwap();el('ns192MapBtn').onclick=()=>setArenaMap(true);el('ns192MapClose').onclick=()=>setArenaMap(false);el('ns192BigMap').onclick=e=>requestMapPing(e);
  el('ns192Dodge').addEventListener('pointerdown',e=>{e.preventDefault();requestArenaDodge()});
  el('ns228Prev').onclick=()=>cycleArenaSpectate(-1);el('ns228Next').onclick=()=>cycleArenaSpectate(1);el('ns228Self').onclick=()=>{N.watchId=N.id;refreshArenaSpectate()};
@@ -1337,7 +1337,7 @@ function renderPresence(){
  }
 }
 function status(note){
- ui();el('ns140Root').hidden=false;el('ns140Status').textContent=note;
+ ui();el('ns140Root').hidden=false;const label=el('ns140Status');label.title=note;label.textContent=N.phase==='running'?'V'+(document.querySelector('meta[name="ns-release"]')?.content||'230')+' · '+(N.solo?'SOLO':'MP'):note;
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
 function stop(notify=false){
@@ -1500,6 +1500,40 @@ function mountArenaRun(root,style){
  const run=document.createElement('button'),trade=document.createElement('section'),quest=document.createElement('section');run.type='button';run.id='ns195Run';run.hidden=true;trade.id='ns195Trade';trade.hidden=true;quest.id='ns195Quest';quest.hidden=true;root.append(run,trade,quest);const repair=document.createElement('button');repair.id='ns204Repair';repair.type='button';repair.hidden=true;repair.style.cssText='position:absolute;left:50%;bottom:84px;transform:translateX(-50%);z-index:7;padding:8px;background:#25452e;color:#fff;border:1px solid #98b98c;border-radius:8px';root.append(repair);
  const objective=document.createElement('div');objective.id='ns208Objective';objective.hidden=true;objective.style.cssText='position:absolute;left:10px;top:158px;max-width:55vw;white-space:pre-line;background:#172c25e8;color:#f4e1bb;border:1px solid #849d86;border-radius:8px;padding:6px 8px;font:700 10px/1.45 system-ui;z-index:4;pointer-events:none';root.append(objective);
  run.onclick=()=>{quest.hidden=!quest.hidden;N.runUiKey='';refreshArenaRun()};
+}
+// V230: one compact top HUD; existing IDs, click handlers and update cadence preserved.
+function mountCompactArenaHud(root,style){
+ const get=id=>root.querySelector('#'+id),wrap=document.createElement('div'),bar=get('ns140Bar');
+ wrap.id='ns230TopHud';root.insertBefore(wrap,bar);wrap.append(bar,get('ns192MapBtn'));
+ const line=(id,...ids)=>{const row=document.createElement('div');row.id=id;for(const key of ids){const node=get(key);if(node)row.append(node)}bar.append(row);return row};
+ line('ns230StatusRow','ns140Status','ns140Stats','ns152Music','ns152Sound','ns157Pause','ns140Retry','ns140Close');
+ line('ns230WaveRow','ns152Hud','ns195Run');
+ line('ns230ProgressRow','ns168XpHud');
+ const objective=get('ns208Objective');objective.removeAttribute('style');bar.append(objective);
+ wrap.append(get('ns155Presence'),get('ns157Events'),get('ns195Quest'));
+ style.textContent+=`
+ #ns230TopHud{position:absolute;top:calc(5px + env(safe-area-inset-top));left:calc(5px + env(safe-area-inset-left));right:calc(5px + env(safe-area-inset-right));display:grid;grid-template-columns:minmax(0,1fr) clamp(58px,17vw,82px);gap:4px;align-items:start;z-index:5;pointer-events:none}
+ #ns230TopHud #ns140Bar{position:relative;inset:auto;min-width:0;min-height:0;display:grid;gap:2px;box-sizing:border-box;padding:4px 6px;border-radius:8px;background:#122922d9;pointer-events:none}
+ #ns230StatusRow,#ns230WaveRow,#ns230ProgressRow{display:flex;align-items:center;min-width:0;gap:5px}
+ #ns230StatusRow{flex-wrap:wrap}
+ #ns230StatusRow #ns140Status{flex:1 1 65px;min-width:0;font:700 10px/1.25 system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ #ns230StatusRow #ns140Stats{flex:0 0 auto;max-width:none;font:10px/1.25 monospace;color:#c9ded2;white-space:nowrap}
+ #ns230StatusRow button{pointer-events:auto}
+ #ns230TopHud #ns152Hud{position:static;display:flex;align-items:baseline;gap:4px;flex:1 1 auto;min-width:0;padding:0;border:0;background:transparent;text-align:left;flex-wrap:wrap}
+ #ns230TopHud #ns152Hud strong{font:800 11px/1.2 system-ui;display:inline;color:#ffe5a0}
+ #ns230TopHud #ns152Hud small{font:600 10px/1.25 system-ui;display:inline;color:#d5e2d8;overflow-wrap:anywhere}
+ #ns230TopHud #ns195Run{position:static;max-width:none;min-width:0;flex:0 1 auto;white-space:normal;background:#294338;border:1px solid #829884;border-radius:5px;padding:2px 4px;font:700 10px/1.25 system-ui;pointer-events:auto;touch-action:manipulation}
+ #ns230TopHud #ns168XpHud{position:static;min-width:0;width:100%;background:none;border:0;border-radius:0;padding:0;display:flex;gap:6px;align-items:center;font:700 10px/1.25 system-ui}
+ #ns230TopHud #ns168XpText{white-space:nowrap}
+ #ns230TopHud #ns168XpTrack{height:4px;flex:1;min-width:16px;margin:0}
+ #ns230TopHud #ns208Objective{position:static;min-width:0;white-space:pre-line;overflow-wrap:anywhere;color:#f4e1bb;font:600 10px/1.3 system-ui;pointer-events:none;border-top:1px solid #82988445;padding-top:2px}
+ #ns230TopHud #ns192MapBtn{position:static;box-sizing:border-box;width:100%;height:auto;aspect-ratio:1/1.12;padding:3px;pointer-events:auto;touch-action:manipulation;font:700 9px/1.15 system-ui}
+ #ns230TopHud #ns192Mini{width:100%;height:auto;aspect-ratio:1;display:block}
+ #ns230TopHud #ns155Presence,#ns230TopHud #ns157Events{position:static;grid-column:1/-1;max-width:100%;margin:0;gap:3px}
+ #ns230TopHud #ns195Quest{position:absolute;left:0;top:100%;pointer-events:auto;margin-top:3px}
+ @media(max-width:780px){#ns230StatusRow{flex-wrap:nowrap}#ns230StatusRow #ns140Retry:not([hidden]){padding:2px;font-size:9px}#ns230TopHud #ns230WaveRow{flex-wrap:wrap}}
+ @media(max-height:450px) and (min-width:520px){#ns230TopHud{grid-template-columns:minmax(0,1fr) 60px}#ns230TopHud #ns140Bar{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}#ns230StatusRow,#ns230WaveRow{grid-column:1/-1}#ns230TopHud #ns208Objective{white-space:normal;border:0;padding:0}}
+ `;
 }
 function captureArenaAccount(){let id=B().getActiveAccount?.()?.id;N.rewardProfile=typeof id==='string'?{id,uid:window.NS82_CLOUD?.user||null}:null;N.rewardApplied='';N.rewardAt=0;N.rewardCalendar=null;N.rewardPacket=null}
 function syncArenaAccount(){
@@ -3223,10 +3257,11 @@ function frame(now){
  // Avoid updating live DOM HUD sixty times per second on mid-range phones.
  if(now-(N.statsAt||0)>=320){
   N.statsAt=now;
-  el('ns140Stats').textContent=N.solo?
+  const stats=el('ns140Stats');stats.title=N.solo?
    ('FPS '+N.fps+' | SOLO · GOBLINI '+N.soloMobs.filter(m=>m.hp>0).length+' | VIDLJIVO '+N.visibleMobs+' | NIVO '+(N.me?.level||1)+' · EXP '+Math.floor(N.me?.xp||0)+ '/'+(N.me?.xpNeed||160)):
    ('FPS '+N.fps+' | '+Math.round(N.ping)+'ms | GOBLINI '+N.mpMobs.length+'/'+N.hordeTotal+
     ' | VIDLJIVO '+N.visibleMobs+(LAB_SERVER_BUILD>=168?' | NIVO '+(N.me?.level||1)+' · EXP '+Math.floor(N.me?.xp||0):'')+' | CPU '+N.serverMs+'ms'+(netHealth==='ok'?'':netHealth==='unstable'?' | NESTABILNA VEZA':' | SINHRONIZACIJA…'));
+   const compact='FPS '+N.fps+(N.solo?'':' · '+Math.round(N.ping)+'ms'+(netHealth==='ok'?'':' !'));if(stats.textContent!==compact)stats.textContent=compact;
  }
  renderCostSum+=performance.now()-frameStart;renderCostCount++;
 }
