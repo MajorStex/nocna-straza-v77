@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify exact client release assets and relay release marker
         env:
-          EXPECTED_RELAY_RELEASE: '223'
+          EXPECTED_RELAY_RELEASE: '224'
           EXPECTED_PREVIEW_RELAY_SHA: '02171c9f9b91ea720216e711f9146be2a32237c1'
         run: |
           python3 - <<'PY'
