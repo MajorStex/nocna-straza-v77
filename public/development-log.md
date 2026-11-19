@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 232 -->
+<!-- current-release: 233 -->
 <!-- reviewed: 2026-11-19 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V232 tempo stvaranja neprijatelja približen Classic modu, glatka interpolacija pri pojačanju i promeni talasa; V231 loot obaveštenja i kanap. LIVE tek proveriti.
+- Razvoj: V233 Guardian Base, Honor Points i napredak heroja koriste postojeći sejv u Novoj zoni SOLO/MP. LIVE tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V233 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
+- Nova zona: Guardian Base iz ekrana rezultata koristi originalne `meta.ranks`, `meta.points` i `buyMetaUpgrade`; ne menja ključ `ns_stats_meta_v23`, format sejva, postojeće profile ni cloud sync. Pet bonusa primenjuju se jednom (HP, damage, speed, mana i arcana), u SOLO i na serveru pre početka MP. MP rangovi su ograničeni na 0–3 i preuzeti iz postojećeg klijentskog sejva; nisu nezavisno verifikovani kod Firebase-a. Honor koristi klasičnu formulu (60 s/12 kill), hero XP postojeću formulu. MP obračun isključivo po eksplicitnom V233 server end paketu; bez fallback nagrade i bez Sandbox-a; token vezan za nalog, heroja, sobu i slot, potroši se jednom. Stari checkpoint bez progression flag-a ne isplaćuje MP nagradu. Postojeći model lokalnog/cloud sejva zadržan; nema nove periodične mrežne poruke ni nove baze. 8.193 izolovane provere rangova/mane, 198 provera obračuna i očuvanja simuliranog sejva, sintaksa prošla. Stvarni Firebase sync, CI, LIVE, fizički uređaji nisu potvrđeni.
+
 ### V232 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
 - Normal Nova zona SOLO/MP: 4 početna neprijatelja, 12 ukupno u prvom talasu; rast +8 po talasu do 180, cap aktivnih ostaje 38; interval 96 tickova (3,2 s) do 36 (1,2 s), batch 1–4, približavanje iz osam sektora, ciljna udaljenost 690 umesto 790 uz bezbedni minimum 620. Classic referenca je kod (4 početna, 27s vremenski talas), ne ponovni pregled videa. Zadržan kill-based završetak, bossovi i mrežna frekvencija. MP: normalno pojačanje ne briše istoriju postojećih protivnika/heroja; na promeni talasa brišu se samo stare mob pozicije uz isti render clock, da reciklirani ID ne vuče stari položaj. 94.266 izolovanih server provera u 54 scenarija (1–6 simuliranih igrača), 80 izolovanih interpolation provera; nisu fizički FPS/testovi. CI i LIVE tek proveriti.
 
