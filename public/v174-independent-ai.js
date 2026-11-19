@@ -60,7 +60,7 @@ function boundMove(actor,x,y){
 function targetValid(actor,t,retain=false){
  const p=actor.placement,ai=p.ai,b=actor.brain;
  if(!t||t.hp<=0||!hostile(actor,t)||ai.reaction==='passive')return false;
- if(p.target&&(t.faction!=='player'||(p.target!=='nearest'&&t.workshopSeat!==p.target)))return false;
+ if(t.ignoreForAI||actor.ignoreForAI)return false;if(p.target&&!actor.workshopIgnorePlayers&&(t.faction!=='player'||(p.target!=='nearest'&&t.workshopSeat!==p.target)))return false;
  if(ai.reaction==='defend'&&b.retaliate!==t)return false;
  // Stationary characters can see and attack but cannot pursue.
  const allowed=ai.mode==='still'?Math.max(ai.vision,actor.s?.range||0):territory(actor);
@@ -95,6 +95,7 @@ function decide(actor,actors,now,dt){
   if(d>range&&mode!=='still'){const a=toward(actor,t,speed*(actor.c.behavior==='charge'&&d>100?1.4:1),dt,'chase');return {...a,target:t}}
   return {...idle(actor,'fight'),target:t};
  }
+ if(mode==='hunt'&&actor.workshopPatrol){if(now<(b.patrolWait||0))return idle(actor,'patrol');if(!b.patrolPoint||distance(actor,b.patrolPoint)<5||now>(b.patrolUntil||0)){const angle=rng(b)*Math.PI*2,r=35+rng(b)*65;b.patrolPoint={x:actor.x+Math.cos(angle)*r,y:actor.y+Math.sin(angle)*r};b.patrolUntil=now+2.4+rng(b)*1.8;b.patrolWait=now+.12+rng(b)*.65;return idle(actor,'patrol')}return toward(actor,b.patrolPoint,speed*.42,dt,'patrol')}
  if(mode==='still'||mode==='guard'||mode==='hunt'){if(mode==='guard'&&atHome>3)return toward(actor,p,speed,dt,'return');return idle(actor,mode==='guard'?'guard':'idle')}
  if(now<b.waitUntil)return idle(actor,mode==='patrol'?'patrol':'roam');
  if(!b.waypoint)b.waypoint=nextWaypoint(actor);
