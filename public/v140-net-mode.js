@@ -30,12 +30,12 @@ function arenaSpellEvents(events,tick){return events.filter(e=>tick-e[4]<=24).sl
 function createArenaCrowdSteering(world,move){
  const CELL=36,COLS=Math.ceil(world.w/CELL),ROWS=Math.ceil(world.h/CELL),COUNT=COLS*ROWS,INF=65535;
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
- const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),BLOCK=128,collisionCells=new Map(),flows=new Map(),graphs=new Map();
- let obstacleRef=null,budgetTick=-1,budget=2,builds=0;
+ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),BLOCK=128,collisionCells=new Map(),flows=new Map(),graphs=new Map(),pending=new Map(),goalMemo=new Map(),targets=new Map();
+ let obstacleRef=null,budgetTick=-1,budget=2,builds=0,lastWork=0;
  const cx=i=>(i%COLS+.5)*CELL,cy=i=>(Math.floor(i/COLS)+.5)*CELL;
  const grid=(x,y)=>clamp(Math.floor(y/CELL),0,ROWS-1)*COLS+clamp(Math.floor(x/CELL),0,COLS-1);
  function indexObstacles(){
-  collisionCells.clear();obstacleRef=world.obstacles;flows.clear();graphs.clear();const pad=72;
+  collisionCells.clear();obstacleRef=world.obstacles;flows.clear();graphs.clear();pending.clear();goalMemo.clear();targets.clear();const pad=72;
   for(const o of world.obstacles||[])for(let y=Math.floor((o.y-pad)/BLOCK);y<=Math.floor((o.y+o.h+pad)/BLOCK);y++)for(let x=Math.floor((o.x-pad)/BLOCK);x<=Math.floor((o.x+o.w+pad)/BLOCK);x++){
    const k=x+','+y;let list=collisionCells.get(k);if(!list)collisionCells.set(k,list=[]);list.push(o);
   }
@@ -72,14 +72,14 @@ function createArenaCrowdSteering(world,move){
  function graph(radius){
   const r=tier(radius);let g=graphs.get(r);if(g)return g;
   const open=new Uint8Array(COUNT),edges=new Uint8Array(COUNT),ready=new Uint8Array(COUNT);
-  for(let i=0;i<COUNT;i++)open[i]=clearPath(cx(i),cy(i),cx(i),cy(i),r+1)?1:0;
   g={r,open,edges,ready};graphs.set(r,g);return g;
  }
+ function nodeOpen(g,i){if(!g.open[i])g.open[i]=clearPath(cx(i),cy(i),cx(i),cy(i),g.r+1)?1:2;return g.open[i]===1}
  function edgeMask(g,i){
-  if(g.ready[i])return g.edges[i];g.ready[i]=1;if(!g.open[i])return 0;
+  if(g.ready[i])return g.edges[i];g.ready[i]=1;if(!nodeOpen(g,i))return 0;
   let mask=0;const x=i%COLS,y=Math.floor(i/COLS);
   for(let k=0;k<8;k++){const [dx,dy]=dirs[k],nx=x+dx,ny=y+dy;if(nx<0||nx>=COLS||ny<0||ny>=ROWS)continue;
-   const j=ny*COLS+nx;if(!g.open[j])continue;
+   const j=ny*COLS+nx;if(!nodeOpen(g,j))continue;
    if(clearPath(cx(i),cy(i),cx(j),cy(j),g.r+1))mask|=1<<k;
   }
   g.edges[i]=mask;return mask;
@@ -90,32 +90,50 @@ function createArenaCrowdSteering(world,move){
  }
  function nearestOpen(x,y,r=world.r||14){
   ensure();const g=graph(r);let best=-1,score=Infinity;
-  nearbyNodes(x,y,3,i=>{if(!g.open[i])return;const d=(cx(i)-x)**2+(cy(i)-y)**2;if(d<score&&clearPath(cx(i),cy(i),x,y,3)){best=i;score=d}});
-  if(best<0)nearbyNodes(x,y,3,i=>{if(!g.open[i])return;const d=(cx(i)-x)**2+(cy(i)-y)**2;if(d<score){best=i;score=d}});
+  nearbyNodes(x,y,3,i=>{if(!nodeOpen(g,i))return;const d=(cx(i)-x)**2+(cy(i)-y)**2;if(d<score&&clearPath(cx(i),cy(i),x,y,3)){best=i;score=d}});
+  if(best<0)nearbyNodes(x,y,3,i=>{if(!nodeOpen(g,i))return;const d=(cx(i)-x)**2+(cy(i)-y)**2;if(d<score){best=i;score=d}});
   return best;
  }
+ // A field can be partially usable while its BFS grows. Fixed work, never time-based simulation.
+ function expand(task,limit){
+  const {g,distance,queue}=task;let used=0;
+  while(task.head<task.tail&&used<limit){used++;const i=queue[task.head++],mask=edgeMask(g,i);for(let k=0;k<8;k++){if(!(mask&(1<<k)))continue;const [dx,dy]=dirs[k],j=i+dy*COLS+dx;if(distance[j]!==INF)continue;distance[j]=distance[i]+1;queue[task.tail++]=j}}
+  return used;
+ }
+ function workFields(){
+  lastWork=0;
+  while(pending.size&&lastWork<512){const [key,task]=pending.entries().next().value;pending.delete(key);
+   lastWork+=expand(task,Math.min(128,512-lastWork));if(task.head<task.tail)pending.set(key,task)
+  }
+ }
  function field(x,y,r=world.r||14,limited=false){
-  ensure();const g=graph(r),goal=nearestOpen(x,y,r);if(goal<0)return null;
+  ensure();const g=graph(r),memoKey=g.r+':'+Math.round(x)+':'+Math.round(y);
+  let goal=goalMemo.get(memoKey);if(goal===undefined){goal=nearestOpen(x,y,r);if(goalMemo.size>=64)goalMemo.clear();goalMemo.set(memoKey,goal)}if(goal<0)return null;
   const key=g.r+':'+goal;
-  if(flows.has(key)){const hit=flows.get(key);flows.delete(key);flows.set(key,hit);return hit}
+  if(flows.has(key)){const hit=flows.get(key);flows.delete(key);flows.set(key,hit);if(!limited&&pending.has(key)){const task=pending.get(key);expand(task,COUNT);pending.delete(key)}return hit}
   if(limited&&budget<=0)return null;if(limited)budget--;builds++;
-  if(flows.size>=24)flows.delete(flows.keys().next().value);
-  const distance=new Uint16Array(COUNT);distance.fill(INF);const queue=new Uint16Array(COUNT);let head=0,tail=0;
-  queue[tail++]=goal;distance[goal]=0;
-  while(head<tail){const i=queue[head++],mask=edgeMask(g,i);for(let k=0;k<8;k++){if(!(mask&(1<<k)))continue;const [dx,dy]=dirs[k],j=i+dy*COLS+dx;if(distance[j]!==INF)continue;distance[j]=distance[i]+1;queue[tail++]=j}}
-  flows.set(key,distance);return distance;
+  if(flows.size>=16){const oldest=flows.keys().next().value;flows.delete(oldest);pending.delete(oldest)}
+  const distance=new Uint16Array(COUNT);distance.fill(INF);const queue=new Uint16Array(COUNT);queue[0]=goal;distance[goal]=0;
+  const task={g,distance,queue,head:0,tail:1};flows.set(key,distance);
+  if(limited)pending.set(key,task);else expand(task,COUNT);
+  return distance;
  }
  function pathDirection(m,target,gx,gy,r){
   if(clearPath(m.x,m.y,gx,gy,r))return [gx-m.x,gy-m.y,0];
   if(clearPath(m.x,m.y,target.x,target.y,r))return [target.x-m.x,target.y-m.y,0];
-  const f=field(target.x,target.y,r,true);if(!f){
-   // Reuse a nearby cached destination while the two-build budget is exhausted.
-   const tierKey=tier(r)+':',goal=grid(target.x,target.y);let best=null,cost=10;
-   for(const [key,d] of flows){if(!key.startsWith(tierKey))continue;const i=Number(key.slice(tierKey.length)),v=Math.abs(i%COLS-goal%COLS)+Math.abs(Math.floor(i/COLS)-Math.floor(goal/COLS));if(v<cost){cost=v;best=d}}
-   if(best)return follow(m,best,r);
-   return [0,0,1];
+  const targetKey=target.id+':'+tier(r);let saved=targets.get(targetKey);
+  if(!saved||budgetTick-saved.tick>=18||(target.x-saved.x)**2+(target.y-saved.y)**2>108**2){
+   saved={x:target.x,y:target.y,tick:budgetTick};targets.set(targetKey,saved);if(targets.size>80)targets.delete(targets.keys().next().value)
   }
-  return follow(m,f,r);
+  const f=field(saved.x,saved.y,r,true);
+  let direction=f?follow(m,f,r):[0,0,1];
+  if(Math.hypot(direction[0],direction[1])>.5)return direction;
+  const tierKey=tier(r)+':',goal=grid(target.x,target.y);let best=null,cost=10;
+  for(const [key,d] of flows){if(d===f||!key.startsWith(tierKey))continue;const i=Number(key.slice(tierKey.length)),v=Math.abs(i%COLS-goal%COLS)+Math.abs(Math.floor(i/COLS)-Math.floor(goal/COLS));if(v<cost){const candidate=follow(m,d,r);if(Math.hypot(candidate[0],candidate[1])>.5){cost=v;best=candidate}}}
+  if(best)return best;
+  // While BFS is still expanding, approach only as far as the next safe step permits.
+  const dx=gx-m.x,dy=gy-m.y,len=Math.hypot(dx,dy)||1,step=Math.min(14,len);
+  return clearPath(m.x,m.y,m.x+dx/len*step,m.y+dy/len*step,r)?[dx,dy,1]:[0,0,1];
  }
  function follow(m,f,r){
   let best=-1,cost=Infinity;
@@ -132,7 +150,7 @@ function createArenaCrowdSteering(world,move){
   return [cx(next)-m.x,cy(next)-m.y,1];
  }
  function step(mobs,players,tick){
-  ensure();if(budgetTick!==tick){budgetTick=tick;budget=2}
+  ensure();if(budgetTick!==tick){budgetTick=tick;budget=2;goalMemo.clear();workFields()}
   const buckets=new Map(),pressure=new Map();for(const m of mobs)if(m.hp>0){const key=Math.floor(m.x/48)+','+Math.floor(m.y/48);if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(m)}
   for(const m of mobs){
    if(m.hp<=0||m.labFrozen)continue;
@@ -171,7 +189,7 @@ function createArenaCrowdSteering(world,move){
    if(Math.hypot(m.x-x,m.y-y)<.15){m.vx=m.vy=0}
   }
  }
- return {step,advance,field,nearestOpen,walkable,clearPath,refreshObstacles(){indexObstacles()},get cachedFields(){return flows.size},get fieldBuilds(){return builds},clear(){indexObstacles()}};
+ return {step,advance,field,nearestOpen,walkable,clearPath,refreshObstacles(){indexObstacles()},get cachedFields(){return flows.size},get fieldBuilds(){return builds},get lastFieldWork(){return lastWork},get pendingFields(){return pending.size},clear(){indexObstacles()}};
 }
 
 const N={phase:'idle',ws:null,match:'',id:'',world:{w:4200,h:4200,r:14,speed:156,obstacles:[]},
