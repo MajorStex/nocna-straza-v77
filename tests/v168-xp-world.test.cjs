@@ -39,3 +39,12 @@ console.log('V193 MAGNET: 120px normal / 180px perk');
  assert(source.includes('drawArenaCombatFx(g,now,visible)'));
  console.log('V223 combat visual event: lethal damage, dedupe, expiry PASS');
 })();
+
+;(()=>{
+ const a=source.indexOf('// V224: radius-aware shared flow fields.'),b=source.indexOf('\nconst N=',a);assert(a>=0&&b>a);
+ const make=new Function(source.slice(a,b)+';return createArenaCrowdSteering')();
+ const w={w:720,h:720,r:14,speed:156,obstacles:[{x:330,y:170,w:18,h:380}]};let nav;nav=make(w,(m,ax,ay,dt)=>{const x=m.x+ax*w.speed*dt,y=m.y+ay*w.speed*dt;if(nav.clearPath(m.x,m.y,x,y,28)){m.x=x;m.y=y}});
+ const players=new Map([['p1',{id:'p1',online:true,hp:100,x:590,y:360}]]),m={id:1,hp:40,x:145,y:360,bodyRadius:28,moveSpeed:120};
+ for(let i=0;i<600;i++){if(i%2===0){nav.step([m],players,i);assert(nav.lastFieldWork<=384)}nav.advance([m],players);assert(nav.walkable(m.x,m.y,28))}
+ assert(m.x>400);assert.equal(nav.fieldBuilds,1);console.log('V224 Solo navigation around an obstacle PASS');
+})();
