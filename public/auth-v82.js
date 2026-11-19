@@ -126,12 +126,44 @@ function applyCloud(saved){
  return true;
 }
 function gameReset(){for(const k of currentSave().keys())localStorage.removeItem(k)}
+// V227: voice records are private, bounded, and fetched only for the requested character.
+const VOICE_EVENTS=new Set(['spawn','far','near','attack','hurt','kill','death','wave','idle']);
+function voicePrefix(profile,id){
+ if(!/^[a-z0-9_-]{1,40}$/i.test(profile)||!/^[-a-z0-9]{1,50}$/i.test(id))throw Error('Character reference invalid');
+ return 'voice-v1:'+profile+':'+id+':';
+}
+function voiceRecord(raw){
+ if(!raw||!VOICE_EVENTS.has(raw.event)||!Number.isInteger(raw.slot)||raw.slot<0||raw.slot>2||!Number.isSafeInteger(raw.updated)||raw.updated<0)return null;
+ const deleted=raw.deleted===true;
+ if(!deleted&&(!/^audio\/[a-z0-9.+-]+(?:;[a-z0-9= .,+-]+)?$/i.test(raw.mime||'')||typeof raw.data!=='string'||raw.data.length<4||raw.data.length>256000||!/^[A-Za-z0-9+/]+={0,2}$/.test(raw.data)))return null;
+ return {event:raw.event,slot:raw.slot,updated:raw.updated,deleted,mime:deleted?'':raw.mime,data:deleted?'':raw.data,ms:Math.max(0,Math.min(5000,Number(raw.ms)||0))};
+}
+function voiceSession(){if(!sdk||!db||!currentUser||!cloudReady||guestMode)throw Error('Prijavi se za cloud čuvanje.');return currentUser.uid}
+async function characterVoiceRead(profile,id){
+ const uid=voiceSession(),prefix=voicePrefix(profile,id),col=sdk.collection(db,'users',uid,'saves');
+ const snap=await sdk.getDocsFromServer(sdk.query(col,sdk.where('key','>=',prefix),sdk.where('key','<',prefix+'\uf8ff'),sdk.limit(28)));
+ if(voiceSession()!==uid)throw Error('Promenjen nalog');
+ const result=[];for(const item of snap.docs){const d=item.data();try{const r=voiceRecord(JSON.parse(d.value));if(r&&d.key===prefix+r.event+':'+r.slot)result.push(r)}catch{}}
+ return result;
+}
+async function characterVoiceWrite(profile,id,rows){
+ const uid=voiceSession(),prefix=voicePrefix(profile,id);
+ if(!Array.isArray(rows)||rows.length>27)throw Error('Previše snimaka');
+ const clean=rows.map(voiceRecord);if(clean.some(r=>!r)||new Set(clean.map(r=>r.event+':'+r.slot)).size!==clean.length)throw Error('Neispravan snimak');
+ if(!clean.length)return true;
+ const entries=clean.map(r=>{const key=prefix+r.event+':'+r.slot;return {r,key,ref:sdk.doc(db,'users',uid,'saves',encodeURIComponent(key)+'~0')}});
+ await sdk.runTransaction(db,async tx=>{const stored=await Promise.all(entries.map(e=>tx.get(e.ref)));if(voiceSession()!==uid)throw Error('Promenjen nalog');
+  for(const [i,e] of entries.entries()){let old=null;try{if(stored[i].exists())old=voiceRecord(JSON.parse(stored[i].data().value))}catch{}if(old&&old.updated>e.r.updated)throw Error('Novija verzija glasa je u cloudu. Učitaj ponovo.');tx.set(e.ref,{key:e.key,value:JSON.stringify(e.r),deleted:e.r.deleted,part:0,total:1,schema:1,updatedAt:sdk.serverTimestamp()})}
+ });
+ if(voiceSession()!==uid)throw Error('Promenjen nalog');return true;
+}
 async function bootstrapCloud(user){
  if(bootstrap||!db)return;
  bootstrap=true;accountUid=user.uid;cloudReady=false;
  status(tr('Reading cloud saves…','Učitavam napredak iz clouda…'),'pending');
  try{
-  const items=await sdk.getDocs(sdk.collection(db,'users',user.uid,'saves'));
+  const col=sdk.collection(db,'users',user.uid,'saves');
+  const items=await sdk.getDocs(sdk.query(col,sdk.where('key','>=','ns'),sdk.where('key','<','nt')));
   if(currentUser?.uid!==user.uid)return;
   const groups=new Map();
   for(const p of items.docs){const v=p.data();if(!isSaveKey(v.key)||typeof v.value!=='string')continue;
@@ -334,7 +366,7 @@ function attach(){
  const observer=new MutationObserver(()=>renderLang());
  const languageSelector=el('gameLanguageHome');if(languageSelector)languageSelector.addEventListener('change',()=>setTimeout(renderLang,30));
  renderLang();setMode('signin');
- window.NS82_CLOUD={markDirty,flush,openAccount,downloadBackup,get online(){return !!currentUser&&cloudReady},get user(){return currentUser?.uid||null},get lastError(){return lastError},get bootstrapping(){return bootstrap}};
+ window.NS82_CLOUD={markDirty,flush,openAccount,downloadBackup,characterVoiceRead,characterVoiceWrite,get online(){return !!currentUser&&cloudReady},get user(){return currentUser?.uid||null},get lastError(){return lastError},get bootstrapping(){return bootstrap}};
 }
 async function begin(){
  attach();
