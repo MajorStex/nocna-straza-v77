@@ -13,8 +13,8 @@ function clean(raw){const out={};if(raw&&typeof raw==='object')for(const a of Ob
 function relation(matrix,a,b){a=valid(a);b=valid(b);if(a===b)return 'friendly';const v=matrix?.[pair(a,b)];return Object.hasOwn(REL,v)?v:defaultRelation(a,b)}
 function set(matrix,a,b,value){const out=clean(matrix);if(a===b||!Object.hasOwn(TEAMS,a)||!Object.hasOwn(TEAMS,b)||!Object.hasOwn(REL,value))return out;out[pair(a,b)]=value;return clean(out)}
 function teams(a,b){return relation(a?.relations||b?.relations,a?.faction,b?.faction)}
-function hostile(a,b){if(!a||!b||a===b||b.hp<=0)return false;const r=teams(a,b);return r==='hostile'||r==='neutral'&&a.brain?.retaliate===b}
-function markHit(a,b){if(!a||!b||a===b||!b.brain||b.placement?.ai?.reaction==='passive'||teams(a,b)==='friendly')return;b.brain.retaliate=a}
+function hostile(a,b){if(!a||!b||a===b||b.hp<=0||a.ignoreForAI||b.ignoreForAI)return false;const r=teams(a,b);return r==='hostile'||r==='neutral'&&a.brain?.retaliate===b}
+function markHit(a,b){if(!a||!b||a===b||a.ignoreForAI||b.ignoreForAI||!b.brain||b.placement?.ai?.reaction==='passive'||teams(a,b)==='friendly')return;b.brain.retaliate=a}
 function bind(actor,matrix){actor.relations=matrix;return actor}
 function options(group,current){return Object.entries(group).map(([k,v])=>'<option value="'+k+'"'+(current===k?' selected':'')+'>'+v+'</option>').join('')}
 function editorHtml(matrix){const ids=Object.keys(TEAMS),rows=[];for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){const a=ids[i],b=ids[j];rows.push('<label class="ccRelationRow"><span>'+TEAMS[a]+' ↔ '+TEAMS[b]+'</span><select data-relation-a="'+a+'" data-relation-b="'+b+'">'+options(REL,relation(matrix,a,b))+'</select></label>')}
