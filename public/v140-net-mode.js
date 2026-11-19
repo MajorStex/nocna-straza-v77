@@ -102,8 +102,8 @@ function createArenaCrowdSteering(world,move){
  }
  function workFields(){
   lastWork=0;
-  while(pending.size&&lastWork<512){const [key,task]=pending.entries().next().value;pending.delete(key);
-   lastWork+=expand(task,Math.min(128,512-lastWork));if(task.head<task.tail)pending.set(key,task)
+  while(pending.size&&lastWork<384){const [key,task]=pending.entries().next().value;pending.delete(key);
+   lastWork+=expand(task,Math.min(128,384-lastWork));if(task.head<task.tail)pending.set(key,task)
   }
  }
  function field(x,y,r=world.r||14,limited=false){
@@ -112,7 +112,7 @@ function createArenaCrowdSteering(world,move){
   const key=g.r+':'+goal;
   if(flows.has(key)){const hit=flows.get(key);flows.delete(key);flows.set(key,hit);if(!limited&&pending.has(key)){const task=pending.get(key);expand(task,COUNT);pending.delete(key)}return hit}
   if(limited&&budget<=0)return null;if(limited)budget--;builds++;
-  if(flows.size>=16){const oldest=flows.keys().next().value;flows.delete(oldest);pending.delete(oldest)}
+  if(flows.size>=40){const oldest=flows.keys().next().value;flows.delete(oldest);pending.delete(oldest)}
   const distance=new Uint16Array(COUNT);distance.fill(INF);const queue=new Uint16Array(COUNT);queue[0]=goal;distance[goal]=0;
   const task={g,distance,queue,head:0,tail:1};flows.set(key,distance);
   if(limited)pending.set(key,task);else expand(task,COUNT);
@@ -139,7 +139,7 @@ function createArenaCrowdSteering(world,move){
   let best=-1,cost=Infinity;
   // Choose a physically reachable node from either side of a grid boundary.
   // Never jump to an open cell through a thin fence.
-  nearbyNodes(m.x,m.y,2,i=>{if(f[i]===INF)return;const x=cx(i),y=cy(i),d=Math.hypot(x-m.x,y-m.y);if(d>82||!clearPath(m.x,m.y,x,y,r))return;const score=f[i]+d/CELL*1.05;if(score<cost){cost=score;best=i}});
+  nearbyNodes(m.x,m.y,2,i=>{if(f[i]===INF)return;const x=cx(i),y=cy(i),d=Math.hypot(x-m.x,y-m.y);if(d>82)return;const score=f[i]+d/CELL*1.05;if(score<cost&&clearPath(m.x,m.y,x,y,r)){cost=score;best=i}});
   if(best<0)return [0,0,1];
   // Look ahead along descending cells only if the whole swept segment is clear.
   const g=graph(r);let next=best;
@@ -155,6 +155,9 @@ function createArenaCrowdSteering(world,move){
   for(const m of mobs){
    if(m.hp<=0||m.labFrozen)continue;
    let target=players.get(m.targetId);
+   // Stagger expensive route/avoidance sampling; motion remains continuous at 30Hz.
+   if(m.navSteered&&target?.online&&!target.knocked&&target.hp>0&&tick<(m.retargetAt||0)&&(m.id&1)!==((tick>>1)&1))continue;
+   m.navSteered=true;
    if(!target?.online||target.knocked||target.hp<=0||tick>=(m.retargetAt||0)){
     target=null;let score=Infinity;
     for(const p of players.values()){if(!p.online||p.knocked||p.hp<=0)continue;const d=Math.hypot(p.x-m.x,p.y-m.y)+(pressure.get(p.id)||0)*18+(p.id===m.targetId?-24:0);if(d<score){score=d;target=p}}
