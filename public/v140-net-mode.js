@@ -667,6 +667,14 @@ function expPlace(players,point,tick){let i=0;for(const p of players.values()){c
 function expWake(mobs,players,z){const living=[...players.values()].filter(p=>p.online&&p.hp>0&&!p.knocked&&!p.finalDead&&!p.paused&&!p.background);if(z?.id!==1)return false;let collected=false;if(!z.core&&living.some(p=>expNear(p,EXP_CORE,36))){z.core=true;collected=true}if(z.core)for(const m of mobs)if(m.expSleeping){m.expSleeping=false;m.labFrozen=false}return collected}
 function expDrop(z,m,invalid){if(z&&!z.id&&!z.key&&!z.keyDrop&&!invalid&&m.kind==='troll')z.keyDrop={x:m.x,y:m.y}}
 function expCollect(z,players){if(!z||z.id||!z.keyDrop)return false;for(const p of players.values())if(p.online&&p.hp>0&&!p.knocked&&!p.paused&&!p.background&&expNear(p,z.keyDrop,32)){z.key=true;z.keyDrop=null;return true}return false}
+// V231: same chest eligibility in solo and authoritative MP.
+function expChestRopeEligible(z,e,chestId,mode,lab=false){
+ return !!(z&&!z.id&&!z.rope&&e&&!e.invalid&&!lab&&mode!=='defense'&&Number.isInteger(chestId)&&((chestId>=1&&chestId<=9&&chestId%3===0)||(chestId>=103&&chestId<=1099)));
+}
+function expChestRope(z,e,chestId,mode,lab=false){
+ if(!expChestRopeEligible(z,e,chestId,mode,lab))return false;
+ z.rope=true;return true;
+}
 function expRope(z,e,p){if(!z||z.id||z.rope||!arenaTradeNear(e,p,'guild')||(p.xp||0)<58||(!p.guildUnlocked&&!(p.arenaKeys>0)))return false;if(!p.guildUnlocked){p.arenaKeys--;p.guildUnlocked=true}p.xp-=58;z.rope=true;return true}
 function expReward(z,mobs,players){if(!z?.id||(z.id===1&&!z.core)||(z.done&(1<<z.id))||mobs.some(m=>m.hp>0))return false;z.done|=1<<z.id;for(const p of players.values())if(p.online&&p.hp>0&&!p.knocked&&!p.finalDead){p.arenaShards=Math.min(999,(p.arenaShards||0)+3);p.hp=Math.min(p.maxHp||100,p.hp+25)}return true}
 function expPacket(z){return z?[z.id,z.rev,z.done,z.key?1:0,z.rope?1:0,z.keyDrop?[Math.round(z.keyDrop.x),Math.round(z.keyDrop.y)]:null,z.core?1:0]:[0,0,0,0,0,null,0]}
@@ -1487,7 +1495,7 @@ function refreshFieldObjective(){
  const dist=o=>Math.round(Math.hypot(o.x-p.x,o.y-p.y)/10)+'m';let targetPoint=null,d=Infinity;for(const o of q.objects||[]){if(o.taken||q.next)continue;const ds=(o.x-p.x)**2+(o.y-p.y)**2;if(ds<d){targetPoint=o;d=ds}}
  if(targetPoint)bits.push('◆ '+dist(targetPoint)+' · '+(targetPoint.y<p.y?'↑':'↓')+(targetPoint.x<p.x?'←':'→'));
  if(rescueVisible()&&N.rescue.phase<3)bits.push('⛓ '+dist(N.rescue)+' · '+(N.rescue.phase===1?'ČUVARI':'SPASI'));
- const portal=z?.portals?.find(o=>o.id===2);if(portal)bits.push('◇ PEĆINA '+dist(portal)+' · '+(z.rope?'KANAP SPREMAN':'TREBA KANAP'));
+ const portal=z?.portals?.find(o=>o.id===2);if(portal)bits.push('◇ PEĆINA '+dist(portal)+' · '+(z.rope?'KANAP SPREMAN':'KANAP: SANDUK / KOVNICA'));
  const temple=z?.portals?.find(o=>o.id===1);if(temple)bits.push('◇ TEMPLE '+dist(temple)+' · '+(z.key?'KLJUČ SPREMAN':'KLJUČ TROLA'));if(z?.keyDrop)bits.push('🔑 '+dist(z.keyDrop)+' · KLJUČ TROLA');const text=bits.join('\n');if(box.textContent!==text)box.textContent=text;
 }
 function drawFieldObjectives(g,v){
@@ -1565,7 +1573,7 @@ function refreshArenaRun(){
  const run=el('ns195Run'),trade=el('ns195Trade'),quest=el('ns195Quest');if(!run||!trade||!quest)return;
  const e=N.explore,p=N.me,allowed=!!(e&&p&&(N.solo||N.exploreSupported)&&N.phase==='running');
  run.hidden=!allowed;if(!allowed){trade.hidden=true;quest.hidden=true;return}syncArenaAccount();
- run.textContent='🔑 '+(p.arenaKeys||0)+' · ◇ '+(p.arenaShards||0)+' · 🏆 '+(e.invalid?'EDITOR':(arenaRunMask(e).toString(2).match(/1/g)||[]).length+'/12')+(rescueVisible()?' · '+(N.rescue.phase===1?'⛓':N.rescue.phase===2?'🛡 '+N.rescue.hp+' HP':N.rescue.phase===3?'✓':'✕'):'');
+ run.title='Ključevi za kovnicu · dijamanti · trofeji';run.textContent='🔑 '+(p.arenaKeys||0)+' · ◇ '+(p.arenaShards||0)+' · 🏆 '+(e.invalid?'EDITOR':(arenaRunMask(e).toString(2).match(/1/g)||[]).length+'/12')+(rescueVisible()?' · '+(N.rescue.phase===1?'⛓':N.rescue.phase===2?'🛡 '+N.rescue.hp+' HP':N.rescue.phase===3?'✓':'✕'):'');
  const t=N.solo?N.soloTick:N.tick;
  const near=(!N.expedition?.id&&!N.paused&&!LAB_PAUSE.paused&&!N.choice&&!N.soloChoice&&el('ns158Menu')?.hidden!==false&&el('ns192MapPanel')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled))?arenaTradeNear(e,p):null;
  trade.hidden=!near;
@@ -1578,7 +1586,7 @@ function refreshArenaRun(){
    const b=document.createElement('button');b.type='button';b.textContent=tier===3?'MAKSIMALNO +3':'UNAPREDI +'+(tier+1)+' · '+ARENA_FORGE_COST[tier][0]+' metal / '+ARENA_FORGE_COST[tier][1]+' esencija';b.disabled=!info?.affordable||(N.solo?N.soloState!=='play':N.waveState!=='play');b.onclick=()=>{if(requestArenaCraft(weapon,tier))b.disabled=true};trade.append(b);
    const legend=ARENA_LEGENDS.find(l=>l.weapon===weapon);if(legend&&(N.solo||N.legendSupported)){const owned=arenaLegend(p,weapon),info=arenaLegendInfo(e,p,weapon),name=document.createElement('div');name.textContent='★ '+legend.name+' · '+legend.desc;name.style.color='#ffd47a';trade.append(name);const craft=document.createElement('button');craft.type='button';craft.textContent=owned?'LEGENDARNO · OTKLJUČANO':tier<3?'POTREBNO +3':'ISKOVAJ LEGENDU · 30 METALA / 4 ESENCIJE';craft.disabled=!info?.affordable||(N.solo?N.soloState!=='play':N.waveState!=='play');craft.onclick=()=>{if(requestArenaLegend(weapon))craft.disabled=true};trade.append(craft)}
   }
-  if(near.type==='guild'&&N.expSupported){const b=document.createElement('button');b.type='button';b.textContent=N.expedition?.rope?'KANAP NABAVLJEN':'KANAP ZA PEĆINU · 58 XP';b.disabled=!!N.expedition?.rope||p.xp<58||(!p.guildUnlocked&&!p.arenaKeys);b.onclick=()=>{if(N.solo){if(expRope(N.expedition,e,p)){announceArena('KANAP NABAVLJEN');N.tradeUiKey=''}}else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'arenaTrade',id:'ropeKey',rev:N.expedition?.rev||0}))};trade.append(b)}
+  if(near.type==='guild'&&N.expSupported){const b=document.createElement('button');b.type='button';b.textContent=N.expedition?.rope?'KANAP NABAVLJEN':'KANAP ZA PEĆINU · 58 XP';b.disabled=!!N.expedition?.rope||p.xp<58||(!p.guildUnlocked&&!p.arenaKeys);b.onclick=()=>{if(N.solo){if(expRope(N.expedition,e,p)){N.tradeUiKey=''}}else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'arenaTrade',id:'ropeKey',rev:N.expedition?.rev||0}))};trade.append(b)}
  }}
  const periodAt=N.solo?Date.now():(N.serverNow||Date.now());if(!N.questPeriod||Math.abs(periodAt-(N.questPeriodAt||0))>=45000){N.questPeriod=arenaQuestPeriod(periodAt);N.questPeriodAt=periodAt}
  const qkey=[e.kills,e.trolls,e.worms,e.chests,e.revives,e.wave,e.invalid,p.kills,N.rescue?.phase,N.rescue?.hp,...N.questPeriod.map(a=>a[0])].join(':');
@@ -1638,7 +1646,7 @@ function drawRuleNight(g,w,h,zoom,me,now){if(N.expedition?.id||!arenaRuleDark(N.
 }
 function ruleTitle(wave){const r=N.rule;if(!r)return 'TALAS '+wave;if(r.mode==='defense')return (r.victory?'SELO ODBRANJENO':'ODBRANA '+wave+'/20')+' · '+r.towers.filter(t=>t.hp>0).length+'/3 OBJEKTA';if(r.victory)return 'POBEDA · '+(r.mode==='campaign'?'KAMPANJA':'TRI KULE');if(r.mode==='rush')return 'TALAS '+wave+' · OPSADA';if(r.mode==='campaign')return 'TALAS '+wave+' · '+(ARENA_CAMPAIGN[r.stage]?.[0]||'KAMPANJA');if(r.mode==='night'){const dark=arenaRuleDark(r),left=Math.ceil(((dark?3600:2400)-r.elapsed%3600)/30);return 'TALAS '+wave+' · '+(dark?'MRAK':'SVETLO')+' '+left+'s · KULE '+r.towers.filter(t=>t.hp<=0).length+'/3'}return 'TALAS '+wave}
 
-function resetExp(base){N.expedition=expInit(base);if(N.solo)installTempleCollider(base,N.expedition);N.expBase={...base};N.expSupported=false}
+function resetExp(base){N.pickupHudState=null;N.expedition=expInit(base);if(N.solo)installTempleCollider(base,N.expedition);N.expBase={...base};N.expSupported=false}
 function applyExp(v){if(!N.expSupported||!N.expedition||!Array.isArray(v)||![0,1,2].includes(v[0])||!Number.isSafeInteger(v[1]))return;
  const z=N.expedition,changed=z.id!==v[0]||z.rev!==v[1];z.id=v[0];z.rev=v[1];z.done=Number(v[2])||0;z.key=v[3]===1;z.rope=v[4]===1;z.keyDrop=Array.isArray(v[5])?{x:v[5][0],y:v[5][1]}:null;const coreWas=z.core;z.core=v[6]===1;if(z.id===1&&z.core&&!coreWas&&!changed)announceArena('DIJAMANT UZET · ČUVARI SE BUDE');
  if(changed){N.world=expWorld(N.expBase,z.id);resetArenaBreakables(N.world);N.breakSupported=true;N.mobHistory=[];N.mpMobs=[];N.mobRenderTick=null;N.players.clear();N.pending=[];N.delta={x:0,y:0};N.rejoinCorrection=true;resetArenaMap(true);N.tradeUiKey='';spellFx=[];clearArenaCombatFx();announceArena(z.id===1?'TEMPLE':z.id===2?'PEĆINA':'POVRATAK NA MAPU')}
@@ -1795,7 +1803,7 @@ function snapshot(m){
  if(m.waveState==='play'||m.waveState==='between')N.waveState=m.waveState;
  if(Number.isFinite(m.waveAt))N.waveAt=m.waveAt;
  N.choice=m.choice&&Number.isInteger(m.choice.seq)&&typeof m.choice.owner==='string'?
-  {id:m.choice.id,kind:m.choice.kind==='xp'?'xp':'chest',level:Number(m.choice.level)||1,owner:m.choice.owner,options:Array.isArray(m.choice.options)?m.choice.options.filter(k=>ARENA_CORE_REWARDS.includes(k)||ARENA_EXTRA_REWARDS.includes(k)).slice(0,3):ARENA_CORE_REWARDS,seq:m.choice.seq,until:m.choice.until}:null;
+  {id:m.choice.id,kind:m.choice.kind==='xp'?'xp':'chest',level:Number(m.choice.level)||1,owner:m.choice.owner,ropeBonus:m.choice.kind==='chest'&&m.choice.ropeBonus===true,options:Array.isArray(m.choice.options)?m.choice.options.filter(k=>ARENA_CORE_REWARDS.includes(k)||ARENA_EXTRA_REWARDS.includes(k)).slice(0,3):ARENA_CORE_REWARDS,seq:m.choice.seq,until:m.choice.until}:null;
  if(LAB_SERVER_BUILD>=168&&Array.isArray(m.drops))N.drops=m.drops.slice(0,85)
   .filter(d=>Array.isArray(d)&&Number.isInteger(d[0])&&Number.isFinite(d[1])&&Number.isFinite(d[2]))
   .map(d=>({id:d[0],x:d[1]/10,y:d[2]/10,value:Number(d[3])||7}));
@@ -2099,7 +2107,7 @@ function soloWaveDone(){
   y:clamp(me.y+62,35,N.world.h-35),opened:true};
  N.soloChests.push(chest);
  if(N.soloChests.length>12)N.soloChests=N.soloChests.slice(-12);
- N.soloChoice={id:chest.id,kind:'chest',options:arenaRewardOptions(N.me,N.soloChestSeq+1),seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
+ N.soloChoice={id:chest.id,kind:'chest',options:arenaRewardOptions(N.me,N.soloChestSeq+1),ropeBonus:expChestRopeEligible(N.expedition,N.explore,chest.id,N.rule?.mode,LAB.enabled),seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
  N.choiceUiId='';A()?.play('chest');
 }
 
@@ -2331,7 +2339,7 @@ function stepSolo(dt){
   if(!N.soloChoice){
    const chest=N.soloChests.find(c=>!c.opened&&(c.x-me.x)**2+(c.y-me.y)**2<=64**2);
    if(chest){
-    chest.opened=true;if(N.explore&&!N.explore.invalid)N.explore.chests++;N.soloChoice={id:chest.id,kind:'chest',options:arenaRewardOptions(N.me,N.soloChestSeq+1),seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
+    chest.opened=true;if(N.explore&&!N.explore.invalid)N.explore.chests++;N.soloChoice={id:chest.id,kind:'chest',options:arenaRewardOptions(N.me,N.soloChestSeq+1),ropeBonus:expChestRopeEligible(N.expedition,N.explore,chest.id,N.rule?.mode,LAB.enabled),seq:++N.soloChestSeq,owner:'p1',until:Date.now()+7000};
     N.choiceUiId='';A()?.play('chest');
    }
   }
@@ -2815,7 +2823,7 @@ function drawArenaChests(g,chests,view){
 function resolveSoloChest(option){
  if(!N.soloChoice||!(N.soloChoice.options||ARENA_CORE_REWARDS).includes(option))return false;
  const me=N.me,pick=option;arenaGrantReward(me,pick,N.soloTick);
- const isXp=N.soloChoice.kind==='xp';N.soloChoice=null;N.choiceUiId='';
+ const isXp=N.soloChoice.kind==='xp';if(!isXp&&N.soloChoice.ropeBonus)expChestRope(N.expedition,N.explore,N.soloChoice.id,N.rule?.mode,LAB.enabled);N.soloChoice=null;N.choiceUiId='';
  if(!isXp)N.soloBetweenUntil=Date.now()+arenaRuleRest(N.rule,1750);
  A()?.play('choose');return true;
 }
@@ -2877,13 +2885,29 @@ function drawArenaDirections(g,w,h,zoom,me){
  if(alive>0&&alive<10&&!(N.solo?N.soloReserve:N.waveReserve))for(const m of mobs)if(m.hp>0)draw(m,'#ff6363','');
  for(const p of N.players.values())if(p.id!==me.id&&p.online&&!p.finalDead&&(p.id!==N.id||p.knocked))draw(p,p.knocked?'#ff6868':'#62dcff',p.knocked?'✚ '+String(N.looks.get(p.id)?.look?.name||p.id).slice(0,12)+' · '+Math.round(Math.hypot(p.x-me.x,p.y-me.y)/10)+'m':String(N.looks.get(p.id)?.look?.name||p.id).slice(0,10));
 }
+// Existing state is the source of truth; no new recurring packets or timers.
+function arenaPickupLabels(previous,current,solo){
+ if(!previous||!current)return [];
+ const out=[],keys=current.keys-previous.keys,shards=current.shards-previous.shards;
+ if(keys>0)out.push('🔑 +' + keys + ' KLJUČ ZA KOVNICU');
+ if(shards>0)out.push('◇ +' + shards + ' DIJAMANT');
+ if(current.key&&!previous.key)out.push(solo?'🔑 KLJUČ TROLA · OTVARA TEMPLE':'🔑 TIM JE POKUPIO KLJUČ TROLA · TEMPLE');
+ if(current.rope&&!previous.rope)out.push(solo?'KANAP NABAVLJEN · OTVARA PEĆINU':'TIM JE NABAVIO KANAP · PEĆINA OTKLJUČANA');
+ return out;
+}
+function refreshArenaPickupNotice(){
+ if(!N.me||!N.expedition||N.phase!=='running')return;
+ const current={keys:Number(N.me.arenaKeys)||0,shards:Number(N.me.arenaShards)||0,key:!!N.expedition.key,rope:!!N.expedition.rope};
+ const messages=arenaPickupLabels(N.pickupHudState,current,N.solo);N.pickupHudState=current;
+ if(messages.length){announceArena(messages.join(' · '));A()?.play('choose',{gain:.65})}
+}
 function sessionHud(now){
  const wave=N.solo?N.soloWave:N.wave,state=N.solo?N.soloState:N.waveState;
  const mobs=N.solo?N.soloMobs:N.mpMobs,choice=N.solo?N.soloChoice:N.choice;
  const holder=el('ns152Choice'),hud=el('ns152Wave'),remaining=el('ns152Remaining');
  if(!holder||!hud||!remaining)return;
  if(now-N.uiAt>=140||N.choiceUiId!==(choice?(choice.seq+':'+choice.owner):'')){
-  N.uiAt=now;refreshArenaDodge();refreshArenaSpectate();refreshArenaLoot();refreshArenaRun();refreshFieldObjective();expHud();const swap=el('ns192Swap');if(swap){swap.hidden=!(N.solo||N.loadoutSupported)||!N.me?.secondaryWeapon||N.me.hp<=0;swap.textContent='⇄ '+(arenaLegend(N.me)?.name||N.me?.activeWeapon||'sword')+' / '+(arenaLegend(N.me,N.me?.secondaryWeapon)?.name||N.me?.secondaryWeapon||'')}
+  N.uiAt=now;refreshArenaPickupNotice();refreshArenaDodge();refreshArenaSpectate();refreshArenaLoot();refreshArenaRun();refreshFieldObjective();expHud();const swap=el('ns192Swap');if(swap){swap.hidden=!(N.solo||N.loadoutSupported)||!N.me?.secondaryWeapon||N.me.hp<=0;swap.textContent='⇄ '+(arenaLegend(N.me)?.name||N.me?.activeWeapon||'sword')+' / '+(arenaLegend(N.me,N.me?.secondaryWeapon)?.name||N.me?.secondaryWeapon||'')}
   hud.textContent=ruleTitle(wave);
   const xpHud=el('ns168XpHud'),xpText=el('ns168XpText'),xpFill=el('ns168XpFill');
   const xpEnabled=N.solo||LAB_SERVER_BUILD>=168;
@@ -2912,6 +2936,7 @@ function sessionHud(now){
     el('ns152ChoiceText').textContent=mine?
      'Izaberi nadogradnju. Ako ne stigneš, automatski se bira OŠTRICA.':
      'Čeka se '+choice.owner.toUpperCase()+' · izbor se automatski završava.';
+    if(choice.kind==='chest'&&choice.ropeBonus)el('ns152ChoiceText').textContent+=' · BONUS: KANAP ZA PEĆINU ZA CEO TIM.';
     const options=choice.options?.length?choice.options:ARENA_CORE_REWARDS;let i=0;for(const btn of holder.querySelectorAll('[data-pick]')){const k=options[i++];btn.hidden=!mine||!k;btn.disabled=false;if(k){btn.dataset.pick=k;btn.textContent=arenaRewardLabel(k)}}
    }
    const rest=N.solo?choice.until-Date.now():
