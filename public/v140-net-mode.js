@@ -2058,7 +2058,7 @@ function arenaPushXp(drops,drop,cap){
 function spawnSoloXpCrystal(mob){
  if(!mob.exploreCounted&&['troll','rotfiend','boss','werewolfAlpha','dragon'].includes(mob.kind))N.resultBosses=(N.resultBosses||0)+1;
  arenaExploreKill(N.explore,N.me,mob,N.soloTick,LAB.enabled);expDrop(N.expedition,mob,LAB.enabled||N.explore?.invalid);
- const d={id:++N.dropSeq,x:mob.x,y:mob.y,value:mob.kind==='dragon'?120:['troll','rotfiend','boss','werewolfAlpha'].includes(mob.kind)?45:mob.kind==='elephant'?14:7,expires:N.soloTick+1800};
+ const d={id:++N.dropSeq,x:mob.x,y:mob.y,value:mob.kind==='dragon'?120:['troll','rotfiend','boss','werewolfAlpha'].includes(mob.kind)?45:mob.kind==='elephant'?14:7,expires:N.soloTick+1800,readyAt:N.soloTick+12};
  arenaPushXp(N.soloDrops,d,XP_CAP);arenaMaybeWeaponDrop(N.weaponDrops,mob,N.soloWave,N.soloTick,d.id);
 }
 function addSoloRunXp(amount){
@@ -2079,6 +2079,8 @@ function stepSoloXpCrystals(){
  const out=[];
  for(const d of N.soloDrops){
   if(d.expires<=N.soloTick)continue;
+  // V222: kill crystals visibly land before proximity attraction; map/old drops remain compatible.
+  if((d.readyAt||0)>N.soloTick||p.hp<=0||p.knocked||p.finalDead||p.background||p.paused){out.push(d);continue}
   const dx=p.x-d.x,dy=p.y-d.y,dist=Math.hypot(dx,dy);
   const attract=120+(p.perks?.magnet?60:0);
   if(dist<attract&&dist>0.00001){
