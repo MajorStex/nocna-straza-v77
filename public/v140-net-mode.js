@@ -954,8 +954,54 @@ function resetArenaMagic(){magicSupported=false;spellSeq=0;spellView=null;spellF
 function arenaMagicAvailable(){return N.phase==='running'&&(N.solo||(!N.netStalled&&magicSupported))&&N.me?.hp>0&&!N.me.knocked&&!N.paused&&el('ns158Menu')?.hidden!==false&&!LAB_PAUSE.paused&&!(N.solo?N.soloChoice||N.soloState!=='play':N.choice||N.waveState!=='play')}
 function magicPoint(clientX,clientY){const r=el('ns140Canvas').getBoundingClientRect(),z=clamp(Math.max(r.width/750,r.height/760),.7,1.45);return{x:N.me.x+(clientX-r.left-r.width/2)/z,y:N.me.y+(clientY-r.top-r.height/2)/z}}
 function spellTarget(slot){const s=ARENA_SPELLS[slot],p=N.me;if(s.heal)return{x:p.x,y:p.y};let best=null,dist=Math.min(250,s.range)**2;for(const m of (N.solo?N.soloMobs:N.mpMobs)){if(m.hp<=0)continue;const d=(m.x-p.x)**2+(m.y-p.y)**2;if(d<dist){best=m;dist=d}}const angle=p.facingAngle??p.attackAngle??0;return best?{x:best.x,y:best.y}:{x:p.x+Math.cos(angle)*105,y:p.y+Math.sin(angle)*105}}
+// V223: bounded cosmetic events from actual HP loss, not client claims.
+function arenaCombatBefore(mobs,players){
+ const out=[];for(const m of mobs)if(m.hp>0)out.push([m,m.hp,0]);
+ for(const p of players.values())if(p.hp>0&&p.online!==false)out.push([p,p.hp,2]);
+ return out;
+}
+function arenaCombatEvents(old,before,tick){
+ const out=(old||[]).filter(e=>Math.floor(e[0]/1024)>=tick-9);
+ let seq=out.length&&Math.floor(out[out.length-1][0]/1024)===tick?out[out.length-1][0]%1024+1:0;
+ for(const [p,hp,kind] of before){
+  const damage=Math.round(hp-Math.max(0,p.hp));if(!(damage>0)||!Number.isFinite(p.x)||!Number.isFinite(p.y))continue;
+  const type=kind===2?2:p.hp>0?0:['troll','boss','rotfiend','werewolfAlpha','dragon'].includes(p.kind)?3:1;
+  if(seq>=1024)break;out.push([tick*1024+seq++,Math.round(p.x),Math.round(p.y),damage,type]);
+ }
+ return out.slice(-48);
+}
+
+function clearArenaCombatFx(){N.combatFx=[];N.combatSeen=new Set();N.soloCombatEvents=[]}
+function showArenaCombatEvents(events,now=performance.now()){
+ if(!Array.isArray(events)||!N.me)return;
+ const seen=N.combatSeen??=new Set(),fx=N.combatFx??=[];
+ for(const e of events.slice(-48)){
+  if(!Array.isArray(e)||e.length!==5||!e.every(Number.isFinite)||!Number.isSafeInteger(e[0])||e[3]<=0||e[3]>100000||e[4]<0||e[4]>3||seen.has(e[0]))continue;
+  seen.add(e[0]);while(seen.size>512)seen.delete(seen.values().next().value);
+  fx.push({e,at:now});if(fx.length>48)fx.shift();
+  const opt={x:e[1],y:e[2],listenerX:N.me.x,listenerY:N.me.y,gain:.8};
+  if(e[4]!==2)A()?.play('hit',opt);
+  if(e[4]===1||e[4]===3)A()?.play(e[4]===3?'boss':'kill',opt);
+ }
+}
+function showSoloCombatEvents(before){
+ N.soloCombatEvents=arenaCombatEvents(N.soloCombatEvents,before,N.soloTick);
+ showArenaCombatEvents(N.soloCombatEvents);
+}
+function drawArenaCombatFx(g,now,view){
+ const list=N.combatFx;if(!list?.length)return;
+ N.combatFx=list.filter(q=>now-q.at<600);
+ for(const q of N.combatFx){
+  const [id,x,y,damage,kind]=q.e;if(x<view.left-60||x>view.right+60||y<view.top-60||y>view.bottom+60)continue;
+  const life=Math.max(0,1-(now-q.at)/600);g.save();g.translate(x,y);g.globalAlpha=life;
+  g.fillStyle='#ffe2a1';g.font='bold 15px system-ui';g.textAlign='center';g.fillText('-'+damage,0,-15-25*(1-life));
+  if(kind===1||kind===3){const p=Math.max(0,1-(now-q.at)/550);g.globalAlpha=p;g.fillStyle='#c1a1c4';for(let j=0;j<7;j++){const angle=j*6.283185307/7+id%17;g.beginPath();g.ellipse(Math.cos(angle)*25*(1-p),Math.sin(angle)*25*(1-p),Math.max(.01,7*p),Math.max(.01,6*p),0,0,6.283185307);g.fill()}}
+  g.restore();
+ }
+}
+
 function showArenaSpell(event){if(!Array.isArray(event)||event.length!==5||!Number.isSafeInteger(event[0])||spellSeen.has(event[0])||!ARENA_SPELLS[event[1]]||!event.slice(2).every(Number.isFinite))return;spellSeen.set(event[0],event[4]);for(const [id,t] of spellSeen)if(event[4]-t>120)spellSeen.delete(id);while(spellSeen.size>512)spellSeen.delete(spellSeen.keys().next().value);spellFx.push({event,at:performance.now()});if(spellFx.length>18)spellFx.shift();const me=N.me;if(me&&(event[2]-me.x)**2+(event[3]-me.y)**2<640**2)B().arenaSpellSound?.(ARENA_SPELLS[event[1]].id,event[2],event[3],me)}
-function requestArenaSpell(slot,point){if(!arenaMagicAvailable()||!ARENA_SPELLS[slot])return false;const p=N.me,s=ARENA_SPELLS[slot],state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state||state[0]<s.cost*10||state[2][slot]>0)return false;const q=point||spellTarget(slot);if(point&&(q.x<30||q.y<30||q.x>N.world.w-30||q.y>N.world.h-30))return false;const x=Math.round(clamp(q.x,30,N.world.w-30)),y=Math.round(clamp(q.y,30,N.world.h-30));if((x-p.x)**2+(y-p.y)**2>s.range**2)return false;if(N.solo){const e=arenaSpellCast({p,players:N.players,mobs:N.soloMobs,world:N.world,tick:N.soloTick,cls:localArenaLook().heroClass,slot,x,y,damageRule:soloDamageRule,clearPath:N.expedition?.id?(a,b)=>arenaAcidClear(N.world,a.x,a.y,b.x,b.y,3):undefined,kill:m=>{m.deadUntil=N.soloTick+105;N.soloKills++;p.kills++;spawnSoloXpCrystal(m)}});if(e){showArenaSpell(e);spellHudAt=0;return true}return false}if(N.ws?.readyState!==1||N.ws.bufferedAmount>=4000||performance.now()-spellPendingAt<170)return false;spellPendingAt=performance.now();N.ws.send(JSON.stringify({t:'spell',seq:++spellSeq,slot,x,y,rev:N.expedition?.rev||0}));return true}
+function requestArenaSpell(slot,point){if(!arenaMagicAvailable()||!ARENA_SPELLS[slot])return false;const p=N.me,s=ARENA_SPELLS[slot],state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state||state[0]<s.cost*10||state[2][slot]>0)return false;const q=point||spellTarget(slot);if(point&&(q.x<30||q.y<30||q.x>N.world.w-30||q.y>N.world.h-30))return false;const x=Math.round(clamp(q.x,30,N.world.w-30)),y=Math.round(clamp(q.y,30,N.world.h-30));if((x-p.x)**2+(y-p.y)**2>s.range**2)return false;if(N.solo){const combatBefore=arenaCombatBefore(N.soloMobs,N.players);const e=arenaSpellCast({p,players:N.players,mobs:N.soloMobs,world:N.world,tick:N.soloTick,cls:localArenaLook().heroClass,slot,x,y,damageRule:soloDamageRule,clearPath:N.expedition?.id?(a,b)=>arenaAcidClear(N.world,a.x,a.y,b.x,b.y,3):undefined,kill:m=>{m.deadUntil=N.soloTick+105;N.soloKills++;p.kills++;spawnSoloXpCrystal(m)}});if(e){showSoloCombatEvents(combatBefore);showArenaSpell(e);spellHudAt=0;return true}return false}if(N.ws?.readyState!==1||N.ws.bufferedAmount>=4000||performance.now()-spellPendingAt<170)return false;spellPendingAt=performance.now();N.ws.send(JSON.stringify({t:'spell',seq:++spellSeq,slot,x,y,rev:N.expedition?.rev||0}));return true}
 function refreshMagicHud(now){const dock=el('ns189Magic');if(!dock)return;const enabled=arenaMagicAvailable();if(dock.hidden===enabled)dock.hidden=!enabled;if(!enabled){spellAim=null;el('ns189Picker').hidden=true;return}if(now-spellHudAt<140)return;spellHudAt=now;const p=N.me,state=N.solo?arenaSpellState(p,N.soloTick):spellView;if(!state){el('ns189Cast').disabled=true;return}const s=ARENA_SPELLS[spellSlot],mana=state[0]/10,remaining=state[2][spellSlot]/30,b=el('ns189Cast');el('ns189Mana').textContent=Math.floor(mana)+' / '+state[1]+' MP';el('ns189ManaFill').style.width=Math.min(100,mana/state[1]*100)+'%';b.textContent=s.icon+' '+s.sr+(remaining>0?' · '+Math.ceil(remaining)+'s':' · '+s.cost+' MP');b.disabled=mana<s.cost||remaining>0;b.style.borderColor=s.color;const picker=el('ns189Picker');if(!picker.hidden&&picker.dataset.slot!==String(spellSlot)){picker.dataset.slot=String(spellSlot);picker.querySelectorAll('button').forEach((q,i)=>q.setAttribute('aria-pressed',String(i===spellSlot)))}}
 function mountArenaMagic(root,style){style.textContent+='#ns189Magic{position:absolute;left:calc(10px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;width:min(205px,42vw);font:700 11px system-ui;color:#e3f4ff;background:#152a35e8;border:1px solid #7196bf;border-radius:11px;padding:5px;touch-action:none}#ns189Magic[hidden],#ns189Picker[hidden]{display:none!important}#ns189Magic button{background:#243d50;color:#e8f6ff;border:1px solid #7698b8;border-radius:7px;min-height:34px;font:700 11px system-ui;touch-action:none}#ns189Magic button:disabled{opacity:.52}#ns189ManaTrack{height:5px;background:#14202f;border-radius:5px;overflow:hidden;margin:3px 0}#ns189ManaFill{height:100%;background:#58abeb}#ns189CastRow{display:flex;gap:4px}#ns189Cast{flex:1}#ns189Picker{position:absolute;bottom:100%;left:0;width:min(280px,75vw);display:grid;grid-template-columns:repeat(2,1fr);gap:4px;padding:6px;background:#142933f5;border:1px solid #83a1bc;border-radius:9px}#ns189Picker button[aria-pressed=true]{border-color:#ffe1a2;background:#3e4b5d}';const dock=document.createElement('div');dock.id='ns189Magic';dock.hidden=true;dock.innerHTML='<span id="ns189Mana">0 MP</span><div id="ns189ManaTrack"><div id="ns189ManaFill"></div></div><div id="ns189CastRow"><button id="ns189Cast" type="button" aria-label="Baci magiju">✦ Iskra</button><button id="ns189Swap" type="button" aria-label="Izaberi magiju">⇄</button></div><div id="ns189Picker" hidden></div>';root.append(dock);const picker=el('ns189Picker');for(const [i,s] of ARENA_SPELLS.entries()){const b=document.createElement('button');b.type='button';b.textContent=s.icon+' '+s.sr+' · '+s.cost+' MP';b.onclick=()=>{spellSlot=i;picker.hidden=true;spellHudAt=0;refreshMagicHud(performance.now())};picker.append(b)}el('ns189Swap').onclick=()=>{picker.hidden=!picker.hidden;spellHudAt=0;refreshMagicHud(performance.now())};const btn=el('ns189Cast');btn.addEventListener('pointerdown',e=>{if(!arenaMagicAvailable()||btn.disabled||e.button>0)return;e.preventDefault();e.stopPropagation();A()?.unlock();B().unlockSound?.();spellAim={id:e.pointerId,slot:spellSlot,x:e.clientX,y:e.clientY,moved:false,point:null};try{btn.setPointerCapture(e.pointerId)}catch{}});btn.addEventListener('pointermove',e=>{if(spellAim?.id!==e.pointerId)return;spellAim.moved=spellAim.moved||Math.hypot(e.clientX-spellAim.x,e.clientY-spellAim.y)>12;if(spellAim.moved)spellAim.point=magicPoint(e.clientX,e.clientY)});btn.addEventListener('pointerup',e=>{if(spellAim?.id!==e.pointerId)return;const a=spellAim;spellAim=null;requestArenaSpell(a.slot,a.moved?magicPoint(e.clientX,e.clientY):null)});for(const name of ['pointercancel','lostpointercapture'])btn.addEventListener(name,()=>{spellAim=null});btn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();requestArenaSpell(spellSlot)}})}
 function drawArenaMagic(g,now,visible){if(spellAim?.point&&N.me){const p=spellAim.point,s=ARENA_SPELLS[spellAim.slot],valid=(p.x-N.me.x)**2+(p.y-N.me.y)**2<=s.range**2;g.save();g.strokeStyle=valid?s.color:'#f87878';g.lineWidth=2;g.beginPath();g.arc(p.x,p.y,s.radius,0,Math.PI*2);g.stroke();g.restore()}if(!spellFx.length)return;spellFx=spellFx.filter(q=>now-q.at<720);for(const q of spellFx){const [id,slot,x,y]=q.event,s=ARENA_SPELLS[slot];if(x+s.radius<visible.left||x-s.radius>visible.right||y+s.radius<visible.top||y-s.radius>visible.bottom)continue;const life=1-clamp((now-q.at)/720,0,1);g.save();g.translate(x,y);g.globalAlpha=life;const classicDraw=B().arenaSpellDraw;if(classicDraw)classicDraw(g,{id,value:{id:s.id,radius:s.radius}},life);else{g.strokeStyle=s.color;g.lineWidth=2;g.beginPath();g.arc(0,0,s.radius*(1-life*.8),0,Math.PI*2);g.stroke()}g.restore()}}
@@ -1296,7 +1342,7 @@ function stop(notify=false){
  if(N.retryTimer)clearTimeout(N.retryTimer);N.retryTimer=null;N.lostSince=0;
  A()?.stop();window.NS160_LAB?.close();LAB_AUTO_PAUSE=false;closeArenaMenu(false);N.paused=false;N.pausedAt=0;if(el('ns157PauseOverlay'))el('ns157PauseOverlay').hidden=true;
  if(el('ns157Events'))el('ns157Events').replaceChildren();
- N.breakState=null;N.breakSupported=false;N.expedition=null;N.expSupported=false;N.rule=null;N.ruleSupported=false;N.defenseSupported=false;N.legendSupported=false;N.accountSupported=false;N.pingSupported=false;N.rescueSupported=false;N.forgeSupported=false;N.rescue=null;N.rescueVisual=null;N.pings=[];N.lastPingMark=0;N.rewardProfile=null;N.rewardPacket=null;N.rewardApplied='';N.expBase=null;N.expOutdoorCrowd=null;N.expOutdoorWorld=null;if(el('ns196Exp'))el('ns196Exp').hidden=true;N.explore=null;N.exploreSupported=false;N.tradeUiKey='';N.runUiKey='';N.questPeriod=null;N.questPeriodAt=0;if(el('ns195Quest'))el('ns195Quest').hidden=true;if(el('ns195Trade'))el('ns195Trade').hidden=true;N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();N.chests=[];N.soloChests=[];N.drops=[];N.soloDrops=[];N.weaponDrops=[];N.levelBossDone=[];N.dropSeq=0;N.soloUpgradeSeq=0;
+ N.breakState=null;N.breakSupported=false;N.expedition=null;N.expSupported=false;N.rule=null;N.ruleSupported=false;N.defenseSupported=false;N.legendSupported=false;N.accountSupported=false;N.pingSupported=false;N.rescueSupported=false;N.forgeSupported=false;N.rescue=null;N.rescueVisual=null;N.pings=[];N.lastPingMark=0;N.rewardProfile=null;N.rewardPacket=null;N.rewardApplied='';N.expBase=null;N.expOutdoorCrowd=null;N.expOutdoorWorld=null;if(el('ns196Exp'))el('ns196Exp').hidden=true;N.explore=null;N.exploreSupported=false;N.tradeUiKey='';N.runUiKey='';N.questPeriod=null;N.questPeriodAt=0;if(el('ns195Quest'))el('ns195Quest').hidden=true;if(el('ns195Trade'))el('ns195Trade').hidden=true;N.choice=null;N.soloChoice=null;N.hurtUntil=0;N.hitMarkers.clear();clearArenaCombatFx();N.chests=[];N.soloChests=[];N.drops=[];N.soloDrops=[];N.weaponDrops=[];N.levelBossDone=[];N.dropSeq=0;N.soloUpgradeSeq=0;
  LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};LAB_REMOTE=null;LAB_PAUSE={paused:false,votes:[],needed:1,expires:0};LAB_WEAPON=null;LAB_SUPPORTED=false;LAB_LOOK=null;LAB_UNDO=null;LAB_SERVER_BUILD=0;
  N.phase='idle';N.solo=false;N.soloCrowd=null;N.soloMobs=[];N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.ticket='';N.retry=0;N.players.clear();N.looks.clear();N.presence.clear();N.lastLookSignature='';N.lastLookCheck=0;N.lookSyncEnabled=false;N.me=null;N.pending.length=0;N.keys.clear();N.stick.x=N.stick.y=0;N.stick.ptr=null;
  if(el('ns140Pad')){el('ns140Pad').classList.remove('active');el('ns140Knob').style.transform='translate(0px,0px)'};
@@ -1550,13 +1596,13 @@ function ruleTitle(wave){const r=N.rule;if(!r)return 'TALAS '+wave;if(r.mode==='
 function resetExp(base){N.expedition=expInit(base);if(N.solo)installTempleCollider(base,N.expedition);N.expBase={...base};N.expSupported=false}
 function applyExp(v){if(!N.expSupported||!N.expedition||!Array.isArray(v)||![0,1,2].includes(v[0])||!Number.isSafeInteger(v[1]))return;
  const z=N.expedition,changed=z.id!==v[0]||z.rev!==v[1];z.id=v[0];z.rev=v[1];z.done=Number(v[2])||0;z.key=v[3]===1;z.rope=v[4]===1;z.keyDrop=Array.isArray(v[5])?{x:v[5][0],y:v[5][1]}:null;const coreWas=z.core;z.core=v[6]===1;if(z.id===1&&z.core&&!coreWas&&!changed)announceArena('DIJAMANT UZET · ČUVARI SE BUDE');
- if(changed){N.world=expWorld(N.expBase,z.id);resetArenaBreakables(N.world);N.breakSupported=true;N.mobHistory=[];N.mpMobs=[];N.mobRenderTick=null;N.players.clear();N.pending=[];N.delta={x:0,y:0};N.rejoinCorrection=true;resetArenaMap(true);N.tradeUiKey='';spellFx=[];announceArena(z.id===1?'TEMPLE':z.id===2?'PEĆINA':'POVRATAK NA MAPU')}
+ if(changed){N.world=expWorld(N.expBase,z.id);resetArenaBreakables(N.world);N.breakSupported=true;N.mobHistory=[];N.mpMobs=[];N.mobRenderTick=null;N.players.clear();N.pending=[];N.delta={x:0,y:0};N.rejoinCorrection=true;resetArenaMap(true);N.tradeUiKey='';spellFx=[];clearArenaCombatFx();announceArena(z.id===1?'TEMPLE':z.id===2?'PEĆINA':'POVRATAK NA MAPU')}
 }
 function soloExp(id){const z=N.expedition,p=N.me;if(N.rule?.mode==='defense'||LAB.enabled||N.explore?.invalid||N.soloChoice||N.paused||N.soloState!=='play')return false;if(!expAllowed(z,N.players,p,id,N.soloMobs))return false;
  if(id){N.expOutdoorCrowd=N.soloCrowd;N.expOutdoorWorld=N.world;z.saved={mobs:N.soloMobs,chests:N.soloChests,drops:N.soloDrops,weaponDrops:N.weaponDrops,breakables:arenaBreakPacket(N.breakState),exploreDrops:N.explore.drops,total:N.soloTotal,reserve:N.soloReserve,batch:N.soloBatch,at:N.soloTick,portal:z.portals.find(q=>q.id===id)};
   z.id=id;z.core=false;N.world=expWorld(N.expBase,id);resetArenaBreakables(N.world);N.soloMobs=expMobs(id,N.soloWave,N.soloTick);N.soloChests=[];N.soloDrops=[];N.weaponDrops=[];N.explore.drops=[];N.soloTotal=N.soloMobs.length;N.soloReserve=0;N.soloBatch=0;expPlace(N.players,EXP_START,N.soloTick)
  }else{const old=z.saved;if(!old)return false;z.id=0;const base=expWorld(N.expBase,0);N.world=N.expOutdoorWorld||base;Object.assign(N.world,base);N.expOutdoorWorld=null;resetArenaBreakables(N.world);arenaBreakRestore(N.breakState,N.world,old.breakables);N.soloMobs=old.mobs;N.soloChests=old.chests;N.soloDrops=old.drops;N.weaponDrops=old.weaponDrops;N.explore.drops=old.exploreDrops;N.soloTotal=old.total;N.soloReserve=old.reserve;N.soloBatch=old.batch;for(const d of [...N.soloDrops,...N.weaponDrops])if(Number.isFinite(d.expires))d.expires+=N.soloTick-old.at;expPlace(N.players,old.portal,N.soloTick);z.saved=null}
- z.rev++;N.breakSupported=true;N.acidShots=[];spellFx=[];if(!id&&N.expOutdoorCrowd){N.soloCrowd=N.expOutdoorCrowd;N.expOutdoorCrowd=null;N.soloCrowd.clear()}else N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt*(p.spellSlowFactor||1),y*N.world.speed*dt*(p.spellSlowFactor||1)));resetArenaMap(true);N.tradeUiKey='';announceArena(z.id===1?'TEMPLE':z.id===2?'PEĆINA':'POVRATAK NA MAPU');return true
+ z.rev++;N.breakSupported=true;N.acidShots=[];spellFx=[];clearArenaCombatFx();if(!id&&N.expOutdoorCrowd){N.soloCrowd=N.expOutdoorCrowd;N.expOutdoorCrowd=null;N.soloCrowd.clear()}else N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt*(p.spellSlowFactor||1),y*N.world.speed*dt*(p.spellSlowFactor||1)));resetArenaMap(true);N.tradeUiKey='';announceArena(z.id===1?'TEMPLE':z.id===2?'PEĆINA':'POVRATAK NA MAPU');return true
 }
 function requestExp(id){if(N.rule?.mode==='defense')return false;if(N.solo)return soloExp(id);if(N.expSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'expedition',id,rev:N.expedition?.rev||0}));return true}return false}
 function expHud(){const b=el('ns196Exp'),z=N.expedition,p=N.me;if(!b)return;const point=z?.id?EXP_EXIT:z?.portals.find(o=>expNear(p,o));b.hidden=!(N.phase==='running'&&N.rule?.mode!=='defense'&&z&&(N.solo||N.expSupported)&&point&&expNear(p,point)&&p?.hp>0&&!p.knocked&&!N.choice&&!N.soloChoice&&!N.paused&&!LAB_PAUSE.paused&&el('ns158Menu')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled));if(b.hidden)return;const id=z.id?0:point.id;b.textContent=z.id?(z.done&(1<<z.id)?'↩ IZLAZ':z.id===1&&!z.core?'PRONAĐI DIJAMANT':'POBEDI ČUVARE ZA IZLAZ'):id===1?(z.done&2?'TEMPLE · ZAVRŠEN':z.key?'ULAZ U TEMPLE':'TEMPLE · potreban ključ trola'):(z.done&4?'PEĆINA · ZAVRŠENA':z.rope?'ULAZ U PEĆINU':'PEĆINA · kanap iz kovnice');b.disabled=!!N.explore?.invalid||!expAllowed(z,N.players,p,id,N.solo?N.soloMobs:N.mpMobs);b.onclick=()=>requestExp(id)}
@@ -1683,7 +1729,7 @@ function snapshot(m){
  if(previousTick>=0){const missing=Math.max(0,Math.floor((m.tick-previousTick)/2)-1);N.netMissing=(N.netMissing||0)+missing;if(m.tick-previousTick>=16||N.netStalled){N.pending=[];N.delta={x:0,y:0};N.mobHistory=[];N.mobRenderTick=null;N.rejoinCorrection=true;N.netCorrections=(N.netCorrections||0)+1;}}
  N.netStalled=false;if(Number.isSafeInteger(m.netSkipped)&&m.netSkipped>=0)N.netServerSkipped=m.netSkipped;if(Number.isSafeInteger(m.checkpointErrors)&&m.checkpointErrors>=0)N.checkpointErrors=m.checkpointErrors;
  // A checkpoint rollback can reuse earlier effect IDs; reset the dedupe only then.
- if(Number.isInteger(N.rejoinPreviousTick)){if(m.tick<N.rejoinPreviousTick)spellSeen.clear();N.rejoinPreviousTick=null;}
+ if(Number.isInteger(N.rejoinPreviousTick)){if(m.tick<N.rejoinPreviousTick){spellSeen.clear();clearArenaCombatFx()}N.rejoinPreviousTick=null;}
  if(previousTick>=0&&N.lastState&&m.tick-previousTick<=30){
   const variation=Math.min(250,Math.abs((arrived-N.lastState)-(m.tick-previousTick)*1000/30));
   N.arrivalJitter=(N.arrivalJitter||0)*.85+variation*.15;
@@ -1731,7 +1777,7 @@ function snapshot(m){
    if(prev&&attackTick>0&&attackTick!==prev.attackTick)
     A()?.play('enemy',{sourceId:q[0],x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.4});
    const hitTick=Number(q[4])||0;
-   if(prev&&hitTick>0&&hitTick!==prev.hitTick)
+   if(!Array.isArray(m.combatFx)&&prev&&hitTick>0&&hitTick!==prev.hitTick)
     A()?.play('hit',{weapon:weaponHits.get(q[0])||'sword',variant:hitTick,x,y,listenerX:N.me?.x??x,listenerY:N.me?.y??y,gain:.48});
    const mob=prev||{id:q[0],x,y,animDistance:0,animX:x,animY:y,facing:1,movingUntil:0};
    mob.tx=x;mob.ty=y;mob.hp=q[3];mob.maxHp=Number(q[6])||35;
@@ -1793,6 +1839,7 @@ function snapshot(m){
   }
  }
  // Process effect positions only after the authoritative zone and player positions.
+ showArenaCombatEvents(m.combatFx,arrived);
  if(magicSupported&&Array.isArray(m.spellFx))for(const event of m.spellFx.slice(-18))showArenaSpell(event);
 }
 
@@ -2161,6 +2208,7 @@ function stepSolo(dt){
    continue;
   }
   if(!LAB.enabled&&!N.soloRewardBlocked)N.resultActiveTicks=(N.resultActiveTicks||0)+1;
+  const combatBefore=arenaCombatBefore(N.soloMobs,N.players);
   const extraKill=m=>{m.deadUntil=N.soloTick+105;N.soloKills++;me.kills++;spawnSoloXpCrystal(m)};
   if(N.expedition?.id&&expWake(N.soloMobs,N.players,N.expedition)){announceArena('DIJAMANT UZET · ČUVARI SE BUDE');A()?.play('boss')}
   arenaCombatExtras(me,N.soloMobs,N.world,N.soloTick,extraKill,showArenaSpell,soloDamageRule);
@@ -2183,7 +2231,7 @@ function stepSolo(dt){
     if(dist>66)moveLocal(boss,dx/dist*98/30*(boss.spellSlowFactor||1),dy/dist*98/30*(boss.spellSlowFactor||1));
    }
   }
-  if(!LAB.freezeAI&&!LAB.enabled&&!N.expedition?.id&&arenaDefenseStep(N.rule,N.soloMobs,N.world,N.soloTick,N.soloWave)){finishSoloRun('defeat');return}
+  if(!LAB.freezeAI&&!LAB.enabled&&!N.expedition?.id&&arenaDefenseStep(N.rule,N.soloMobs,N.world,N.soloTick,N.soloWave)){showSoloCombatEvents(combatBefore);finishSoloRun('defeat');return}
   if(LAB.allies.length)stepSoloAllies();
   if(!LAB.freezeAI)for(const mob of N.soloMobs){
    if(mob.hp<=0||mob.labFrozen||(mob.kind==='worm'||arenaSpecial(mob)))continue; // no individual respawns during a wave
@@ -2211,12 +2259,13 @@ function stepSolo(dt){
     target.hitTick=N.soloTick;
     target.hp=Math.max(0,target.hp-arenaRuleDamage(N.rule,me,target,arenaAttackDamage(me,N.soloTick),N.expedition?.id));
     A()?.play('swing',{weapon:N.me?.activeWeapon||localArenaLook().weapon||'sword'});
-    A()?.play('hit',{weapon:N.me?.activeWeapon||localArenaLook().weapon||'sword',variant:N.soloTick,gain:.42,x:target.x,y:target.y,listenerX:me.x,listenerY:me.y});
+    // Hit audio comes from confirmed HP-loss event.
     if(target.hp===0)extraKill(target);
     arenaEvolutionStrike(me,target,N.soloMobs,N.soloTick,extraKill,showArenaSpell,soloDamageRule);
      if(!LAB.enabled&&!N.explore?.invalid)arenaLegendStrike(me,target,N.soloMobs,N.world,N.soloTick,extraKill,showArenaSpell,soloDamageRule);
    }else if(!LAB.enabled){const tower=!N.expedition?.id&&!N.explore?.invalid?arenaRuleTower(N.rule,N.world,me,arenaAttackDamage(me,N.soloTick),arenaAttackReach(me,{kind:'goblin'}),N.players):null;const hit=tower||arenaBreakHit(N.breakState,N.world,me,N.soloTick,N.soloWave,arenaAttackDamage(me,N.soloTick),arenaAttackReach(me,{kind:'goblin'}));if(hit){N.soloSwing=N.soloTick;me.attackTick=N.soloTick;me.attackAngle=Math.atan2(hit.y-me.y,hit.x-me.x);me.facingAngle=me.attackAngle;arenaMapBase=null;A()?.play('hit',{weapon:me.activeWeapon||'sword',gain:.4});if(hit.hp===0){if(hit.collider)N.soloCrowd?.refreshObstacles?.([hit.collider]);if(hit.kind==='crate'){arenaPushXp(N.soloDrops,arenaCrateDrop(hit,++N.dropSeq,N.soloTick),XP_CAP);arenaWoodBurst(hit)}else if(hit.kind==='barrel')arenaWoodBurst(hit);announceArena(hit.kind==='nightTower'?(N.rule.victory?'POBEDA · TRI KULE UNIŠTENE':'KULA UNIŠTENA'):hit.kind==='barrel'?'BURE RAZBIJENO':'KUTIJA RAZBIJENA')}}}
   }
+  showSoloCombatEvents(combatBefore);
   arenaExplorePickup(N.explore,N.players);expCollect(N.expedition,N.players);
    if(!N.expedition?.id&&!LAB.enabled&&!N.explore?.invalid&&!LAB.freezeAI){const old=N.rescue?.phase;if(N.rule?.mode!=='defense'&&arenaRescueStep(N.rescue,N.players,N.soloMobs,N.world,N.soloTick,N.soloWave)&&old!==N.rescue.phase)announceArena(arenaRescueLabel(N.rescue));}
   arenaFieldKits(N.breakState,N.players,N.soloTick,(_,hp)=>{announceArena('ZAVOJ · +'+hp+' HP');A()?.play('choose')});
@@ -2667,6 +2716,7 @@ function swordAge(p,now){
 }
 function drawTargetedSlash(g,p,m,age){
  if(age<0||age>11)return;
+ const original=B().arenaClassicSlash;if(original){if(age<=8.7){g.save();g.translate(p.x,p.y);original(g,slashHeading(p,m),p.activeWeapon||'sword',1-age/8.7);g.restore()}return}
  const t=clamp(age/11,0,1),alpha=Math.pow(1-t,1.25),a=slashHeading(p,m);
  const from=a-1.03+t*.52,to=from+.34+t*1.35;
  g.save();g.translate(p.x,p.y);g.globalAlpha*=alpha;
@@ -3132,7 +3182,7 @@ function frame(now){
  }
  drawExp(g,visible);drawRuleTowers(g,visible);drawDefenseSites(g,visible);drawDepthSortedWorld(g,now,dt,visible);drawMapPings(g,visible,now);
  drawArenaXpCrystals(g,now,visible);drawArenaWeaponLoot(g,visible);drawArenaFieldKits(g,visible);drawArenaWoodFx(g,visible,now);drawArenaExplore(g,visible);drawFieldObjectives(g,visible);drawArenaRescue(g,visible,now);drawArenaAcid(g,now,visible);drawArenaHeavyWarnings(g,visible);
- drawLabThings(g,now,visible);drawArenaMagic(g,now,visible);
+ drawLabThings(g,now,visible);drawArenaMagic(g,now,visible);drawArenaCombatFx(g,now,visible);
  // Grouped horde steps. One sound per nearby crowd per 720ms, not 80 voices.
  if(N.visibleMobs>1&&N.me&&now-N.hordeStepAt>=720){
   N.hordeStepAt=now;
