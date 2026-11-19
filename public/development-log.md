@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 226 -->
+<!-- current-release: 227 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V226 Testiraj ponovo pokreće postojeći poligon uz sačuvani raspored, bezbedne početne pozicije igrača i zaštitu od starih MP paketa. V225 prikazan na korisničkom telefonu; V226 LIVE tek proveriti.
+- Razvoj: V227 biblioteka likova sa Učitaj, stabilnim ID, izvozom JSON i privatnim Firebase voice sync. V226 LIVE potvrđen GitHub production statusom; V227 tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: hitna ispravka orijentacije crva prema odabranoj meti u Nova zona SOLO/MP, bez izmene napada, kretanja i grafike.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V227 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
+- Footer Novi / Učitaj / Sačuvaj / Testiraj. Biblioteka svih sačuvanih likova po profilu, pretraga imena/ID, kopiranje reference, izvoz kataloga definicija ili pojedinačnog JSON sa punim clean spec, proceduralnim NS171 rigom (animacije), magijama, AI i stvarnim audio podacima (base64). API resolveCharacter odbija dvosmisleno ime, characterPackage vraća kompletan paket; postojeći map editor nije menjan. Definicije koriste postojeći privatni Firebase save. Voice IndexedDB po UID/profilu, migracija lokalnih snimaka po postojećem ID-u; zasebni dokumenti voice-v1: u postojećoj UID-only saves kolekciji preko ograničenih upita, transakcijska provera novijeg timestamp-a, tombstone, bez slanja glasa u GitHub. Sync na Save/Load i lazy preload, ne po frame-u; pri guest/offline ostaje lokalni zapis. Za ChatGPT korisnik izveze i podeli katalog/paket; nema direktnog autorizovanog čitanja privatnog Firebase naloga iz četa. 275 izolovanih provera sa mock IDB/cloudom (rezolucija ID/ime, audio bajtovi, account isolation, restore/deletion, package, ograničenja). Nisu potvrđeni stvarni Firebase login/write, telefon, CI ili LIVE. Offline voice izmene zahtevaju naknadni Save/Load; cloud konflikt po vremenu izmene. Offline brisanje lika sa glasovima nije potvrđeno na drugom uređaju.
+
 ### V226 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
 - Testiraj i Reset celog testa vraćaju neprijatelje (uključujući ubijene i ručno dodate) na sačuvane početne pozicije; vraćaju HP, MP, cooldown, XP, kill, predmete i vreme borbe. Čuvaju raspored, frakcije i Ignore Players. U režimu talasa čuva se raspored tekućeg talasa, uključujući ručno dodate. Respawn ostaje zasebna komanda samo za heroja. Igrači se raspoređuju oko centra uz proveru prepreka i razmaka; ako je početna tačka blokirana, traži se bezbedna alternativa. Host jedini resetuje stanje i povećava round; gosti dobijaju postojeći 10 Hz snapshot sa oznakom runde, brišu stare interpolacije i komande. Stari Input/Cast/Rescue/UseProp/Proposal/Hero/Vote se odbacuju, bez novog socketa. Manifest receive limit 96k zbog 24 NPC (prethodno 48k). Izolovani test: 1003 provere reseta (81 reset poziv, 405 teleportova gostiju; uključuje scene i wave, 24 NPC/6 igrača), 3704 mrežne provere tokom 100 resetova, odbacivanje starog snapshot-a, dedupe magije i tačna pozicija. Nije test fizičkih telefona ili potvrda LIVE.
 
