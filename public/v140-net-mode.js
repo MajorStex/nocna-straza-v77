@@ -3015,6 +3015,8 @@ function drawArenaPlayerLabel(g,p){
 // Classic map visuals: local immutable spatial index; no additional network traffic.
 const classicSceneryCache=new Map(),classicPropIndexes=new WeakMap();
 let classicSpriteBytes=0,classicGround=null;
+// Warm during browser idle outside combat, with synchronous fallback on early start.
+if(typeof window.requestIdleCallback==='function')window.requestIdleCallback(()=>{if(!classicGround)classicGround=buildClassicGroundTexture()},{timeout:2500});
 function visibleClassicProps(props,v){
  if(!props?.length)return [];
  const size=256;let idx=classicPropIndexes.get(props);
@@ -3036,63 +3038,65 @@ function visibleClassicProps(props,v){
 }
 // V234: deterministic organic outdoor floor. One cached seamless 768px tile,
 // no colliders, sprites, game objects or network messages.
+// V235: unique baked outdoor map, rather than a periodically repeated tile.
+// Fixed 1536² RGBA texture (9 MiB); one cropped drawImage per frame.
 function buildClassicGroundTexture(){
- const cv=document.createElement('canvas'),size=768;cv.width=cv.height=size;
+ const cv=document.createElement('canvas'),size=1536;cv.width=cv.height=size;
  const ctx=cv.getContext('2d');if(!ctx)return null;
- let seed=2342026;
+ let seed=2352026;
  const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
  const range=(a,b)=>a+(b-a)*rand(),pick=a=>a[Math.floor(rand()*a.length)];
- ctx.fillStyle='#2b3029';ctx.fillRect(0,0,size,size);
- // Wrap soft soil/moss patches across all tile boundaries, never draw a grid.
- for(let i=0;i<66;i++){
-  const x=range(0,size),y=range(0,size),r=range(22,112);
-  const color=pick(['rgba(76,79,52,0.24)','rgba(74,61,44,0.20)','rgba(17,26,23,0.20)','rgba(56,75,48,0.20)']);
-  for(const ox of [-size,0,size])for(const oy of [-size,0,size]){
-   const cx=x+ox,cy=y+oy;if(cx+r<0||cy+r<0||cx-r>size||cy-r>size)continue;
-   const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,r);grad.addColorStop(0,color);grad.addColorStop(1,'rgba(43,48,41,0)');
-   ctx.fillStyle=grad;ctx.fillRect(cx-r,cy-r,r*2,r*2);
+ const palette=[['#4b5738','#414a32','#566044'],['#66533d','#544b37','#5c503b'],['#454d49','#55584c','#363d37'],['#384632','#465435','#313e2c']];
+ const zones=Array.from({length:23},(_,i)=>({x:range(0,size),y:range(0,size),r:range(125,340),type:i%4}));
+ ctx.fillStyle='#2c3129';ctx.fillRect(0,0,size,size);
+ function patch(x,y,rx,ry,color,alpha){
+  ctx.save();ctx.translate(x,y);ctx.rotate(range(-Math.PI,Math.PI));ctx.scale(rx,ry);
+  const grad=ctx.createRadialGradient(0,0,0,0,0,1);grad.addColorStop(0,color+alpha);grad.addColorStop(.48,color+'38');grad.addColorStop(1,color+'00');
+  ctx.fillStyle=grad;ctx.fillRect(-1,-1,2,2);ctx.restore();
+ }
+ for(const q of zones)patch(q.x,q.y,q.r,q.r*range(.55,1.15),palette[q.type][0],'a0');
+ for(let i=0;i<130;i++){const q=pick(zones),r=range(12,64);patch(q.x+range(-q.r*.85,q.r*.85),q.y+range(-q.r*.85,q.r*.85),r,r*range(.5,1.25),pick(palette[q.type]),'56')}
+ // Smooth, irregular worn trails. They are cosmetic: no movement or terrain rules.
+ for(let i=0;i<3;i++){
+  const x=range(100,size-100),y=range(100,size-100),ang=range(0,Math.PI*2),len=range(220,540),bend=range(-140,140);
+  for(let j=0;j<=12;j++){const t=j/12,xx=x+Math.cos(ang)*len*t+Math.sin(ang)*Math.sin(t*Math.PI)*bend,yy=y+Math.sin(ang)*len*t-Math.cos(ang)*Math.sin(t*Math.PI)*bend;patch(xx,yy,range(12,25),range(12,24),'#63513c','53')}
+ }
+ for(let i=0;i<3500;i++){const x=range(0,size),y=range(0,size);ctx.fillStyle=pick(['#3e413133','#242b2455','#82735928','#57624a38']);ctx.fillRect(x,y,range(.5,1.6),range(.4,1.2))}
+ function stone(x,y,r){
+  ctx.save();ctx.translate(x,y);ctx.rotate(range(-Math.PI,Math.PI));ctx.fillStyle='#18201970';ctx.beginPath();ctx.ellipse(.6,.8,r*1.2,r*.73,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=pick(['#626458','#54594f','#716c5b','#4c5548','#73776b']);ctx.beginPath();
+  const n=5+Math.floor(rand()*3);for(let j=0;j<n;j++){const t=j/n*Math.PI*2,rr=r*range(.75,1.15);const xx=Math.cos(t)*rr,yy=Math.sin(t)*rr*.66;if(!j)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy)}ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#b0b19860';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(-r*.65,-r*.1);ctx.lineTo(-r*.22,-r*.48);ctx.lineTo(r*.36,-r*.38);ctx.stroke();ctx.restore();
+ }
+ function leaf(x,y){
+  const len=range(2.1,5.1),wid=len*range(.18,.38);ctx.save();ctx.translate(x,y);ctx.rotate(range(-Math.PI,Math.PI));
+  ctx.fillStyle=pick(['#817047','#94724b','#56643c','#71523b','#a17a4a','#485b36']);
+  ctx.beginPath();ctx.moveTo(-len*.5,0);ctx.quadraticCurveTo(-len*.1,-wid,len*.5,0);ctx.quadraticCurveTo(len*.1,wid,-len*.5,0);ctx.fill();
+  ctx.strokeStyle='#c3a66a55';ctx.lineWidth=.45;ctx.beginPath();ctx.moveTo(-len*.43,0);ctx.lineTo(len*.42,0);ctx.stroke();ctx.restore();
+ }
+ function grass(x,y){
+  const h=range(1.4,4.5);ctx.strokeStyle=pick(['#677448','#596941','#43583a','#788153']);ctx.lineWidth=.65;ctx.beginPath();
+  for(let j=0;j<3;j++){ctx.moveTo(x+j*.65,y);ctx.quadraticCurveTo(x+range(-1,2),y-h*.55,x+range(-2.4,3),y-h*range(.6,1.2))}ctx.stroke();
+ }
+ // Cluster types and density vary locally. Long quiet spaces keep enemies readable.
+ for(let i=0;i<165;i++){
+  const q=pick(zones),x=q.x+range(-q.r*.9,q.r*.9),y=q.y+range(-q.r*.9,q.r*.9);
+  if(x<12||y<12||x>size-12||y>size-12)continue;
+  const count=2+Math.floor(rand()*(q.type===1?9:6)),spread=range(4,20);
+  for(let j=0;j<count;j++){const xx=x+range(-spread,spread),yy=y+range(-spread,spread),v=rand();
+   if(q.type===2?v<.78:v<.19)stone(xx,yy,range(1.5,4.5));
+   else if(q.type===1?v<.94:v<.45)leaf(xx,yy);
+   else grass(xx,yy);
   }
  }
- // Low-contrast grit; drawn once into the texture, not into the live scene.
- for(let i=0;i<1250;i++){
-  const x=range(2,size-2),y=range(2,size-2);
-  ctx.fillStyle=pick(['#363b31','#30382b','#242b24','#403c30','#35382d']);
-  ctx.fillRect(x,y,range(.6,2.6),range(.5,1.5));
- }
- // Tiny irregular pebble clusters with soft shadows and muted highlights.
- for(let i=0;i<65;i++){
-  const x=range(14,size-14),y=range(14,size-14),r=range(1.7,5.2),t=range(0,Math.PI*2);
-  ctx.save();ctx.translate(x,y);ctx.rotate(t);
-  ctx.fillStyle='#20251f88';ctx.beginPath();ctx.ellipse(1,1.5,r*1.2,r*.68,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=pick(['#626458','#54594f','#716c5b','#4c5548']);
-  ctx.beginPath();ctx.moveTo(-r,-r*.08);ctx.lineTo(-r*.42,-r*.65);ctx.lineTo(r*.5,-r*.48);ctx.lineTo(r,r*.18);ctx.lineTo(r*.25,r*.64);ctx.lineTo(-r*.72,r*.46);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='#adb09b50';ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(-r*.72,-r*.12);ctx.lineTo(-r*.36,-r*.48);ctx.lineTo(r*.35,-r*.34);ctx.stroke();ctx.restore();
- }
- // Scattered leaf litter and short grass near the ground, subtle and noninteractive.
- for(let i=0;i<36;i++){
-  const bx=range(24,size-24),by=range(24,size-24),n=2+Math.floor(rand()*4);
-  for(let j=0;j<n;j++){
-   const x=bx+range(-12,12),y=by+range(-10,10),len=range(4,9),wid=len*range(.20,.34);
-   ctx.save();ctx.translate(x,y);ctx.rotate(range(0,Math.PI*2));
-   ctx.fillStyle=pick(['#6b6642','#756044','#525b36','#454f34','#66513b']);
-   ctx.beginPath();ctx.moveTo(-len*.5,0);ctx.quadraticCurveTo(0,-wid,len*.5,0);ctx.quadraticCurveTo(0,wid,-len*.5,0);ctx.fill();
-   ctx.strokeStyle='#b3a06644';ctx.lineWidth=.6;ctx.beginPath();ctx.moveTo(-len*.42,0);ctx.lineTo(len*.42,0);ctx.stroke();ctx.restore();
-  }
- }
- for(let i=0;i<58;i++){
-  const x=range(8,size-8),y=range(8,size-8);
-  ctx.strokeStyle=pick(['#4a5737','#505a3a','#3c4d34']);ctx.lineWidth=.8;ctx.beginPath();
-  for(let j=0;j<3;j++){ctx.moveTo(x+j*1.4,y);ctx.quadraticCurveTo(x+j*1.4+range(-2,2),y-3,x+range(-4,7),y-range(3,7))}
-  ctx.stroke();
- }
- return {cv,patterns:new WeakMap()};
+ for(let i=0;i<50;i++){const x=range(8,size-8),y=range(8,size-8);if(rand()<.55)stone(x,y,range(1.2,3.4));else leaf(x,y)}
+ return {cv};
 }
 function drawClassicGround(g,w,visible){
  if(!classicGround)classicGround=buildClassicGroundTexture();
  if(!classicGround)return false;
- let pattern=classicGround.patterns.get(g);if(!pattern){pattern=g.createPattern(classicGround.cv,'repeat');if(!pattern)return false;classicGround.patterns.set(g,pattern)}
  const left=Math.max(0,visible.left),top=Math.max(0,visible.top),right=Math.min(w.w,visible.right),bottom=Math.min(w.h,visible.bottom);
- if(right>left&&bottom>top){g.fillStyle=pattern;g.fillRect(left,top,right-left,bottom-top)}
+ if(right>left&&bottom>top){const cv=classicGround.cv,sx=cv.width/w.w,sy=cv.height/w.h;g.save();g.imageSmoothingEnabled=true;g.drawImage(cv,left*sx,top*sy,(right-left)*sx,(bottom-top)*sy,left,top,right-left,bottom-top);g.restore()}
  return true;
 }
 function drawClassicScenery(g,p){
