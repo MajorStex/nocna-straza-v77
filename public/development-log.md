@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 221 -->
+<!-- current-release: 222 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V221 stalna Temple kolizija, klijent i relay V221; V220 LIVE potvrđen produkcionim proverama. V221 tek proveriti. V212–V217 ostaju zasebne razvojne izmene. Razvojne grane: v190-arena-arrows-revive (klijent) i v189-arena-abilities (relay), nazivi grana nisu brojevi trenutnih izdanja. PR klijenta #37 i relay #6. GitHub push nije dokaz LIVE objave.
+- Razvoj: V222 vidljiv XP drop i privlačenje samo iz neposredne blizine, Solo i relay. V221 objava nije nezavisno potvrđena; V220 poslednji prethodno potvrđen LIVE prema dnevniku. GitHub push nije dokaz LIVE objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: hitna ispravka orijentacije crva prema odabranoj meti u Nova zona SOLO/MP, bez izmene napada, kretanja i grafike.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V222 — 19.11.2026 (KOD / izolovani TEST; LIVE tek proveriti)
+- Kristali od killova ostaju na mestu smrti 12 tickova (400 ms) pre privlačenja. Classic domet 120 px, sa magnetom 180 px, dodela tek na 25 px. Daleki kill ne daje automatski XP; posebne nagrade objektiva ostaju odvojene. Magnet i ostale pasivne sposobnosti ostaju u sanducima, osnovne XP nadogradnje nepromenjene. Server sprečava duplu dodelu i skupljanje nezdravih/neaktivnih igrača; bez novih mrežnih poruka, isti cap 160. Prošlo 3911 izolovanih provera pariteta i šest mock igrača. Fizički uređaji, završni CI i produkcija nisu potvrđeni.
+
 ### V221 — 19.11.2026 (SOLO/MP Temple kolizija; LIVE tek proveriti)
 - Stalna prepreka na realnom položaju Temple 2270,2360, dimenzije 112×98; isti obstacle sistem i AI navigacija, ne crta dodatnu kuću. Ulaz ključem, povratak šest igrača ispred vrata i bez dupliranja prepreke posle prelaska zone. Stari checkpoint: samo preklopljeni akteri se premeštaju na slobodno mesto. 1623 izolovane provere servera/pariteta; regresije dodate u CI. V220 prethodno potvrđen LIVE.
 
