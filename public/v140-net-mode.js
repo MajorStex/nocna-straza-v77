@@ -474,19 +474,21 @@ const ARENA_RUN_ACHIEVEMENTS=[
  ['Prva stotka','kills',100],['Borac protiv horde','kills',200],['Čelična oluja','kills',350],['Veteran noći','kills',500],['Nezaustavljivi','kills',750],['Legenda horde','kills',1000],['Lovac na trolove','trolls',1],['Lovac na pljuvače','worms',10],['Deseti talas','wave',10],['Duga noć','wave',20],['Tragač za blagom','chests',5],['Nikog ne ostavljamo','revives',1]
 ];
 // V202 one bounded, party-wide rescue objective; phase is the reward receipt.
+const GUARD_RESCUE_STATS=Object.freeze({hp:140,speed:145,damage:24,armor:5,interval:27});
 function arenaRescueInit(world){
  const cx=world.w/2,cy=world.h/2;let safe=null,camp=null;
  for(let i=0;i<32&&!safe;i++){const a=i*2.39996323,d=i===0?0:60+Math.floor(i/4)*40,x=Math.round(cx+Math.cos(a)*d),y=Math.round(cy+Math.sin(a)*d);if(arenaAcidClear(world,x,y,x,y,30))safe={x,y}}
  if(!safe)return null;
  for(const distance of [1100,900,700,500]){for(let i=0;i<48;i++){const a=i*2.39996323,x=Math.round(safe.x+Math.cos(a)*distance),y=Math.round(safe.y+Math.sin(a)*distance);if(arenaAcidClear(world,x,y,safe.x,safe.y,18)&&arenaAcidClear(world,x,y,x,y,32)){camp={x,y};break}}if(camp)break}
  if(!camp)return null;
- return {phase:0,x:camp.x,y:camp.y,safeX:safe.x,safeY:safe.y,hp:100,leader:'',hurtAt:0,companion:false,attackAt:0,attackTick:-100,face:1};
+ return {phase:0,x:camp.x,y:camp.y,safeX:safe.x,safeY:safe.y,hp:GUARD_RESCUE_STATS.hp,leader:'',hurtAt:0,companion:false,attackAt:0,attackTick:-100,face:1};
 }
 function arenaRescueRestore(world,v){const initial=arenaRescueInit(world);if(!initial||!v||!Number.isInteger(v.phase)||v.phase<0||v.phase>4||![v.x,v.y,v.safeX,v.safeY,v.hp,v.hurtAt].every(Number.isFinite))return initial;
  if(!arenaAcidClear(world,v.x,v.y,v.x,v.y,12)||v.safeX!==initial.safeX||v.safeY!==initial.safeY)return initial;
- return {...initial,phase:v.phase,x:v.x,y:v.y,hp:Math.max(0,Math.min(100,v.hp)),leader:/^p[1-6]$/.test(v.leader||'')?v.leader:'',hurtAt:v.hurtAt,companion:v.companion===true&&(v.phase===2||v.phase===3),attackAt:Number.isFinite(v.attackAt)?v.attackAt:0,attackTick:Number.isFinite(v.attackTick)?v.attackTick:-100,face:v.face===-1?-1:1};
+ return {...initial,phase:v.phase,x:v.x,y:v.y,hp:Math.max(0,Math.min(GUARD_RESCUE_STATS.hp,v.hp)),leader:/^p[1-6]$/.test(v.leader||'')?v.leader:'',hurtAt:v.hurtAt,companion:v.companion===true&&(v.phase===2||v.phase===3),attackAt:Number.isFinite(v.attackAt)?v.attackAt:0,attackTick:Number.isFinite(v.attackTick)?v.attackTick:-100,face:v.face===-1?-1:1};
 }
-function arenaRescuePacket(r){return r?[r.phase,Math.round(r.x*10),Math.round(r.y*10),r.safeX,r.safeY,r.hp,r.leader,r.companion?1:0,r.attackTick||-100,r.face===-1?-1:1]:null}
+function arenaRescuePacket(r){return r?[r.phase,Math.round(r.x*10),Math.round(r.y*10),r.safeX,r.safeY,Math.min(100,r.hp),r.leader]:null}
+function arenaRescueGuardPacket(r){return r?[r.hp,r.companion?1:0,r.attackTick??-100,r.face===-1?-1:1]:null}
 function arenaRescueStep(r,players,mobs,world,tick,wave,kill){
  if(!r||r.phase===4||(r.phase===3&&!r.companion)||wave<5||tick%3!==0)return false;
  if(r.phase===0){r.phase=1;return true}
@@ -507,16 +509,16 @@ function arenaRescueStep(r,players,mobs,world,tick,wave,kill){
   if(!arenaAcidClear(world,r.x,r.y,m.x,m.y,3))continue;target=m;best=d;
  }
  const moveTarget=target||p,stop=target?39:65;
- if(moveTarget&&near(moveTarget,r)>stop**2){const angle=Math.atan2(moveTarget.y-r.y,moveTarget.x-r.x),stride=Math.min(17,Math.sqrt(near(moveTarget,r))-stop);
+ if(moveTarget&&near(moveTarget,r)>stop**2){const angle=Math.atan2(moveTarget.y-r.y,moveTarget.x-r.x),stride=Math.min(!target&&near(p,r)>150**2?19.5:GUARD_RESCUE_STATS.speed/10,Math.sqrt(near(moveTarget,r))-stop);
   for(const shift of [0,.65,-.65,1.3,-1.3,1.9,-1.9]){const a=angle+shift,x=r.x+Math.cos(a)*stride,y=r.y+Math.sin(a)*stride;if(arenaAcidClear(world,r.x,r.y,x,y,12)){r.face=x<r.x?-1:1;r.x=x;r.y=y;break}}
  }
  if(target&&p&&near(target,r)<=50**2&&tick>=(r.attackAt||0)&&arenaAcidClear(world,r.x,r.y,target.x,target.y,3)){
-  r.attackAt=tick+30;r.attackTick=tick;r.face=target.x<r.x?-1:1;
-  target.hp=Math.max(0,target.hp-8);target.hitTick=tick;if(target.hp===0&&typeof kill==='function')kill(target,p);
+  r.attackAt=tick+GUARD_RESCUE_STATS.interval;r.attackTick=tick;r.face=target.x<r.x?-1:1;
+  target.hp=Math.max(0,target.hp-GUARD_RESCUE_STATS.damage);target.hitTick=tick;if(target.hp===0&&typeof kill==='function')kill(target,p);
  }
  if(tick>=r.hurtAt){r.hurtAt=tick+30;let attackers=0;
   for(const m of mobs){if(m.hp<=0||m.labFrozen||m.expSleeping||near(m,r)>48**2||!arenaAcidClear(world,m.x,m.y,r.x,r.y,3))continue;if(++attackers>=2)break}
-  r.hp=Math.max(0,r.hp-attackers*8);
+  r.hp=Math.max(0,r.hp-attackers*Math.round(8*(1-GUARD_RESCUE_STATS.armor/100)));
  }
  if(r.hp<=0){r.phase=4;r.leader='';r.companion=false;return true}
  if(r.phase===2&&(r.x-r.safeX)**2+(r.y-r.safeY)**2<=92**2&&living.some(p=>near(p,r)<=150**2)){r.phase=3;for(const p of living)p.arenaShards=Math.min(999,(p.arenaShards||0)+3);return true}
@@ -1615,10 +1617,10 @@ function requestArenaTrade(id){
  if(N.exploreSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'arenaTrade',id,rev:N.expedition?.rev||0}));return true}return false;
 }
 function arenaRescueLabel(r){return !r||!r.phase?'':r.phase===1?'OSLOBODI ZAROBLJENIKA · OČISTI OKOLINU I PRIĐI KAVEZU':r.phase===2?(r.leader?'PRATI DO SEOSKE STRAŽE':'PRIĐI ZAROBLJENIKU')+' · '+r.hp+' HP':r.phase===3?'ZAROBLJENIK SPAŠEN · +3 ◇':'ZAROBLJENIK JE PAO'}
-function applyArenaRescue(v){
+function applyArenaRescue(v,guard){
  const prev=N.rescue;
- if(!N.rescueSupported||!Array.isArray(v)||![7,10].includes(v.length)||!v.slice(0,6).every(Number.isFinite)||!Number.isInteger(v[0])||v[0]<0||v[0]>4||v[5]<0||v[5]>100||typeof v[6]!=='string'){N.rescue=null;N.rescueVisual=null;return}
- const next={phase:v[0],x:v[1]/10,y:v[2]/10,safeX:v[3],safeY:v[4],hp:v[5],leader:v[6],companion:v[7]===1,attackTick:Number.isFinite(v[8])?v[8]:-100,face:v[9]===-1?-1:1};
+ if(!N.rescueSupported||!Array.isArray(v)||v.length!==7||!v.slice(0,6).every(Number.isFinite)||!Number.isInteger(v[0])||v[0]<0||v[0]>4||v[5]<0||v[5]>100||typeof v[6]!=='string'){N.rescue=null;N.rescueVisual=null;return}
+ const next={phase:v[0],x:v[1]/10,y:v[2]/10,safeX:v[3],safeY:v[4],hp:Array.isArray(guard)&&guard.length===4&&Number.isFinite(guard[0])?clamp(guard[0],0,140):v[5],leader:v[6],companion:guard?.[1]===1,attackTick:Number.isFinite(guard?.[2])?guard[2]:-100,face:guard?.[3]===-1?-1:1};
  const now=performance.now(),old=N.rescueVisual;const t=old?clamp((now-old.at)/100,0,1):1;
  if(!prev||prev.phase!==next.phase||!old||Math.hypot(next.x-prev.x,next.y-prev.y)>100)N.rescueVisual={x:next.x,y:next.y,tx:next.x,ty:next.y,at:now};
  else if(next.x!==old.tx||next.y!==old.ty)N.rescueVisual={x:old.x+(old.tx-old.x)*t,y:old.y+(old.ty-old.y)*t,tx:next.x,ty:next.y,at:now};
@@ -1820,7 +1822,7 @@ function snapshot(m){
  if(LAB_SERVER_BUILD>=168&&Array.isArray(m.drops))N.drops=m.drops.slice(0,85)
   .filter(d=>Array.isArray(d)&&Number.isInteger(d[0])&&Number.isFinite(d[1])&&Number.isFinite(d[2]))
   .map(d=>({id:d[0],x:d[1]/10,y:d[2]/10,value:Number(d[3])||7}));
- N.rewardPacket=N.accountSupported?m.awards:null;applyExp(m.expedition);applyRule(m.rule);N.pings=N.pingSupported&&Array.isArray(m.pings)?m.pings.filter(a=>Array.isArray(a)&&a.length===6&&/^p[1-6]$/.test(a[0])&&a.slice(1).every(Number.isFinite)).slice(0,6):[];applyArenaBreakPacket(m.breakables);applyArenaExplorePacket(m.arenaExplore);applyArenaRescue(m.rescue);
+ N.rewardPacket=N.accountSupported?m.awards:null;applyExp(m.expedition);applyRule(m.rule);N.pings=N.pingSupported&&Array.isArray(m.pings)?m.pings.filter(a=>Array.isArray(a)&&a.length===6&&/^p[1-6]$/.test(a[0])&&a.slice(1).every(Number.isFinite)).slice(0,6):[];applyArenaBreakPacket(m.breakables);applyArenaExplorePacket(m.arenaExplore);applyArenaRescue(m.rescue,m.rescueGuard);
  N.weaponDrops=Array.isArray(m.weaponDrops)?m.weaponDrops.slice(0,6).filter(d=>Array.isArray(d)&&Number.isSafeInteger(d[0])&&Number.isFinite(d[1])&&Number.isFinite(d[2])&&ARENA_CLASSIC_WEAPONS[d[3]]).map(d=>({id:d[0],x:d[1]/10,y:d[2]/10,weapon:d[3]})):[];
  if(Array.isArray(m.chests))N.chests=m.chests.slice(0,16)
   .filter(c=>Array.isArray(c)&&Number.isInteger(c[0])&&Number.isFinite(c[1])&&Number.isFinite(c[2]))
@@ -2358,9 +2360,10 @@ function stepSolo(dt){
      if(!LAB.enabled&&!N.explore?.invalid)arenaLegendStrike(me,target,N.soloMobs,N.world,N.soloTick,extraKill,showArenaSpell,soloDamageRule);
    }else if(!LAB.enabled){const tower=!N.expedition?.id&&!N.explore?.invalid?arenaRuleTower(N.rule,N.world,me,arenaAttackDamage(me,N.soloTick),arenaAttackReach(me,{kind:'goblin'}),N.players):null;const hit=tower||arenaBreakHit(N.breakState,N.world,me,N.soloTick,N.soloWave,arenaAttackDamage(me,N.soloTick),arenaAttackReach(me,{kind:'goblin'}));if(hit){N.soloSwing=N.soloTick;me.attackTick=N.soloTick;me.attackAngle=Math.atan2(hit.y-me.y,hit.x-me.x);me.facingAngle=me.attackAngle;arenaMapBase=null;A()?.play('hit',{weapon:me.activeWeapon||'sword',gain:.4});if(hit.hp===0){if(hit.collider)N.soloCrowd?.refreshObstacles?.([hit.collider]);if(hit.kind==='crate'){arenaPushXp(N.soloDrops,arenaCrateDrop(hit,++N.dropSeq,N.soloTick),XP_CAP);arenaWoodBurst(hit)}else if(hit.kind==='barrel')arenaWoodBurst(hit);announceArena(hit.kind==='nightTower'?(N.rule.victory?'POBEDA · TRI KULE UNIŠTENE':'KULA UNIŠTENA'):hit.kind==='barrel'?'BURE RAZBIJENO':'KUTIJA RAZBIJENA')}}}
   }
+   if(!N.expedition?.id&&!LAB.enabled&&!N.explore?.invalid&&!LAB.freezeAI){const old=N.rescue?.phase;if(N.rule?.mode!=='defense'&&arenaRescueStep(N.rescue,N.players,N.soloMobs,N.world,N.soloTick,N.soloWave,extraKill)&&old!==N.rescue.phase)announceArena(arenaRescueLabel(N.rescue));}
   showSoloCombatEvents(combatBefore);
   arenaExplorePickup(N.explore,N.players);expCollect(N.expedition,N.players);
-   if(!N.expedition?.id&&!LAB.enabled&&!N.explore?.invalid&&!LAB.freezeAI){const old=N.rescue?.phase;if(N.rule?.mode!=='defense'&&arenaRescueStep(N.rescue,N.players,N.soloMobs,N.world,N.soloTick,N.soloWave,extraKill)&&old!==N.rescue.phase)announceArena(arenaRescueLabel(N.rescue));}
+
   arenaFieldKits(N.breakState,N.players,N.soloTick,(_,hp)=>{announceArena('ZAVOJ · +'+hp+' HP');A()?.play('choose')});
   stepSoloXpCrystals();
   if(!N.expedition?.id&&!LAB.enabled&&!N.explore?.invalid&&N.rule?.mode==='normal'&&fieldObjectiveStep(N.explore,N.players,N.world,N.soloTick,(p,n)=>{const c=p.xpCollected;addSoloRunXp(n);p.xpCollected=c}))announceArena('✓ ZADATAK ZAVRŠEN');
