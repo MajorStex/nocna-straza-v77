@@ -23,3 +23,19 @@ function pull(perk){const N={me:{x:1000,y:1000,perks:{magnet:perk},queuedUpgrade
 assert.equal(pull(0),850,'no magnet outside 120px');
 assert(pull(1)>850,'magnet pulls at 150px');
 console.log('V193 MAGNET: 120px normal / 180px perk');
+
+;(()=>{
+ const a=source.indexOf('function arenaCombatBefore('),b=source.indexOf('function drawArenaCombatFx(',a);
+ assert(a>=0&&b>a);
+ const N={me:{x:0,y:0}},sounds=[];
+ const f=new Function('N','A',source.slice(a,b)+';return {arenaCombatBefore,arenaCombatEvents,clearArenaCombatFx,showArenaCombatEvents}') (N,()=>({play:(...v)=>sounds.push(v)}));
+ f.clearArenaCombatFx();const m={x:4,y:5,hp:22,kind:'goblin'};
+ const before=f.arenaCombatBefore([m],new Map());m.hp=0;
+ const events=f.arenaCombatEvents([],before,1);
+ assert.deepEqual(events,[[1024,4,5,22,1]]);
+ for(let i=0;i<20;i++)f.showArenaCombatEvents(events,100);
+ assert.equal(N.combatFx.length,1);assert.equal(sounds.length,2);
+ assert.equal(f.arenaCombatEvents(events,[],11).length,0);
+ assert(source.includes('drawArenaCombatFx(g,now,visible)'));
+ console.log('V223 combat visual event: lethal damage, dedupe, expiry PASS');
+})();
