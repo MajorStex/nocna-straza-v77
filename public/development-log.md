@@ -1,14 +1,14 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 228 -->
-<!-- reviewed: 2026-11-18 -->
+<!-- current-release: 229 -->
+<!-- reviewed: 2026-11-19 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V228 Nova zona MP: team wipe i statistika, povratak u isti lobby, 3 hold revive bez krvarenja, selectable spectate, oznake oborenih i mikrofon samo u meniju. V227 prikazan na korisničkim uređajima; V228 LIVE tek proveriti.
+- Razvoj: V229 MP pauza isključivo glasanjem, pozadina ne aktivira timsku pauzu. V228 LIVE potvrđen 19.11.2026 u 18:26; V229 LIVE tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
-- Sada se radi: hitna ispravka orijentacije crva prema odabranoj meti u Nova zona SOLO/MP, bez izmene napada, kretanja i grafike.
+- Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
 - Blokade: GitHub Actions nema Cloudflare kredencijale. Dodat je režim provere postojeće nativne Workers Builds objave kada oba secreta nedostaju; bez lažno zelenog statusa. Zahteva identičan LIVE HTML i runtime fajlove, kompatibilni relay V221 i QA 13/13. GitHub push nije potvrda objave; Cloudflare dashboard/autorizacija i stvarni LIVE još moraju biti provereni.
 - Sledeće: završni V205 CI, kompatibilnost relay/klijent, LIVE i fizički test 2 pa 6 Android uređaja; V206 balans težine, V207 kompletna optimizacija. Plan nije implementacija.
 
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V229 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
+- Nova zona: minimiziranje samo oslobađa joystick/tastaturu/revive i prijavljuje presence; nema pause paketa. P i menu šalju eksplicitan glas, server pauzira samo jednoglasno za aktivni roster; promena presence ili disconnect otkazuje tekuće glasanje, NE otkazuje već izglasanu pauzu. Glas protiv otkazuje zahtev; nastavak ostaje postojeća komanda. Classic: uklonjen automatski hostSleeping freeze; host-authoritative browser može biti suspendovan od operativnog sistema (ne garantuje neprekidan Classic sim). Zadržane postojeće kratke pauze za chest/upgrade. 60 izolovanih provera glasanja (2–6 mesta), sintaksa oba klijentska fajla prošla. CI i fizički telefoni tek proveriti. Bez novog kanala ili periodičnih paketa.
+
 ### V228 — 19.11.2026 (KOD / izolovan TEST; LIVE tek proveriti)
 - Nova zona MP: downed bez vremenskog isteka; 3 uspešna podizanja, četvrti pad eliminacija. Hold 75 server tickova (2.5s), domet 78, line of sight, reset napretka pri prekidu ili drugom pomagaču; dopušten i između talasa. Team wipe završava regularnu partiju kada nema živog člana; živi reconnect seat dobija postojeći grace (do 120s), Sandbox izuzet. End packet nosi statistiku do 6 igrača, klijent zadržava ekran rezultata do klika Ponovo igraj → ista lobby soba, bez novih trajnih nagrada. Spectate menja samo kameru; povratak na svoj avatar i auto povratak pri revive; crvena offscreen strelica i ime za downed saigrače. Izbor kamere je opcioni podatak postojećeg input paketa za culling XP, bez novog kanala ili frekvencije. Mikrofon HUD sakriven samo u Novoj zoni, postojeće kontrole u meniju. 11050 izolovanih provera (no bleed, hold, 3/4 pad, disconnect grace, team wipe, spectate, statistika); sintaksa klijent/relay proverena; fizički telefoni, stvarni multiplayer i LIVE još nisu potvrđeni.
 
