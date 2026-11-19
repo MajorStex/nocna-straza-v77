@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 222 -->
+<!-- current-release: 223 -->
 <!-- reviewed: 2026-11-18 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V222 vidljiv XP drop i privlačenje samo iz neposredne blizine, Solo i relay. V221 objava nije nezavisno potvrđena; V220 poslednji prethodno potvrđen LIVE prema dnevniku. GitHub push nije dokaz LIVE objave.
+- Razvoj: V223 originalni borbeni vizuelni i zvučni efekti, lebdeće brojke stvarno skinutog HP, Solo i relay. V222/V223 LIVE nepotvrđeni; GitHub push nije dokaz objave.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: hitna ispravka orijentacije crva prema odabranoj meti u Nova zona SOLO/MP, bez izmene napada, kretanja i grafike.
@@ -32,6 +32,9 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V223 — 19.11.2026 (KOD / izolovani TEST; LIVE tek proveriti)
+- Nova zona Solo/MP: zlatna brojka stvarno skinutog HP, 600ms podizanje/fade, čestice smrti, originalni Classic zamah i postojeća foley biblioteka za oružje, pogodak, smrt, XP i korake. Relay šalje ograničeni niz kozmetičkih HP-loss događaja kroz postojeći snapshot (48, poslednjih 9 tickova), dedupe 512, viewport culling, lokalni zvuk sa prostornim stišavanjem. Istovremeni udarci u istom ticku sabiraju se po meti. 1402 izolovane provere; nije fizički test ili dokaz LIVE. Grafički asseti i borbena pravila ostaju isti. Potvrditi CI i Cloudflare.
+
 ### V222 — 19.11.2026 (KOD / izolovani TEST; LIVE tek proveriti)
 - Kristali od killova ostaju na mestu smrti 12 tickova (400 ms) pre privlačenja. Classic domet 120 px, sa magnetom 180 px, dodela tek na 25 px. Daleki kill ne daje automatski XP; posebne nagrade objektiva ostaju odvojene. Magnet i ostale pasivne sposobnosti ostaju u sanducima, osnovne XP nadogradnje nepromenjene. Server sprečava duplu dodelu i skupljanje nezdravih/neaktivnih igrača; bez novih mrežnih poruka, isti cap 160. Prošlo 3911 izolovanih provera pariteta i šest mock igrača. Fizički uređaji, završni CI i produkcija nisu potvrđeni.
 
