@@ -120,7 +120,7 @@ function draw(g,c,x,y,op={}){
  else if(c.helmet==='crown'){poly(g,[[-hh,head-5],[-hh,head-hh*1.4],[-hh*.42,head-hh*.95],[0,head-hh*1.65],[hh*.42,head-hh*.95],[hh,head-hh*1.4],[hh,head-5]],c.accent)}
  else if(c.helmet==='cap'){el(g,0,head-hh*.65,hh,hh*.5,c.armor);line(g,0,head-hh*.35,hh*1.15,head-hh*.35,2.5,c.accent)}
  else if(c.race!=='undead')el(g,0,head-hh*.72,hh*.72,hh*.36,mix(skin,-62));
- g.save();g.translate(handX,handY);g.rotate(-.15-attack*1.15);
+ if(!op.unarmed){g.save();g.translate(handX,handY);g.rotate(-.15-attack*1.15);
  if(c.weapon==='claws'){for(let i=0;i<3;i++)line(g,i*2-2,0,i*2+2,-9,1.8,'#ddd4b7')}
  else if(c.weapon==='bow'){g.strokeStyle='#b98950';g.lineWidth=3;g.beginPath();g.arc(-4,0,17,-1.08,1.08);g.stroke();line(g,4,-15,4,15,1,'#e5d9bd')}
  else{
@@ -131,7 +131,7 @@ function draw(g,c,x,y,op={}){
   else if(c.weapon==='staff'){el(g,0,-33,5,5,c.accent);el(g,0,-33,2,2,'#f6e4a9')}
   else {poly(g,[[-3,-6],[-2,-long],[0,-long-5],[2,-long],[3,-6]],'#becdc7');line(g,-5,-5,5,-5,2.8,c.accent)}
  }
- g.restore();if(attack>.1){g.globalAlpha*=attack*.5;g.strokeStyle='#ebdcaf';g.lineWidth=2.4;g.beginPath();g.arc(bw+3,shoulder+8,24,-1.1,.5);g.stroke()}
+ g.restore();}if(!op.unarmed&&attack>.1){g.globalAlpha*=attack*.5;g.strokeStyle='#ebdcaf';g.lineWidth=2.4;g.beginPath();g.arc(bw+3,shoulder+8,24,-1.1,.5);g.stroke()}
  g.restore();
 }
 let root=null,canvas=null,g=null,open=false,raf=0,last=0,lastDraw=0,all=[],draft=clean(base),tab='look',preview='idle',level=1,sim=null,workshopParked=null,notice='',selectedEnemy='',hidHome=false;
