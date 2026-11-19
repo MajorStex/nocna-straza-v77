@@ -9376,7 +9376,7 @@ function ns117DrawVillageHero(target,x,y,options={}){
 }
 const ns117VillageLook=id=>(!NET.role||id===NET.localId)?networkHeroStyle(heroStyle):NET.heroLooks.get(id)||networkHeroStyle(FACTORY_HERO);
 // V206: use the existing account economy and the selected hero's original talent track.
-let ns206SoloSession=null;
+let ns206SoloSession=null,ns233MpSession=null;
 function ns206SoloIdentity(){return {account:getActiveAccount()?.id,uid:window.NS82_CLOUD?.user||null,hero:activeHeroProfile}}
 function ns206SoloBegin(){
  if(!window.NS140_ARENA?.active||NET.role)return null;
@@ -9388,20 +9388,50 @@ function ns206SoloOwn(token){
  return s&&s.token===token&&s.account===i.account&&s.uid===i.uid&&s.hero===i.hero&&!NET.role?s:null
 }
 function ns206SoloCancel(token){if(ns206SoloSession?.token===token)ns206SoloSession=null}
+// V233: same Guardian Base wallet/ranks/history; no new save key or migration.
+function ns233BaseRanks(){return ['heart','blade','stride','mana','arcana'].map(k=>clamp(Math.floor(Number(meta.ranks[k])||0),0,3))}
+function ns233ApplyBase(p,ranks){
+ if(!p||p.ns233BaseApplied)return false;
+ const [heart,blade,stride,mana,arcana]=ranks;p.ns233BaseApplied=true;p.maxHp+=6*heart;p.hp=p.maxHp;p.damage+=2*blade;p.speedMult*=1+.02*stride;p.baseManaBonus=8*mana;p.baseManaRegen=.12*mana;p.baseSpellPower=1+.015*arcana;return true;
+}
+function ns233Honor(run){
+ if(run.blocked)return {gained:0,score:0,qualified:false};
+ const record={wave:run.wave,level:Math.max(1,Number(run.level)||1),kills:run.kills,time:run.seconds,bossKills:Math.max(0,Number(run.bosses)||0),shopVisits:0,chests:Math.max(0,Number(run.chests)||0),bestItem:'',itemKills:0,reason:run.reason,mode:'nova-'+run.mode};
+ const award=calculateRunReward(record);Object.assign(record,award);
+ meta.runs++;meta.totalKills+=record.kills;meta.totalSeconds+=record.time;
+ meta.bestWave=Math.max(meta.bestWave,record.wave);meta.bestLevel=Math.max(meta.bestLevel,record.level);meta.bestKills=Math.max(meta.bestKills,record.kills);meta.bestSeconds=Math.max(meta.bestSeconds,record.time);meta.bestScore=Math.max(meta.bestScore,record.score);
+ meta.points+=award.gained;meta.totalEarned+=award.gained;
+ meta.history.unshift({...record,date:new Date().toISOString().slice(0,10)});meta.history=meta.history.slice(0,30);persistMeta();updateUpgradeHints();return award;
+}
+function ns233MpBegin(match,seat){
+ const identity=ns206SoloIdentity();if(!NET.role||!identity.account||typeof identity.hero!=='string'||typeof match!=='string'||!/^p[1-6]$/.test(seat))return null;
+ const token=Object.freeze({});ns233MpSession={token,match,seat,...identity};return token;
+}
+function ns233MpCancel(token){if(ns233MpSession?.token===token)ns233MpSession=null}
+function ns233MpFinish(token,match,seat,run){
+ const session=ns233MpSession,i=ns206SoloIdentity();
+ if(!session||session.token!==token||session.match!==match||session.seat!==seat||session.account!==i.account||session.uid!==i.uid||session.hero!==i.hero||!NET.role||!window.NS140_ARENA?.active)return null;
+ ns233MpSession=null;
+ if(!run||run.blocked||!ns233ValidRun(run))return null;
+ return ns233Settle(session,run);
+}
+function ns233ValidRun(run){return !!(run&&['dead','defeat','victory'].includes(run.reason)&&['normal','night','rush','campaign','defense'].includes(run.mode)&&Number.isSafeInteger(run.kills)&&run.kills>=0&&run.kills<=1000000&&Number.isSafeInteger(run.seconds)&&run.seconds>=0&&run.seconds<=86400&&Number.isSafeInteger(run.wave)&&run.wave>=1&&run.wave<=10000)}
+function ns233Settle(s,run){
+ const before=getHeroTrack(s.hero).xp,beforePoints=heroFreePoints(s.hero),coins=run.blocked?0:earnMPReward(run.kills,run.seconds,run.wave),honor=ns233Honor(run);
+ if(coins>0){mpProgress.coins+=coins;mpProgress.earned+=coins;mpProgress.runs++;levelHeroAfterRun(coins*2+Math.floor(run.kills/4),s.hero);saveMP();window.NS82_CLOUD?.markDirty?.()}
+ const post=heroLevelStats(s.hero),free=heroFreePoints(s.hero);return {coins,honor:honor.gained,honorBalance:meta.points,score:honor.score,qualified:honor.qualified,heroXp:getHeroTrack(s.hero).xp-before,points:Math.max(0,free-beforePoints),free,heroName:String(heroStyle.name||'STRAŽAR').slice(0,24),...post};
+}
 function ns206SoloTalent(token,p){
  const s=ns206SoloOwn(token);if(!s||!p)return false;const r=getHeroTrack(s.hero).branches;
- p.maxHp+=r.health*2;p.hp=p.maxHp;p.damage*=1+r.damage*.007;p.speedMult*=1+r.speed*.003;return true
+ ns233ApplyBase(p,ns233BaseRanks());p.maxHp+=r.health*2;p.hp=p.maxHp;p.damage*=1+r.damage*.007;p.speedMult*=1+r.speed*.003;return true
 }
 function ns206SoloFinish(token,run){
  const s=ns206SoloOwn(token);if(!s||!window.NS140_ARENA?.active)return null;
  ns206SoloSession=null; // consume before touching any saved progress, never retry a paid result
- if(!run||!['dead','defeat','victory'].includes(run.reason)||!['normal','night','rush','campaign','defense'].includes(run.mode)||!Number.isSafeInteger(run.kills)||run.kills<0||run.kills>1000000||!Number.isSafeInteger(run.seconds)||run.seconds<0||run.seconds>86400||!Number.isSafeInteger(run.wave)||run.wave<1||run.wave>10000)return null;
- const before=getHeroTrack(s.hero).xp,beforePoints=heroFreePoints(s.hero),coins=run.blocked?0:earnMPReward(run.kills,run.seconds,run.wave);
- if(coins>0){mpProgress.coins+=coins;mpProgress.earned+=coins;mpProgress.runs++;levelHeroAfterRun(coins*2+Math.floor(run.kills/4),s.hero);saveMP();window.NS82_CLOUD?.markDirty?.()}
- const post=heroLevelStats(s.hero),free=heroFreePoints(s.hero);
- return {coins,heroXp:getHeroTrack(s.hero).xp-before,points:Math.max(0,free-beforePoints),free,heroName:String(heroStyle.name||'STRAŽAR').slice(0,24),...post};
+ if(!ns233ValidRun(run))return null;
+ return ns233Settle(s,run);
 }
-window.__NS110_BRIDGE={arenaSoloBegin:ns206SoloBegin,arenaSoloCancel:ns206SoloCancel,arenaSoloTalent:ns206SoloTalent,arenaSoloFinish:ns206SoloFinish,arenaAccountAward:(packet,sparta,accountId)=>{if(!window.NS140_ARENA?.active||getActiveAccount()?.id!==accountId||!Array.isArray(packet)||packet.length!==4)return false;let changed=NS91.claimArena(packet[0]);changed=NS92_CHALLENGES.claimArena(packet[2],packet[3],packet[1])||changed;if(sparta===true)changed=!!window.NS109_SPARTA?.claim(300)||changed;if(changed)window.NS82_CLOUD?.markDirty?.();return changed},NET,G,NSX,NS91,NS97_POST,NS76CHAT,CoopVoice,renderCoopForge,renderPreRun,
+window.__NS110_BRIDGE={arenaBaseRanks:ns233BaseRanks,arenaMpBegin:ns233MpBegin,arenaMpCancel:ns233MpCancel,arenaMpFinish:ns233MpFinish,arenaShowBase:()=>{showBase('menu')},arenaShowStats:()=>{showStats('menu')},arenaSoloBegin:ns206SoloBegin,arenaSoloCancel:ns206SoloCancel,arenaSoloTalent:ns206SoloTalent,arenaSoloFinish:ns206SoloFinish,arenaAccountAward:(packet,sparta,accountId)=>{if(!window.NS140_ARENA?.active||getActiveAccount()?.id!==accountId||!Array.isArray(packet)||packet.length!==4)return false;let changed=NS91.claimArena(packet[0]);changed=NS92_CHALLENGES.claimArena(packet[2],packet[3],packet[1])||changed;if(sparta===true)changed=!!window.NS109_SPARTA?.claim(300)||changed;if(changed)window.NS82_CLOUD?.markDirty?.();return changed},NET,G,NSX,NS91,NS97_POST,NS76CHAT,CoopVoice,renderCoopForge,renderPreRun,
  currentLobbyRoster,currentProfileLevel,getActiveAccount,coopVoiceUpdatePreference,unlockSound,voiceLine,toast,meta,heroStyle,arenaClassicSlash:(g,angle,weapon,life)=>{const wp=MEDIEVAL_WEAPONS[weapon]||MEDIEVAL_WEAPONS.sword,r=65+wp.range*.65,spread=wp.arc||1.25,phase=1-life,begin=-spread*.65+phase*.22,end=spread*.55+phase*.22;g.save();g.rotate(angle);g.globalAlpha*=life*Math.max(.05,life);g.shadowColor=weapon==='axe'?'#f6d499':'#dff4f2';g.shadowBlur=12*life;g.strokeStyle=weapon==='axe'?'#f6d99e':'#d9eef3';g.lineWidth=(weapon==='axe'?8:weapon==='spear'?3:5)*life+1;g.lineCap='round';g.beginPath();g.ellipse(0,0,r,r*.69,0,begin,end);g.stroke();g.shadowBlur=0;g.strokeStyle='#fffce0';g.lineWidth=2*life;g.beginPath();g.ellipse(0,0,r*.9,r*.62,0,begin+.07,end-.08);g.stroke();g.fillStyle='#fff3c8';g.beginPath();g.ellipse(r*Math.cos(end),r*.69*Math.sin(end),3*life+1.4,2*life+1.2,0,0,Math.PI*2);g.fill();g.restore()},arenaClassicSfx:(name,gain)=>sfx(name,Math.max(0,Math.min(1,gain)),true),arenaSpellDraw:(g,e,life)=>NS93_MAGIC.drawSpell(e,life,g),arenaSpellSound:(id,x,y,listener)=>NS93_MAGIC.soundAt(id,x,y,listener),arenaWormSound:()=>sfx('wormSpit'),arenaClassicEnemy:(g,kind,o)=>{if(!['crawler','skeleton','brute','boss','goblin','troll','elephant','rotfiend','worm','werewolf','werewolfAlpha','caveSpider','caveThief'].includes(kind)||!g)return false;const old=ctx;ctx=g;try{const model=DEFAULT[kind==='caveSpider'?'brute':kind==='caveThief'?'goblin':kind],radius={rotfiend:38,elephant:24,worm:18,goblin:13,troll:21,brute:18,boss:30,werewolf:17,werewolfAlpha:34}[kind]||15,r=radius*model.size*(o.scale||1),e={...o,r,type:kind,dead:!!o.dead,deathT:o.dead?.14:.39,attackT:Math.max(0,Math.min(kind.startsWith('werewolf')?.66:kind==='troll'?.82:.36,o.attackT||0)),hp:o.hp??model.hp,maxHp:o.maxHp??model.hp};if(kind==='caveSpider')drawCrystalSpider(e);else if(kind==='caveThief')drawTreasureGoblin(e);else if(kind==='elephant')drawArmoredGoblin(e);else if(kind==='rotfiend')drawRotfiend(e,model);else if(kind==='worm')drawWorm(e,model);else if(kind==='goblin')drawGoblin(e,model);else if(kind==='troll')drawTroll(e,model);else if(kind.startsWith('werewolf'))drawWerewolfV137(e);else drawFemMech(e,model);return true}finally{ctx=old}},arenaClassicProp:(g,p)=>{if(!g)return false;const draw={rock:drawRock,tree:drawTree,house:drawHouse,chest:drawChest,bush:drawBush,ruin:drawRuin,pond:drawPond,cart:drawCart,torch:drawTorch,market:drawMarket,guild:drawGuild,crate:drawCrate,barrel:drawBarrel,shed:drawShed,bin:drawBin,dumpster:drawDumpster,wreck:drawWreck,haystack:drawHay,bale:drawHay,tractor:drawTractor,flower:drawFlower,shovel:drawTool,pickaxe:drawTool,crystal:drawCrystal,fence:drawFence,gate:drawGate,gateOpen:drawGate}[p.type];if(!draw)return false;const old=ctx;ctx=g;ctx.save();try{ctx.translate(p.x,p.y);draw({...p,x:0,y:0});return true}finally{ctx.restore();ctx=old}},workshopSfx:name=>sfx(({chest:'chest',hit:'hit',break:'enemyHit',xp:'xp',magic:'unlock'})[name]||'menu'),
  NS103_PARTY,NS96_INVITES,SOCIAL,startSocial,socialCheckFriends,showFriends,ensureSocialIdentity,safePlayerName,sendSocialStatus,NS92_DIR,
  importCreatorHero:(raw)=>{if(G.mode!=='menu'||NET.role||!raw?.id)return false;const c=window.NS171_CREATOR?.clean(raw);if(!c||!c.id)return false;const id='creator-'+c.id;let row=heroProfiles.find(p=>p.id===id);if(!row&&heroProfiles.length>=20)return false;const spec={...cloneHero(FACTORY_HERO),name:c.name,skin:c.skin,armor:c.armor,accent:c.accent,visualSize:.79,weapon:MEDIEVAL_WEAPONS[c.weapon]?c.weapon:c.weapon==='hammer'?'warhammer':'sword',wardrobe:{...HERO_WARDROBE,torso:c.armor,topColor:c.armor,hat:c.helmet==='none'?'none':c.helmet==='hood'?'hood':'helmet',hatColor:c.accent,leftArm:c.armor,rightArm:c.armor,glovesColor:c.armor}};if(row)row.spec=spec;else heroProfiles.push({id,spec});return applyHeroProfile(id)},drawVillageHero:ns117DrawVillageHero,getVillageHeroLook:ns117VillageLook,broadcastLobby,renderLobby,startLobbyMatch};
