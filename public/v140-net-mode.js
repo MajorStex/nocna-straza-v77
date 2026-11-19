@@ -2799,7 +2799,7 @@ function arenaWatchTarget(){const me=N.me;if(!me||N.solo||(!me.knocked&&!me.fina
 function cycleArenaSpectate(delta){const options=arenaWatchChoices();if(!N.me||(!N.me.knocked&&!N.me.finalDead)||options.length<2)return;const idx=Math.max(0,options.findIndex(p=>p.id===N.watchId));N.watchId=options[(idx+delta+options.length)%options.length].id;refreshArenaSpectate()}
 function refreshArenaSpectate(){const elPanel=el('ns228Spectate');if(!elPanel)return;const p=arenaWatchTarget(),available=!N.solo&&N.phase==='running'&&!!(N.me?.knocked||N.me?.finalDead)&&el('ns158Menu')?.hidden!==false;elPanel.hidden=!available;if(!available)return;el('ns228WatchLabel').textContent=p?.id===N.id?'MOJ HEROJ · '+(N.me.finalDead?'ELIMINISAN':'ČEKA REVIVE'):'POSMATRAŠ · '+String(N.looks.get(p?.id)?.look?.name||p?.id||'');el('ns228Prev').disabled=el('ns228Next').disabled=arenaWatchChoices().length<2;}
 function nearArenaRevive(){
- const me=N.me;if(N.solo||!N.reviveSupported||N.phase!=='running'||!me||me.hp<=0||me.knocked||me.finalDead||N.paused||LAB_PAUSE.paused||N.choice||N.waveState!=='play'||el('ns158Menu')?.hidden===false)return null;
+ const me=N.me;if(N.solo||!N.reviveSupported||N.phase!=='running'||!me||me.hp<=0||me.knocked||me.finalDead||N.paused||LAB_PAUSE.paused||N.choice||!['play','between'].includes(N.waveState)||el('ns158Menu')?.hidden===false)return null;
  let best=null,d2=78**2;for(const p of N.players.values()){if(p.id===N.id||!p.online||!p.knocked||p.finalDead)continue;const d=(p.x-me.x)**2+(p.y-me.y)**2;if(d<=d2&&arenaAcidClear(N.world,me.x,me.y,p.x,p.y,3)){best=p;d2=d}}return best;
 }
 function releaseArenaRevive(){
