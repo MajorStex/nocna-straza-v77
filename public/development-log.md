@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 237 -->
+<!-- current-release: 238 -->
 <!-- reviewed: 2026-11-19 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V237 originalni glasovi globalnog saveznika u Novoj zoni; V236 model, V235 tekstura i V233 napredak ostaju. Relay V236; LIVE tek proveriti.
+- Razvoj: V238 četiri goblina čuvaju kavez Noćnog stražara u Novoj zoni; V237 originalni glas, V236 saveznik, V235 tekstura i V233 napredak ostaju. Relay V238; LIVE tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,12 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V238 — 20.11.2026 (KOD; LIVE tek proveriti)
+- Na početku petog talasa četiri obična goblina iz *postojećeg talasa* postaju čuvari kaveza (deterministička slobodna mesta 84 px od stražara, bez kolizija), njihov HP je 71, imaju individualni AI i čekaju igrača.
+- Prilazak na 265 px pokreće odbranu. Nakon udaljavanja igrača vraćaju se na svoje položaje; bez pojedinačnog respawna. Oslobađanje saveznika moguće je tek kada sva četiri padnu.
+- SOLO i Cloudflare MP koriste isti kod postavljanja i AI na 10 Hz; MP nastavlja sa starim mob snapshotovima, bez dodatnih entiteta, poruka ili novih payload polja. V154 keširani goblin atlas čuva originalni izgled, 60 FPS cilj.
+- V237 tri originalna glasovna snimka i glasovni balans ostaju netaknuti. Novi test stvarne mape, svih šest igrača, checkpointa i oslobađanja. Potvrdu Cloudflare objave i test realnih telefona raditi zasebno.
+
 ### V237 — 19.11.2026 (KOD; LIVE tek proveriti)
 - Iz tačnog izvoza karaktera `cc-mwmurfo8-i81d` ugrađena tri originalna WebM/Opus snimka (attack, hurt, death; ukupno 10.840 bajtova), bez čitanja naloga ili dodatnih MP paketa.
 - SOLO/MP zvuk izveden iz postojeće autoritativne faze, HP-a i attackTick; lokalni WebAudio, prostorna jačina i stereo, ograničenje ponavljanja. Na oslobađanju zvučni signal, jer izvoz ne sadrži govornu repliku za taj događaj.
