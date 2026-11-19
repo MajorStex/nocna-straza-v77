@@ -35,12 +35,12 @@ function cleanPlacement(raw,template,bounds){
 }
 function attach(actor,placement,seed=0){
  const p=cleanPlacement(placement,actor.c);
- actor.faction=p.faction;actor.placement=p;actor.brain={state:'idle',target:null,retaliate:null,nextSense:0,waypoint:null,point:0,waitUntil:0,seed:(Math.abs(Math.floor(seed))+1)>>>0,returning:false};
+ actor.faction=p.faction;actor.placement=p;actor.brain={state:'idle',target:null,retaliate:null,nextSense:(Math.abs(Math.floor(seed))%17)*.011,waypoint:null,point:0,waitUntil:0,seed:(Math.abs(Math.floor(seed))+1)>>>0,returning:false};
  actor.boss={config:cleanBoss(actor.c?.boss),stage:1,cooldown:2,cast:null};
  return actor;
 }
 function hostile(a,b){
- if(!a||!b||a===b||b.hp<=0)return false;
+ if(!a||!b||a===b||b.hp<=0||a.ignoreForAI||b.ignoreForAI)return false;
  if((a.relations||b.relations)&&window.NS175_FACTIONS)return window.NS175_FACTIONS.hostile(a,b);
  const ta=a.faction||'enemy',tb=b.faction||'enemy';
  if(ta==='neutral'||tb==='neutral')return a.brain?.retaliate===b;
@@ -70,7 +70,7 @@ function sense(actor,actors,now){
  const b=actor.brain,ai=actor.placement.ai;
  if(b.returning||ai.reaction==='passive'){b.target=null;return}
  if(b.target&&!targetValid(actor,b.target,true))b.target=null;
- if(now<b.nextSense)return;b.nextSense=now+.20+(b.seed%5)*.009;
+ if(now<b.nextSense)return;b.nextSense=now+.20+(b.seed%17)*.011;
  let best=b.target,bestD=best?distance(actor,best):Infinity;for(const t of actors){if(!targetValid(actor,t,false))continue;const d=distance(actor,t);if(d<bestD*.85){best=t;bestD=d}}
  if(!best&&targetValid(actor,b.retaliate,false))best=b.retaliate;b.target=best;
 }
