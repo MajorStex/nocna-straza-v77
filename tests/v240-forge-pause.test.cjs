@@ -13,7 +13,7 @@ ck(/arenaMagicAvailable\(\)\{return !FORGE_SOLO_HOLD/.test(game),'SOLO spells bl
 ck(/forgePauseRequest/.test(game)&&/forgePauseVote/.test(game)&&/forgePauseClose/.test(game),'all 3 authenticated network intents present');
 ck(/forgeReceipt/.test(game)&&/applyArenaForge\(p,m\.forge\)/.test(game),'authoritative finances update immediately');
 ck(/function arenaNetWatch\(now\)\{[\s\S]*?FORGE_STATE\.phase==='paused'\)\{N\.netStalled=false;N\.lastState=now/.test(game),'intentional paused tick does not trigger false reconnect');
-ck(/N\.paused\|\|FORGE_STATE\.phase==='paused'/.test(game),'network input throttled during finite pause');
+ck(/now-N\.lastInput>=\(N\.paused\?500:50\)\+\(FORGE_STATE\.phase==='paused'&&/.test(game),'network input throttled during finite pause');
 ck(/ns240ForgeVote/.test(game)&&/ODUSTANI/.test(game),'consent/back modal');
 const vars=game.match(/^let FORGE_SHOP_OPEN[^\n]+/m)?.[0];
 const helper=game.match(/\/\/ V240: explicit shop interaction[\s\S]*?(?=\/\/ V230:)/)?.[0];
