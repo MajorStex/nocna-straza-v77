@@ -1909,6 +1909,8 @@ function arenaMemoryStats(){const history=N.mobHistory||[];return {historyFrames
 function arenaNetHealth(age,rtt,jitter){return age>=8000?'reconnect':age>=3000?'stalled':age>=500||(rtt??0)>=250||jitter>=80?'unstable':'ok'}
 function arenaNetWatch(now){
  if(N.solo||N.phase!=='running'||!N.ws||N.ws.readyState!==1)return 'ok';
+ // V240: unchanged authoritative tick is intentional during forge freeze; no false reconnect.
+ if(FORGE_STATE.phase==='paused'){N.netStalled=false;N.lastState=now;N.pending=[];N.delta={x:0,y:0};return 'ok'}
  const age=Math.max(0,now-(N.lastState||N.netStartedAt||now)),health=arenaNetHealth(age,N.diagRtt,N.arrivalJitter||0);
  if(age>=3000&&!N.netStalled){N.netStalled=true;N.pending=[];N.delta={x:0,y:0};N.reviveHeld='';spellAim=null;N.rejoinCorrection=true;}
  if(health==='reconnect'&&now-(N.netResyncAt??-30000)>=30000){N.netResyncAt=now;N.netRecoveries=(N.netRecoveries||0)+1;try{N.ws.close(4001,'snapshot timeout')}catch{}}
@@ -3485,8 +3487,8 @@ function frame(now){
     N.ws.send(JSON.stringify({t:'look',look}));
    }
   }
-  if(!N.solo&&!N.netStalled&&!N.rejoinCorrection&&N.tick>=0&&N.ws?.readyState===1&&now-N.lastInput>=(N.paused?500:50)&&N.ws.bufferedAmount<4000){
-  const seq=++N.seq;N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
+  if(!N.solo&&!N.netStalled&&!N.rejoinCorrection&&N.tick>=0&&N.ws?.readyState===1&&now-N.lastInput>=((N.paused||FORGE_STATE.phase==='paused')?500:50)&&N.ws.bufferedAmount<4000){
+  const seq=++N.seq;if(FORGE_STATE.phase==='paused')N.pending.length=0;else N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
   if(N.pending.length>26)N.pending.shift();
   N.delta={x:0,y:0};N.lastInput=now;
   // Compatibility: old arena server also auto-attacks when this flag is set.
