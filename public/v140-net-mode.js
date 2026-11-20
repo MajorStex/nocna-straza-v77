@@ -3238,6 +3238,126 @@ function drawArenaPlayerLabel(g,p){
  drawArenaVoiceBadge(g,p.id,p.x+38,labelY-2);
  g.restore();
 }
+// V241: completely redrawn Classic cave art from its original coordinate blueprint.
+// Build floor once at 1280x860 (4.2 MiB), cull and LRU-cache individual cave props.
+// No procedural animation, shadow passes or texture requests during gameplay.
+let caveFloor241=null;
+function buildCaveFloor241(){
+ if(caveFloor241)return caveFloor241;
+ const cv=document.createElement('canvas');cv.width=1280;cv.height=860;const c=cv.getContext('2d');if(!c)return null;
+ let seed=2410860;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+ c.fillStyle='#1b1c1e';c.fillRect(0,0,1280,860);
+ // Broad non-repeating rock strata, washed-out earth and narrow trodden trails.
+ for(let i=0;i<170;i++){
+  const x=rnd()*1280,y=rnd()*860,r=22+rnd()*106;
+  const grad=c.createRadialGradient(x,y,0,x,y,r);
+  const rgb=i%4===0?'79,73,60':i%4===1?'70,73,72':i%4===2?'29,45,48':'49,48,48';
+  grad.addColorStop(0,'rgba('+rgb+',.19)');grad.addColorStop(1,'rgba('+rgb+',0)');
+  c.fillStyle=grad;c.fillRect(x-r,y-r,r*2,r*2);
+ }
+ // Deterministic cracked shale and scratches; drawn once, never in the render loop.
+ for(let i=0;i<610;i++){
+  const x=rnd()*1280,y=rnd()*860,len=2+rnd()*13;
+  c.strokeStyle=i%5===0?'#8583773a':i%3===0?'#11141688':'#62615d36';
+  c.lineWidth=.5+rnd()*.85;c.beginPath();c.moveTo(x,y);c.lineTo(x+len,y-len*(.15+rnd()*.5));c.stroke();
+ }
+ for(let i=0;i<240;i++){
+  const x=rnd()*1280,y=rnd()*860,r=1+rnd()*3;
+  c.fillStyle=i%3===0?'#77756864':i%3===1?'#323b3b9a':'#5a5e5b88';
+  c.beginPath();c.ellipse(x,y,r,r*.45,rnd()*2,0,Math.PI*2);c.fill();
+ }
+ c.strokeStyle='#45443e50';c.lineWidth=2;
+ for(const [x1,y1,x2,y2] of [[90,130,310,140],[348,190,515,320],[650,480,820,710],[820,710,915,560],[965,562,1180,556]]){
+  c.beginPath();c.moveTo(x1,y1);c.quadraticCurveTo((x1+x2)/2-19,(y1+y2)/2+22,x2,y2);c.stroke();
+ }
+ caveFloor241=cv;return cv;
+}
+function drawClassicCaveGround(g,world,view){
+ const cv=buildCaveFloor241();if(!cv)return false;
+ const left=Math.max(0,view.left),top=Math.max(0,view.top),right=Math.min(world.w,view.right),bottom=Math.min(world.h,view.bottom);
+ if(right>left&&bottom>top)g.drawImage(cv,left,top,right-left,bottom-top,left,top,right-left,bottom-top);
+ return true;
+}
+function drawClassicCaveProp241(ctx,p){
+ if(!ctx||!p)return false;
+ const {x,y,r,type}=p,phase=Math.max(0,Math.min(3,p.damagePhase||0));
+ const oval=(xx,yy,rx,ry,fill)=>{ctx.beginPath();ctx.ellipse(xx,yy,Math.max(.1,rx),Math.max(.1,ry),0,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill()};
+ const line=(coords,color,width=1)=>{ctx.beginPath();ctx.moveTo(...coords[0]);for(let i=1;i<coords.length;i++)ctx.lineTo(...coords[i]);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke()};
+ ctx.save();ctx.translate(x,y);ctx.lineJoin='round';ctx.lineCap='round';
+ if(type==='rock'){
+  oval(3,r*.29,r*1.09,r*.43,'#05090b9c');
+  ctx.beginPath();for(let i=0;i<9;i++){
+   const a=-Math.PI/2+i*Math.PI*2/9,k=.85+(((p.seed+i*113)%11)/44);
+   const xx=Math.cos(a)*r*k,yy=Math.sin(a)*r*.85*k;
+   if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
+  }ctx.closePath();ctx.fillStyle=p.secretWall?'#444448':'#464b4c';ctx.fill();ctx.strokeStyle='#1a2324';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-r*.67,-r*.22);ctx.lineTo(-r*.4,-r*.66);ctx.lineTo(r*.08,-r*.77);
+  ctx.lineTo(r*.5,-r*.5);ctx.lineTo(r*.16,-r*.12);ctx.lineTo(-r*.58,r*.17);
+  ctx.closePath();ctx.fillStyle=p.secretWall?'#777c83':'#747b79';ctx.fill();
+  ctx.beginPath();ctx.moveTo(r*.16,-r*.12);ctx.lineTo(r*.5,-r*.5);ctx.lineTo(r*.76,r*.14);
+  ctx.lineTo(r*.28,r*.54);ctx.closePath();ctx.fillStyle='#303d3f';ctx.fill();
+  line([[-r*.5,-r*.1],[-r*.22,-r*.04],[-r*.04,r*.27],[r*.18,r*.17]],'#191e219c',1.5);
+  line([[-r*.55,-r*.48],[-r*.21,-r*.58],[r*.04,-r*.52]],'#c1bb9b4f',1.2);
+  if(p.secretWall){
+   ctx.strokeStyle='#a9d8d6';ctx.lineWidth=2.6;ctx.shadowColor='#68d9d1';ctx.shadowBlur=8;
+   line([[-r*.22,-r*.42],[r*.17,-r*.16],[-r*.1,r*.11],[r*.29,r*.37]],'#8cdddb',2.3);
+   ctx.shadowBlur=0;
+  }else if(p.seed%4===0){oval(-r*.6,r*.08,r*.11,r*.05,'#556d57');oval(-r*.45,r*.14,r*.07,r*.045,'#8e9471')}
+ }else if(type==='crate'){
+  oval(0,r*.5,r*.99,r*.27,'#09100c80');
+  ctx.fillStyle='#684b37';ctx.fillRect(-r*.8,-r*.66,r*1.6,r*1.32);
+  ctx.fillStyle='#9b7750';ctx.fillRect(-r*.73,-r*.59,r*1.46,r*.51);
+  ctx.fillStyle='#80603f';ctx.fillRect(-r*.73,-r*.02,r*1.46,r*.6);
+  ctx.strokeStyle='#342820';ctx.lineWidth=2;ctx.strokeRect(-r*.8,-r*.66,r*1.6,r*1.32);
+  line([[-r*.64,-r*.52],[r*.64,r*.48]],'#dbc49a',2.5);
+  line([[r*.62,-r*.52],[-r*.63,r*.48]],'#4f3526',2.7);
+  ctx.fillStyle='#40474a';for(const xx of [-r*.61,r*.61])for(const yy of [-r*.46,r*.44])oval(xx,yy,1.8,1.8,'#b3aa91');
+  if(p.secret==='secret'){ctx.fillStyle='#a2daf0';ctx.font='bold '+Math.round(r*.8)+'px sans-serif';ctx.textAlign='center';ctx.fillText('✦',0,r*.18)}
+  if(phase>0)for(let i=0;i<phase;i++)line([[-r*.4+i*r*.22,-r*.42],[r*.04+i*r*.13,r*.19],[r*.2+i*r*.12,r*.36]],'#241b1e',1.4);
+ }else if(type==='barrel'){
+  oval(1,r*.5,r*.69,r*.25,'#070c1088');ctx.fillStyle='#715439';
+  ctx.beginPath();ctx.moveTo(-r*.54,-r*.47);ctx.lineTo(r*.54,-r*.47);ctx.lineTo(r*.49,r*.49);
+  ctx.quadraticCurveTo(0,r*.77,-r*.49,r*.49);ctx.closePath();ctx.fill();ctx.strokeStyle='#30231f';ctx.lineWidth=2;ctx.stroke();
+  for(const xx of [-r*.27,0,r*.27])line([[xx,-r*.42],[xx*.95,r*.53]],'#ad8964',1.5);
+  oval(0,-r*.48,r*.55,r*.18,'#a07b53');oval(0,-r*.5,r*.4,r*.10,'#69452e');
+  for(const yy of [-r*.2,r*.35]){ctx.strokeStyle='#697173';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,yy,r*.55,r*.15,0,0,Math.PI);ctx.stroke()}
+  if(phase>0)line([[-r*.2,-r*.17],[r*.13,r*.07],[r*.08,r*.34]],'#2f2622',1.3+phase*.5);
+ }else if(type==='torch'){
+  oval(0,r*.6,r*.44,r*.17,'#080c0ca1');
+  ctx.strokeStyle='#493b31';ctx.lineWidth=5;line([[0,r*.45],[0,-r*.58]],'#584535',5);
+  oval(0,-r*.66,r*.24,r*.13,'#504238');
+  ctx.shadowColor='#ffb65b';ctx.shadowBlur=14;
+  ctx.beginPath();ctx.moveTo(0,-r*1.33);ctx.quadraticCurveTo(r*.25,-r*1.02,r*.22,-r*.75);
+  ctx.quadraticCurveTo(0,-r*.52,-r*.21,-r*.78);ctx.quadraticCurveTo(-r*.29,-r*1.05,0,-r*1.33);ctx.fillStyle='#ffb14e';ctx.fill();
+  oval(0,-r*.79,r*.093,r*.21,'#ffedb0');ctx.shadowBlur=0;
+ }else if(type==='obelisk'){
+  oval(2,r*.48,r*.68,r*.28,'#090d0db3');
+  ctx.fillStyle='#3e4143';ctx.beginPath();ctx.moveTo(-r*.34,r*.44);ctx.lineTo(-r*.3,-r*.76);
+  ctx.lineTo(0,-r*1.28);ctx.lineTo(r*.34,-r*.76);ctx.lineTo(r*.37,r*.44);ctx.closePath();ctx.fill();ctx.strokeStyle='#9d9b8b';ctx.lineWidth=2;ctx.stroke();
+  line([[0,-r*1.22],[0,r*.33]],'#858982',1.8);
+  ctx.shadowColor='#b5c9dd';ctx.shadowBlur=8;
+  line([[-r*.15,-r*.52],[r*.08,-r*.4],[-r*.08,-r*.18],[r*.14,-r*.06]],'#a3c1c9',2.3);ctx.shadowBlur=0;
+ }else if(type==='caveRest'){
+  oval(0,r*.43,r*.95,r*.29,'#101f1a88');
+  oval(0,r*.18,r*.75,r*.3,'#31453a');
+  for(const [xx,yy,rad] of [[-r*.4,-r*.23,.35],[r*.18,-r*.31,.4],[r*.49,r*.13,.24]]){
+   ctx.fillStyle='#bbcfb5';ctx.fillRect(xx-rad*r*.08,yy,rad*r*.16,r*.48);
+   ctx.shadowColor='#91e0c1';ctx.shadowBlur=6;oval(xx,yy,rad*r,rad*r*.35,'#8fc4aa');ctx.shadowBlur=0;
+   oval(xx-rad*r*.25,yy-r*.07,rad*r*.14,rad*r*.09,'#ebf5c8');
+  }
+ }else if(type==='caveRelic'){
+  oval(0,r*.37,r*.82,r*.27,'#1639498c');ctx.strokeStyle='#76c6d0';ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(0,r*.12,r*.65,r*.23,0,0,Math.PI*2);ctx.stroke();
+  ctx.shadowColor='#74e2ff';ctx.shadowBlur=15;
+  ctx.beginPath();ctx.moveTo(0,-r*1.2);ctx.lineTo(r*.48,-r*.38);ctx.lineTo(r*.21,r*.38);
+  ctx.lineTo(-r*.21,r*.38);ctx.lineTo(-r*.48,-r*.38);ctx.closePath();
+  ctx.fillStyle='#9be8ff';ctx.fill();ctx.shadowBlur=0;
+  ctx.fillStyle='#398bb5';ctx.beginPath();ctx.moveTo(0,-r*1.2);ctx.lineTo(0,r*.32);
+  ctx.lineTo(-r*.48,-r*.38);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#e2fbff';ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillText('LEDENA RELIKVIJA',0,-r*1.41);
+ }
+ ctx.restore();return true;
+}
 // Classic map visuals: local immutable spatial index; no additional network traffic.
 const classicSceneryCache=new Map(),classicPropIndexes=new WeakMap();
 let classicSpriteBytes=0,classicGround=null;
@@ -3326,8 +3446,10 @@ function drawClassicGround(g,w,visible){
  return true;
 }
 function drawClassicScenery(g,p){
- if(p.type==='crystal')return;const bridge=B().arenaClassicProp;if(!bridge)return;
- const item=N.breakState?.byProp?.get(p),phase=arenaCrackPhase(item);const key=p.type+':'+p.r+':'+p.seed+':'+(p.orientation||'')+':'+phase;let sprite=classicSceneryCache.get(key);
+ if(p.type==='crystal')return;const cave=N.expedition?.id===2;
+ if(cave&&p.type==='caveRelic'&&(!expCaveSecretOpen(N.breakState)||N.expedition?.secretClaimed))return;
+ const bridge=cave?drawClassicCaveProp241:B().arenaClassicProp;if(!bridge)return;
+ const item=N.breakState?.byProp?.get(p),phase=arenaCrackPhase(item);const key=(cave?'v241-cave:':'')+p.type+':'+p.r+':'+p.seed+':'+(p.orientation||'')+':'+phase;let sprite=classicSceneryCache.get(key);
  const pad=Math.ceil(p.r*2+12),bytes=pad*pad*16;
  if(sprite){classicSceneryCache.delete(key);classicSceneryCache.set(key,sprite)}
  else{sprite=document.createElement('canvas');sprite.width=sprite.height=pad*2;const ctx=sprite.getContext('2d');
@@ -3574,7 +3696,7 @@ function frame(now){
  // Draw only lines covering the current camera, never all 4,200 world pixels.
  const visible={left:me.x-r.width/2/zoom-90,right:me.x+r.width/2/zoom+90,
   top:me.y-r.height/2/zoom-90,bottom:me.y+r.height/2/zoom+90};
- if(!(!N.expedition?.id&&N.world.classicProps?.length&&drawClassicGround(g,N.world,visible))){
+ if(!(N.expedition?.id===2&&drawClassicCaveGround(g,N.world,visible))&&!(!N.expedition?.id&&N.world.classicProps?.length&&drawClassicGround(g,N.world,visible))){
  g.fillStyle=N.expedition?.id?'#20282a':'#395443';g.fillRect(Math.max(0,visible.left),Math.max(0,visible.top),
   Math.min(N.world.w,visible.right)-Math.max(0,visible.left),
   Math.min(N.world.h,visible.bottom)-Math.max(0,visible.top));
