@@ -31,7 +31,7 @@ const NET={role:'host',localId:'p1',round:4,conn:null};
 const specs={sword:{damage:1,speed:1,range:0,arc:1.2},axe:{damage:1.3,speed:1.2,range:8,arc:1.1}};
 const elements=new Map();
 const makeElement=()=>({hidden:true,events:{},textContent:'',innerHTML:'',className:'',append(){},replaceChildren(){},addEventListener(type,fn){this.events[type]=fn}});
-const doc={head:{append(){}},body:{append(){}},createElement:makeElement,getElementById(id){if(!elements.has(id))elements.set(id,makeElement());return elements.get(id)}};
+const doc={head:{append(){}},body:{append(el){if(el.id)elements.set(el.id,el)}},createElement:makeElement,getElementById(id){if(!elements.has(id))elements.set(id,makeElement());return elements.get(id)}};
 const fakeWindow={__gameLanguage:{value:'sr'}};
 const hostSrc=take('const NS89_PICK=(()=>{','window.__NS89_PICK=NS89_PICK;');
 const makePick=new Function('G','NET','MEDIEVAL_WEAPONS','effect','sfx','announceSmallLoot','weaponName','window','document','performance',hostSrc+';return NS89_PICK;');
