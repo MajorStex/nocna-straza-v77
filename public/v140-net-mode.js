@@ -405,7 +405,7 @@ function arenaThorns(p,m,tick,kill,emit,damageRule){if(p.perks?.thorns&&arenaExt
 function arenaBreakInit(world){
  const baseObs=world.obstacles||[],baseProps=world.classicProps||[],items=[];
  for(let id=0;id<baseProps.length;id++){const p=baseProps[id];if(p.type!=='barrel'&&p.type!=='crate')continue;
-  const maxHp=p.type==='barrel'?72+((p.seed||id)%5)*7:60+((p.seed||id)%4)*6;
+  const maxHp=p.caveHits?Math.max(18,p.caveHits*22):p.type==='barrel'?72+((p.seed||id)%5)*7:60+((p.seed||id)%4)*6;
   const collider=baseObs.find(o=>o.kind===p.type&&Math.abs(o.x+o.w/2-p.x)<=2&&Math.abs(o.y+o.h/2-p.y)<=2);
   items.push({id,x:p.x,y:p.y,r:p.r||16,kind:p.type,maxHp,hp:maxHp,collider});
  }
@@ -413,9 +413,11 @@ function arenaBreakInit(world){
 }
 function arenaBreakRefresh(b,world){
  const broken=new Set(b.items.filter(i=>i.hp<=0).map(i=>i.id));b.removed.clear();
+ const secretOpened=expCaveSecretOpen(b);
  for(const i of b.items)if(i.hp<=0&&i.collider)b.removed.add(i.collider);
  if(b.gateOpen&&b.gateCollider)b.removed.add(b.gateCollider);
- world.obstacles=b.baseObs.filter(o=>!b.removed.has(o));world.classicProps=b.baseProps.filter((_,i)=>!broken.has(i)).map(p=>b.gateOpen&&p.type==='gate'?{...p,type:'gateOpen'}:p);
+ world.obstacles=b.baseObs.filter(o=>!b.removed.has(o)&&!(secretOpened&&o.kind==='caveSecret'));
+ world.classicProps=b.baseProps.filter((p,i)=>!broken.has(i)&&!(secretOpened&&p.secretWall)).map(p=>b.gateOpen&&p.type==='gate'?{...p,type:'gateOpen'}:p);
 }
 function arenaGateMaybeOpen(b,world,mobs,levelBoss){
  if(!b?.gateCollider||b.gateOpen||(!levelBoss&&!mobs.some(m=>m.kind==='rotfiend'&&m.hp>0)))return false;
@@ -704,7 +706,7 @@ function expInit(world){
   }
  }
  portals.sort((a,b)=>a.id-b.id);
- return {id:0,rev:0,done:0,key:false,rope:false,keyDrop:null,portals,saved:null,core:false};
+ return {id:0,rev:0,done:0,key:false,rope:false,keyDrop:null,portals,saved:null,core:false,layout:0,restUsed:false,secretClaimed:false};
 }
 // V221: permanent building collision, shared with the server and the navigation grid.
 function installTempleCollider(world,exp){
@@ -712,22 +714,87 @@ function installTempleCollider(world,exp){
  const p=exp.portals.find(q=>q.id===1);if(!p)return;
  world.obstacles=[...world.obstacles,{x:p.x-56,y:p.y-108,w:112,h:98,kind:'temple',classic:1}];
 }
-function expWorld(base,id){
+// V241 exact original Classic cave coordinates reconstructed as deterministic SOLO/MP geometry.
+// Same three Classic maze variants, 1280x860 bounds, side gallery, 15 breakables,
+// safe alcove, secret wall/relic and original entrance/exit positions. No runtime RNG.
+const EXP_CAVE_START=Object.freeze({x:110,y:130}),EXP_CAVE_EXIT=Object.freeze({x:852,y:718});
+const EXP_CAVE_REST=Object.freeze({x:128,y:558}),EXP_CAVE_RELIC=Object.freeze({x:1120,y:564});
+const EXP_CAVE_LAYOUTS=Object.freeze([
+ [[205,210,205,630],[398,135,398,625],[585,210,585,705],[750,155,750,605]],
+ [[225,130,225,510],[410,290,410,725],[605,120,605,525],[774,345,774,735]],
+ [[275,165,275,705],[477,105,477,570],[675,265,675,720],[813,130,813,505]]
+]);
+function expClassicCave241(layout=0){
+ const classicProps=[],obstacles=[];
+ let serial=1;
+ const add=(type,x,y,r,extra={},solid=false)=>{
+  const p={type,x,y,r,seed:serial*71+241,...extra};serial++;classicProps.push(p);
+  if(solid){const rad=r*.83,kind=extra.secretWall?'caveSecret':type==='rock'?'caveWall':type;
+   obstacles.push({x:Math.round(x-rad),y:Math.round(y-rad),w:Math.round(2*rad),h:Math.round(2*rad),kind});}
+  return p;
+ };
+ const wall=(x,y,size=1,extra={})=>add('rock',x,y,29*size,extra,true);
+ for(let x=40;x<=920;x+=70){wall(x,44,1.2);wall(x,806,1.2)}
+ for(let y=110;y<=740;y+=70){wall(44,y,1.2);if(y!==530&&y!==600)wall(916,y,1.2)}
+ // Original V115 annex, eastern passage and the secret chamber.
+ for(let x=948;x<=1250;x+=52){wall(x,440,1.25);wall(x,692,1.25)}
+ for(let y=458;y<=686;y+=52)wall(1250,y,1.23);
+ wall(916,489,39/29,{ns115Seam:true});
+ wall(916,641,39/29,{ns115Seam:true});
+ wall(1144,509,15/29);
+ for(const [x,y] of [[1076,480],[1192,632]])add('torch',x,y,13);
+ const pattern=EXP_CAVE_LAYOUTS[Math.abs(Math.trunc(layout||0))%3];
+ for(const [x1,y1,x2,y2] of pattern)for(let t=0;t<8;t++){
+  if(t===2||t===5)continue;
+  const x=Math.round(x1+(x2-x1)*t/7),y=Math.round(y1+(y2-y1)*t/7);
+  if(Math.hypot(x-110,y-130)<115||Math.hypot(x-852,y-718)<115)continue;
+  wall(x,y,.85);
+ }
+ for(const [x,y,type] of [[180,175,'torch'],[700,170,'torch'],[844,690,'torch'],[498,694,'torch'],[330,535,'obelisk']])
+  add(type,x,y,type==='torch'?13:34,{},type==='obelisk');
+ const destructs=[[300,165,'crate',1],[342,165,'barrel',2],[384,165,'crate',3],[490,315,'crate',2],[535,315,'barrel',1],[580,315,'crate',2],[706,508,'crate',3],[754,508,'barrel',2],[805,508,'crate',1],[813,634,'crate',3,true],[770,634,'barrel',2],[728,634,'crate',1],[540,554,'crate',3,false,'secret'],[560,598,'barrel',2],[607,593,'crate',1]];
+ for(const [x,y,type,hits,stash,secret] of destructs)
+  add(type,x,y,type==='crate'?17:16,{caveHits:hits,stash:!!stash,secret:secret||null},true);
+ wall(916,565,82/29,{secretWall:true,ns115SealedPassage:true});
+ add('caveRest',EXP_CAVE_REST.x,EXP_CAVE_REST.y,33);
+ add('caveRelic',EXP_CAVE_RELIC.x,EXP_CAVE_RELIC.y,33);
+ return {w:1280,h:860,layout:Math.abs(Math.trunc(layout||0))%3,classicProps,obstacles};
+}
+function expCaveSecretOpen(b){
+ return !!b?.items.some(i=>b.baseProps[i.id]?.secret==='secret'&&i.hp<=0);
+}
+function expCaveStep(z,players,breakables){
+ if(z?.id!==2)return false;
+ const living=[...players.values()].filter(p=>p.online&&!p.background&&!p.knocked&&!p.finalDead&&p.hp>0);
+ let changed=false;
+ if(!z.restUsed&&living.some(p=>expNear(p,EXP_CAVE_REST,76))){
+  z.restUsed=true;changed=true;
+  for(const p of living)p.hp=Math.min(p.maxHp||100,p.hp+Math.round((p.maxHp||100)*.18));
+ }
+ if(!z.secretClaimed&&expCaveSecretOpen(breakables)&&living.some(p=>expNear(p,EXP_CAVE_RELIC,46))){
+  z.secretClaimed=true;changed=true;
+  // One server-authoritative, run-local shard reward. Never mint account gear.
+  for(const p of living)p.arenaShards=Math.min(999,(p.arenaShards||0)+2);
+ }
+ return changed;
+}
+function expWorld(base,id,layout=0){
  if(!id)return {...base};
+ if(id===2){const cave=expClassicCave241(layout);return {...base,w:cave.w,h:cave.h,decorSeed:241,classicProps:cave.classicProps,obstacles:cave.obstacles}}
  const obs=[],add=(x,y,w,h)=>obs.push({x,y,w,h,kind:'expWall'}),w=id===1?1500:1320,h=id===1?1150:920;
  add(150,150,w,24);add(150,150+h-24,w,24);add(150,150,24,h);add(150+w-24,150,24,h);
  for(const [x,y,len] of (id===1?[[475,174,470],[805,690,586],[1135,174,510]]:[[440,174,420],[740,610,436],[1030,174,385]]))add(x,y,30,len);
  return {...base,w:150+w,h:150+h,decorSeed:196+id,classicProps:[],obstacles:obs};
 }
 function expMobs(id,wave,tick){
- const points=id===1?[[370,490],[650,400],[670,830],[970,360],[1030,820],[1310,340],[1400,940]]:[[350,480],[560,365],[615,800],[865,330],[900,825],[1160,390],[1290,830]];
- return points.map(([x,y],i)=>{const kind=id===1?(i===6?'brute':'skeleton'):(i===6?'caveSpider':i===1?'caveThief':i%3===0?'worm':'crawler');
+ const points=id===1?[[370,490],[650,400],[670,830],[970,360],[1030,820],[1310,340],[1400,940]]:[[365,222],[615,410],[735,576],[520,620],[680,370],[360,505]];
+ return points.map(([x,y],i)=>{const kind=id===1?(i===6?'brute':'skeleton'):['skeleton','goblin','skeleton','worm','caveSpider','caveThief'][i];
   return {...(arenaHeavyStats(kind,wave)||{kind,hp:55+wave*4,maxHp:55+wave*4,bodyRadius:14,moveSpeed:88}),id:300+i,x,y,sx:x,sy:y,prevX:x,prevY:y,vx:0,vy:0,targetId:'',attackAt:tick+30,attackTick:-100,hitTick:-100,retargetAt:0,heavyNext:tick+90,expSleeping:id===1,labFrozen:id===1};
  });
 }
 function expNear(p,q,r=100){return !!(p&&q&&(p.x-q.x)**2+(p.y-q.y)**2<=r*r)}
 function expParty(players,p,q){if(!p||!p.online||p.hp<=0||p.knocked||p.finalDead||p.background||p.paused||!expNear(p,q))return false;const live=[...players.values()].filter(a=>a.online&&!a.finalDead&&(a.hp>0||a.knocked));return live.length>0&&live.every(a=>a.hp>0&&!a.knocked&&!a.background&&!a.paused&&expNear(a,q,175))}
-function expAllowed(z,players,p,id,mobs){if(!z||!Number.isInteger(id)||id<0||id>2||id===z.id)return false;if(z.id)return id===0&&!!(z.done&(1<<z.id))&&expParty(players,p,EXP_EXIT);return !(z.done&(1<<id))&&(id===1?z.key:z.rope)&&expParty(players,p,z.portals.find(q=>q.id===id))}
+function expAllowed(z,players,p,id,mobs){if(!z||!Number.isInteger(id)||id<0||id>2||id===z.id)return false;if(z.id)return id===0&&(z.id===2||!!(z.done&(1<<z.id)))&&expParty(players,p,z.id===2?EXP_CAVE_EXIT:EXP_EXIT);return !(z.done&(1<<id))&&(id===1?z.key:z.rope)&&expParty(players,p,z.portals.find(q=>q.id===id))}
 function expPlace(players,point,tick){let i=0;for(const p of players.values()){const a=i++*Math.PI/3;p.x=point.x+Math.cos(a)*28;p.y=point.y+(point.id===1?45:0)+Math.sin(a)*28;p.tx=p.x;p.ty=p.y;p.ax=p.ay=0;p.attack=false;p.dodgeUntil=0;p.reviveTarget='';p.motion=null;p.shield=Math.max(p.shield||0,tick+30);p.arenaBomb=null;p.arenaShuriken=null}}
 function expWake(mobs,players,z){const living=[...players.values()].filter(p=>p.online&&p.hp>0&&!p.knocked&&!p.finalDead&&!p.paused&&!p.background);if(z?.id!==1)return false;let collected=false;if(!z.core&&living.some(p=>expNear(p,EXP_CORE,36))){z.core=true;collected=true}if(z.core)for(const m of mobs)if(m.expSleeping){m.expSleeping=false;m.labFrozen=false}return collected}
 function expDrop(z,m,invalid){if(z&&!z.id&&!z.key&&!z.keyDrop&&!invalid&&m.kind==='troll')z.keyDrop={x:m.x,y:m.y}}
@@ -742,7 +809,7 @@ function expChestRope(z,e,chestId,mode,lab=false){
 }
 function expRope(z,e,p){if(!z||z.id||z.rope||!arenaTradeNear(e,p,'guild')||(p.xp||0)<58||(!p.guildUnlocked&&!(p.arenaKeys>0)))return false;if(!p.guildUnlocked){p.arenaKeys--;p.guildUnlocked=true}p.xp-=58;z.rope=true;return true}
 function expReward(z,mobs,players){if(!z?.id||(z.id===1&&!z.core)||(z.done&(1<<z.id))||mobs.some(m=>m.hp>0))return false;z.done|=1<<z.id;for(const p of players.values())if(p.online&&p.hp>0&&!p.knocked&&!p.finalDead){p.arenaShards=Math.min(999,(p.arenaShards||0)+3);p.hp=Math.min(p.maxHp||100,p.hp+25)}return true}
-function expPacket(z){return z?[z.id,z.rev,z.done,z.key?1:0,z.rope?1:0,z.keyDrop?[Math.round(z.keyDrop.x),Math.round(z.keyDrop.y)]:null,z.core?1:0]:[0,0,0,0,0,null,0]}
+function expPacket(z){return z?[z.id,z.rev,z.done,z.key?1:0,z.rope?1:0,z.keyDrop?[Math.round(z.keyDrop.x),Math.round(z.keyDrop.y)]:null,z.core?1:0,z.layout||0,z.restUsed?1:0,z.secretClaimed?1:0]:[0,0,0,0,0,null,0,0,0,0]}
 // END V196 EXPEDITIONS
 // BEGIN V197 RULESETS
 const arenaRuleMode=v=>['night','rush','campaign','defense'].includes(v)?v:'normal';
