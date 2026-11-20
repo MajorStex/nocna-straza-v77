@@ -205,7 +205,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:4200,h:4200,r:14,speed:156
  solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:100,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 // V160 sandbox state lives only in this isolated runtime, never in saved progression.
 let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};
-let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null;
+let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null,arenaRevivePointer=null;
 let FORGE_SHOP_OPEN=false,FORGE_SOLO_HOLD=false,FORGE_STATE={phase:'idle',owner:'',votes:[],needed:0,until:0},FORGE_SERVER_READY=false,FORGE_REJECT_UNTIL=0;
 let LAB_SUPPORTED=false,LAB_LOOK=null,LAB_UNDO=null,LAB_SERVER_BUILD=0;
 const LAB_WEAPONS=new Set(['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul']);
@@ -1230,10 +1230,10 @@ function ui(){
  el('ns192SOS').onclick=()=>{if(N.sosSupported&&N.me?.knocked&&!N.me.sosUsed&&N.ws?.readyState===1){N.ws.send(JSON.stringify({t:'sos',rev:N.expedition?.rev||0}));el('ns192SOS').disabled=true}};el('ns192Loot').onclick=()=>requestArenaLoot();el('ns192Swap').onclick=()=>requestArenaSwap();el('ns192MapBtn').onclick=()=>setArenaMap(true);el('ns192MapClose').onclick=()=>setArenaMap(false);el('ns192BigMap').onclick=e=>requestMapPing(e);
  el('ns192Dodge').addEventListener('pointerdown',e=>{e.preventDefault();requestArenaDodge()});
  el('ns228Prev').onclick=()=>cycleArenaSpectate(-1);el('ns228Next').onclick=()=>cycleArenaSpectate(1);el('ns228Self').onclick=()=>{N.watchId=N.id;refreshArenaSpectate()};
- const reviveButton=el('ns190Revive');let revivePointer=null;
+ const reviveButton=el('ns190Revive');
  reviveButton.addEventListener('contextmenu',e=>e.preventDefault());
- reviveButton.addEventListener('pointerdown',e=>{const target=nearArenaRevive();if(!target||revivePointer!==null)return;e.preventDefault();revivePointer=e.pointerId;N.reviveHeld=target.id;N.reviveAt=0;try{reviveButton.setPointerCapture(e.pointerId)}catch{}});
- for(const type of ['pointerup','pointercancel','lostpointercapture'])reviveButton.addEventListener(type,e=>{if(e.pointerId!==revivePointer)return;revivePointer=null;releaseArenaRevive()});
+ reviveButton.addEventListener('pointerdown',e=>{const target=nearArenaRevive();if(!target||arenaRevivePointer!==null)return;e.preventDefault();arenaRevivePointer=e.pointerId;N.reviveHeld=target.id;N.reviveAt=0;try{reviveButton.setPointerCapture(e.pointerId)}catch{}});
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])reviveButton.addEventListener(type,e=>{if(e.pointerId!==arenaRevivePointer)return;releaseArenaRevive()});
  window.addEventListener('blur',releaseArenaRevive);document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseArenaRevive()});
  // Lazy-load independent voice client only when entering New Zone.
  if(!window.NS159_VOICE&&!document.getElementById('ns159VoiceScript')){
@@ -3147,7 +3147,7 @@ function nearArenaRevive(){
  let best=null,d2=78**2;for(const p of N.players.values()){if(p.id===N.id||!p.online||!p.knocked||p.finalDead)continue;const d=(p.x-me.x)**2+(p.y-me.y)**2;if(d<=d2&&arenaAcidClear(N.world,me.x,me.y,p.x,p.y,3)){best=p;d2=d}}return best;
 }
 function releaseArenaRevive(){
- const target=N.reviveHeld;N.reviveHeld='';N.reviveAt=0;
+ const target=N.reviveHeld;N.reviveHeld='';N.reviveAt=0;arenaRevivePointer=null;
  const progress=el('ns243ReviveProgress');if(progress)progress.hidden=true;
  const button=el('ns190Revive');if(button)button.classList.remove('holding');
  if(target&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'revive',target,hold:0,rev:N.expedition?.rev||0}))}catch{}
