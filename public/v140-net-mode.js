@@ -786,11 +786,29 @@ function expWorld(base,id,layout=0){
  for(const [x,y,len] of (id===1?[[475,174,470],[805,690,586],[1135,174,510]]:[[440,174,420],[740,610,436],[1030,174,385]]))add(x,y,30,len);
  return {...base,w:150+w,h:150+h,decorSeed:196+id,classicProps:[],obstacles:obs};
 }
-function expMobs(id,wave,tick){
+function expMobs(id,wave,tick,world=null){
  const points=id===1?[[370,490],[650,400],[670,830],[970,360],[1030,820],[1310,340],[1400,940]]:[[365,222],[615,410],[735,576],[520,620],[680,370],[360,505]];
- return points.map(([x,y],i)=>{const kind=id===1?(i===6?'brute':'skeleton'):['skeleton','goblin','skeleton','worm','caveSpider','caveThief'][i];
+ const mobs=points.map(([x,y],i)=>{const kind=id===1?(i===6?'brute':'skeleton'):['skeleton','goblin','skeleton','worm','caveSpider','caveThief'][i];
   return {...(arenaHeavyStats(kind,wave)||{kind,hp:55+wave*4,maxHp:55+wave*4,bodyRadius:14,moveSpeed:88}),id:300+i,x,y,sx:x,sy:y,prevX:x,prevY:y,vx:0,vy:0,targetId:'',attackAt:tick+30,attackTick:-100,hitTick:-100,retargetAt:0,heavyNext:tick+90,expSleeping:id===1,labFrozen:id===1};
  });
+ if(id===2&&world){
+  // One-off, deterministic 3/4-view cave spawn clearance. Never adjust actors per frame.
+  for(let i=0;i<mobs.length;i++){
+   const m=mobs[i],r=Math.max(14,Math.min(35,m.bodyRadius||14)),x=m.x,y=m.y;
+   const open=(xx,yy)=>arenaAcidClear(world,xx,yy,xx,yy,r)&&mobs.slice(0,i).every(q=>
+    (q.x-xx)**2+(q.y-yy)**2>(r+Math.max(14,q.bodyRadius||14)+10)**2);
+   if(open(x,y))continue;
+   let found=false;
+   for(let k=1;k<=120;k++){
+    const ang=k*2.39996323+i*.23,dist=12+Math.floor((k-1)/10)*11;
+    const xx=Math.round(x+Math.cos(ang)*dist),yy=Math.round(y+Math.sin(ang)*dist);
+    if(!open(xx,yy))continue;
+    m.x=m.sx=m.prevX=xx;m.y=m.sy=m.prevY=yy;found=true;break;
+   }
+   if(!found)throw Error('V241 cave map has no clear spawn for '+m.kind);
+  }
+ }
+ return mobs;
 }
 function expNear(p,q,r=100){return !!(p&&q&&(p.x-q.x)**2+(p.y-q.y)**2<=r*r)}
 function expParty(players,p,q){if(!p||!p.online||p.hp<=0||p.knocked||p.finalDead||p.background||p.paused||!expNear(p,q))return false;const live=[...players.values()].filter(a=>a.online&&!a.finalDead&&(a.hp>0||a.knocked));return live.length>0&&live.every(a=>a.hp>0&&!a.knocked&&!a.background&&!a.paused&&expNear(a,q,175))}
@@ -1858,7 +1876,7 @@ function applyExp(v){if(!N.expSupported||!N.expedition||!Array.isArray(v)||![0,1
 }
 function soloExp(id){const z=N.expedition,p=N.me;if(N.rule?.mode==='defense'||LAB.enabled||N.explore?.invalid||N.soloChoice||N.paused||N.soloState!=='play')return false;if(!expAllowed(z,N.players,p,id,N.soloMobs))return false;
  if(id){N.expOutdoorCrowd=N.soloCrowd;N.expOutdoorWorld=N.world;z.saved={mobs:N.soloMobs,chests:N.soloChests,drops:N.soloDrops,weaponDrops:N.weaponDrops,breakables:arenaBreakPacket(N.breakState),exploreDrops:N.explore.drops,total:N.soloTotal,reserve:N.soloReserve,batch:N.soloBatch,at:N.soloTick,portal:z.portals.find(q=>q.id===id)};
-  z.id=id;z.core=false;if(id===2){z.layout=N.soloWave%3;z.restUsed=false;z.secretClaimed=false}N.world=expWorld(N.expBase,id,z.layout||0);resetArenaBreakables(N.world);N.soloMobs=expMobs(id,N.soloWave,N.soloTick);N.soloChests=[];N.soloDrops=[];N.weaponDrops=[];N.explore.drops=[];N.soloTotal=N.soloMobs.length;N.soloReserve=0;N.soloBatch=0;expPlace(N.players,id===2?EXP_CAVE_START:EXP_START,N.soloTick)
+  z.id=id;z.core=false;if(id===2){z.layout=N.soloWave%3;z.restUsed=false;z.secretClaimed=false}N.world=expWorld(N.expBase,id,z.layout||0);resetArenaBreakables(N.world);N.soloMobs=expMobs(id,N.soloWave,N.soloTick,N.world);N.soloChests=[];N.soloDrops=[];N.weaponDrops=[];N.explore.drops=[];N.soloTotal=N.soloMobs.length;N.soloReserve=0;N.soloBatch=0;expPlace(N.players,id===2?EXP_CAVE_START:EXP_START,N.soloTick)
  }else{const old=z.saved;if(!old)return false;z.id=0;const base=expWorld(N.expBase,0);N.world=N.expOutdoorWorld||base;Object.assign(N.world,base);N.expOutdoorWorld=null;resetArenaBreakables(N.world);arenaBreakRestore(N.breakState,N.world,old.breakables);N.soloMobs=old.mobs;N.soloChests=old.chests;N.soloDrops=old.drops;N.weaponDrops=old.weaponDrops;N.explore.drops=old.exploreDrops;N.soloTotal=old.total;N.soloReserve=old.reserve;N.soloBatch=old.batch;for(const d of [...N.soloDrops,...N.weaponDrops])if(Number.isFinite(d.expires))d.expires+=N.soloTick-old.at;expPlace(N.players,old.portal,N.soloTick);z.saved=null}
  z.rev++;N.breakSupported=true;N.acidShots=[];spellFx=[];clearArenaCombatFx();if(!id&&N.expOutdoorCrowd){N.soloCrowd=N.expOutdoorCrowd;N.expOutdoorCrowd=null;N.soloCrowd.clear()}else N.soloCrowd=createArenaCrowdSteering(N.world,(p,x,y,dt)=>moveLocal(p,x*N.world.speed*dt*(p.spellSlowFactor||1),y*N.world.speed*dt*(p.spellSlowFactor||1)));resetArenaMap(true);N.tradeUiKey='';announceArena(z.id===1?'TEMPLE':z.id===2?'PEĆINA':'POVRATAK NA MAPU');return true
 }
