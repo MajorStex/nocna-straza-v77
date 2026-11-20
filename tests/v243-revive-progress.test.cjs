@@ -44,6 +44,37 @@ G.reviveHeld=false;classic();
 ck($('reviveProgress').hidden===true,'percent disappears on release');
 ck($('revivePct').textContent==='0%','stale percentage reset after release');
 NET.phase='lobby';classic();ck($('reviveDock').classList.items.has('hidden'),'badge hides after returning to lobby');
+NET.phase='playing';G.reviveHeld=true;G.reviveIntent={p2:{held:true}};
+G.reviveActive={p2:{progress:1.2}};G.reviveSuppressed=new Set();
+const interruptSource=pick(html,'function interruptRevive(id){','function updateRevives(dt){');
+const interrupt=new Function('NET','G','
+const elements=new Map();const el=id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id)};
+const near={id:'p1',reviveProgress:37.5},messages=[];
+const N={reviveHeld:'p1',reviveAt:0,reviveHudAt:-500,ws:{readyState:1,bufferedAmount:0,send(message){messages.push(JSON.parse(message))}},expedition:{rev:4}};
+const newZone=pick(arena,'function releaseArenaRevive(){','// Screen-space arrows reuse existing snapshot positions.');
+const functions=new Function('N','el','nearArenaRevive','clamp',
+ 'let arenaRevivePointer=1;'+newZone+'return {releaseArenaRevive,tickArenaRevive};')(
+ N,el,()=>near,(v,min,max)=>Math.max(min,Math.min(max,v))
+);
+functions.tickArenaRevive(500);
+ck(el('ns243ReviveProgress').hidden===false,'New Zone progress floating while holding');
+ck(el('ns243RevivePercent').textContent==='50%','New Zone displays server progress');
+ck(el('ns243ReviveProgress').style.props['--revive-arc']==='180deg','New Zone ring reflects progress');
+ck(!el('ns190Revive').textContent.includes('%'),'New Zone thumb does NOT cover percentage');
+ck(el('ns190Revive').classList.items.has('holding'),'New Zone hold state visible');
+ck(messages.length===1&&messages[0].hold===1,'New Zone sends existing authoritative hold intent');
+functions.releaseArenaRevive();
+ck(el('ns243ReviveProgress').hidden===true,'New Zone release hides icon');
+ck(!el('ns190Revive').classList.items.has('holding'),'New Zone release clears pressed state');
+ck(messages.length===2&&messages[1].hold===0,'New Zone release sends stop intent');
+N.reviveHeld='p1';near.reviveProgress=75;functions.tickArenaRevive(800);
+ck(el('ns243RevivePercent').textContent==='100%','New Zone full progress clamps at 100');
+console.log('V243 REVIVE THUMB-SAFE HUD PASS',JSON.stringify({checks,classic:'host/guest',newZone:'server/hold/release',newNetworkFields:0}));
+,'toast',interruptSource+'return interruptRevive;')(NET,G,$,()=>{});
+$('reviveProgress').hidden=false;
+interrupt('p2');
+ck(!G.reviveHeld&&$('reviveProgress').hidden,'host damage interruption immediately hides revive progress');
+ck(G.reviveSuppressed.has('p2'),'interrupted hold remains suppressed until release');
 const elements=new Map();const el=id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id)};
 const near={id:'p1',reviveProgress:37.5},messages=[];
 const N={reviveHeld:'p1',reviveAt:0,reviveHudAt:-500,ws:{readyState:1,bufferedAmount:0,send(message){messages.push(JSON.parse(message))}},expedition:{rev:4}};
