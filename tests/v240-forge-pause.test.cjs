@@ -4,8 +4,8 @@ const game=fs.readFileSync('public/v140-net-mode.js','utf8'),html=fs.readFileSyn
 let checks=0;const ck=(v,m)=>{checks++;assert.ok(v,m)};
 new vm.Script(game);
 for(const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)){if(!/\bsrc=/.test(match[1]))new vm.Script(match[2])}
-ck(/name="ns-release" content="240"/.test(html),'V240 live release marker');
-ck(/v140-net-mode\.js\?v=240&amp;release=240/.test(html),'V240 game asset');
+ck(Number(html.match(/name="ns-release" content="(\d+)"/)?.[1])>=240,'V240+ live release marker');
+ck(/v140-net-mode\.js\?v=(\d+)&amp;release=\1/.test(html),'V240+ game asset');
 ck(/const selecting=[^\n]*FORGE_SOLO_HOLD/.test(game),'input stopped while SOLO shopping');
 ck(/if\(!N\.paused&&!FORGE_SOLO_HOLD&&!LAB_PAUSE\.paused\)stepSolo/.test(game),'SOLO sim frozen during forge purchase');
 ck(/FORGE_STATE\.phase==='paused'/.test(game),'remote server team pause blocks movement');
