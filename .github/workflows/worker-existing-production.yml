@@ -88,6 +88,8 @@ jobs:
         run: node tests/v238-cage-guards.test.cjs
       - name: V240 stone well art and finite Old Forge pause client regression
         run: node tests/v240-forge-pause.test.cjs
+      - name: V241 Classic cave three layouts, visual cache and shared SOLO/MP checks
+        run: node tests/v241-classic-cave.test.cjs
       - name: Verify portrait lobby width at 320/360/393/412px on actual Chromium
         run: |
           npm install --no-save --no-package-lock playwright-core@1.58.2
