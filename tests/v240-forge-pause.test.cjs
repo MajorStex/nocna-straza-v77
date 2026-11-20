@@ -40,8 +40,10 @@ ck(env.forgeCastVote(false)&&sent.at(-1).yes===false,'vote no');
 N.rule.victory=true;ck(!env.requestForgeOpen(),'no buying after match victory');
 // V239 stone well is a static illustration cached by the original sprite path.
 // Collision records are kept as "pond" for protocol and level-editor compatibility.
-const pond=html.match(/function drawPond\(p\)\{[\s\S]*?\n\}\nfunction drawCart/)?.[0];
+const pond=html.match(/function drawStoneWell\(p\)\{[\s\S]*?\n\}\nfunction drawCart/)?.[0];
 ck(!!pond,'well renderer replaces old pond');
+ck(/function drawPond\(p\)\{const r=p\.r;ctx\.save\(\);ellipse\(0,0,r\*1\.12/.test(html),'legacy Classic pond artwork preserved');
+ck(/arenaClassicProp:\(g,p\)=>\{[^\n]*pond:drawStoneWell/.test(html),'New Zone uses well through shared sprite bridge');
 ck(/Working timber winch/.test(pond)&&/Clear two-slope shingled canopy/.test(pond),'well has recognizable roof, winch and rope');
 ck(!/#214a54|#3d7785/.test(pond),'blue disc removed');
 const calls={fill:0,ellipse:0,stroke:0};
