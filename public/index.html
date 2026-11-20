@@ -3276,7 +3276,7 @@ function ns242VisibleDrops(drops,focus,limit){
  const weapons=[],ordinary=[];
  for(const d of drops){
   if(Math.abs(d.x-focus.x)>=690||Math.abs(d.y-focus.y)>=690)continue;
-  if(d.type==='weapon'&&d.amount>0){if(weapons.length<6)weapons.push(d);}
+  if(d.type==='weapon'){if(d.amount>0&&weapons.length<6)weapons.push(d);}
   else if(ordinary.length<limit)ordinary.push(d);
  }
  return [...weapons,...ordinary.slice(0,Math.max(0,limit-weapons.length))].map(d=>({...d}));
