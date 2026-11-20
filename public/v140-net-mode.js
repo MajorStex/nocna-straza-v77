@@ -206,6 +206,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:4200,h:4200,r:14,speed:156
 // V160 sandbox state lives only in this isolated runtime, never in saved progression.
 let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};
 let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null;
+let FORGE_SHOP_OPEN=false,FORGE_SOLO_HOLD=false,FORGE_STATE={phase:'idle',owner:'',votes:[],needed:0,until:0},FORGE_SERVER_READY=false,FORGE_REJECT_UNTIL=0;
 let LAB_SUPPORTED=false,LAB_LOOK=null,LAB_UNDO=null,LAB_SERVER_BUILD=0;
 const LAB_WEAPONS=new Set(['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul']);
 // BEGIN V190 ACID WORM — same deterministic rules in solo and authoritative relay.
@@ -1015,7 +1016,7 @@ const XP_CAP=160;
 const el=id=>document.getElementById(id);
 let magicSupported=false,spellSlot=0,spellSeq=0,spellView=null,spellFx=[],spellSeen=new Map(),spellAim=null,spellHudAt=0,spellPendingAt=0;
 function resetArenaMagic(){magicSupported=false;spellSeq=0;spellView=null;spellFx=[];spellSeen.clear();spellAim=null;spellHudAt=spellPendingAt=0;if(el('ns189Picker'))el('ns189Picker').hidden=true;if(el('ns189Magic'))el('ns189Magic').hidden=true}
-function arenaMagicAvailable(){return N.phase==='running'&&(N.solo||(!N.netStalled&&magicSupported))&&N.me?.hp>0&&!N.me.knocked&&!N.paused&&el('ns158Menu')?.hidden!==false&&!LAB_PAUSE.paused&&!(N.solo?N.soloChoice||N.soloState!=='play':N.choice||N.waveState!=='play')}
+function arenaMagicAvailable(){return !FORGE_SOLO_HOLD&&FORGE_STATE.phase!=='paused'&&N.phase==='running'&&(N.solo||(!N.netStalled&&magicSupported))&&N.me?.hp>0&&!N.me.knocked&&!N.paused&&el('ns158Menu')?.hidden!==false&&!LAB_PAUSE.paused&&!(N.solo?N.soloChoice||N.soloState!=='play':N.choice||N.waveState!=='play')}
 function magicPoint(clientX,clientY){const r=el('ns140Canvas').getBoundingClientRect(),z=clamp(Math.max(r.width/750,r.height/760),.7,1.45);return{x:N.me.x+(clientX-r.left-r.width/2)/z,y:N.me.y+(clientY-r.top-r.height/2)/z}}
 function spellTarget(slot){const s=ARENA_SPELLS[slot],p=N.me;if(s.heal)return{x:p.x,y:p.y};let best=null,dist=Math.min(250,s.range)**2;for(const m of (N.solo?N.soloMobs:N.mpMobs)){if(m.hp<=0)continue;const d=(m.x-p.x)**2+(m.y-p.y)**2;if(d<dist){best=m;dist=d}}const angle=p.facingAngle??p.attackAngle??0;return best?{x:best.x,y:best.y}:{x:p.x+Math.cos(angle)*105,y:p.y+Math.sin(angle)*105}}
 // V223: bounded cosmetic events from actual HP loss, not client claims.
@@ -1413,7 +1414,7 @@ function status(note){
  el('ns140Retry').hidden=!(N.phase==='error'&&B().NET?.role==='host'&&B().NET?.phase==='lobby');
 }
 function stop(notify=false){
- resetGuardVoice();
+ forgeReset();resetGuardVoice();
  if(N.mpProgressToken)B().arenaMpCancel?.(N.mpProgressToken);N.mpProgressToken=null;
  arenaHeroVoiceState=null;N.watchId='';N.mpResult=null;if(el('ns228Spectate'))el('ns228Spectate').hidden=true;
  if(N.soloResultToken)B().arenaSoloCancel?.(N.soloResultToken);N.soloResultToken=null;N.soloResult=null;el('ns140Root')?.classList.remove('ns206Ended');if(el('ns206Results'))el('ns206Results').hidden=true;
@@ -1570,10 +1571,53 @@ function drawFieldObjectives(g,v){
 }
 
 function mountArenaRun(root,style){
- style.textContent+='#ns195Run{position:absolute;left:10px;top:116px;z-index:5;background:#182b24e8;color:#ffedc8;border:1px solid #829884;border-radius:8px;padding:5px 8px;font:bold 10px system-ui;max-width:36vw;text-align:left;touch-action:none}#ns195Trade{position:absolute;bottom:calc(114px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:7;width:min(320px,75vw);max-height:45vh;overflow:auto;background:#182922f7;color:#ffe9b7;border:1px solid #9db38e;border-radius:10px;padding:7px;display:grid;gap:4px;touch-action:pan-y}#ns195Trade[hidden],#ns195Run[hidden],#ns195Quest[hidden]{display:none!important}#ns195Trade button,#ns195Quest button{background:#33493a;color:#f7e9c6;border:1px solid #829884;border-radius:6px;font:bold 11px system-ui;padding:7px}#ns195Trade button:disabled{opacity:.45}#ns195Quest{position:absolute;left:10px;top:157px;width:min(255px,78vw);max-height:48vh;overflow:auto;padding:8px;background:#152620f5;color:#f7e9c7;border:1px solid #819980;border-radius:9px;z-index:7;font:11px system-ui;touch-action:pan-y}';
- const run=document.createElement('button'),trade=document.createElement('section'),quest=document.createElement('section');run.type='button';run.id='ns195Run';run.hidden=true;trade.id='ns195Trade';trade.hidden=true;quest.id='ns195Quest';quest.hidden=true;root.append(run,trade,quest);const repair=document.createElement('button');repair.id='ns204Repair';repair.type='button';repair.hidden=true;repair.style.cssText='position:absolute;left:50%;bottom:84px;transform:translateX(-50%);z-index:7;padding:8px;background:#25452e;color:#fff;border:1px solid #98b98c;border-radius:8px';root.append(repair);
+ style.textContent+='#ns240ForgeVote{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:15;width:min(340px,84vw);max-height:70vh;overflow:auto;padding:12px;background:#182720f7;color:#f9e7bb;border:2px solid #c2a276;border-radius:12px;box-shadow:0 14px 45px #000b;display:grid;gap:9px;text-align:center;font:700 12px/1.35 system-ui;touch-action:pan-y}#ns240ForgeVote[hidden]{display:none!important}#ns240ForgeVote .ns240Buttons{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}#ns240ForgeVote button{flex:1;min-width:105px;border:1px solid #a9a07b;background:#315442;color:#fff2cd;padding:10px;border-radius:8px;font:700 11px system-ui}#ns240ForgeVote button.warn{background:#593a30}#ns240ForgeVote button:disabled{opacity:.48}#ns195Trade .ns240Back{background:#5d4733!important;color:#fff0ca!important;border-color:#c9aa78!important}#ns195Run{position:absolute;left:10px;top:116px;z-index:5;background:#182b24e8;color:#ffedc8;border:1px solid #829884;border-radius:8px;padding:5px 8px;font:bold 10px system-ui;max-width:36vw;text-align:left;touch-action:none}#ns195Trade{position:absolute;bottom:calc(114px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:7;width:min(320px,75vw);max-height:45vh;overflow:auto;background:#182922f7;color:#ffe9b7;border:1px solid #9db38e;border-radius:10px;padding:7px;display:grid;gap:4px;touch-action:pan-y}#ns195Trade[hidden],#ns195Run[hidden],#ns195Quest[hidden]{display:none!important}#ns195Trade button,#ns195Quest button{background:#33493a;color:#f7e9c6;border:1px solid #829884;border-radius:6px;font:bold 11px system-ui;padding:7px}#ns195Trade button:disabled{opacity:.45}#ns195Quest{position:absolute;left:10px;top:157px;width:min(255px,78vw);max-height:48vh;overflow:auto;padding:8px;background:#152620f5;color:#f7e9c7;border:1px solid #819980;border-radius:9px;z-index:7;font:11px system-ui;touch-action:pan-y}';
+ const run=document.createElement('button'),trade=document.createElement('section'),quest=document.createElement('section');run.type='button';run.id='ns195Run';run.hidden=true;trade.id='ns195Trade';trade.hidden=true;quest.id='ns195Quest';quest.hidden=true;root.append(run,trade,quest);
+ const forgeVote=document.createElement('section');forgeVote.id='ns240ForgeVote';forgeVote.hidden=true;
+ const forgeText=document.createElement('div');forgeText.id='ns240ForgeText';
+ const forgeBtns=document.createElement('div');forgeBtns.className='ns240Buttons';
+ const forgeYes=document.createElement('button');forgeYes.id='ns240ForgeYes';forgeYes.textContent='✓ ODOBRI PAUZU';
+ const forgeNo=document.createElement('button');forgeNo.id='ns240ForgeNo';forgeNo.className='warn';forgeNo.textContent='✕ ODBIJ / BACK';
+ forgeBtns.append(forgeYes,forgeNo);forgeVote.append(forgeText,forgeBtns);root.append(forgeVote);
+ forgeYes.onclick=()=>forgeCastVote(true);forgeNo.onclick=()=>{if(FORGE_STATE.phase==='vote')forgeCastVote(false);else forgeBack()};
+ const repair=document.createElement('button');repair.id='ns204Repair';repair.type='button';repair.hidden=true;repair.style.cssText='position:absolute;left:50%;bottom:84px;transform:translateX(-50%);z-index:7;padding:8px;background:#25452e;color:#fff;border:1px solid #98b98c;border-radius:8px';root.append(repair);
  const objective=document.createElement('div');objective.id='ns208Objective';objective.hidden=true;objective.style.cssText='position:absolute;left:10px;top:158px;max-width:55vw;white-space:pre-line;background:#172c25e8;color:#f4e1bb;border:1px solid #849d86;border-radius:8px;padding:6px 8px;font:700 10px/1.45 system-ui;z-index:4;pointer-events:none';root.append(objective);
  run.onclick=()=>{quest.hidden=!quest.hidden;N.runUiKey='';refreshArenaRun()};
+}
+// V240: explicit shop interaction and a strictly finite cooperative pause.
+function forgeReset(){FORGE_SHOP_OPEN=false;FORGE_SOLO_HOLD=false;FORGE_STATE={phase:'idle',owner:'',votes:[],needed:0,until:0};FORGE_SERVER_READY=false;FORGE_REJECT_UNTIL=0;N.tradeUiKey='';const o=el('ns240ForgeVote');if(o)o.hidden=true}
+function forgeAtShop(){return !!(N.me&&N.explore&&!N.expedition?.id&&!N.rule?.victory&&arenaTradeNear(N.explore,N.me,'guild')&&!N.choice&&!N.soloChoice&&!LAB_PAUSE.paused&&!N.paused&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled))}
+function forgeReady(){return FORGE_SHOP_OPEN&&forgeAtShop()&&(N.solo?FORGE_SOLO_HOLD:FORGE_STATE.phase==='paused'&&FORGE_STATE.owner===N.id)}
+function requestForgeOpen(){
+ if(N.phase!=='running'||!forgeAtShop()||(!N.me.guildUnlocked&&!N.me.arenaKeys))return false;
+ if(N.solo){FORGE_SHOP_OPEN=true;FORGE_SOLO_HOLD=true;N.tradeUiKey='';refreshArenaRun();return true}
+ if(!FORGE_SERVER_READY||FORGE_STATE.phase!=='idle'||N.netStalled||N.ws?.readyState!==1||Date.now()<FORGE_REJECT_UNTIL){announceArena('KOVNICA · SAČEKAJ PAUZU / COOLDOWN');return false}
+ FORGE_SHOP_OPEN=true;N.tradeUiKey='';N.ws.send(JSON.stringify({t:'forgePauseRequest',rev:N.expedition?.rev||0}));refreshArenaRun();return true;
+}
+function forgeCastVote(yes){
+ if(N.solo||FORGE_STATE.phase!=='vote'||N.ws?.readyState!==1)return false;
+ N.ws.send(JSON.stringify({t:'forgePauseVote',yes:!!yes,rev:N.expedition?.rev||0}));return true;
+}
+function forgeBack(){
+ if(N.solo){FORGE_SHOP_OPEN=false;FORGE_SOLO_HOLD=false;N.tradeUiKey='';refreshArenaRun();return true}
+ if(FORGE_STATE.phase!=='idle'&&N.ws?.readyState===1){N.ws.send(JSON.stringify({t:'forgePauseClose',rev:N.expedition?.rev||0}))}
+ FORGE_SHOP_OPEN=false;N.tradeUiKey='';refreshArenaRun();return true;
+}
+function refreshForgeVote(){
+ const o=el('ns240ForgeVote'),label=el('ns240ForgeText'),yes=el('ns240ForgeYes'),no=el('ns240ForgeNo');
+ if(!o||!label||!yes||!no)return;
+ const f=FORGE_STATE,active=!N.solo&&N.phase==='running'&&(f.phase==='vote'||f.phase==='paused');
+ const owner=f.owner===N.id,seconds=Math.max(0,Math.ceil((f.until-Date.now())/1000));
+ o.hidden=!active||(owner&&f.phase==='paused');
+ if(!active)return;
+ if(f.phase==='vote'){
+  label.textContent='⚒ STARA KOVNICA · '+(owner?'ČEKAM ODOBRENJE SAIGRAČA':'SAIGRAČ TRAŽI TIMSKU PAUZU')+' · '+seconds+' s · '+f.votes.length+'/'+f.needed+' ✓';
+  yes.hidden=owner;yes.disabled=f.votes.includes(N.id);
+  no.textContent=owner?'← BACK / ODUSTANI':'✕ ODBIJ';
+ }else{
+  label.textContent='⏸ TIMSKA PAUZA · KOVNICA · '+seconds+' s · automatski nastavak';
+  yes.hidden=true;no.textContent='▶ NASTAVI SVIMA';
+ }
 }
 // V230: one compact top HUD; existing IDs, click handlers and update cadence preserved.
 function mountCompactArenaHud(root,style){
@@ -2195,7 +2239,7 @@ function soloWaveDone(){
 }
 
 function startSolo(){
- resetGuardVoice();
+ forgeReset();resetGuardVoice();
  arenaHeroVoiceState=null;
  const mode=arenaRuleMode(arguments[0]);
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL||B().NET?.role||!['idle','error'].includes(N.phase))return false;
@@ -2653,6 +2697,7 @@ function attachVoiceToArena(){
 const EXP_PREVIEW_RELAY='https://v189-arena-abilities-nocna-straza-relay.stefanstevic1996.workers.dev';
 function arenaPreviewRequested(){try{return new URLSearchParams(location.search).get('arenaPreview')==='1'}catch{return false}}
 function connect(match,id,ticket,rejoin=false){
+ if(!rejoin)forgeReset();
  if(rejoin?(N.phase!=='reconnecting'||!!N.ws):N.phase!=='idle')return false;
  if(B().currentProfileLevel?.()<NS140_TEMP_UNLOCK_LEVEL){N.phase='error';status('NOVA ZONA privremeno dostupna od nivoa 0');return false}
  if(!rejoin){
@@ -2700,7 +2745,7 @@ function connect(match,id,ticket,rejoin=false){
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
    if(N.timeout)clearTimeout(N.timeout);N.timeout=null;
-   N.world=m.world||N.world;resetExp(N.world);N.expSupported=m.arenaExpedition===196;N.ruleSupported=m.arenaRules===197;N.defenseSupported=m.arenaDefense===204;N.legendSupported=m.arenaLegend===205;N.accountSupported=m.arenaAccount===198;N.pingSupported=m.arenaPings===199;N.rescueSupported=m.arenaRescue===202;N.forgeSupported=m.arenaForge===203;N.rescue=null;N.rescueVisual=null;N.rule=null;resetArenaBreakables(N.world);N.breakSupported=m.arenaBreakables===194;N.exploreSupported=m.arenaExplore===195;N.explore=null;N.tradeUiKey='';N.phase='waiting';
+   N.world=m.world||N.world;resetExp(N.world);N.expSupported=m.arenaExpedition===196;N.ruleSupported=m.arenaRules===197;N.defenseSupported=m.arenaDefense===204;N.legendSupported=m.arenaLegend===205;N.accountSupported=m.arenaAccount===198;N.pingSupported=m.arenaPings===199;N.rescueSupported=m.arenaRescue===202;N.forgeSupported=m.arenaForge===203;FORGE_SERVER_READY=m.arenaForgePause===240;N.rescue=null;N.rescueVisual=null;N.rule=null;resetArenaBreakables(N.world);N.breakSupported=m.arenaBreakables===194;N.exploreSupported=m.arenaExplore===195;N.explore=null;N.tradeUiKey='';N.phase='waiting';
    if(rejoin){N.rejoinPreviousTick=N.tick;N.tick=-1;N.lastState=0;N.rejoinCorrection=true;N.pending=[];N.delta={x:0,y:0};N.players.clear();N.me=null;N.mpMobs=[];N.mobHistory=[];N.mobRenderTick=null;N.lastMyHp=null;N.reviveHeld='';spellFx=[];spellAim=null;N.arrivalJitter=0;N.interpolationTicks=3;}
    attachVoiceToArena();
     window.NS154_GOBLINS?.prewarm();window.NS157_SCENERY?.prewarm();
@@ -3006,7 +3051,7 @@ function sessionHud(now){
  const holder=el('ns152Choice'),hud=el('ns152Wave'),remaining=el('ns152Remaining');
  if(!holder||!hud||!remaining)return;
  if(now-N.uiAt>=140||N.choiceUiId!==(choice?(choice.seq+':'+choice.owner):'')){
-  N.uiAt=now;refreshArenaPickupNotice();refreshArenaDodge();refreshArenaSpectate();refreshArenaLoot();refreshArenaRun();refreshFieldObjective();expHud();const swap=el('ns192Swap');if(swap){swap.hidden=!(N.solo||N.loadoutSupported)||!N.me?.secondaryWeapon||N.me.hp<=0;swap.textContent='⇄ '+(arenaLegend(N.me)?.name||N.me?.activeWeapon||'sword')+' / '+(arenaLegend(N.me,N.me?.secondaryWeapon)?.name||N.me?.secondaryWeapon||'')}
+  N.uiAt=now;refreshForgeVote();refreshArenaPickupNotice();refreshArenaDodge();refreshArenaSpectate();refreshArenaLoot();refreshArenaRun();refreshFieldObjective();expHud();const swap=el('ns192Swap');if(swap){swap.hidden=!(N.solo||N.loadoutSupported)||!N.me?.secondaryWeapon||N.me.hp<=0;swap.textContent='⇄ '+(arenaLegend(N.me)?.name||N.me?.activeWeapon||'sword')+' / '+(arenaLegend(N.me,N.me?.secondaryWeapon)?.name||N.me?.secondaryWeapon||'')}
   hud.textContent=ruleTitle(wave);
   const xpHud=el('ns168XpHud'),xpText=el('ns168XpText'),xpFill=el('ns168XpFill');
   const xpEnabled=N.solo||LAB_SERVER_BUILD>=168;
@@ -3386,13 +3431,13 @@ function frame(now){
  }
  const netHealth=arenaNetWatch(now);
  const v=input();
- const selecting=(!N.solo&&N.netStalled)||N.paused||!el('ns192MapPanel')?.hidden||!el('ns158Menu')?.hidden||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
+ const selecting=(!N.solo&&N.netStalled)||FORGE_SOLO_HOLD||FORGE_STATE.phase==='paused'||(FORGE_SHOP_OPEN&&FORGE_STATE.phase==='vote')||N.paused||!el('ns192MapPanel')?.hidden||!el('ns158Menu')?.hidden||LAB_PAUSE.paused||(N.solo?!!N.soloChoice:!!N.choice);
  if(selecting||N.reviveHeld||N.me?.knocked||N.me?.finalDead){v.x=0;v.y=0}
  if(N.me&&N.me.hp>0){
   const oldX=N.me.x,oldY=N.me.y;
   const dash=selecting?{x:0,y:0,speed:1}:N.rule?.mode==='defense'&&(N.solo?N.soloState==='between':N.waveState==='between')?{x:v.x,y:v.y,speed:1}:arenaDodgeVector(N.me,N.solo?N.soloTick:N.tick,v.x,v.y),speed=N.world.speed*dt*dash.speed*(N.me.speedMult||1)*((N.me.enemySlowUntil||0)>(N.solo?N.soloTick:N.tick)?.58:1);
   moveLocal(N.me,dash.x*speed,dash.y*speed);
-  if(N.solo){if(!N.paused&&!LAB_PAUSE.paused)stepSolo(dt);if(N.phase!=='running')return;if(N.me.hp<=0||N.rule?.victory){finishSoloRun(N.me.hp<=0?'dead':'victory');return}}
+  if(N.solo){if(!N.paused&&!FORGE_SOLO_HOLD&&!LAB_PAUSE.paused)stepSolo(dt);if(N.phase!=='running')return;if(N.me.hp<=0||N.rule?.victory){finishSoloRun(N.me.hp<=0?'dead':'victory');return}}
   else {N.delta.x+=N.me.x-oldX;N.delta.y+=N.me.y-oldY;}
   const away=Math.hypot(N.me.x-N.me.tx,N.me.y-N.me.ty);
   if(!N.solo&&away>105){N.me.x=N.me.tx+(N.me.x-N.me.tx)*105/away;N.me.y=N.me.ty+(N.me.y-N.me.ty)*105/away}
