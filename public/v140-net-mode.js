@@ -3487,7 +3487,7 @@ function frame(now){
     N.ws.send(JSON.stringify({t:'look',look}));
    }
   }
-  if(!N.solo&&!N.netStalled&&!N.rejoinCorrection&&N.tick>=0&&N.ws?.readyState===1&&now-N.lastInput>=((N.paused||FORGE_STATE.phase==='paused')?500:50)&&N.ws.bufferedAmount<4000){
+  if(!N.solo&&!N.netStalled&&!N.rejoinCorrection&&N.tick>=0&&N.ws?.readyState===1&&now-N.lastInput>=(N.paused?500:50)+(FORGE_STATE.phase==='paused'&&!N.paused?450:0)&&N.ws.bufferedAmount<4000){
   const seq=++N.seq;if(FORGE_STATE.phase==='paused')N.pending.length=0;else N.pending.push({seq,dx:N.delta.x,dy:N.delta.y});
   if(N.pending.length>26)N.pending.shift();
   N.delta={x:0,y:0};N.lastInput=now;
