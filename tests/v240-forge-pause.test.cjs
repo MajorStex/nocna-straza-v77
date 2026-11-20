@@ -1,0 +1,54 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const game=fs.readFileSync('public/v140-net-mode.js','utf8'),html=fs.readFileSync('public/index.html','utf8');
+let checks=0;const ck=(v,m)=>{checks++;assert.ok(v,m)};
+new vm.Script(game);
+for(const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)){if(!/\bsrc=/.test(match[1]))new vm.Script(match[2])}
+ck(/name="ns-release" content="240"/.test(html),'V240 live release marker');
+ck(/v140-net-mode\.js\?v=240&amp;release=240/.test(html),'V240 game asset');
+ck(/const selecting=[^\n]*FORGE_SOLO_HOLD/.test(game),'input stopped while SOLO shopping');
+ck(/if\(!N\.paused&&!FORGE_SOLO_HOLD&&!LAB_PAUSE\.paused\)stepSolo/.test(game),'SOLO sim frozen during forge purchase');
+ck(/FORGE_STATE\.phase==='paused'/.test(game),'remote server team pause blocks movement');
+ck(/arenaMagicAvailable\(\)\{return !FORGE_SOLO_HOLD/.test(game),'SOLO spells blocked while shopping');
+ck(/forgePauseRequest/.test(game)&&/forgePauseVote/.test(game)&&/forgePauseClose/.test(game),'all 3 authenticated network intents present');
+ck(/forgeReceipt/.test(game)&&/applyArenaForge\(p,m\.forge\)/.test(game),'authoritative finances update immediately');
+ck(/ns240ForgeVote/.test(game)&&/ODUSTANI/.test(game),'consent/back modal');
+const vars=game.match(/^let FORGE_SHOP_OPEN[^\n]+/m)?.[0];
+const helper=game.match(/\/\/ V240: explicit shop interaction[\s\S]*?(?=\/\/ V230:)/)?.[0];
+ck(!!vars&&!!helper,'V240 menu implementation exists');
+const actions=[],sent=[],N={solo:true,phase:'running',me:{hp:100,arenaKeys:1,guildUnlocked:false},explore:{},expedition:null,rule:{victory:false},choice:null,soloChoice:null,paused:false,ws:{readyState:1,send:v=>sent.push(JSON.parse(v))},netStalled:false,tradeUiKey:'',id:'p1',world:{}};
+const env=new Function('N','arenaTradeNear','LAB_PAUSE','LAB','LAB_REMOTE','el','refreshArenaRun','announceArena',vars+'\n'+helper+'return {forgeReady,forgeAtShop,requestForgeOpen,forgeBack,forgeCastVote,setServer(v){FORGE_SERVER_READY=v},setState(v){FORGE_STATE=v},state(){return FORGE_STATE}}')(
+ N,()=>({type:'guild',x:0,y:0}),{paused:false},{enabled:false},{enabled:false},()=>null,()=>actions.push('refresh'),()=>{});
+ck(env.forgeAtShop(),'can open next to Old Forge');
+ck(!env.forgeReady(),'SOLO not paused until deliberate interaction');
+ck(env.requestForgeOpen()&&env.forgeReady(),'SOLO freezes on open');
+ck(env.forgeBack()&&!env.forgeReady(),'BACK resumes SOLO immediately');
+N.me.arenaKeys=0;ck(!env.requestForgeOpen(),'key required for SOLO shop');
+N.me.arenaKeys=1;N.solo=false;env.setServer(true);
+ck(env.requestForgeOpen()&&sent.at(-1).t==='forgePauseRequest','MP sends request, not local freeze');
+ck(!env.forgeReady(),'MP cannot freeze without server approval');
+env.setState({phase:'vote',owner:'p1',votes:['p1'],needed:2,until:Date.now()+7000});
+ck(!env.forgeReady(),'vote pending, no trade');
+env.setState({phase:'paused',owner:'p1',votes:['p1','p2'],needed:2,until:Date.now()+28000});
+ck(env.forgeReady(),'server authority required before shop');
+ck(env.forgeBack()&&sent.at(-1).t==='forgePauseClose','BACK closes MP pause for team');
+env.setState({phase:'vote',owner:'p2',votes:['p2'],needed:2,until:Date.now()+7000});
+ck(env.forgeCastVote(true)&&sent.at(-1).t==='forgePauseVote'&&sent.at(-1).yes===true,'vote yes');
+ck(env.forgeCastVote(false)&&sent.at(-1).yes===false,'vote no');
+N.rule.victory=true;ck(!env.requestForgeOpen(),'no buying after match victory');
+// V239 stone well is a static illustration cached by the original sprite path.
+// Collision records are kept as "pond" for protocol and level-editor compatibility.
+const pond=html.match(/function drawPond\(p\)\{[\s\S]*?\n\}\nfunction drawCart/)?.[0];
+ck(!!pond,'well renderer replaces old pond');
+ck(/Working timber winch/.test(pond)&&/Clear two-slope shingled canopy/.test(pond),'well has recognizable roof, winch and rope');
+ck(!/#214a54|#3d7785/.test(pond),'blue disc removed');
+const calls={fill:0,ellipse:0,stroke:0};
+const ctx=new Proxy({},{get(t,k){return t[k]??((...args)=>{if(k in calls)calls[k]++})},set(t,k,v){t[k]=v;return true}});
+const ellipse=(...args)=>{calls.ellipse++;ctx.fill()};
+new Function('ctx','ellipse',pond.slice(0,pond.indexOf('function drawCart'))+';return drawPond;')(ctx,ellipse)({r:42,seed:123});
+ck(calls.fill>20&&calls.ellipse>=12&&calls.stroke>=10,'stone well renders fully with cached canvas operations');
+ck(/classicSceneryCache\.get\(key\)/.test(game),'existing cache reused');
+ck((game.match(/"kind":"pond"/g)||[]).length===9,'nine collider definitions left in New Zone');
+ck((game.match(/"type":"pond"/g)||[]).length===9,'nine world object records left intact');
+ck(/o\.kind==='pond'\?'#948879'/.test(game),'minimap uses stone instead of blue');
+console.log('V240 CLIENT + WELL PASS',JSON.stringify({checks,soloPause:true,mpConsensual:true,back:true,wellCached:true,collidersUnchanged:9}));
