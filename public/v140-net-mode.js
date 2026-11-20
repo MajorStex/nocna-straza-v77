@@ -1938,7 +1938,26 @@ function drawArenaTempleEntrance(g,p){
  g.save();g.textAlign='center';g.font='bold 11px system-ui';g.strokeStyle='#172822';g.lineWidth=3;g.strokeText('TEMPLE',p.x,p.y-116);g.fillStyle='#fff1cb';g.fillText('TEMPLE',p.x,p.y-116);g.restore();
 }
 function drawExp(g,view){const z=N.expedition;if(!z||(!N.solo&&!N.expSupported))return;if(z.id===1){g.fillStyle='#303b40';g.strokeStyle='#87918c';g.lineWidth=2;for(const o of N.world.obstacles){if(o.x>view.right||o.y>view.bottom||o.x+o.w<view.left||o.y+o.h<view.top)continue;g.fillRect(o.x,o.y,o.w,o.h);g.strokeRect(o.x,o.y,o.w,o.h)}}
- const marks=z.id?[{...(z.id===2?EXP_CAVE_EXIT:EXP_EXIT),id:0},...(z.id===1&&!z.core?[{...EXP_CORE,id:4}]:[])]:[...z.portals];if(z.keyDrop&&!z.id)marks.push({...z.keyDrop,id:3});for(const p of marks){if(p.id===1&&!z.id)continue;if(p.x<view.left-40||p.x>view.right+40||p.y<view.top-40||p.y>view.bottom+40)continue;g.save();g.translate(p.x,p.y);
+ if(z.id===2){
+  // Original fixed exit arch, rest alcove and hidden cracked-wall clue.
+  const mark=(p,r,render)=>{
+   if(p.x+r<view.left||p.x-r>view.right||p.y+r<view.top||p.y-r>view.bottom)return;
+   g.save();g.translate(p.x,p.y);render();g.restore();
+  };
+  mark(EXP_CAVE_EXIT,55,()=>{
+   g.fillStyle='#12374685';g.beginPath();g.ellipse(0,7,40,23,0,0,Math.PI*2);g.fill();
+   g.strokeStyle='#8dddf0';g.lineWidth=3;g.beginPath();g.ellipse(0,3,34,21,0,0,Math.PI*2);g.stroke();
+   g.fillStyle='#c4f4ff';g.font='bold 12px system-ui';g.textAlign='center';g.fillText('IZLAZ',0,-31);
+  });
+  if(!z.restUsed)mark(EXP_CAVE_REST,85,()=>{
+   g.strokeStyle='#81bba6';g.lineWidth=2;g.setLineDash([5,4]);g.beginPath();g.arc(0,0,57,0,Math.PI*2);g.stroke();g.setLineDash([]);
+   g.fillStyle='#c2f5d7';g.font='bold 11px system-ui';g.textAlign='center';g.fillText('ODMOR · +18% HP',0,-60);
+  });
+  if(!expCaveSecretOpen(N.breakState))mark({x:540,y:554},55,()=>{
+   g.fillStyle='#d9d0ff';g.font='bold 15px system-ui';g.textAlign='center';g.fillText('?',0,-35);
+  });
+ }
+ const marks=z.id?(z.id===2?[]:[{...EXP_EXIT,id:0},...(z.id===1&&!z.core?[{...EXP_CORE,id:4}]:[])]):[...z.portals];if(z.keyDrop&&!z.id)marks.push({...z.keyDrop,id:3});for(const p of marks){if(p.id===1&&!z.id)continue;if(p.x<view.left-40||p.x>view.right+40||p.y<view.top-40||p.y>view.bottom+40)continue;g.save();g.translate(p.x,p.y);
  if(p.id===2&&!z.id){
   // Original Classic cave silhouette, without coupling to Classic's separate save state.
   g.fillStyle='#0b1114b8';g.beginPath();g.ellipse(0,35,69,20,0,0,Math.PI*2);g.fill();
@@ -2760,7 +2779,7 @@ function cottageSprite(o,index){
 function drawArenaBuildings(g,obstacles,visible){
  for(let i=0;i<obstacles.length;i++){
   const o=obstacles[i];
-  if(o.classic||o.kind==='tree'||o.kind==='rock'||o.kind==='expWall')continue;
+  if(o.classic||o.kind==='tree'||o.kind==='rock'||o.kind==='expWall'||(N.expedition?.id===2&&['caveWall','caveSecret','crate','barrel','obelisk'].includes(o.kind)))continue;
   if(o.x>visible.right||o.x+o.w<visible.left||o.y>visible.bottom||o.y+o.h<visible.top)continue;
   const sprite=cottageSprite(o,i);
   if(sprite)g.drawImage(sprite,o.x-13,o.y-16);
@@ -3462,7 +3481,7 @@ function drawClassicScenery(g,p){
 function drawDepthSortedWorld(g,now,dt,visible){
  const sprites=window.NS154_GOBLINS;
  if(!sprites?.prepare||!sprites?.drawOne){
-  drawArenaBuildings(g,N.world.obstacles.filter(o=>!o.classic),visible);
+  drawArenaBuildings(g,N.world.obstacles.filter(o=>!o.classic&&!(N.expedition?.id===2&&['caveWall','caveSecret','crate','barrel','obelisk'].includes(o.kind))),visible);
   const temple=arenaTemplePortal(visible);if(temple)drawArenaTempleEntrance(g,temple);
   for(const {p} of visibleClassicProps(N.world.classicProps,visible))drawClassicScenery(g,p);
   drawArenaChests(g,N.solo?N.soloChests:N.chests,visible);
@@ -3485,7 +3504,7 @@ function drawDepthSortedWorld(g,now,dt,visible){
  const obs=N.world.obstacles||[];
  for(let i=0;i<obs.length;i++){
   const o=obs[i];
-  if(o.classic||o.kind==='tree'||o.kind==='rock'||o.kind==='expWall')continue;
+  if(o.classic||o.kind==='tree'||o.kind==='rock'||o.kind==='expWall'||(N.expedition?.id===2&&['caveWall','caveSecret','crate','barrel','obelisk'].includes(o.kind)))continue;
   if(o.x>visible.right+14||o.x+o.w<visible.left-14||
      o.y>visible.bottom+17||o.y+o.h<visible.top-17)continue;
   jobs.push({depth:o.y+o.h+12,kind:0,id:i,o});
