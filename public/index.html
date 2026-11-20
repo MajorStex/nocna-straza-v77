@@ -4162,7 +4162,7 @@ function updateReviveHUD(){const dock=$('reviveDock');if(!dock)return;const id=N
  const hud=$('reviveProgress');if(hud){hud.hidden=!G.reviveHeld;hud.style.setProperty('--revive-arc',(percent*3.6)+'deg');$('revivePct').textContent=percent+'%';}
  $('reviveTarget').textContent=`${multiplayerDisplayName(victim.id)} · ${REVIVE_MAX-(victim.reviveCount||0)} ${window.__gameLanguage?.value==='sr'?'PREOSTALO':'LEFT'}`;
 }
-(function setupReviveTouch(){const b=$('reviveBtn');if(!b)return;let pointer=null;b.addEventListener('pointerdown',e=>{if(pointer!==null)return;e.preventDefault();pointer=e.pointerId;try{b.setPointerCapture(e.pointerId)}catch{}setReviveHeld(true)});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,e=>{if(pointer===e.pointerId){pointer=null;setReviveHeld(false)}});window.addEventListener('blur',()=>{pointer=null;setReviveHeld(false)});})();
+(function setupReviveTouch(){const b=$('reviveBtn');if(!b)return;let pointer=null;b.addEventListener('contextmenu',e=>e.preventDefault());b.addEventListener('pointerdown',e=>{if(pointer!==null)return;e.preventDefault();pointer=e.pointerId;try{b.setPointerCapture(e.pointerId)}catch{}setReviveHeld(true)});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,e=>{if(pointer===e.pointerId){pointer=null;setReviveHeld(false)}});window.addEventListener('blur',()=>{pointer=null;setReviveHeld(false)});})();
 
 function ns142Zone(){return NS105_TEMPLE.state().active?'temple':G.caveMode?'cave':'field';}
 function ns142FinalDeath(p){
