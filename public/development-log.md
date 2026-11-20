@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 240 -->
+<!-- current-release: 241 -->
 <!-- reviewed: 2026-11-20 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V240 Stara kovnica ima SOLO pauzu i MP glasanje sa ograničenom timskom pauzom; V239 kameni bunari zamenjuju plava jezerca; V238 goblini oko kaveza, V237 glas i V236 saveznik ostaju. Relay V240; LIVE tek proveriti.
+- Razvoj: V241 stara unutrašnjost pećine preslikana geometrijom u Novu zonu sa tri originalna rasporeda i potpuno remasterizovanom, keširanom grafikom; V240 pauza u Staroj kovnici, V239 bunari i V238 čuvari ostaju. Relay V241; LIVE tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,13 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V241 — 20.11.2026 (KOD; LIVE tek proveriti)
+- Nova zona (SOLO + MP) koristi originalnu geometriju unutrašnjosti pećine klasičnog moda: **1280×860**, 3 stara lavirintska rasporeda, isti ulaz (110,130), izlaz (852,718), niša za odmor (128,558), tajna istočna odaja (1120,564), prolaz koji blokira napukli zid (916,565), ukupno 15 sanduka/buradi i 6 starih lokacija baklji.
+- Ponovo nacrtani kameni blokovi, pod, sečiva, torčevi, obelisk, kace i ledena relikvija u stilu klasične pećine. Tamni pod keširan samo jednom u 1280×860; static sprite cache LRU 24 MiB i culling preko postojećeg 256px indeksa, bez dodatnih animacionih/spawn poruka.
+- Tajni prolaz se otvara kada se razbije stari označeni sanduk (540,554), automatski uklanja isti kolajder svim igračima preko postojećeg `arenaBreakPacket`; 15 razbijivih objekata sa izvornim brojem udaraca (1/2/3), jednokratno lečenje u bezbednoj niši (+18% HP), jednokratni bonus (+2 run-local čvorišta).
+- Raspored bira autoritativni server iz broja talasa (mod 3), prenosi ga u proširenom kratkom paketu zone, a SOLO koristi identičan generator. Sinhronizovani povratak na otvorenu mapu i checkpoint ostaju. Originalni **Classic** mod nije izmenjen.
+- Bitno: originalna tajna trajna oprema iz Classic moda nije preneta kao permanent reward; u Novoj zoni bezbedan run-local bonus, bez izmišljanja naloga/gear poklona. Specijalni neprijatelji (crystal spider, thief) ostaju kao u Novoj zoni, na originalnim pozicijama.
+
 ### V240 — 20.11.2026 (KOD; LIVE tek proveriti)
 - SOLO Stara kovnica: namerno otvaranje zaustavlja simulaciju; BACK trenutno nastavlja. Nema promena obračuna resursa ni save podataka.
 - MULTIPLAYER Stara kovnica: 7 s za jednoglasni pristanak svih prisutnih, server zamrzava sve borbene tikove najviše 28 s; BACK/Nastavi dostupno svima, automatski nastavak, trenutni prekid pri izlasku inicijatora ili promeni prisutnih.
