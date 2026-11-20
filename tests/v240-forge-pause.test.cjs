@@ -49,7 +49,7 @@ ck(!/#214a54|#3d7785/.test(pond),'blue disc removed');
 const calls={fill:0,ellipse:0,stroke:0};
 const ctx=new Proxy({},{get(t,k){return t[k]??((...args)=>{if(k in calls)calls[k]++})},set(t,k,v){t[k]=v;return true}});
 const ellipse=(...args)=>{calls.ellipse++;ctx.fill()};
-new Function('ctx','ellipse',pond.slice(0,pond.indexOf('function drawCart'))+';return drawPond;')(ctx,ellipse)({r:42,seed:123});
+new Function('ctx','ellipse',pond.slice(0,pond.indexOf('function drawCart'))+';return drawStoneWell;')(ctx,ellipse)({r:42,seed:123});
 ck(calls.fill>20&&calls.ellipse>=12&&calls.stroke>=10,'stone well renders fully with cached canvas operations');
 ck(/classicSceneryCache\.get\(key\)/.test(game),'existing cache reused');
 ck((game.match(/"kind":"pond"/g)||[]).length===9,'nine collider definitions left in New Zone');
