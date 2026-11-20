@@ -1670,12 +1670,12 @@ function applyArenaForge(p,v){
  for(let i=0;i+1<v[2].length&&i<34;i+=2){const w=ARENA_FORGE_WEAPONS[v[2][i]],n=v[2][i+1];if(w&&Number.isInteger(n)&&n>=1&&n<=3)tiers[w]=n}p.forgeTiers=tiers;
 }
 function requestArenaCraft(weapon,tier){
- if(!(N.solo||N.forgeSupported)||N.expedition?.id||N.paused||LAB_PAUSE.paused||N.choice||N.soloChoice||N.netStalled&&!N.solo||(N.solo?LAB.enabled||N.soloState!=='play':LAB_REMOTE?.enabled||N.waveState!=='play'))return false;
+ if(!forgeReady()||!(N.solo||N.forgeSupported)||N.expedition?.id||N.paused||LAB_PAUSE.paused||N.choice||N.soloChoice||N.netStalled&&!N.solo||(N.solo?LAB.enabled||N.soloState!=='play':LAB_REMOTE?.enabled||N.waveState!=='play'))return false;
  const info=arenaForgeInfo(N.explore,N.me,weapon,tier);if(!info?.affordable)return false;
  if(N.solo){if(!arenaForgeUpgrade(N.explore,N.me,weapon,tier))return false;announceArena('ORUŽJE UNAPREĐENO · +'+(tier+1));A()?.play('choose');N.tradeUiKey='';refreshArenaRun();return true}
  if(N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'arenaCraft',weapon,tier,rev:N.expedition?.rev||0}));return true}return false;
 }
-function requestArenaLegend(weapon){if(!(N.solo||N.legendSupported)||N.rule?.victory||N.expedition?.id||N.paused||LAB_PAUSE.paused||N.choice||N.soloChoice||(!N.solo&&N.netStalled)||(N.solo?LAB.enabled||N.soloState!=='play':LAB_REMOTE?.enabled||N.waveState!=='play')||!arenaLegendInfo(N.explore,N.me,weapon)?.affordable)return false;
+function requestArenaLegend(weapon){if(!forgeReady()||!(N.solo||N.legendSupported)||N.rule?.victory||N.expedition?.id||N.paused||LAB_PAUSE.paused||N.choice||N.soloChoice||(!N.solo&&N.netStalled)||(N.solo?LAB.enabled||N.soloState!=='play':LAB_REMOTE?.enabled||N.waveState!=='play')||!arenaLegendInfo(N.explore,N.me,weapon)?.affordable)return false;
  if(N.solo){if(!arenaLegendCraft(N.explore,N.me,weapon))return false;announceArena('LEGENDARNO ORUŽJE');A()?.play('choose');N.tradeUiKey='';refreshArenaRun();return true}if(N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'legendCraft',weapon,rev:N.expedition?.rev||0}));return true}return false}
 function refreshDefenseRepair(){const b=el('ns204Repair');if(!b)return;const p=N.me,r=N.rule,between=N.solo?N.soloState==='between':N.waveState==='between';const t=r?.mode==='defense'&&!r.victory&&between&&p?.hp>0&&p.online&&!p.knocked&&!N.expedition?.id&&!N.choice&&!N.soloChoice&&!N.paused&&!LAB_PAUSE.paused&&!N.netStalled&&!(N.solo?LAB.enabled:LAB_REMOTE?.enabled)?r.towers.find(t=>t.hp>0&&t.hp<180&&(p.x-t.x)**2+(p.y-t.y)**2<=95**2):null;b.hidden=!t||N.phase!=='running';if(b.hidden)return;b.textContent='POPRAVI +30 HP · 2 METALA ('+(p.forgeScrap||0)+')';b.disabled=(p.forgeScrap||0)<2;b.onclick=()=>{if(N.solo){if(arenaDefenseRepair(r,N.world,p,t.id,t.hp)){announceArena('POPRAVLJENO');refreshDefenseRepair()}}else if(N.defenseSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'defenseRepair',id:t.id,hp:t.hp,rev:N.expedition?.rev||0}));b.disabled=true}}}
 function refreshArenaRun(){
@@ -1686,17 +1686,33 @@ function refreshArenaRun(){
  run.title='Ključevi za kovnicu · dijamanti · trofeji';run.textContent='🔑 '+(p.arenaKeys||0)+' · ◇ '+(p.arenaShards||0)+' · 🏆 '+(e.invalid?'EDITOR':(arenaRunMask(e).toString(2).match(/1/g)||[]).length+'/12')+(rescueVisible()?' · '+(N.rescue.phase===1?'⛓':(N.rescue.phase===2||N.rescue.companion)?'🛡 '+N.rescue.hp+' HP':N.rescue.phase===3?'✓':'✕'):'');
  const t=N.solo?N.soloTick:N.tick;
  const near=(!N.expedition?.id&&!N.paused&&!LAB_PAUSE.paused&&!N.choice&&!N.soloChoice&&el('ns158Menu')?.hidden!==false&&el('ns192MapPanel')?.hidden!==false&&(N.solo?!LAB.enabled:!LAB_REMOTE?.enabled))?arenaTradeNear(e,p):null;
+ if(near?.type!=='guild'){if(FORGE_SOLO_HOLD)FORGE_SOLO_HOLD=false;FORGE_SHOP_OPEN=false}
+ const shopReady=near?.type==='guild'&&forgeReady();
+ const remain=FORGE_STATE.phase==='idle'?0:Math.max(0,Math.ceil((FORGE_STATE.until-Date.now())/1000));
  trade.hidden=!near;
- const key=near?near.type+'|'+(p.arenaKeys||0)+'|'+(p.guildMask||0)+'|'+(p.guildUnlocked?1:0)+'|'+(p.xp||0)+'|'+(p.hp||0)+'|'+Math.max(0,Math.ceil(((p.burgerUntil||0)-t)/30))+'|'+e.vow+'|'+(N.expedition?.rope?1:0)+'|'+(p.activeWeapon||'sword')+'|'+arenaForgeTier(p)+'|'+(p.forgeScrap||0)+'|'+(p.forgeEssence||0)+'|'+arenaLegendMask(p)+'|'+(N.solo?N.soloState:N.waveState):'';
+ const key=near?near.type+'|'+(FORGE_SHOP_OPEN?'open':'closed')+'|'+FORGE_STATE.phase+'|'+FORGE_STATE.owner+'|'+remain+'|'+(p.arenaKeys||0)+'|'+(p.guildMask||0)+'|'+(p.guildUnlocked?1:0)+'|'+(p.xp||0)+'|'+(p.hp||0)+'|'+Math.max(0,Math.ceil(((p.burgerUntil||0)-t)/30))+'|'+e.vow+'|'+(N.expedition?.rope?1:0)+'|'+(p.activeWeapon||'sword')+'|'+arenaForgeTier(p)+'|'+(p.forgeScrap||0)+'|'+(p.forgeEssence||0)+'|'+arenaLegendMask(p)+'|'+(N.solo?N.soloState:N.waveState):'';
  if(key!==N.tradeUiKey){N.tradeUiKey=key;trade.textContent='';if(near){
   const title=document.createElement('b');title.textContent=near.type==='market'?'BURGER BAR · plaćaš XP':near.type==='guild'?'STARA KOVNICA · potreban ključ':'OBELISK · jedan zavet za tim';trade.append(title);
-  for(const row of ARENA_SHOP_ITEMS.filter(x=>x[3]===near.type)){const b=document.createElement('button');b.type='button';b.textContent=row[1]+(row[2]?' · '+row[2]+' XP':'');b.disabled=!arenaTradeInfo(e,p,row[0],t);b.onclick=()=>requestArenaTrade(row[0]);trade.append(b)}
-  if(near.type==='guild'&&(N.solo||N.forgeSupported)){
+  if(near.type==='guild'){
+   if(!shopReady){
+    const info=document.createElement('div');info.textContent=N.solo?'SOLO · igra miruje dok kupuješ':FORGE_STATE.phase==='vote'?'GLASANJE ZA PAUZU · '+remain+' s · '+FORGE_STATE.votes.length+'/'+FORGE_STATE.needed:FORGE_STATE.phase==='paused'?'TIMSKA PAUZA · '+remain+' s':!FORGE_SERVER_READY?'Server nije ažuriran za zajedničku pauzu':'MP · 7 s glasanje · 28 s kupovina · limit 2/talas';trade.append(info);
+    const b=document.createElement('button');b.type='button';b.textContent=FORGE_STATE.phase==='vote'&&FORGE_STATE.owner===N.id?'← BACK / ODUSTANI':'⚒ OTVORI STARU KOVNICU';
+    b.disabled=!N.solo&&(FORGE_STATE.phase!=='idle'||!FORGE_SERVER_READY||Date.now()<FORGE_REJECT_UNTIL)||(!p.guildUnlocked&&!p.arenaKeys);
+    b.onclick=()=>FORGE_STATE.phase==='vote'&&FORGE_STATE.owner===N.id?forgeBack():requestForgeOpen();
+    trade.append(b);
+   }else{
+    const back=document.createElement('button');back.type='button';back.className='ns240Back';
+    back.textContent=N.solo?'← BACK · NASTAVI SOLO':'← BACK · NASTAVI SVIMA';back.onclick=forgeBack;trade.append(back);
+    const countdown=document.createElement('div');countdown.textContent=N.solo?'⏸ SOLO PAUZIRANO':'⏸ TIMSKA PAUZA · još '+remain+' s';trade.append(countdown);
+   }
+  }
+  for(const row of ARENA_SHOP_ITEMS.filter(x=>x[3]===near.type&&(near.type!=='guild'||shopReady))){const b=document.createElement('button');b.type='button';b.textContent=row[1]+(row[2]?' · '+row[2]+' XP':'');b.disabled=!arenaTradeInfo(e,p,row[0],t);b.onclick=()=>requestArenaTrade(row[0]);trade.append(b)}
+  if(shopReady&&(N.solo||N.forgeSupported)){
    const weapon=p.activeWeapon||'sword',tier=arenaForgeTier(p,weapon),info=arenaForgeInfo(e,p,weapon,tier);const label=document.createElement('div');label.textContent='KOVANJE · '+weapon.toUpperCase()+' +'+tier+' · metal '+(p.forgeScrap||0)+' · esencija '+(p.forgeEssence||0);trade.append(label);
    const b=document.createElement('button');b.type='button';b.textContent=tier===3?'MAKSIMALNO +3':'UNAPREDI +'+(tier+1)+' · '+ARENA_FORGE_COST[tier][0]+' metal / '+ARENA_FORGE_COST[tier][1]+' esencija';b.disabled=!info?.affordable||(N.solo?N.soloState!=='play':N.waveState!=='play');b.onclick=()=>{if(requestArenaCraft(weapon,tier))b.disabled=true};trade.append(b);
    const legend=ARENA_LEGENDS.find(l=>l.weapon===weapon);if(legend&&(N.solo||N.legendSupported)){const owned=arenaLegend(p,weapon),info=arenaLegendInfo(e,p,weapon),name=document.createElement('div');name.textContent='★ '+legend.name+' · '+legend.desc;name.style.color='#ffd47a';trade.append(name);const craft=document.createElement('button');craft.type='button';craft.textContent=owned?'LEGENDARNO · OTKLJUČANO':tier<3?'POTREBNO +3':'ISKOVAJ LEGENDU · 30 METALA / 4 ESENCIJE';craft.disabled=!info?.affordable||(N.solo?N.soloState!=='play':N.waveState!=='play');craft.onclick=()=>{if(requestArenaLegend(weapon))craft.disabled=true};trade.append(craft)}
   }
-  if(near.type==='guild'&&N.expSupported){const b=document.createElement('button');b.type='button';b.textContent=N.expedition?.rope?'KANAP NABAVLJEN':'KANAP ZA PEĆINU · 58 XP';b.disabled=!!N.expedition?.rope||p.xp<58||(!p.guildUnlocked&&!p.arenaKeys);b.onclick=()=>{if(N.solo){if(expRope(N.expedition,e,p)){N.tradeUiKey=''}}else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'arenaTrade',id:'ropeKey',rev:N.expedition?.rev||0}))};trade.append(b)}
+  if(shopReady&&N.expSupported){const b=document.createElement('button');b.type='button';b.textContent=N.expedition?.rope?'KANAP NABAVLJEN':'KANAP ZA PEĆINU · 58 XP';b.disabled=!!N.expedition?.rope||p.xp<58||(!p.guildUnlocked&&!p.arenaKeys);b.onclick=()=>{if(N.solo){if(expRope(N.expedition,e,p)){N.tradeUiKey=''}}else if(N.ws?.readyState===1)N.ws.send(JSON.stringify({t:'arenaTrade',id:'ropeKey',rev:N.expedition?.rev||0}))};trade.append(b)}
  }}
  const periodAt=N.solo?Date.now():(N.serverNow||Date.now());if(!N.questPeriod||Math.abs(periodAt-(N.questPeriodAt||0))>=45000){N.questPeriod=arenaQuestPeriod(periodAt);N.questPeriodAt=periodAt}
  const qkey=[e.kills,e.trolls,e.worms,e.chests,e.revives,e.wave,e.invalid,p.kills,N.rescue?.phase,N.rescue?.hp,...N.questPeriod.map(a=>a[0])].join(':');
@@ -1707,7 +1723,7 @@ function refreshArenaRun(){
  }
 }
 function requestArenaTrade(id){
- const p=N.me,e=N.explore,t=N.solo?N.soloTick:N.tick;if(!arenaTradeInfo(e,p,id,t)||N.paused||LAB_PAUSE.paused||N.choice||N.soloChoice)return false;
+ const p=N.me,e=N.explore,t=N.solo?N.soloTick:N.tick;if(ARENA_SHOP_ITEMS.some(row=>row[0]===id&&row[3]==='guild')&&!forgeReady())return false;if(!arenaTradeInfo(e,p,id,t)||N.paused||LAB_PAUSE.paused||N.choice||N.soloChoice)return false;
  if(N.solo){if(!arenaTrade(e,p,id,t,N.players))return false;announceArena('RAZMENA USPEŠNA');A()?.play('choose');N.tradeUiKey='';refreshArenaRun();return true}
  if(N.exploreSupported&&N.ws?.readyState===1&&N.ws.bufferedAmount<4000){N.ws.send(JSON.stringify({t:'arenaTrade',id,rev:N.expedition?.rev||0}));return true}return false;
 }
@@ -2741,6 +2757,20 @@ function connect(match,id,ticket,rejoin=false){
   if(m.t==='levelBoss'){announceArena('MATRIJARH · NIVO '+Math.max(10,Math.min(100,Number(m.level)||10)));return}
   if(m.t==='bossSummon'){announceArena('BOSS DOZIVA POJAČANJE · '+Math.max(0,Math.min(7,Number(m.count)||0)));return}
   if(m.t==='labState'){LAB_REMOTE={...m};if(!m.enabled){LAB_WEAPON=null;LAB_LOOK=null}window.NS160_LAB?.refresh();return}
+  if(m.t==='forgePauseState'){
+   if(!['idle','vote','paused'].includes(m.phase))return;
+   FORGE_STATE={phase:m.phase,owner:/^p[1-6]$/.test(m.owner||'')?m.owner:'',votes:Array.isArray(m.votes)?m.votes.filter(id=>/^p[1-6]$/.test(id)):[],needed:Math.max(0,Math.min(6,Number(m.needed)||0)),until:Number(m.until)||0};
+   if(m.phase==='idle')FORGE_SHOP_OPEN=false;if(m.phase==='paused'&&m.owner===N.id)FORGE_SHOP_OPEN=true;
+   N.tradeUiKey='';refreshForgeVote();refreshArenaRun();return;
+  }
+  if(m.t==='forgePauseRejected'){FORGE_SHOP_OPEN=false;FORGE_REJECT_UNTIL=Date.now()+4500;N.tradeUiKey='';announceArena('KOVNICA · PAUZA NIJE ODOBRENA / COOLDOWN');refreshArenaRun();return}
+  if(m.t==='forgeReceipt'){
+   if(!N.me)return;const p=N.me;
+   for(const [key,value] of [['xp',m.xp],['hp',m.hp],['maxHp',m.maxHp],['damage',m.damage],['speedMult',m.speedMult],['arenaKeys',m.keys],['guildMask',m.mask]])if(Number.isFinite(value))p[key]=value;
+   p.guildUnlocked=m.unlocked===true;applyArenaForge(p,m.forge);if(Number.isInteger(m.legend))p.legendMask=m.legend;
+   if(m.rope===true&&N.expedition)N.expedition.rope=true;
+   N.tradeUiKey='';refreshArenaRun();return;
+  }
   if(m.t==='pauseState'){const previous=LAB_PAUSE;LAB_PAUSE={paused:!!m.paused,votes:Array.isArray(m.votes)?m.votes:[],needed:m.needed||1,expires:m.expires||0};refreshArenaPauseVote();if(N.phase==='running'&&LAB_PAUSE.expires&&LAB_PAUSE.expires!==previous.expires)announceArena('GLASANJE ZA PAUZU · MENI · '+LAB_PAUSE.votes.length+'/'+LAB_PAUSE.needed);window.NS160_LAB?.refresh();return}
   if(m.t==='welcome'){
    if(m.protocol!==140){N.phase='error';status('Nepodudarne MP verzije');try{ws.close()}catch{}return}
