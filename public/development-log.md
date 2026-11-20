@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 242 -->
+<!-- current-release: 243 -->
 <!-- reviewed: 2026-11-20 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V242 ispravlja prikaz i preuzimanje oružja za sve Classic MP goste, sa prioritetom za world weapon dropove i ponovnim pokušajem; V241 rekonstrukcija pećine u Novoj zoni ostaje. Relay V241; LIVE V242 tek proveriti.
+- Razvoj: V243 procenat oživljavanja se vidi iznad dugmeta u Classic i Nova zona, bez kopiranja teksta i bez zaklanjanja prstom; V242 ispravio oružje za goste, V241 preslikao staru pećinu. Relay ostaje V241; LIVE V243 tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,12 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V243 — 20.11.2026 (KOD; LIVE tek proveriti)
+- Classic SOLO/MP i Nova zona MP: pri držanju REVIVE dugmeta prikazuje se mali kružni indikator sa **0–100% iznad prsta**, u izdvojenom HUD elementu koji ne prihvata dodir. Postojeća popuna dugmeta ostaje u Classic; nova zona prikazuje jasno aktivno dugme. Dok igrač ne drži dugme, izdvojeni procenat je sakriven.
+- Procenat potiče iz **postojećeg server-autoritativnog revive napretka**: Classic host `G.reviveActive`, Classic gost `G.reviveRemoteProgress`, Nova zona `reviveProgress` iz snapshotova; bez lokalnog izmišljanja napretka i bez povećanja veličine mrežnog paketa. Samo prikaz je izmenjen, vreme/trošak/revive limit ostaju isti.
+- CSS `user-select:none`, `-webkit-user-select:none`, `-webkit-touch-callout:none`; kontekstni meni na držanju sprečen. Pointer capture čuva jedan prst, otkaz/blur/background resetuju UI da ne ostane zaglavljen. Progres oznaka ima `pointer-events:none` i stoji iznad interaktivne površine.
+- Novi test `tests/v243-revive-progress.test.cjs` proverava render i sinhronizovanu procentualnu vrednost host/gost, 0–100% New Zone, otpuštanje i mrežne hold pakete; uključen u CI. Stari V241 test pećine je ostao, samo je očitanje release oznake prilagođeno V243. Fizički test na dva/šest telefona i Cloudflare LIVE moraju se posebno potvrditi.
+
 ### V242 — 20.11.2026 (KOD; LIVE tek proveriti)
 - Classic multiplayer: kada su XP kristali popunjavali prethodnih 8/16 slotova privatnog snapshot paketa, dropovi oružja mogli su biti izostavljeni za gosta, iako ih host vidi. V242 po svakom igraču prvo uključuje do 6 obližnjih nepreuzetih oružja, zatim ostatak najbližih podataka. Zadržava postojeći limit paketa, udaljenost filtriranja, culling i host-authoritative pravilo jednog preuzimanja.
 - Gost više ne označava oružje kao trajno ignorisano odmah po slanju zahteva. Tek uspešan server ACK ga označava; odbijeni zahtev ga vraća na ponudu, a izgubljeni ACK omogućava ponovni pokušaj posle 1.8 s. Host i gost koriste isti panel; odbijanje ili duplirani zahtev ne dodeljuju dodatno oružje.
