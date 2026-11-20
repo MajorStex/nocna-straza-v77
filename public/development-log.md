@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 241 -->
+<!-- current-release: 242 -->
 <!-- reviewed: 2026-11-20 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V241 stara unutrašnjost pećine preslikana geometrijom u Novu zonu sa tri originalna rasporeda i potpuno remasterizovanom, keširanom grafikom; V240 pauza u Staroj kovnici, V239 bunari i V238 čuvari ostaju. Relay V241; LIVE tek proveriti.
+- Razvoj: V242 ispravlja prikaz i preuzimanje oružja za sve Classic MP goste, sa prioritetom za world weapon dropove i ponovnim pokušajem; V241 rekonstrukcija pećine u Novoj zoni ostaje. Relay V241; LIVE V242 tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,11 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V242 — 20.11.2026 (KOD; LIVE tek proveriti)
+- Classic multiplayer: kada su XP kristali popunjavali prethodnih 8/16 slotova privatnog snapshot paketa, dropovi oružja mogli su biti izostavljeni za gosta, iako ih host vidi. V242 po svakom igraču prvo uključuje do 6 obližnjih nepreuzetih oružja, zatim ostatak najbližih podataka. Zadržava postojeći limit paketa, udaljenost filtriranja, culling i host-authoritative pravilo jednog preuzimanja.
+- Gost više ne označava oružje kao trajno ignorisano odmah po slanju zahteva. Tek uspešan server ACK ga označava; odbijeni zahtev ga vraća na ponudu, a izgubljeni ACK omogućava ponovni pokušaj posle 1.8 s. Host i gost koriste isti panel; odbijanje ili duplirani zahtev ne dodeljuju dodatno oružje.
+- Test `tests/v242-weapon-pickup.test.cjs`: šest igrača sa zagušenim XP dropovima, culling, ograničenje 8, host authority, gost bliži od hosta, sprečavanje duplikata, udaljenost, odbijeni ACK i timeout. Dodato u produkcioni GitHub workflow. Originalni Classic render i Nova zona nisu grafički izmenjeni. Cloudflare LIVE/6 fizičkih telefona nisu potvrđeni.
+
 ### V241 — 20.11.2026 (KOD; LIVE tek proveriti)
 - Nova zona (SOLO + MP) koristi originalnu geometriju unutrašnjosti pećine klasičnog moda: **1280×860**, 3 stara lavirintska rasporeda, isti ulaz (110,130), izlaz (852,718), niša za odmor (128,558), tajna istočna odaja (1120,564), prolaz koji blokira napukli zid (916,565), ukupno 15 sanduka/buradi i 6 starih lokacija baklji.
 - Ponovo nacrtani kameni blokovi, pod, sečiva, torčevi, obelisk, kace i ledena relikvija u stilu klasične pećine. Tamni pod keširan samo jednom u 1280×860; static sprite cache LRU 24 MiB i culling preko postojećeg 256px indeksa, bez dodatnih animacionih/spawn poruka.

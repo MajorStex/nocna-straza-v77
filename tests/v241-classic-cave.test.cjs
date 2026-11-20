@@ -48,6 +48,6 @@ const sample=geo.expClassicCave241(0).classicProps;for(const type of ['rock','to
  const p=sample.find(x=>x.type===type);ck(!!p&&art.prop(surface(),p)===true,'new static asset renders: '+type);
 }
 ck(calls>200,'full visual art has multiple stone, torch, crate and relic details');
-ck(/name="ns-release" content="241"/.test(html),'client release version');
-ck(/v140-net-mode\.js\?v=241&amp;release=241/.test(html),'new UI asset cache busted');
+ck(/name="ns-release" content="242"/.test(html),'client release version');
+ck(/v140-net-mode\.js\?v=242&amp;release=242/.test(html),'new UI asset cache busted');
 console.log('V241 CLIENT CAVE PASS',JSON.stringify({checks,layouts:3,props:sample.length,renderCalls:calls,createdCanvases:creations,viewportCrops:images,relayPacketsAdded:0}));
