@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 238 -->
-<!-- reviewed: 2026-11-19 -->
+<!-- current-release: 240 -->
+<!-- reviewed: 2026-11-20 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V238 četiri goblina čuvaju kavez Noćnog stražara u Novoj zoni; V237 originalni glas, V236 saveznik, V235 tekstura i V233 napredak ostaju. Relay V238; LIVE tek proveriti.
+- Razvoj: V240 Stara kovnica ima SOLO pauzu i MP glasanje sa ograničenom timskom pauzom; V239 kameni bunari zamenjuju plava jezerca; V238 goblini oko kaveza, V237 glas i V236 saveznik ostaju. Relay V240; LIVE tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,14 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V240 — 20.11.2026 (KOD; LIVE tek proveriti)
+- SOLO Stara kovnica: namerno otvaranje zaustavlja simulaciju; BACK trenutno nastavlja. Nema promena obračuna resursa ni save podataka.
+- MULTIPLAYER Stara kovnica: 7 s za jednoglasni pristanak svih prisutnih, server zamrzava sve borbene tikove najviše 28 s; BACK/Nastavi dostupno svima, automatski nastavak, trenutni prekid pri izlasku inicijatora ili promeni prisutnih.
+- Provere na serveru: igrač mora da je živ i blizu kovnice i da ima ključ; 20 s zaštita od ponavljanja zahteva, 45 s globalni razmak nakon pauze, najviše 2 pauze po talasu i po 1 po inicijatoru; jedino inicijator kupuje tokom pauze, troškovi se obrađuju autoritativno i potvrda osvežava klijenta; vreme pauze ne ubrzava talas.
+- Novi WebSocket kontrolni događaji i vezivanje uz postojeći relay; ne menjaju se neprijateljski paketi ili broj simulacionih koraka. Stare pauze iz editor moda ostaju odvojene.
+### V239 — 20.11.2026 (kod uključen u V240)
+- Neprepoznatljiva plava jezerca zamenjena su ručno nacrtanim srednjovekovnim kamenim bunarima (drveni krov, kofa, čekrk), koristeći prethodno keširanje grafike i nepromenjene prepreke/kolizije (9 objekata u Novoj zoni). Mini-mapa označava kamenim tonom, bez novih tekstura/asset requestova.
+
 ### V238 — 20.11.2026 (KOD; LIVE tek proveriti)
 - Na početku petog talasa četiri obična goblina iz *postojećeg talasa* postaju čuvari kaveza (deterministička slobodna mesta 84 px od stražara, bez kolizija), njihov HP je 71, imaju individualni AI i čekaju igrača.
 - Prilazak na 265 px pokreće odbranu. Nakon udaljavanja igrača vraćaju se na svoje položaje; bez pojedinačnog respawna. Oslobađanje saveznika moguće je tek kada sva četiri padnu.
