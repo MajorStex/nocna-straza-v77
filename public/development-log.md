@@ -37,6 +37,7 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - MULTIPLAYER Stara kovnica: 7 s za jednoglasni pristanak svih prisutnih, server zamrzava sve borbene tikove najviše 28 s; BACK/Nastavi dostupno svima, automatski nastavak, trenutni prekid pri izlasku inicijatora ili promeni prisutnih.
 - Provere na serveru: igrač mora da je živ i blizu kovnice i da ima ključ; 20 s zaštita od ponavljanja zahteva, 45 s globalni razmak nakon pauze, najviše 2 pauze po talasu i po 1 po inicijatoru; jedino inicijator kupuje tokom pauze, troškovi se obrađuju autoritativno i potvrda osvežava klijenta; vreme pauze ne ubrzava talas.
 - Novi WebSocket kontrolni događaji i vezivanje uz postojeći relay; ne menjaju se neprijateljski paketi ili broj simulacionih koraka. Stare pauze iz editor moda ostaju odvojene.
+- V240 regresije: 38 izolovanih serverskih provera (šest igrača, kupovina, restart budžeta), 35 klijentskih i umetničkih provera, V238 čuvari 20 provera. Detekcija prekida veze tokom odobrene pauze ne prijavljuje lažni timeout. Klasična jezerca su netaknuta; kameni bunari prikazuju se samo u Novoj zoni.
 ### V239 — 20.11.2026 (kod uključen u V240)
 - Neprepoznatljiva plava jezerca zamenjena su ručno nacrtanim srednjovekovnim kamenim bunarima (drveni krov, kofa, čekrk), koristeći prethodno keširanje grafike i nepromenjene prepreke/kolizije (9 objekata u Novoj zoni). Mini-mapa označava kamenim tonom, bez novih tekstura/asset requestova.
 
