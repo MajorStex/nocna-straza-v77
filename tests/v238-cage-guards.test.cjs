@@ -33,5 +33,5 @@ ck(/arenaCageGuardsStep\(N\.soloMobs,N\.players,N\.world,N\.soloTick\)/.test(gam
 ck(/const goblins=N\.soloMobs\.filter\(m=>!m\.cageGuard\|\|m\.guardActive\)/.test(game),'no idle steering CPU');
 ck(/mob\.cageGuard&&!mob\.guardActive/.test(game),'no idle melee');
 ck(/sprites\.drawOne/.test(game)&&/const W=48,H=56,POSES=10/.test(sprite),'reuse original cached 10-pose goblin atlas');
-ck(/name="ns-release" content="238"/.test(html),'V238 cache marker');
+ck(Number(html.match(/name="ns-release" content="(\d+)"/)?.[1])>=238,'V238+ cache marker');
 console.log('V238 CLIENT GUARDS PASS',JSON.stringify({checks,guards:4,spritesheetReused:true,extraNetworkPackets:0}));
