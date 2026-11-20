@@ -205,7 +205,7 @@ const N={phase:'idle',ws:null,match:'',id:'',world:{w:4200,h:4200,r:14,speed:156
  solo:false,soloCrowd:null,soloMobs:[],presence:new Map(),presenceAt:0,mpMobs:[],mobHistory:[],mobRenderTick:null,visibleMobs:0,hordeTotal:100,soloSpawnCache:null,statsAt:0,soloTick:0,soloAcc:0,soloKills:0,soloSwing:-100,soloInvul:0,errorCode:'',retryTimer:null,lostSince:0};
 // V160 sandbox state lives only in this isolated runtime, never in saved progression.
 let LAB={enabled:false,freezeAI:false,godMode:false,customCount:null,allies:[],props:[],rev:0};
-let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null;
+let LAB_REMOTE=null,LAB_PAUSE={paused:false,votes:[],needed:1,expires:0},LAB_AUTO_PAUSE=false,LAB_WEAPON=null,arenaRevivePointer=null;
 let FORGE_SHOP_OPEN=false,FORGE_SOLO_HOLD=false,FORGE_STATE={phase:'idle',owner:'',votes:[],needed:0,until:0},FORGE_SERVER_READY=false,FORGE_REJECT_UNTIL=0;
 let LAB_SUPPORTED=false,LAB_LOOK=null,LAB_UNDO=null,LAB_SERVER_BUILD=0;
 const LAB_WEAPONS=new Set(['sword','longsword','axe','spear','halberd','warhammer','mace','dagger','falchion','flail','rapier','glaive','greataxe','scimitar','morningstar','trollclub','trollmaul']);
@@ -1173,7 +1173,10 @@ function ui(){
  '#ns152ChoiceCard h3{font-size:17px;margin:6px 0;color:#ffe0a0}#ns152ChoiceCard p{font-size:13px;color:#e5dfce;line-height:1.4}'+
  '#ns152Choices{display:grid;gap:9px;margin:12px 0}#ns152Choices button{padding:11px;border:1px solid #a9ae88;background:#38594b;color:#fff7d9;border-radius:9px;font-weight:800}'+
  '#ns152Choices button[hidden]{display:none}#ns152Timer{font-weight:900;color:#f6dc94;font-size:18px}'+
- '#ns190Revive{position:absolute;z-index:7;right:calc(12px + env(safe-area-inset-right));bottom:calc(132px + env(safe-area-inset-bottom));max-width:65vw;padding:12px 16px;background:#23594a;color:#fff;border:1px solid #b5e5ba;border-radius:11px;touch-action:none;font-weight:800}#ns190Revive[hidden]{display:none!important}'+
+ // V243 thumb-safe shared revive HUD: percentage sits above the finger, never selectable.
+ '#ns243ReviveDock{position:absolute;z-index:7;right:calc(12px + env(safe-area-inset-right));bottom:calc(132px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:10px;max-width:65vw;pointer-events:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}#ns243ReviveDock *{user-select:none!important;-webkit-user-select:none!important;-webkit-touch-callout:none!important}'+
+ '#ns243ReviveProgress{--revive-arc:0deg;display:flex;align-items:center;justify-content:center;gap:8px;min-width:108px;min-height:38px;padding:5px 10px;border:1px solid #d7d39a;border-radius:12px;background:#172e2cf5;color:#ffe7ab;font:900 16px system-ui;font-variant-numeric:tabular-nums;pointer-events:none;box-shadow:0 4px 14px #0009}#ns243ReviveProgress[hidden]{display:none!important}#ns243ReviveProgress .ring{width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:50%;background:conic-gradient(#b7efa7 var(--revive-arc),#56665d var(--revive-arc))}#ns243ReviveProgress .ring:after{content:"✚";width:15px;height:15px;display:grid;place-items:center;border-radius:50%;background:#203c34;color:#e8f9ce;font:900 11px system-ui}'+
+ '#ns190Revive{position:relative;max-width:65vw;padding:12px 16px;background:#23594a;color:#fff;border:2px solid #b5e5ba;border-radius:11px;touch-action:none;font-weight:800;pointer-events:auto;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}#ns190Revive.holding{border-color:#f3d789;box-shadow:0 0 0 2px #9ac88b77}#ns190Revive[hidden]{display:none!important}'+
  '#ns152Hurt{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 50%,transparent 43%,#d5202970 100%);z-index:3}'+
  '#ns152Music,#ns152Sound{padding:5px;background:#304d40;border:1px solid #a4bb9b;color:#fff6d7;border-radius:7px}'+
  '#ns155Presence{position:absolute;left:10px;right:10px;top:clamp(95px,17vh,160px);display:flex;gap:6px;flex-wrap:wrap;z-index:2;pointer-events:none}'+
@@ -1218,7 +1221,7 @@ function ui(){
  '<button id="ns192SOS" type="button" hidden>⚑ POŠALJI SOS</button><button id="ns192Loot" type="button" hidden>UZMI ORUŽJE</button>'+
  '<button id="ns192Swap" type="button" hidden>⇄ ORUŽJE</button>'+
  '<button id="ns192Dodge" type="button" hidden>DODGE</button>'+
- '<button id="ns190Revive" type="button" hidden>DRŽI ZA REVIVE</button><section id="ns228Spectate" hidden><span id="ns228WatchLabel">POSMATRAŠ</span><div><button id="ns228Prev" type="button" aria-label="Prethodni igrač">◀</button><button id="ns228Self" type="button">MOJ HEROJ</button><button id="ns228Next" type="button" aria-label="Sledeći igrač">▶</button></div></section>'+
+ '<div id="ns243ReviveDock"><div id="ns243ReviveProgress" aria-hidden="true" hidden><span class="ring"></span><strong id="ns243RevivePercent">0%</strong></div><button id="ns190Revive" type="button" aria-label="Drži da oživiš saigrača" hidden>✚ DRŽI ZA REVIVE</button></div><section id="ns228Spectate" hidden><span id="ns228WatchLabel">POSMATRAŠ</span><div><button id="ns228Prev" type="button" aria-label="Prethodni igrač">◀</button><button id="ns228Self" type="button">MOJ HEROJ</button><button id="ns228Next" type="button" aria-label="Sledeći igrač">▶</button></div></section>'+
  '<div id="ns152Hurt" aria-hidden="true"></div>'+
  '<div id="ns157PauseOverlay" hidden><div id="ns157PauseCard"><h2>⏸ PAUZA</h2><p id="ns157PauseText">Solo je zaustavljen. Pritisni NASTAVI kada želiš.</p><button type="button" id="ns157Resume">▶ NASTAVI</button><button type="button" id="ns157PauseLeave">← NAPUSTI PARTIJU</button></div></div>'+
  '<div id="ns140Pad" aria-hidden="true"><span id="ns140Knob"></span></div>'+
@@ -1228,8 +1231,9 @@ function ui(){
  el('ns192Dodge').addEventListener('pointerdown',e=>{e.preventDefault();requestArenaDodge()});
  el('ns228Prev').onclick=()=>cycleArenaSpectate(-1);el('ns228Next').onclick=()=>cycleArenaSpectate(1);el('ns228Self').onclick=()=>{N.watchId=N.id;refreshArenaSpectate()};
  const reviveButton=el('ns190Revive');
- reviveButton.addEventListener('pointerdown',e=>{const target=nearArenaRevive();if(!target)return;e.preventDefault();N.reviveHeld=target.id;N.reviveAt=0;try{reviveButton.setPointerCapture(e.pointerId)}catch{}});
- for(const type of ['pointerup','pointercancel','lostpointercapture'])reviveButton.addEventListener(type,releaseArenaRevive);
+ reviveButton.addEventListener('contextmenu',e=>e.preventDefault());
+ reviveButton.addEventListener('pointerdown',e=>{const target=nearArenaRevive();if(!target||arenaRevivePointer!==null)return;e.preventDefault();arenaRevivePointer=e.pointerId;N.reviveHeld=target.id;N.reviveAt=0;try{reviveButton.setPointerCapture(e.pointerId)}catch{}});
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])reviveButton.addEventListener(type,e=>{if(e.pointerId!==arenaRevivePointer)return;releaseArenaRevive()});
  window.addEventListener('blur',releaseArenaRevive);document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseArenaRevive()});
  // Lazy-load independent voice client only when entering New Zone.
  if(!window.NS159_VOICE&&!document.getElementById('ns159VoiceScript')){
@@ -3143,14 +3147,24 @@ function nearArenaRevive(){
  let best=null,d2=78**2;for(const p of N.players.values()){if(p.id===N.id||!p.online||!p.knocked||p.finalDead)continue;const d=(p.x-me.x)**2+(p.y-me.y)**2;if(d<=d2&&arenaAcidClear(N.world,me.x,me.y,p.x,p.y,3)){best=p;d2=d}}return best;
 }
 function releaseArenaRevive(){
- const target=N.reviveHeld;N.reviveHeld='';N.reviveAt=0;
+ const target=N.reviveHeld;N.reviveHeld='';N.reviveAt=0;arenaRevivePointer=null;
+ const progress=el('ns243ReviveProgress');if(progress)progress.hidden=true;
+ const button=el('ns190Revive');if(button)button.classList.remove('holding');
  if(target&&N.ws?.readyState===1)try{N.ws.send(JSON.stringify({t:'revive',target,hold:0,rev:N.expedition?.rev||0}))}catch{}
 }
 function tickArenaRevive(now){
- const button=el('ns190Revive');if(!button)return;
+ const button=el('ns190Revive'),progress=el('ns243ReviveProgress');if(!button||!progress)return;
  const near=nearArenaRevive();if(N.reviveHeld&&(!near||near.id!==N.reviveHeld))releaseArenaRevive();
  button.hidden=!near;
- if(near&&now-(N.reviveHudAt||0)>100){N.reviveHudAt=now;button.textContent=(N.reviveHeld?'PODIŽEM… ':'DRŽI ZA REVIVE · ')+Math.round(100*clamp(near.reviveProgress||0,0,75)/75)+'%'}
+ progress.hidden=!near||!N.reviveHeld;
+ button.classList.toggle('holding',!!N.reviveHeld);
+ if(near&&now-(N.reviveHudAt||0)>100){
+  N.reviveHudAt=now;
+  const percent=N.reviveHeld?Math.round(100*clamp(near.reviveProgress||0,0,75)/75):0;
+  button.textContent=N.reviveHeld?'✚ PODIŽEM…':'✚ DRŽI ZA REVIVE';
+  el('ns243RevivePercent').textContent=percent+'%';
+  progress.style.setProperty('--revive-arc',percent*3.6+'deg');
+ }
  if(N.reviveHeld&&N.ws?.readyState===1&&now-(N.reviveAt||0)>=100&&N.ws.bufferedAmount<4000){N.reviveAt=now;N.ws.send(JSON.stringify({t:'revive',target:N.reviveHeld,hold:1,rev:N.expedition?.rev||0}))}
 }
 // Screen-space arrows reuse existing snapshot positions.
