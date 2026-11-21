@@ -7619,11 +7619,11 @@ function retryInitialGuestConnection(reason=''){
  return true;
 }
 function setupConnection(c){
- let assigned=null,presentedIdentity='',rejectReason='',syncTimer=null,worldSend=null,worldReceive=null,guestCanZip=false,worldRetryCount=0,welcomeAcknowledged=false,ns107RateAt=performance.now(),ns107PacketCount=0;
+ let assigned=null,waitingForRound=false,presentedIdentity='',rejectReason='',syncTimer=null,worldSend=null,worldReceive=null,guestCanZip=false,worldRetryCount=0,welcomeAcknowledged=false,ns107RateAt=performance.now(),ns107PacketCount=0;
  const safeSend=data=>{if(!c.open)return false;try{return c.send(data)!==false}catch(err){return false}};
- const sendWelcome=()=>{if(assigned&&NET.role==='host'&&NET.phase==='lobby'){
-  safeSend({t:'welcome',id:assigned,code:NET.code,round:NET.round,post:NET.ns97Results||null,v:107,rejoinToken:NETLAB.tokens.get(assigned)?.token});
-  window.NS165_CLASSIC_VOICE?.syncGuest?.(assigned,safeSend);
+ const sendWelcome=()=>{if(assigned&&NET.role==='host'&&(NET.phase==='lobby'||waitingForRound)){
+  safeSend({t:'welcome',id:assigned,code:NET.code,round:NET.round,post:NET.ns97Results||null,v:107,waiting:waitingForRound,rejoinToken:waitingForRound?'':NETLAB.tokens.get(assigned)?.token});
+  if(!waitingForRound)window.NS165_CLASSIC_VOICE?.syncGuest?.(assigned,safeSend);
  }};
  // WebRTC channels can open before both sides have attached data handlers. Explicit
  // request/ack retries prevent a lost initial host packet from trapping a guest.
@@ -7699,11 +7699,12 @@ function setupConnection(c){
    if(!c.open||NET.role===''){clearInterval(syncTimer);return}
    if(NET.role==='guest')NETLAB.ping(c,'host');else if(assigned)NETLAB.ping(c,assigned);
    if(NET.role==='host'){
-    if(NET.phase==='lobby'&&assigned){
+    if((NET.phase==='lobby'||waitingForRound)&&assigned){
      if(!welcomeAcknowledged)sendWelcome();
+     else if(waitingForRound)ns248QueueStatus();
      else if(worldSend&&!worldSend.done)sendWorldPart();
      else if(NET.round>0)safeSend({t:'lobby',code:NET.code,round:NET.round,result:NET.lastRoundText,players:currentLobbyRoster(),chat:NS76CHAT.items(),post:NET.ns97Results||null});
-    }else if(NET.phase==='playing'&&assigned&&!NET.startAcks.get(assigned))safeSend({t:'start',round:NET.round,looks:coopLooks()});
+    }else if(NET.phase==='playing'&&assigned&&!waitingForRound&&!NET.startAcks.get(assigned))safeSend({t:'start',round:NET.round,looks:coopLooks()});
    }else if(NET.role==='guest')guestHello();
   },1050);
  });
