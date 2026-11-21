@@ -96,6 +96,8 @@ jobs:
         run: node tests/v243-revive-progress.test.cjs
       - name: V244 blank lobby chat mobile swipe and message safety
         run: node tests/v244-empty-lobby-chat-scroll.test.cjs
+      - name: V245 voice panel swipe to scroll lobby without changing PTT
+        run: node tests/v245-lobby-voice-swipe.test.cjs
       - name: Verify portrait lobby width at 320/360/393/412px on actual Chromium
         run: |
           npm install --no-save --no-package-lock playwright-core@1.58.2
