@@ -35,8 +35,8 @@ ok(modeRule('toggle')===true&&modeRule('ptt')===false,'mode-dependent swipe exce
 const scripts=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)].filter(m=>!/\bsrc=/.test(m[1]));
 ok(scripts.length===4,'same Classic inline script set');
 for(const s of scripts){new vm.Script(s[2]);checks++}
-ok(/name="ns-release" content="246"/.test(html),'HTML V245 release');
-ok(/id="ns102MenuVersion"[^<]*VERZIJA V246/.test(html),'lobby badge V245');
-ok(/v165-classic-voice\.js\?v=245&amp;ui=245/.test(html),'Android cached voice script invalidated');
-ok(/v140-net-mode\.js\?v=246&amp;release=246/.test(html),'cached New Zone entry version matches V245');
+ok(/name="ns-release" content="247"/.test(html),'HTML V245 release');
+ok(/id="ns102MenuVersion"[^<]*VERZIJA V247/.test(html),'lobby badge V245');
+ok(/v165-classic-voice\.js\?v=247&amp;ui=247/.test(html),'Android cached voice script invalidated');
+ok(/v140-net-mode\.js\?v=247&amp;release=247/.test(html),'cached New Zone entry version matches V245');
 console.log('V245 LOBBY VOICE SWIPE PASS',JSON.stringify({checks,networkChanges:0,micToggleSwipe:true,micPttHoldIntact:true}));

@@ -170,6 +170,21 @@ function install(){
   #ns165LobbyVoice strong,#ns165LobbyVoice small,#ns165LobbyVoice .ns165VoiceActions{touch-action:pan-y;-webkit-user-select:none;user-select:none}
   #ns165LobbyVoice .ns165VoiceMode,#ns165LobbyVoice .ns165Off{touch-action:pan-y}
   #ns165LobbyVoice.ns165ToggleMode .ns165Mic{touch-action:pan-y}
+  /* V247: one compact row; no third OFF button in the lobby, no duplicated floating panel. */
+  #ns165LobbyVoice{gap:5px;padding:8px 9px;margin:6px 0 8px}
+  #ns165LobbyVoice>strong{font-size:11px;line-height:1.2}
+  #ns165LobbyVoice .ns165VoiceActions{display:grid!important;grid-template-columns:minmax(0,1fr) 66px!important;gap:8px!important;align-items:stretch}
+  #coopPanel #ns165LobbyVoice .ns165VoiceActions>*{width:100%!important;min-width:0!important;min-height:48px!important;font-size:12px!important;line-height:1.15}
+  #ns165LobbyVoice .ns165VoiceMode{padding:6px 8px;white-space:nowrap}
+  #ns165LobbyVoice .ns165Mic{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:3px 2px}
+  #ns165LobbyVoice .ns247MicGlyph{font-size:20px;line-height:22px;pointer-events:none}
+  #ns165LobbyVoice .ns247MicState{font:900 10px/12px system-ui;letter-spacing:.07em;color:#bfc4c2;pointer-events:none}
+  #ns165LobbyVoice.ns247MicOn .ns165Mic{border-color:#a4e2a9;background:#27674a}
+  #ns165LobbyVoice.ns247MicOn .ns247MicState{color:#c7ffc9}
+  #ns165LobbyVoice.ns247VoiceReady .ns165VoiceNote{display:none}
+  #ns165LobbyVoice .ns165VoiceNote{font-size:10px;line-height:1.25}
+  #ns165LobbyVoice .ns165Off{display:none!important}
+  body:has(#coopPanel:not(.hidden) #lobbyArea:not(.hidden)) #ns159Voice{display:none!important}
   `;
   document.head.append(st);
  }
@@ -181,11 +196,17 @@ function install(){
   const modeBtn=document.createElement('button');modeBtn.type='button';modeBtn.className='ns165VoiceMode';
   modeBtn.onclick=toggleMode;
   const mic=document.createElement('button');mic.type='button';mic.className='ns165Mic';
-  // The shared audio engine binds exactly one click/hold handler per button.
-  const off=document.createElement('button');off.type='button';off.className='ns165Off';
-  off.textContent='🔇 UGASI';off.onclick=micOff;
+  // Reuse the original audio-engine click/PTT handlers; the spans are presentation only.
+  if(id==='ns165LobbyVoice'){
+   title.textContent='🎙 GLASOVNI CHAT';
+   const glyph=document.createElement('span');glyph.className='ns247MicGlyph';glyph.textContent='🎙';
+   const state=document.createElement('span');state.className='ns247MicState';state.textContent='OFF';
+   mic.append(glyph,state);
+  }
+  const off=id==='ns165LobbyVoice'?null:document.createElement('button');
+  if(off){off.type='button';off.className='ns165Off';off.textContent='🔇 UGASI';off.onclick=micOff;}
   const note=document.createElement('small');note.className='ns165VoiceNote';
-  row.append(modeBtn,mic,off);card.append(title,row,note);
+  row.append(modeBtn,mic);if(off)row.append(off);card.append(title,row,note);
   parent.append(card);
  };
  create($('lobbyArea'),'ns165LobbyVoice');
@@ -231,6 +252,17 @@ function refresh(){
   if(card.id==='ns165LobbyVoice')card.classList.toggle('ns165ToggleMode',mode==='toggle');
   const modeBtn=card.querySelector('.ns165VoiceMode'),mic=card.querySelector('.ns165Mic'),
    off=card.querySelector('.ns165Off'),note=card.querySelector('.ns165VoiceNote');
+  if(card.id==='ns165LobbyVoice'){
+   const on=!!(live&&(mode==='toggle'?voice?.microphoneOn:voice?.transmitting));
+   card.classList.toggle('ns247MicOn',on);card.classList.toggle('ns247VoiceReady',live);
+   modeBtn.textContent=mode==='toggle'?'MODE · TOGGLE':'MODE · PTT';
+   const state=mic.querySelector('.ns247MicState');if(state)state.textContent=on?'ON':'OFF';
+   mic.setAttribute('aria-pressed',String(on));
+   mic.setAttribute('aria-label',mode==='toggle'?(on?'Isključi mikrofon':'Uključi mikrofon'):'Drži za razgovor, pusti za utišavanje');
+   mic.disabled=!live;
+   note.textContent=live?'':(!config?status:suspended?'Glas za Novu zonu je odvojen':'Povezujem glas…');
+   continue;
+  }
   modeBtn.textContent=mode==='toggle'?'🎙 REŽIM: TOGGLE · KLIK':'🎙 REŽIM: PTT · DRŽI';
   mic.textContent=mode==='toggle'?(voice?.microphoneOn?'🟢 MIC UKLJUČEN · UGASI':'🎙 UKLJUČI MIKROFON'):
    voice?.transmitting?'🟢 GOVORIŠ — PUSTI':'🎙 DRŽI ZA PRIČU (V)';
