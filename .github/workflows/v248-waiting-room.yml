@@ -1,0 +1,26 @@
+name: V248 Solo multiplayer and late-join waiting-room QA
+on:
+  push:
+    branches: [feature/v248-live-waiting-room]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  waiting-room:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Inline JS, solo, queue isolation, join/leave notices
+        run: node tests/v248-live-waiting-room.test.cjs
+      - name: Previous voice mic, mobile scroll, map and release
+        run: |
+          node tests/current-deployment.test.cjs
+          node tests/v199-development-log.test.cjs
+          node tests/v247-compact-lobby-mic.test.cjs
+          node tests/v246-lobby-roster-scroll.test.cjs
+          node tests/v243-revive-progress.test.cjs
