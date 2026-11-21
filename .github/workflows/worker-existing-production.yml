@@ -102,6 +102,8 @@ jobs:
         run: node tests/v246-lobby-roster-scroll.test.cjs
       - name: V247 compact Classic lobby mic ON/OFF and no overlay over lobby
         run: node tests/v247-compact-lobby-mic.test.cjs
+      - name: V248 solo multiplayer, in-progress Village waitlist and named join/leave
+        run: node tests/v248-live-waiting-room.test.cjs
       - name: Verify portrait lobby width at 320/360/393/412px on actual Chromium
         run: |
           npm install --no-save --no-package-lock playwright-core@1.58.2

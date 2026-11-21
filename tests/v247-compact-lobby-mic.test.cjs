@@ -47,9 +47,9 @@ ck(attrs['aria-label'].startsWith('Drži za razgovor'),'PTT hold is accessible')
 api.disconnect();api.refresh();
 ck(mic.disabled&&state.textContent==='OFF','disconnected mic unavailable');
 ck(!flags.has('ns247VoiceReady')&&note.textContent.length>0,'show connection message if disconnected');
-ck(/name="ns-release" content="247"/.test(html),'V247 build label');
-ck(/v165-classic-voice\.js\?v=247&amp;ui=247/.test(html),'voice JS cache bust');
-ck(/v140-net-mode\.js\?v=247&amp;release=247/.test(html),'New Zone script build key');
+const currentRelease=Number(html.match(/name="ns-release" content="(\d+)"/)?.[1]||0);ck(currentRelease>=247,'V247 or later release');
+ck(html.includes('v165-classic-voice.js?v='+currentRelease+'&amp;ui='+currentRelease),'voice JS cache bust');
+ck(html.includes('v140-net-mode.js?v='+currentRelease+'&amp;release='+currentRelease),'New Zone script build key');
 const scripts=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)].filter(m=>!/\bsrc=/.test(m[1]));
 ck(scripts.length===4,'Classic inline scripts preserved');
 for(const m of scripts){new vm.Script(m[2]);checks++}

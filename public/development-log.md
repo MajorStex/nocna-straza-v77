@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 247 -->
+<!-- current-release: 248 -->
 <!-- reviewed: 2026-11-21 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V247 smanjuje Classic MP mikrofon u čekaonici na MODE i ikonicu mikrofona sa ON/OFF statusom; uklanja treće veliko dugme i skriva plutajući mikrofon dok je čekaonica otvorena. V246 skrol sa 1–6 igrača, V245 voice prevlačenje, V244 chat, V243 revive, V242 oružje i V241 pećina ostaju. Cloudflare LIVE V247 tek proveriti.
+- Razvoj: V248 omogućava ručni solo start online multiplayer sobe sa otvorenom čekaonicom, server-side spisak gostiju koji stižu tokom partije, njihov Village/chat, objave imena pri ulasku/izlasku i sinhronizaciju tek za narednu rundu. Nova zona sada dozvoljava jedan mrežni seat uz postojeću server-authoritative borbu. V247 mic, V246 skrol i raniji sistemi ostaju. LIVE V248 proveriti odvojeno.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,13 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V248 — 21.11.2026 (KOD u feature grani; TEST i LIVE proveriti)
+- Classic online multiplayer dobija ručno solo pokretanje (jedan igrač) bez čekanja drugog, dok otvorena soba nastavlja da se oglašava kao „Runda traje · čekaonica otvorena”. Regularni 2–6 Ready početak i automatski start ostaju pod starim zaštitama.
+- Gost koji se poveže tokom aktivne Classic borbe dobija mesto u odvojenoj, ograničenoj listi čekanja i ostaje u lobby/Village prikazu. Ne postaje aktivan borac: njegov input, XP, damage, revive i snapshot se ne prosleđuju borbenom stanju. Nakon završetka runde host ga prebacuje u regularni roster, šalje normalan welcome i mapu preko prethodnog ACK/chunk protokola; tek tada može Ready i novi start.
+- Za sve učesnike, uključujući hosta i čekaoce, postoji imenovani „povezao se / napustio sobu” događaj. Village čekalaca međusobno prosleđuje samo ograničene kozmetičke koordinate; chat je ograničen na 160 znakova i jednu poruku na 1,5 sekundi, bez trajnog čuvanja. Ne šaljemo snapshot borbe u čekaonicu.
+- Relay sada izlaže poseban opt-in waitlist flag uz playing status i proverava stvarni broj WebSocket veza i popunjenost. Opšti trenutni limit ostaje 6 mesta. Nova zona omogućava otvaranje server-authoritative partije i sa jednim aktivnim seat-om, sa istim tiketima i rejoin mehanizmom; kasni gosti mogu ostati u standardnom lobiju i čekati naredni meč.
+- Izmenjeni fajlovi: game public/index.html, public/v115-village.js, public/v140-net-mode.js, tests/v248-live-waiting-room.test.cjs; relay index.js, arena-v140.js, tests/v248-waitlist.test.mjs. Smoke provere i GitHub CI workflow se dodaju. Ne tvrditi stvarni six-phone test ili Cloudflare objavu dok nisu potvrđeni.
+
 ### V247 — 21.11.2026 (KOD; LIVE tek proveriti)
 - U Classic multiplayer lobbyju glasovna kartica sada je znatno kompaktnija: naslov „GLASOVNI CHAT”, u jednom redu levo „MODE · TOGGLE/PTT”, desno jedno malo dugme (ikonica 🎙 + ON/OFF ispod). Treće ogromno dugme „UGASI” više se ni ne kreira u lobbyju; ostaje dostupno u Pause i Village kontrolama za potpuno zaustavljanje mikrofona.
 - U Toggle režimu OFF/ON očitava realno `microphoneOn`; u PTT režimu prikazuje ON samo dok postoji aktivna transmisija `transmitting`. Dugme zadržava originalni `bindControl` (click za Toggle i pointer hold za PTT), kao i postojeću kompatibilnost sa Android scrollom.

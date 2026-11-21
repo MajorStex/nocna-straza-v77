@@ -621,7 +621,7 @@
     const start=document.createElement('button');start.id='ns122Start';start.type='button';
     start.textContent=tr('▶ START MATCH','▶ POKRENI PARTIJU');
     start.onclick=()=>{
-     if(!getPlayers().length||getPlayers().length<2){toast(tr('At least two players needed','Potrebna su bar dva igrača'));return}
+     if(!getPlayers().length){toast(tr('First create an online room','Prvo otvori online sobu'));return}
      // Original start handler enforces READY, world loading and host authority.
      $('lobbyStartBtn')?.click();
     };
@@ -1074,7 +1074,7 @@ function showAchievements(){
   const dt=clamp((time-frameAt)/1000,0,.14);frameAt=time;
   if(focused==='invite'&&time-lastInviteUiAt>=1600){lastInviteUiAt=time;const status=$('ns122Presence');if(status)status.textContent=inviteRosterText()}
   stepTraining(dt,Date.now());
-  const roster=getPlayers();
+  const roster=getPlayers().filter(p=>!NET.waitingForNextRound||!p.inGame);
   if(isLobby()&&lastRosterCount>0&&roster.length>lastRosterCount){
    const joined=roster.find(p=>p.id!==NET.localId&&!smoothAvatars.has(p.id));
    $('ns141Join').textContent='✓ '+tr('Player joined · ','Igrač se pridružio · ')+String(joined?.name||'GUARDIAN').slice(0,20);

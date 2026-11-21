@@ -2973,7 +2973,7 @@ function connect(match,id,ticket,rejoin=false){
 }
 // V179: validate the exact relay contract before any budget claim or ticket offer.
 function arenaRosterIssue(net,roster,minLevel=NS140_TEMP_UNLOCK_LEVEL){
- if(!Array.isArray(roster)||roster.length<2||roster.length>6)return 'roster_count';
+ if(!Array.isArray(roster)||roster.length<1||roster.length>6)return 'roster_count';
  const ids=roster.map(p=>p?.id);
  if(ids.some(id=>typeof id!=='string'||!/^p[1-6]$/.test(id)))return 'roster_seat';
  if(new Set(ids).size!==ids.length)return 'roster_duplicate';
@@ -2984,7 +2984,7 @@ function arenaRosterIssue(net,roster,minLevel=NS140_TEMP_UNLOCK_LEVEL){
  return '';
 }
 function arenaRosterLabel(code){
- return ({roster_count:'Potrebna su 2–6 igrača',roster_seat:'Nevažeće mesto igrača',roster_duplicate:'Duplirano mesto igrača',roster_host:'Host nije u rosteru',roster_code:'Nevažeći kod sobe',roster_level:'Nivo igrača nije dovoljan',roster_changed:'Sastav sobe se promenio; pokušaj ponovo',invalid_tickets:'Server nije izdao sve ulaznice',guest_disconnected:'Igrač je izgubio vezu',invalid_roster:'Server je odbio roster'})[code]||code;
+ return ({roster_count:'Potrebno je 1–6 igrača',roster_seat:'Nevažeće mesto igrača',roster_duplicate:'Duplirano mesto igrača',roster_host:'Host nije u rosteru',roster_code:'Nevažeći kod sobe',roster_level:'Nivo igrača nije dovoljan',roster_changed:'Sastav sobe se promenio; pokušaj ponovo',invalid_tickets:'Server nije izdao sve ulaznice',guest_disconnected:'Igrač je izgubio vezu',invalid_roster:'Server je odbio roster'})[code]||code;
 }
 async function startHost(){
  const mode=arenaRuleMode(arguments[0]);
