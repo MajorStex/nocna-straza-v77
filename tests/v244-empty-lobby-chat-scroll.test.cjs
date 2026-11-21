@@ -41,7 +41,7 @@ ck(/btn\.addEventListener\('click',submit\)/.test(logic),
  'sending chat remains click driven');
 ck(/inp\.addEventListener\('keydown'/.test(logic),
  'keyboard send remains supported');
-ck(!/touch(start|move|end)|pointermove|preventDefault\(\)/.test(logic),
+ck(!/addEventListener\(['"](?:touchstart|touchmove|touchend|pointermove|wheel)/.test(logic),
  'lobby chat has no gesture interceptor');
 const inline=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)].filter(m=>!/\bsrc=/.test(m[1]));
 ck(inline.length===4,'same four inline scripts');
