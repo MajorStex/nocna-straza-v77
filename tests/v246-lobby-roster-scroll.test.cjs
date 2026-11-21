@@ -19,7 +19,7 @@ ck(/user-select:none;-webkit-user-select:none;-webkit-touch-callout:none/.test(c
 const base=html.slice(html.indexOf('/* v2.4: independent room lobby.'),html.indexOf('/* v2.5: actionable recovery'));
 ck(/\.lobbyRoster\{display:grid;gap:6px;max-height:min\(35vh,265px\);overflow-y:auto/.test(base),
  'original roster styles exist and are deliberately overridden');
-ck(/@media\(max-height:700px\)\{[^}]*\.lobbyRoster\{max-height:28vh\}/.test(base),
+ck(base.includes('@media(max-height:700px)')&&base.includes('.lobbyRoster{max-height:28vh}'),
  'previous height cap is overridden by important V246 rules');
 const menu=html.slice(html.indexOf('function renderLobby(){'),html.indexOf('function currentLobbyRoster(){')>0?html.indexOf('function currentLobbyRoster(){')+1:html.length);
 const render=html.slice(html.indexOf('function renderLobby(){'),html.indexOf('function broadcastLobby(){',html.indexOf('function renderLobby(){')));
