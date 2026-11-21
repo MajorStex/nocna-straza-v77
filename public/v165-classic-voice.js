@@ -163,6 +163,14 @@ function install(){
    #coopPanel .ns165VoiceCard .ns165Off{grid-column:1/-1}
   }
   @media (max-width:340px){#coopPanel .ns142MpModes{grid-template-columns:minmax(0,1fr)!important}}`;
+  // V245: blank/title/description and toggle controls in the lobby must scroll its parent.
+  // Keep microphone PTT on touch-action:none so finger hold remains uninterrupted.
+  st.textContent+=`
+  #ns165LobbyVoice{touch-action:pan-y;overscroll-behavior-y:auto;-webkit-user-select:none;user-select:none}
+  #ns165LobbyVoice strong,#ns165LobbyVoice small,#ns165LobbyVoice .ns165VoiceActions{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+  #ns165LobbyVoice .ns165VoiceMode,#ns165LobbyVoice .ns165Off{touch-action:pan-y}
+  #ns165LobbyVoice.ns165ToggleMode .ns165Mic{touch-action:pan-y}
+  `;
   document.head.append(st);
  }
  const create=(parent,id)=>{
@@ -220,6 +228,7 @@ function refresh(){
  const voice=window.NS159_VOICE;
  const live=ownVoice()&&!suspended&&voice?.connected;
  for(const card of document.querySelectorAll('.ns165VoiceCard')){
+  if(card.id==='ns165LobbyVoice')card.classList.toggle('ns165ToggleMode',mode==='toggle');
   const modeBtn=card.querySelector('.ns165VoiceMode'),mic=card.querySelector('.ns165Mic'),
    off=card.querySelector('.ns165Off'),note=card.querySelector('.ns165VoiceNote');
   modeBtn.textContent=mode==='toggle'?'🎙 REŽIM: TOGGLE · KLIK':'🎙 REŽIM: PTT · DRŽI';
