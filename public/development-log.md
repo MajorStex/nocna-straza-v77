@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 245 -->
+<!-- current-release: 246 -->
 <!-- reviewed: 2026-11-21 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V245 omogućava skrolovanje Lobby ekrana prevlačenjem preko Classic voice chat kartice i toggle dugmadi; u PTT režimu namerno zadržava hold na mikrofonskom dugmetu. V244 prazna istorija četa, V243 revive indikator, V242 oružje, V241 pećina ostaju. LIVE V245 tek proveriti.
+- Razvoj: V246 ceo spisak igrača u Classic MP lobbyju koristi jedan vertikalni skrol čak i kada ima 6 igrača, uz očuvane komande Dodaj prijatelja i Izbaci. V245 voice kartica, V244 chat, V243 revive, V242 oružje, V241 pećina ostaju. Cloudflare LIVE V246 tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,12 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V246 — 21.11.2026 (KOD; LIVE tek proveriti)
+- Classic multiplayer lobby: `lobbyRoster` je ranije imao zaseban vertikalni scroll (`max-height:min(35vh,265px)`, na niskom ekranu `28vh`, `overflow-y:auto`) koji je zadržavao swipe prilikom dodira preko štita, imena ili statusa igrača, pogotovo kada ima 3–6 igrača.
+- V246 isključuje unutrašnji scroll i ukida ograničenje visine liste (`max-height:none!important;overflow:visible!important`), dok originalni spoljašnji modal skroluje ceo lobby. Avatar, naziv, level i READY podržavaju `touch-action:pan-y` bez selekcije teksta. Isto važi i za `Dodaj prijatelja` i `Izbaci` dugmad, koja zadržavaju svoje klik akcije i potvrde.
+- Podržano 1–6 igrača i privremeno sačuvana mesta tokom reconnect-a. Nije dodat JS listener, mrežni paket, promena gameplay kontrole ili dodatno renderovanje. `tests/v246-lobby-roster-scroll.test.cjs` proverava CSS, strukturu reda i dugmad, a `tests/v246-lobby-roster-browser.test.cjs` je dodat u CI za Chromium emulaciju dodira pri 1/2/6 igrača u portretu i landscape režimu; rezultat browser testa tek proveriti.
+- Ažuriran prikaz verzije, cache-busting, istorija razvoja i testovi V241/V244/V245. Produkciona Cloudflare objava i stvarni test na telefonima nisu potvrđeni.
+
 ### V245 — 21.11.2026 (KOD; LIVE tek proveriti)
 - Classic lobby kartica „GLASOVNI CHAT · KLASIČNI MP”: vertikalni swipe preko pozadine, naslova, opisa i praznih delova kartice pomera ceo lobby. MODE i UGASI dugmad dozvoljavaju vertikalni swipe, a dodir/tap i dalje aktivira komandu.
 - U TOGGLE režimu i mikrofon dozvoljava swipe; u PTT režimu zadržava originalni `touch-action:none` da držanje prsta ne prekine glas. `refresh()` menja samo klasu kartice `ns165ToggleMode`, bez dodatnih događaja, mrežnih poruka ili promena audio mehanike. Pause i Village glasovne kartice ostaju netaknute.

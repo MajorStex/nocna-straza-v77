@@ -46,6 +46,6 @@ ck(!/addEventListener\(['"](?:touchstart|touchmove|touchend|pointermove|wheel)/.
 const inline=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)].filter(m=>!/\bsrc=/.test(m[1]));
 ck(inline.length===4,'same four inline scripts');
 for(const m of inline){new vm.Script(m[2]);checks++}
-ck(/name="ns-release" content="245"/.test(html),'V244 release stamp');
-ck(/v140-net-mode\.js\?v=245&amp;release=245/.test(html),'fresh mobile script cache key');
+ck(/name="ns-release" content="246"/.test(html),'V244 release stamp');
+ck(/v140-net-mode\.js\?v=246&amp;release=246/.test(html),'fresh mobile script cache key');
 console.log('V244 EMPTY LOBBY CHAT SWIPE PASS',JSON.stringify({checks,networkPacketsAdded:0,newGestureHandlers:0}));
