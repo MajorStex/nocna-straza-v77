@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'../public'),read=name=>fs.readFileSync(path.j
 const html=read('index.html'),game=read('v140-net-mode.js'),village=read('v115-village.js'),
  controller=read('v165-classic-voice.js'),voice=read('v159-voice.js');
 const release=Number(html.match(/name="ns-release" content="(\d+)"/)?.[1]);assert(release>=166);assert.equal(Number(html.match(/<title>Night Watch v(\d+)/)?.[1]),release);
-assert.match(html,/v165-classic-voice\.js\?v=166/);
+assert(Number(html.match(/v165-classic-voice\.js\?v=(\d+)/)?.[1])>=166,'Classic voice asset must never regress');
 assert.equal(Number(html.match(/v115-village\.js\?v=(\d+)/)?.[1]),release);
 assert(Number(html.match(/v140-net-mode\.js\?v=(\d+)/)?.[1])>=168,'New Zone asset version must not regress');
 assert(html.indexOf('v115-village.js')<html.indexOf('v165-classic-voice.js'));
