@@ -1,11 +1,11 @@
 # NOĆNA STRAŽA — prenos projekta / development handoff
-<!-- current-release: 246 -->
+<!-- current-release: 247 -->
 <!-- reviewed: 2026-11-21 -->
 Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izvoz razgovora ili rezervna kopija izvornog koda. Verzija navedena u dokumentu je razvojna verzija; ne dokaz produkcione objave. Ne sadrži pristupne tokene, lozinke, korisničke profile ni privatne razgovore.
 
 ## BRZI PRESEK — prvo pročitaj ovo
 - Projekat: Noćna Straža / Night Watch, HTML/JavaScript mobilni browser, landscape i desktop. Glavni stalni URL: https://nocna-straza-v77.stefanstevic1996.workers.dev/
-- Razvoj: V246 ceo spisak igrača u Classic MP lobbyju koristi jedan vertikalni skrol čak i kada ima 6 igrača, uz očuvane komande Dodaj prijatelja i Izbaci. V245 voice kartica, V244 chat, V243 revive, V242 oružje, V241 pećina ostaju. Cloudflare LIVE V246 tek proveriti.
+- Razvoj: V247 smanjuje Classic MP mikrofon u čekaonici na MODE i ikonicu mikrofona sa ON/OFF statusom; uklanja treće veliko dugme i skriva plutajući mikrofon dok je čekaonica otvorena. V246 skrol sa 1–6 igrača, V245 voice prevlačenje, V244 chat, V243 revive, V242 oružje i V241 pećina ostaju. Cloudflare LIVE V247 tek proveriti.
 - Prioritet: zadržati izgled i gameplay klasičnog moda; Nova zona je izdvojeni SOLO/MP mod. Cilj 60 FPS, stabilna sinhronizacija, 0 EUR mesečno. NEMA dinamičkog menjanja grafike, efekata, rezolucije likova. Engleski default + srpski u meniju.
 - Pristup: Nova zona planirano opšti nivo 7; privremeno otvoreno od nivoa 0. MP 2–6, Ready svih, host-independent server, reconnect istog slota, PC tastatura + mobilni joystick.
 - Sada se radi: odvajanje browser background statusa od timske pauze i provera glasanja.
@@ -32,6 +32,12 @@ Ovaj dokument je jedan prenosivi Markdown fajl namenjen nastavku razvoja, ne izv
 - Test fajlovi: tests/v179-stability.test.cjs, tests/v180-browser-stress.test.cjs, tests/v199-network-watchdog.test.mjs, relay tests/v199-tactical-regression.test.mjs, v199-sync-hardening.test.mjs, v199-snapshot-soak.test.mjs, v199-spatial-spell-stress.test.mjs; klijent v199-fixed-memory.test.mjs i v199-development-log.test.cjs; stari v154-horde, v168-world-xp, arena-spells-v189.
 
 <!-- HISTORY -->
+### V247 — 21.11.2026 (KOD; LIVE tek proveriti)
+- U Classic multiplayer lobbyju glasovna kartica sada je znatno kompaktnija: naslov „GLASOVNI CHAT”, u jednom redu levo „MODE · TOGGLE/PTT”, desno jedno malo dugme (ikonica 🎙 + ON/OFF ispod). Treće ogromno dugme „UGASI” više se ni ne kreira u lobbyju; ostaje dostupno u Pause i Village kontrolama za potpuno zaustavljanje mikrofona.
+- U Toggle režimu OFF/ON očitava realno `microphoneOn`; u PTT režimu prikazuje ON samo dok postoji aktivna transmisija `transmitting`. Dugme zadržava originalni `bindControl` (click za Toggle i pointer hold za PTT), kao i postojeću kompatibilnost sa Android scrollom.
+- Plutajući prozor `ns159Voice` ostaje dostupan u igri, ali se preko CSS-a privremeno skriva dok je otvoren Classic lobby (`#coopPanel` + `#lobbyArea`), čime se izbegava prekrivanje testova konekcije i komandi. Proširen tekst za vezu se prikazuje samo kada glas nije dostupan, inače se izostavlja da ne troši prostor.
+- Nova verzija u `index.html`, novi cache key za `v165-classic-voice.js`, bez izmena audio protokola, servera i dodatnih mrežnih poruka. Provera `tests/v247-compact-lobby-mic.test.cjs` izvršava dinamičku simulaciju ON/OFF, Toggle/PTT, prekinute veze, UI i script cache; povezana sa GitHub CI. LIVE deploy i pravi Android test nisu potvrđeni.
+
 ### V246 — 21.11.2026 (KOD; LIVE tek proveriti)
 - Classic multiplayer lobby: `lobbyRoster` je ranije imao zaseban vertikalni scroll (`max-height:min(35vh,265px)`, na niskom ekranu `28vh`, `overflow-y:auto`) koji je zadržavao swipe prilikom dodira preko štita, imena ili statusa igrača, pogotovo kada ima 3–6 igrača.
 - V246 isključuje unutrašnji scroll i ukida ograničenje visine liste (`max-height:none!important;overflow:visible!important`), dok originalni spoljašnji modal skroluje ceo lobby. Avatar, naziv, level i READY podržavaju `touch-action:pan-y` bez selekcije teksta. Isto važi i za `Dodaj prijatelja` i `Izbaci` dugmad, koja zadržavaju svoje klik akcije i potvrde.
