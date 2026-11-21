@@ -6,8 +6,8 @@ const arena=fs.readFileSync('public/v140-net-mode.js','utf8');
 let checks=0;
 function ok(x,label){assert.ok(x,label);checks++}
 for(const source of [village,arena]){new vm.Script(source);checks++}
-for(const match of html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)){
- if(!/\\bsrc=/.test(match[1])){new vm.Script(match[2]);checks++}
+for(const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)){
+ if(!/\bsrc=/.test(match[1])){new vm.Script(match[2]);checks++}
 }
 ok(html.includes('name="ns-release" content="248"'),'V248 release marker');
 ok(html.includes('v115-village.js?v=248&amp;ui=248'),'Village cache key');
