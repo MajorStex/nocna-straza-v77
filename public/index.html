@@ -8429,8 +8429,8 @@ const NS92_DIR=(()=>{
   if(!heartbeat&&!remove)startHeartbeat();
   if(!force&&Date.now()-advertiseAt<2500)return false;
   const data={t:'ROOM_STATUS',name:opts.name,maxPlayers:opts.maxPlayers,public:!remove&&opts.public,
-   password:opts.password,mode:selectedMode,difficulty:NSX.opt.difficulty,
-   status:NET.phase==='playing'?'playing':'waiting'};
+   password:opts.password,mode:selectedMode,difficulty:NSX.opt.difficulty,waitlist:true,
+   status:NET.phase==='playing'||window.NS140_ARENA?.busy?'playing':'waiting'};
   try{const ok=NET.peer._send(data);if(ok)advertiseAt=Date.now();return ok}catch{return false}
  }
  function startHeartbeat(){
@@ -8451,7 +8451,7 @@ const NS92_DIR=(()=>{
    status('Already connecting or in a room.','Već se povezuješ ili si u sobi.');return false;
   }
   if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code))return false;
-  if(room.status!=='waiting'||room.players>=room.maxPlayers){
+  if(!(room.status==='waiting'||room.status==='playing'&&room.waitlist===true)||room.players>=room.maxPlayers){
    status('Room is unavailable. Refresh the list.','Soba nije dostupna. Osveži listu.');return false;
   }
   joiningListedRoom=true;
@@ -8468,7 +8468,7 @@ const NS92_DIR=(()=>{
      const result=await live.json();
      if(result?.version===3&&result.code===code){
       confirmed=true;
-      unavailable=!result.joinable||result.status!=='waiting';
+      unavailable=!result.joinable;
       selected={...room,locked:!!result.locked,players:result.players,maxPlayers:result.maxPlayers,status:result.status};
      }
     }
@@ -8480,7 +8480,7 @@ const NS92_DIR=(()=>{
        confirmed=true;
        rooms=data.rooms.filter(r=>/^[A-HJ-NP-Z2-9]{6}$/.test(r.code)&&Number.isInteger(r.players)&&r.players>=1&&r.players<=6).slice(0,50);
        selected=rooms.find(r=>r.code===code);
-       unavailable=!selected||selected.status!=='waiting'||selected.players>=selected.maxPlayers;
+       unavailable=!selected||!(selected.status==='waiting'||selected.status==='playing'&&selected.waitlist===true)||selected.players>=selected.maxPlayers;
       }
      }
     }
@@ -8510,7 +8510,7 @@ const NS92_DIR=(()=>{
   labels();
   const box=$id('ns92Rooms');if(!box)return;
   box.replaceChildren();
-  const filtered=rooms.filter(r=>!$id('ns92HideFull')?.checked||(r.players<r.maxPlayers&&r.status==='waiting'));
+  const filtered=rooms.filter(r=>!$id('ns92HideFull')?.checked||(r.players<r.maxPlayers&&(r.status==='waiting'||r.status==='playing'&&r.waitlist===true)));
   if(!filtered.length){
    const text=document.createElement('small');
    text.textContent=tr('No available public games. Create one or join using a code.','Nema dostupnih javnih soba. Napravi sobu ili uđi preko koda.');
@@ -8520,9 +8520,9 @@ const NS92_DIR=(()=>{
    const row=document.createElement('div');row.className='ns92Room';
    const details=document.createElement('div'),title=document.createElement('b'),info=document.createElement('small');
    title.textContent=(room.locked?'🔒 ':'🟢 ')+room.name;
-   info.textContent=room.code+' · '+room.players+'/'+room.maxPlayers+' · '+room.difficulty+' · '+room.mode+(room.status==='playing'?' · '+tr('Playing','U igri'):'');
+   info.textContent=room.code+' · '+room.players+'/'+room.maxPlayers+' · '+room.difficulty+' · '+room.mode+(room.status==='playing'?' · '+tr('Match live · waiting room open','Runda traje · čekaonica otvorena'):'');
    const button=document.createElement('button');button.type='button';
-   button.textContent=tr('JOIN','ULAZ');button.disabled=room.players>=room.maxPlayers||room.status!=='waiting';
+   button.textContent=room.status==='playing'?tr('WAIT / VILLAGE','ČEKAJ / VILLAGE'):tr('JOIN','ULAZ');button.disabled=room.players>=room.maxPlayers||!(room.status==='waiting'||room.status==='playing'&&room.waitlist===true);
    button.addEventListener('click',()=>{void joinListedRoom(room,button)});
    details.append(title,info);row.append(details,button);box.append(row);
   }
