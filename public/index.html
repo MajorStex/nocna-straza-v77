@@ -7537,6 +7537,27 @@ function multiplayerDisplayName(id){
 }
 function markMultiplayerNames(){if(!NET.role)return;for(const p of G.players)p.mpName=multiplayerDisplayName(p.id);}
 function coopLooks(){return Object.fromEntries(G.players.map(p=>[p.id,p.look||networkHeroStyle(heroStyle)]))}
+/* V248: social waitlist is separate from the current combat roster. Nothing
+   from a queued seat may reach the host's gameplay input or snapshots. */
+function ns248Presence(kind,id,name){
+ if(NET.role!=='host'||!/^p[1-6]$/.test(String(id)))return;
+ const who=ns97DisplayName(name,id),packet={t:'ns248Presence',kind,id,name:who};
+ const message=kind==='joined'?'🟢 '+who+' se povezao':kind==='left'?'🔴 '+who+' je napustio sobu':'';
+ if(message)toast(message);
+ for(const c of NET.clients.values())if(c?.open)try{c.send(packet)}catch{}
+ for(const v of NET.waitingPeers.values())if(v.conn?.open)try{v.conn.send(packet)}catch{}
+}
+function ns248QueueStatus(){
+ if(NET.role!=='host'||NET.phase!=='playing')return;
+ const players=[...currentLobbyRoster().map(p=>({...p,inGame:true})),
+  ...[...NET.waitingPeers.entries()].filter(([,e])=>e.conn?.open).map(([id,e])=>({
+   id,ready:false,inGame:false,name:e.profile?.name||e.name||('STRAŽAR '+id.slice(1)),
+   level:e.profile?.level||1,heroLevel:e.profile?.heroLevel||1,heroName:e.profile?.heroName||'STRAŽAR',
+   avatarId:e.profile?.avatarId,avatarImg:e.profile?.avatarImg}))];
+ const msg={t:'ns248Waiting',code:NET.code,round:NET.round,hostId:NET.localId,
+  specialMode:selectedMode,players:players.slice(0,6),waiting:true};
+ for(const e of NET.waitingPeers.values())if(e.conn?.open)try{e.conn.send(msg)}catch{}
+}
 function startLobbyMatch(){
  if(NET.role!=='host'||NET.phase!=='lobby')return false;
  if(window.NS177_WORKSHOP?.blocksStart){NET.forceRequest=false;netStatus('Zatvori kreativnu radionicu pre početka partije.');return false}
