@@ -57,13 +57,18 @@ const {chromium}=require('playwright-core');
       const cdp=await page.context().newCDPSession(page);
       const x=Math.round(box.x+box.width*.55),y=Math.round(box.y+box.height*.5);
       await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
-      for(let j=1;j<=8;j++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-j*19}]});
+      for(let j=1;j<=8;j++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-j*19}]});await page.waitForTimeout(16)}
       await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
       await page.waitForTimeout(120);
       const after=await sc.evaluate(el=>el.scrollTop);
       assert(after>before+12,width+'x'+height+': '+count+' players, swipe over '+targetKind+' must scroll lobby ('+before+' -> '+after+')');
       checks++;
       await cdp.detach();
+     }
+     if(count>1){
+      await page.locator('#lobbyRoster .ns74-lobby-friend').first().click();
+      assert((await page.evaluate(()=>window.__rosterTap||0))>0,'tapping Add Friend still triggers its handler');
+      checks++;
      }
     }
    }finally{await page.close()}
