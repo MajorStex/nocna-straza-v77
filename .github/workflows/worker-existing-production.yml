@@ -98,11 +98,14 @@ jobs:
         run: node tests/v244-empty-lobby-chat-scroll.test.cjs
       - name: V245 voice panel swipe to scroll lobby without changing PTT
         run: node tests/v245-lobby-voice-swipe.test.cjs
+      - name: V246 six-player lobby roster scroll and button preservation
+        run: node tests/v246-lobby-roster-scroll.test.cjs
       - name: Verify portrait lobby width at 320/360/393/412px on actual Chromium
         run: |
           npm install --no-save --no-package-lock playwright-core@1.58.2
           node tests/v166-lobby-mobile-width.test.cjs
           node tests/v166-lobby-mobile-browser.test.cjs
+          node tests/v246-lobby-roster-browser.test.cjs
           node tests/v220-temple-art.test.cjs
       - name: Select authenticated deploy or verify existing Cloudflare Builds integration
         id: deploy_auth
