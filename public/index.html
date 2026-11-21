@@ -7547,8 +7547,11 @@ function ns248Presence(kind,id,name){
  for(const c of NET.clients.values())if(c?.open)try{c.send(packet)}catch{}
  for(const v of NET.waitingPeers.values())if(v.conn?.open)try{v.conn.send(packet)}catch{}
 }
-function ns248QueueStatus(){
- if(NET.role!=='host'||NET.phase!=='playing')return;
+let ns248QueueAt=0;
+function ns248QueueStatus(force=false){
+ if(NET.role!=='host'||NET.phase!=='playing'||!NET.waitingPeers.size)return;
+ if(!force&&Date.now()-ns248QueueAt<1100)return;
+ ns248QueueAt=Date.now();
  const players=[...currentLobbyRoster().map(p=>({...p,inGame:true})),
   ...[...NET.waitingPeers.entries()].filter(([,e])=>e.conn?.open).map(([id,e])=>({
    id,ready:false,inGame:false,name:e.profile?.name||e.name||('STRAŽAR '+id.slice(1)),
@@ -7741,6 +7744,30 @@ function setupConnection(c){
   if(data.t==='ns155LobbyTransfer'&&NET.role==='guest'){
     NS155_LOBBY.receive(data);return;
    }
+   if(NET.role==='host'&&waitingForRound){
+    const entry=NET.waitingPeers.get(assigned);
+    if(!entry||entry.conn!==c)return;
+    if(data.t==='welcomeAck'&&data.id===assigned){welcomeAcknowledged=true;ns248QueueStatus(true);return}
+    if(data.t==='profile'){
+      const profile=safeMPProfile(data);
+      if(profile.sessionIdentity!==presentedIdentity){safeSend({t:'versionMismatch',required:107});return}
+      entry.profile=profile;entry.name=profile.name;
+      if(!entry.noticed){entry.noticed=true;ns248Presence('joined',assigned,profile.name)}
+      ns248QueueStatus(true);return;
+    }
+    if(data.t==='ns109Move'&&Number.isFinite(data.x)&&Number.isFinite(data.y)){
+      const now=performance.now();if(now-entry.lastMoveAt<105)return;
+      entry.lastMoveAt=now;entry.x=clamp(data.x,0,1660);entry.y=clamp(data.y,0,960);
+      const players=[...NET.waitingPeers.entries()].filter(([id,p])=>id!==assigned&&p.conn?.open)
+       .map(([id,p])=>({id,x:Math.round(p.x||840),y:Math.round(p.y||506)})).slice(0,5);
+      safeSend({t:'ns109State',players});return;
+    }
+    if(data.t==='ns109Emote'&&['👋','⚔','🍻'].includes(data.emote)){
+      for(const [id,p] of NET.waitingPeers)if(id!==assigned&&p.conn?.open)try{p.conn.send({t:'ns109Emote',id:assigned,emote:data.emote})}catch{}
+    }
+    // No world transfer, damage, rewards, snapshots or gameplay input for waiters.
+    return;
+   }
    if((NET.role==='host'?NET.clients.get(assigned)===c:NET.conn===c)&&window.NS177_WORKSHOP?.receive?.(data,assigned))return;
    if(window.NS109_VILLAGE?.onMessage?.(data,assigned))return;
   if(NET.role==='host'&&assigned&&NET.phase==='playing'){
@@ -7754,6 +7781,39 @@ function setupConnection(c){
   if(data.t==='nsV63Part'||data.t==='nsV63Play'||data.t==='nsV66Repeat'){coopVoiceHandleNetwork(data,NET.role==='host'?assigned:data.from);return;}
   if(data.t==='nsV63Cue'&&NET.role==='guest'&&NET.phase==='playing'&&CV63_KINDS.has(data.kind)){voiceLine(data.kind,true);return;}
   if(NET.role==='host'){
+   if(data.t==='hello'&&NET.phase==='playing'&&!assigned){
+    if(data.v!==107){safeSend({t:'versionMismatch',required:107});return}
+    const identity=/^[a-f0-9]{48}$/.test(String(data.identity||''))?data.identity:'';
+    if(!identity||NET.kickedIdentities.has(identity)||identity===ns106Identity()||
+      [...NET.profiles.values()].some(p=>p.sessionIdentity===identity)||
+      [...NET.waitingPeers.values()].some(p=>p.identity===identity)){
+      safeSend({t:'alreadyHere'});return;
+    }
+    if(NET.clients.size+NET.waitingPeers.size+1>=NS92_DIR.maxPlayers()||
+      [...NETLAB.tokens.keys()].filter(id=>!NET.clients.has(id)&&!NET.waitingPeers.has(id)).length+
+       NET.clients.size+NET.waitingPeers.size+1>=NS92_DIR.maxPlayers()){
+      safeSend({t:'full'});return;
+    }
+    for(let n=2;n<=NS92_DIR.maxPlayers();n++){
+      const id='p'+n;
+      if(!NET.clients.has(id)&&!NET.waitingPeers.has(id)&&!NETLAB.tokens.has(id)){assigned=id;break}
+    }
+    if(!assigned){safeSend({t:'full'});return}
+    presentedIdentity=identity;waitingForRound=true;
+    const entry={conn:c,identity,name:'STRAŽAR '+assigned.slice(1),x:840,y:506,lastMoveAt:0,noticed:false,profile:null,
+     promote:()=>{
+      if(!c.open||NET.role!=='host'||NET.phase!=='lobby'||NET.waitingPeers.get(assigned)!==entry)return false;
+      NET.waitingPeers.delete(assigned);waitingForRound=false;
+      NET.clients.set(assigned,c);NETLAB.reserve(assigned);
+      NET.readyPlayers.set(assigned,false);NET.worldReadyPlayers.set(assigned,false);
+      NET.remoteInputs.set(assigned,{x:0,y:0,attack:false,dash:false});
+      if(entry.profile)NET.profiles.set(assigned,entry.profile);
+      welcomeAcknowledged=false;worldSend=null;worldReceive=null;sendWelcome();broadcastLobby();
+      return true;
+     }};
+    NET.waitingPeers.set(assigned,entry);
+    sendWelcome();ns248QueueStatus(true);return;
+   }
    if(data.t==='hello'&&NET.phase==='lobby'){
     if(data.v!==107){safeSend({t:'versionMismatch',required:107});return}
     const identity=/^[a-f0-9]{48}$/.test(String(data.identity||''))?data.identity:'';
@@ -7792,8 +7852,8 @@ function setupConnection(c){
     if(data.t==='profile'&&assigned){const profile=safeMPProfile(data);
      if(!presentedIdentity||profile.sessionIdentity!==presentedIdentity){safeSend({t:'versionMismatch',required:107});setTimeout(()=>c.close(),300);return}
      if(profile.sessionIdentity&&NET.kickedIdentities.has(profile.sessionIdentity)){safeSend({t:'kicked'});setTimeout(()=>c.close(),300);return}
-     const existing=profile.sessionIdentity?[...NET.profiles].find(([id,p])=>id!==assigned&&p.sessionIdentity===profile.sessionIdentity&&NET.clients.get(id)?.open):null;
-     if(existing)takeover(existing[0]);NET.profiles.set(assigned,profile);if(existing)sendWelcome();broadcastLobby();return;}
+     const firstProfile=!NET.profiles.has(assigned);const existing=profile.sessionIdentity?[...NET.profiles].find(([id,p])=>id!==assigned&&p.sessionIdentity===profile.sessionIdentity&&NET.clients.get(id)?.open):null;
+     if(existing)takeover(existing[0]);NET.profiles.set(assigned,profile);if(firstProfile&&!existing)ns248Presence('joined',assigned,profile.name);if(existing)sendWelcome();broadcastLobby();return;}
     if(data.t==='ready'){
      NET.readyPlayers.set(assigned,data.ready===true);broadcastLobby();return;
     }
@@ -7804,7 +7864,7 @@ function setupConnection(c){
     const tokenId=data.code===NET.code?NETLAB.findResume(data.token,data.round):null;
     const found=identity&&data.code===NET.code?[...NET.profiles].find(([id,p])=>/^p[2-6]$/.test(id)&&p.sessionIdentity===identity&&G.players.some(x=>x.id===id)):null;
     const id=tokenId||found?.[0];
-    if(!id){safeSend({t:'resumeRejected'});setTimeout(()=>c.close(),300);return}
+    if(!id){if(data.token)safeSend({t:'resumeRejected'});return}
     const prev=NET.clients.get(id);assigned=id;NET.clients.set(id,c);NET.remoteInputs.set(id,{x:0,y:0,attack:false,dash:false});NET.startAcks.set(id,true);
     if(prev&&prev!==c){try{prev.send({t:'sessionReplaced'})}catch{};try{prev.close()}catch{}}
     const newToken=NETLAB.reserve(id);safeSend({t:'resumeAccepted',id,round:NET.round,rejoinToken:newToken,specialMode:G.specialMode});sendSnapshot();try{c.send({t:'ns99State',round:NET.round,state:NS99_TEAM.state()})}catch{}netStatus(`Igrač ${id.slice(1)} se vratio u partiju.`);return;
