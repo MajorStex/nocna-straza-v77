@@ -41,7 +41,7 @@ ck(/\.modalBox, \.heroPanel, \.editBody, \.friendsBox, \.friendsList,/.test(html
 const inline=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)].filter(m=>!/\bsrc=/.test(m[1]));
 ck(inline.length===4,'original four inline scripts preserved');
 for(const m of inline){new vm.Script(m[2]);checks++}
-ck(/name="ns-release" content="246"/.test(html),'V246 release stamp');
-ck(/ns102MenuVersion"[^<]*VERZIJA V246/.test(html),'V246 lobby visible label');
-ck(/v140-net-mode\.js\?v=246&amp;release=246/.test(html),'consistent cache-busting release');
+ck(/name="ns-release" content="247"/.test(html),'V246 release stamp');
+ck(/ns102MenuVersion"[^<]*VERZIJA V247/.test(html),'V246 lobby visible label');
+ck(/v140-net-mode\.js\?v=247&amp;release=247/.test(html),'consistent cache-busting release');
 console.log('V246 SIX-PLAYER LOBBY ROSTER SCROLL PASS',JSON.stringify({checks,networkChanges:0,newListeners:0,rosterSlots:6}));
