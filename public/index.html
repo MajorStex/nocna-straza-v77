@@ -7549,7 +7549,7 @@ function ns248Presence(kind,id,name){
  for(const c of NET.clients.values())if(c?.open)try{c.send(packet)}catch{}
  for(const v of NET.waitingPeers.values())if(v.conn?.open)try{v.conn.send(packet)}catch{}
 }
-let ns248QueueAt=0;
+let ns248QueueAt=0,ns248ChatSeq=0;
 function ns248QueueStatus(force=false){
  if(NET.role!=='host'||NET.phase!=='playing'||!NET.waitingPeers.size)return;
  if(!force&&Date.now()-ns248QueueAt<1100)return;
@@ -7774,6 +7774,16 @@ function setupConnection(c){
       entry.profile=profile;entry.name=profile.name;
       if(!entry.noticed){entry.noticed=true;ns248Presence('joined',assigned,profile.name)}
       ns248QueueStatus(true);return;
+    }
+    if(data.t==='ns76ChatSend'&&typeof data.text==='string'){
+      const message=Array.from(data.text.replace(/[\x00-\x1f\x7f]/g,' ').trim()).slice(0,160).join('');
+      const now=Date.now();
+      if(message&&data.text.length<=650&&entry.noticed&&now-(entry.lastChatAt||0)>=1500){
+       entry.lastChatAt=now;
+       const packet={t:'ns76ChatMsg',id:assigned,name:entry.name,text:message,seq:800000+(++ns248ChatSeq%190000)};
+       for(const p of NET.waitingPeers.values())if(p.conn?.open)try{p.conn.send(packet)}catch{}
+      }
+      return;
     }
     if(data.t==='ns109Move'&&Number.isFinite(data.x)&&Number.isFinite(data.y)){
       const now=performance.now();if(now-entry.lastMoveAt<105)return;
